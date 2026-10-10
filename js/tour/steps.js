@@ -92,8 +92,13 @@ export const shouldStartTour = (profile, active) => !active && tourPending(profi
  * How far to scroll (positive = down) so a target sits clear of the tour card: its bottom (plus pad) at least
  * gap px above cardTop, and its top not above minTop. 0 when it already fits.
  */
-export function scrollToClear(rect, cardTop, { pad = 8, gap = 12, minTop = 12 } = {}) {
+export function scrollToClear(rect, cardTop, { pad = 8, gap = 12, minTop = 12, context = 0 } = {}) {
+  // A target that fits gets `context` px of the page above it; one too tall for the room is pinned at minTop.
+  const roomTop = minTop + context;
+  const fits = rect.height + pad * 2 <= cardTop - gap - roomTop;
+  const top = fits ? roomTop : minTop;
   const down = Math.max(0, rect.bottom + pad - (cardTop - gap));
+  if (fits && rect.top < top) return rect.top - top; // too close to the top: scroll up so there is context
   return Math.min(down, rect.top - minTop); // never scroll its top above minTop; negative = scroll up to it
 }
 

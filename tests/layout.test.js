@@ -411,6 +411,33 @@ if (standalone) {
   });
 }
 
+for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
+  test(`layout: tour keeps each target in view above the card at ${w}x${h}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await browser.viewport(w, h, true);
+    await browser.open('today', seed({}));
+    await browser.eval("import('./js/tour/tour.js').then((m) => m.startTour({ replay: true }))");
+    await wait(600);
+    const bad = [];
+    for (let i = 0; i < 11; i++) {
+      await wait(450);
+      const m = await browser.eval(`(() => { const c = document.querySelector('.tour-card').getBoundingClientRect(); const s = document.querySelector('.tour-spot'); const sr = s.getBoundingClientRect(); return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), ctop: c.top, sbot: sr.bottom, stop: sr.top, sh: sr.height }; })()`);
+      if (shots) await browser.screenshot(`${shots}/tour-${i + 1}-${w}x${h}.png`);
+      // The tab-bar step puts the card above its target; a target taller than the room is pinned under the nav bar.
+      const fits = !m.empty && m.stop < m.ctop && m.sh + 12 + 36 <= m.ctop;
+      if (fits) {
+        const gap = m.ctop - m.sbot; // spotlight outline (8px pad included) to the top of the card
+        if (gap < 11) bad.push(`step ${i + 1} "${m.t}": only ${Math.round(gap)}px between target and card`);
+        if (m.stop < 30) bad.push(`step ${i + 1} "${m.t}": only ${Math.round(m.stop)}px of page above the target`);
+      }
+      await browser.eval("document.querySelector('[data-next]').click()");
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;

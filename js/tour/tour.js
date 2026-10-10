@@ -110,7 +110,7 @@ export async function startTour({ replay = false } = {}) {
     let r = el.getBoundingClientRect();
     if (!fixed) {
       // Keep the element above the card (measured, so the home indicator inset counts): scroll it, instantly.
-      const dy = scrollToClear(r, card.getBoundingClientRect().top, { pad, minTop: safeTop() });
+      const dy = scrollToClear(r, card.getBoundingClientRect().top, { pad, minTop: safeTop(), context: 28 });
       if (dy) {
         scrollBy({ top: dy, behavior: 'instant' });
         r = el.getBoundingClientRect();

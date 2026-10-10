@@ -10,6 +10,7 @@ Issue #64, part 5 (item 26). No Cloud Functions, `firestore.rules`, `firebase.js
 - **Native cleanup:** on the iPhone app's first launch of this build, any service worker and `forge-*` cache left from older builds is removed, so a stale cached file can never be served inside the app.
 - **Refresh Forge.command** now relaunches Forge on the phone after installing (`devicectl device process launch --terminate-existing`, phone unlocked). If this Xcode lacks the flag or the launch fails, it says "If Forge was open on the phone, close and reopen it."
 - **Missions footer:** "Finish all 4 for a +30 XP bonus." The bonus can't split from its number or leave "XP" alone on a line, and the sentence balances across two lines.
+- **Tour:** a target that fits now gets about 28 px of page above it as well as clear space over the card, on every step at 320, 375 and 390 (the tab-bar step and cards taller than the room, like Rings and Recovery, are pinned under the nav bar). The layout test steps through all 11 and checks it.
 - Tests: `tests/v01511.test.js`; the layout test simulates a resume with a changed `app-install.json` (reload, then the toast and sheet), and checks the missions footer at 320/390, text scale 1 and 1.35.
 
 ## 0.15.10 — Fit-and-finish, part 4: weight card, Food at 320, Log food dock (2026-10-10)
