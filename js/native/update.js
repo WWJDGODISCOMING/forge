@@ -93,7 +93,11 @@ export function setupUpdates() {
   };
   go(); // remember the running build
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') go(); });
-  window.addEventListener('hashchange', () => { if (pending) checkForUpdate().catch(() => {}); });
+  // A reload that had to wait goes through once you've left the workout screen (after the new screen has drawn, so a field
+  // of the old one no longer counts as "typing"), or when you stop typing.
+  const retry = () => { if (pending) setTimeout(() => checkForUpdate().catch(() => {}), 600); };
+  window.addEventListener('hashchange', retry);
+  document.addEventListener('focusout', retry);
   const App = plugin('App');
   if (App && App.addListener) {
     try { const h = App.addListener('resume', go); if (h && h.catch) h.catch(() => {}); } catch { /* the visibilitychange fallback covers it */ }

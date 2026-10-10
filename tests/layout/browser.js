@@ -95,6 +95,7 @@ export async function launch() {
   await send('Runtime.enable');
   await send('Fetch.enable', { patterns: [{ urlPattern: 'https://*' }] });
 
+  let kept = null;
   const api = {
     base: `http://127.0.0.1:${port}`,
     send,
@@ -109,10 +110,13 @@ export async function launch() {
       await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }, { name: 'prefers-reduced-motion', value: 'reduce' }] });
     },
     /** Open the app at a hash route with a seeded account. */
-    async open(route, seedData, init = '') {
+    async open(route, seedData, init = '', { persist = false } = {}) {
+      await api.dropInit();
       await send('Page.navigate', { url: 'about:blank' });
+      // persist: the setup script also runs after a page reload, and storage is only cleared on the first load (resume/update tests)
+      const tok = Math.random().toString(36).slice(2);
       const boot = `window.__SEED = ${JSON.stringify(seedData)};
-        try { localStorage.clear(); localStorage.setItem('forge.seen', '1'); } catch (e) {}
+        try { if (!${persist} || sessionStorage.getItem('__booted') !== '${tok}') { localStorage.clear(); localStorage.setItem('forge.seen', '1'); sessionStorage.setItem('__booted', '${tok}'); } } catch (e) {}
         try { delete Navigator.prototype.serviceWorker; } catch (e) {}
         window.__cls = 0; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
         ${init}`;
@@ -125,7 +129,13 @@ export async function launch() {
         if (ready) break;
       }
       await new Promise((r) => setTimeout(r, 450));
-      await send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
+      if (persist) kept = identifier;
+      else await send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
+    },
+    /** Remove a script kept by open(..., { persist: true }). */
+    async dropInit() {
+      if (kept) await send('Page.removeScriptToEvaluateOnNewDocument', { identifier: kept }).catch(() => {});
+      kept = null;
     },
     async screenshot(path) {
       const { data } = await send('Page.captureScreenshot', { format: 'png' });

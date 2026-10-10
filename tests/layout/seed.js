@@ -13,7 +13,7 @@ export function seed({ long = false, empty = false, active = false, over = false
     trainingDays: 4, sessionMin: 45, experience: 'intermediate', injuries: [], pacePct: 0.5, allowFastPace: false,
     tour: 'seen', tour_seen_at: new Date(now).toISOString(), tour_offer: TOUR_OFFER,
   });
-  const settings = rec('main', { units: 'imperial', player: 'guided', haptics: true });
+  const settings = rec('main', { units: 'imperial', player: 'guided', haptics: true, missions_started: dayKey(now - 3 * DAY) });
   const locations = [
     rec('l1', { name: long ? 'Downtown Athletic Club & Pool' : 'Home gym', preset: 'home', equipment: [...HOME_PRESET], weight_inventory: {}, is_default: true }),
     rec('l2', { name: long ? 'Hotel fitness room (3rd floor)' : 'Travel', preset: 'travel', equipment: [...TRAVEL_PRESET], weight_inventory: {}, is_default: false }),
