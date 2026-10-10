@@ -440,6 +440,118 @@ for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
   });
 }
 
+// A fake iPhone shell with the Face ID plugin: verifyIdentity rejects (user cancel) until window.__allow is set.
+const LOCK_SHELL = `
+  localStorage.setItem('forge.lock', JSON.stringify({ enabled: true, timeout: 0, asked: true }));
+  window.__allow = false; window.__verifies = 0;
+  document.addEventListener('readystatechange', () => { if (document.readyState === 'interactive') window.__earlyLocked = document.documentElement.classList.contains('app-locked'); });
+  const bio = { isAvailable: () => Promise.resolve({ isAvailable: true }), verifyIdentity: () => { window.__verifies++; return window.__allow ? Promise.resolve() : Promise.reject({ code: '16', message: 'User cancel' }); } };
+  window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: (n) => n === 'App' || n === 'NativeBiometric',
+    Plugins: { NativeBiometric: bio, App: { addListener: (ev, cb) => { (window.__cb = window.__cb || {})[ev] = cb; return Promise.resolve({ remove() {} }); } } } };
+`;
+
+// 320/375/390 phones plus the wide folded (about 5.4 inch) and unfolded (about 7.6 inch) iPhone Duo screens.
+const LOCK_SIZES = [[320, 568], [375, 667], [390, 844], [540, 720], [720, 900]];
+const noteTo = (found) => (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+const report = (found) => `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`;
+
+if (standalone) {
+  test('layout: Face ID lock: covers the app before it is drawn, fits at 320 to Duo widths, shields on leaving, unlocks', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = noteTo(found);
+    const hidden = "['main', 'nav', 'navbar'].every((id) => { const e = document.getElementById(id); return !e || getComputedStyle(e).visibility === 'hidden'; })";
+    for (const [w, h] of LOCK_SIZES) for (const ts of [1, 1.35]) {
+      const at = `${w}${ts !== 1 ? 'T' : ''}`;
+      await browser.viewport(w, h, true);
+      await browser.open('today', seed(), LOCK_SHELL);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+      // 1. cold launch: locked before the app's scripts ran, content hidden, Face ID asked without a tap
+      if (!(await browser.eval('window.__earlyLocked === true'))) note('the page was not marked locked before the app started (content could flash)', at);
+      if (!(await browser.eval(hidden))) note('app content is visible while locked', at);
+      if ((await browser.eval('window.__verifies')) < 1) note('Face ID was not asked for on launch', at);
+      if (ts === 1 && shots) await browser.screenshot(`${shots}/lock-${w}x${h}.png`);
+      const m = await browser.eval(`(() => {
+        const lock = document.getElementById('lock'); const r = lock.getBoundingClientRect();
+        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+        const b = lock.querySelector('[data-unlock]').getBoundingClientRect(); const t = lock.querySelector('h1');
+        const kids = [...lock.children].map((c) => c.getBoundingClientRect());
+        return { shown: getComputedStyle(lock).display !== 'none', full: r.width >= innerWidth - 1 && r.height >= innerHeight - 1, btnH: b.height, btnL: b.left, btnR: b.right,
+          title: lines(t), titleCut: t.scrollWidth > t.clientWidth + 1, out: kids.some((k) => k.left < -0.5 || k.right > innerWidth + 0.5 || k.top < -0.5 || k.bottom > innerHeight + 0.5),
+          hscroll: document.documentElement.scrollWidth > innerWidth + 1 };
+      })()`);
+      if (!m.shown || !m.full) note('the lock screen does not cover the whole screen', at);
+      if (m.btnH < 44) note(`Unlock button is only ${m.btnH}px tall`, at);
+      if (m.btnL < 0 || m.btnR > w) note('Unlock button runs off-screen', at);
+      if (m.out) note('something on the lock screen is clipped or off-screen', at);
+      if (ts === 1 && (m.title !== 1 || m.titleCut)) note('the lock title wraps or is cut', at);
+      if (m.hscroll) note('the lock screen scrolls sideways', at);
+      if (ts !== 1) continue;
+      // 2. Unlock: the app shows
+      await browser.eval('window.__allow = true');
+      await browser.eval("document.querySelector('#lock [data-unlock]').click()");
+      await wait(500);
+      if (!(await browser.eval("!document.documentElement.classList.contains('app-locked') && getComputedStyle(document.getElementById('main')).visibility === 'visible'"))) note('Unlock did not reveal the app', at);
+      // 3. leaving the app: the blurred shield goes up at once (the app-switcher picture)
+      await browser.eval('window.__allow = false; window.__cb.appStateChange({ isActive: false })');
+      await wait(150);
+      const sh = await browser.eval(`({ cls: document.documentElement.className, hidden: ${hidden}, blur: getComputedStyle(document.getElementById('lock')).backdropFilter, btn: getComputedStyle(document.querySelector('#lock [data-unlock]')).visibility })`);
+      if (!/app-shield/.test(sh.cls) || !sh.hidden) note('no shield over the app when it left the front', at);
+      if (!/blur/.test(sh.blur)) note('the shield is not blurred', at);
+      if (sh.btn !== 'hidden') note('the shield shows the Unlock button', at);
+      if (shots) await browser.screenshot(`${shots}/lock-shield-${w}x${h}.png`);
+      // 4. coming back with "Immediately": locked again (a cancelled Face ID leaves it locked)
+      await browser.eval('window.__cb.appStateChange({ isActive: true })');
+      await wait(300);
+      if (!(await browser.eval(`document.documentElement.classList.contains('app-locked') && ${hidden}`))) note('coming back did not lock the app again', at);
+    }
+    await browser.dropInit();
+    assert(found.size === 0, report(found));
+  });
+
+  test('layout: Settings → Privacy & security: the web shows one line, the app shows the toggle and timeout, and it fits', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = noteTo(found);
+    const probe = `(() => {
+      const box = document.querySelector('[data-privacy]'); if (!box) return null;
+      const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+      const r = box.getBoundingClientRect();
+      return { text: box.innerText.replace(/\\s+/g, ' ').trim(), sw: !!box.querySelector('input[name=applock]'), time: !!box.querySelector('input[name=locktime]'),
+        out: [...box.querySelectorAll('*')].some((e) => e.getBoundingClientRect().right > innerWidth + 0.5),
+        segLines: [...box.querySelectorAll('.seg label')].map(lines), inside: r.left >= 0 && r.right <= innerWidth };
+    })()`;
+    for (const [w, h] of LOCK_SIZES) for (const ts of [1, 1.35]) {
+      const at = `${w}${ts !== 1 ? 'T' : ''}`;
+      await browser.viewport(w, h, true);
+      // the web (Safari / home-screen app): no toggle, one line
+      await browser.open('settings', seed());
+      let r = await browser.eval(probe);
+      if (!r || r.sw || !/Face ID lock is available in the iPhone app\./.test(r.text)) note(`the web should show only the one-line note: ${JSON.stringify(r)}`, at);
+      // the app, lock on: toggle checked, timeout choices
+      await browser.open('settings', seed(), LOCK_SHELL.replace('window.__allow = false', 'window.__allow = true'));
+      await browser.eval("document.querySelector('#lock [data-unlock]').click()"); await wait(400);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+      r = await browser.eval(probe);
+      if (!r || !r.sw || !r.time) { note(`the app should show the toggle and timeout: ${JSON.stringify(r)}`, at); continue; }
+      if (r.out || !r.inside) note('Privacy & security runs off-screen or is clipped', at);
+      if (ts === 1 && r.segLines.some((n) => n !== 1)) note('a timeout choice wraps', at);
+      if (shots && ts === 1) { await browser.eval("document.querySelector('[data-privacy]').scrollIntoView({ block: 'center' })"); await wait(200); await browser.screenshot(`${shots}/privacy-${w}x${h}.png`); }
+      // turning it off asks Face ID: refused → stays on; allowed → off
+      await browser.eval("window.__allow = false; document.querySelector('input[name=applock]').click()"); await wait(500);
+      if (!(await browser.eval("document.querySelector('input[name=applock]').checked && JSON.parse(localStorage.getItem('forge.lock')).enabled"))) note('the lock turned off without Face ID', at);
+      await browser.eval("window.__allow = true; document.querySelector('input[name=applock]').click()"); await wait(500);
+      if (!(await browser.eval("!document.querySelector('input[name=applock]').checked && JSON.parse(localStorage.getItem('forge.lock')).enabled === false"))) note('the lock did not turn off after Face ID said yes', at);
+    }
+    await browser.dropInit();
+    assert(found.size === 0, report(found));
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;
