@@ -28,11 +28,20 @@
   <link rel="stylesheet" href="css/missions.css">
   <link rel="stylesheet" href="css/report.css">
   <link rel="stylesheet" href="css/food.css">
+  <link rel="stylesheet" href="css/lock.css">
+  <script src="js/lock-boot.js"></script>
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-app.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-auth.js">
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js">
 </head>
 <body>
+  <dialog id="lock" aria-label="Forge is locked" aria-hidden="true">
+    <img class="lk-mark" src="icons/icon-192.png" alt="" width="88" height="88">
+    <h1 class="lk-ui">Forge is locked</h1>
+    <p class="lk-sub lk-ui">Your training and photos are private. Unlock with Face ID or your passcode.</p>
+    <button type="button" class="lk-btn lk-ui" data-unlock>Unlock</button>
+    <p class="lk-err lk-ui" data-lock-error role="status"></p>
+  </dialog>
   <button id="update" class="update-capsule" hidden><span>Update available</span><b>Reload</b></button>
   <header id="navbar" class="navbar" hidden>
     <button class="nb-back" type="button" aria-label="Back" hidden>

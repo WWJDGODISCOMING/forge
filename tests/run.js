@@ -43,6 +43,7 @@ import './v0157.test.js';
 import './v0158.test.js';
 import './v01510.test.js';
 import './v01511.test.js';
+import './v01512.test.js';
 import './layout.test.js';
 import { VERSION } from '../js/version.js';
 

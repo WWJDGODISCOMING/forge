@@ -25,6 +25,7 @@
     "@capacitor/splash-screen": "^8.0.2",
     "@capacitor/status-bar": "^8.0.0",
     "@capgo/capacitor-health": "^8.7.0",
+    "@capgo/capacitor-native-biometric": "^8.8.1",
     "sharp": "^0.32.6"
   },
   "engines": {

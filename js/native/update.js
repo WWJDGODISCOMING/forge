@@ -3,6 +3,7 @@
 // The build writes { version, builtAt } into app-install.json (scripts/build-www.mjs); Refresh Forge adds `expires`.
 import { isNative, plugin } from './bridge.js';
 import { VERSION } from '../version.js';
+import { passForReload } from './lock.js';
 
 const SEEN_KEY = 'forge.seenVersion';
 const CLEAN_KEY = 'forge.nativeCleaned';
@@ -71,7 +72,7 @@ const isBusy = () => {
 };
 
 /** → 'reloading' | 'later' (new build, not safe yet) | 'same'. `deps` is for tests. */
-export async function checkForUpdate({ read = readInstall, route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'today').split('/')[0], typing = () => { const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }, reload = () => location.reload(), busy = isBusy, force = false } = {}) {
+export async function checkForUpdate({ read = readInstall, route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'today').split('/')[0], typing = () => { const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }, reload = () => { passForReload(); location.reload(); }, busy = isBusy, force = false } = {}) {
   if (checking && !force) return 'same';
   checking = true;
   try {
@@ -140,10 +141,15 @@ const loadWhatsNew = async () => {
   try { const r = await fetch('./whats-new.json'); return r.ok ? r.json() : null; } catch { return null; } // none bundled
 };
 
+let noteDone = false;
+/** True once the "Updated to" note has been (or won't be) shown and has finished: other first-run prompts wait for it. */
+export const updateNoteSettled = () => noteDone;
+
 export async function announceUpdate({ store = localStorage, toast, sheet, esc, load = loadWhatsNew } = {}) {
   if (!isNative()) return false;
   const change = versionChange(store);
-  if (!change) return false;
+  if (!change) { noteDone = true; return false; }
+  setTimeout(() => { noteDone = true; }, 7300);
   const items = highlightsFor(await load(), change.to);
   // No highlights for this version: just say it updated, with no button leading to nothing.
   toast(`Updated to ${change.to}`, 7000, items.length ? {

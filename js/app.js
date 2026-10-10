@@ -1,5 +1,6 @@
 // App boot: service worker, sign-in, live data, and a tiny hash router.
 import { isNative, syncStatusBar, hideSplash, setupKeyboard, scheduleExpiryReminder } from './native/bridge.js';
+import { setupLock, appLock } from './native/lock.js';
 import { configured } from './firebase.js';
 import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
@@ -28,6 +29,7 @@ setupTextSize(); // follow iOS Settings → Text Size (web and app)
 // ---------- the iPhone app (Capacitor shell) ----------
 if (isNative()) {
   document.documentElement.classList.add('native');
+  setupLock(); // before anything else: with the lock on, the app is covered until Face ID says yes
   const dark = window.matchMedia('(prefers-color-scheme: dark)');
   syncStatusBar(dark.matches);
   dark.addEventListener('change', (e) => syncStatusBar(e.matches));
@@ -38,7 +40,10 @@ if (isNative()) {
     const [{ isTimerRunning }, { isTourActive }] = await Promise.all([import('./screens/timer.js'), import('./tour/tour.js')]);
     u.holdReloadWhile(isTimerRunning);
     u.holdReloadWhile(isTourActive);
+    u.holdReloadWhile(() => { const l = appLock(); return !!l && l.busy; }); // never reload under the Face ID prompt
     u.setupUpdates();
+    const l = appLock();
+    if (l) await l.whenUnlocked(); // the "Updated to" note waits for the lock
     setTimeout(() => u.announceUpdate({ toast, sheet, esc }), 1800);
   }).catch(() => {});
 }
@@ -245,6 +250,8 @@ async function render() {
     animateCounters(main);
     // A brand-new account sees the how-to tour once, on Today, right after onboarding.
     if (route === 'today' && state.profile.tour === 'pending') import('./tour/tour.js').then((m) => m.maybeStartTour());
+    // The Face ID lock is offered once in the iPhone app, after the tour is out of the way.
+    else if (route === 'today' && isNative() && appLock()) Promise.all([import('./tour/tour.js'), import('./native/update.js'), import('./native/lock-ui.js')]).then(([t, u, m]) => m.maybeAskLock({ tourBusy: t.isTourActive(), noteSettled: u.updateNoteSettled() }));
   } catch (e) {
     console.error(e);
     firstPaint();

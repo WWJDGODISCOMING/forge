@@ -4,7 +4,7 @@
 // app still needs no build step or bundler.
 //
 // Plugins used (installed in the shell, see package.json): Filesystem + Share (js/native/share.js), Haptics, LocalNotifications, StatusBar, Browser, SplashScreen, Keyboard,
-// and @capgo/capacitor-health (HealthKit; see js/native/health.js).
+// @capgo/capacitor-health (HealthKit; see js/native/health.js) and @capgo/capacitor-native-biometric (the Face ID lock; js/native/lock.js).
 
 const cap = () => (typeof window !== 'undefined' && window.Capacitor) || null;
 
