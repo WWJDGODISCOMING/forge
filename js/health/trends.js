@@ -204,7 +204,6 @@ export function allTrends({ series, today, goal = 'health', floors = NOISE_FLOOR
 
 /** Why there's no 4-week direction yet. Says how many readings there are, so it can't contradict a smoothed line the user can see. */
 export function notEnoughText(key, n) {
-  const word = key === 'weight_kg' ? 'weigh-in' : 'reading';
   if (n >= MIN_POINTS) return 'Not enough change between readings to call a 4-week direction yet.';
   const count = (w) => (n === 0 ? `No ${w}s in the last 4 weeks.` : `Only ${n} ${w}${n === 1 ? '' : 's'} in the last 4 weeks.`);
   if (key === 'weight_kg') return `${count('weigh-in')} The trend line is your smoothed average. Weigh in 3+ times a week for a reliable 4-week direction.`;

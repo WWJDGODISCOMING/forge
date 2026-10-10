@@ -14,6 +14,10 @@ Issue #64, part 4. No Cloud Functions, `firestore.rules`, `firebase.json` or `co
   - "Trend 208.3 · ↑ 0.4 this week" stays on one line at 390 and 375; when it must break it breaks only at the dot. The text column takes the free width and the sparkline is narrower on small screens.
   - "What's trend weight?" and Log weight share one row (44 pt targets); the explainer opens below. At 320 or large text the button drops to its own line instead of overflowing.
   - Weight detail message: "No weigh-ins in the last 4 weeks." (not "Only no…"), and a separate honest line when there are enough readings but no clear change. Weight screen's first stat reads "Yesterday" / "Latest · Oct 8" when the newest reading isn't today.
+- **Round 2 review fixes:**
+  - The weight card's action row never wraps: "What's trend weight?" can take two lines on the left, Log weight stays on the right edge, both centred and 44 pt; the explainer opens below the row.
+  - Interval timer presets: the 320px rule now caps text growth too, so "EMOM", "Tabata" and "Custom" fit at the largest text with space between them.
+  - Interval timer Work / Rest / Rounds inputs line up on one line even when a label wraps.
 - Tests: `tests/v01510.test.js`; the layout test covers over-target Food at 320/375/390 (scale 1 and 1.35) and the dock macro line at 320/390 (scale 1 and 1.35).
 
 ## 0.15.9 — USDA food search (2026-10-10)

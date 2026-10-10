@@ -108,7 +108,36 @@ if (standalone) {
       assert(r.heading === 'Weight', `heading reads "${r.heading}" at ${at}`);
       assert(r.halves.every((n) => n === 1), `trend halves wrap at ${at}: ${JSON.stringify(r.halves)}`);
       if (ts === 1 && w === 390) assert(r.whole === 1, `trend line wraps at ${at}: ${JSON.stringify(r)}`);
-      assert((r.sameRow || w === 320 || ts !== 1) && r.h[0] >= 44 && r.h[1] >= 44 && !r.over, `weight actions at ${at}: ${JSON.stringify(r)}`);
+      assert(r.sameRow && r.h[0] >= 44 && r.h[1] >= 44 && !r.over, `weight actions at ${at}: ${JSON.stringify(r)}`);
+      const g = await browser.eval(`(() => {
+        const c = document.querySelector('.weight-card'); const log = c.querySelector('[data-log]'); const why = c.querySelector('[data-weight-why]'); const row = c.querySelector('.weight-actions');
+        c.querySelector('[data-weight-why-text]').hidden = false;
+        const b = log.getBoundingClientRect(), a = why.getBoundingClientRect(), cs = getComputedStyle(c), cr = c.getBoundingClientRect();
+        const edge = cr.right - parseFloat(cs.paddingRight), e = c.querySelector('[data-weight-why-text]').getBoundingClientRect();
+        return { edge: Math.abs(b.right - edge), mid: (b.top + b.height / 2) >= a.top && (b.top + b.height / 2) <= a.bottom, below: e.top >= row.getBoundingClientRect().bottom - 1 };
+      })()`);
+      assert(g.edge <= 1 && g.mid && g.below, `weight actions layout at ${at}: ${JSON.stringify(g)}`);
+    }
+  });
+}
+
+if (standalone) {
+  test('layout: Interval timer: presets do not overflow or touch, the three inputs share one top', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    for (const w of [320, 390]) for (const ts of [1, 1.35]) {
+      await browser.viewport(w, w === 320 ? 568 : 844, true);
+      await browser.open('timer', seed());
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const r = await browser.eval(`(() => {
+        const spans = [...document.querySelectorAll('.timer-screen .seg.small span')];
+        const rects = spans.map((s) => { const rg = document.createRange(); rg.selectNodeContents(s); return rg.getBoundingClientRect(); });
+        const gaps = rects.slice(1).map((q, i) => q.left - rects[i].right);
+        return { over: spans.filter((s) => s.scrollWidth > s.clientWidth + 1).length, gaps, tops: [...document.querySelectorAll('.timer-screen .field input')].map((i) => Math.round(i.getBoundingClientRect().top)) };
+      })()`);
+      const at = `${w}px text ${ts}`;
+      assert(r.over === 0 && r.gaps.every((x) => x >= 4), `timer presets at ${at}: ${JSON.stringify(r)}`);
+      assert(r.tops.length === 3 && new Set(r.tops).size === 1, `timer inputs not on one line at ${at}: ${JSON.stringify(r.tops)}`);
     }
   });
 }

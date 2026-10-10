@@ -268,7 +268,7 @@ export function renderToday(el) {
           ${sparklineSVG(series)}
         </div>
         <div class="row between center weight-actions">
-          <button class="weight-why small" type="button" data-weight-why aria-expanded="false" aria-controls="weight-why-text">What’s trend weight?</button>
+          <button class="weight-why small" type="button" data-layout-ok data-weight-why aria-expanded="false" aria-controls="weight-why-text">What’s trend weight?</button>
           <button class="btn small" data-log type="button">Log weight</button>
         </div>
         <p class="small muted" id="weight-why-text" data-weight-why-text hidden>Your trend smooths out daily ups and downs from water and salt, so it shows the real direction. Today’s number is just what the scale said.</p>
