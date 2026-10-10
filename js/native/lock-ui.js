@@ -15,7 +15,7 @@ export function privacySettingsHtml(store = localStorage) {
       <p class="sec-title">Privacy &amp; security</p>
       <div class="group" data-privacy>
         ${supported ? `
-        <label class="g-row sw"><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Lock Forge with Face ID</span><small>Your passcode works too. Covers the app switcher.</small></span><input type="checkbox" switch name="applock" ${s.enabled ? 'checked' : ''}></label>
+        <label class="g-row sw"><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Lock Forge with Face ID</span><small>Hides Forge in the app switcher too.</small></span><input type="checkbox" switch name="applock" ${s.enabled ? 'checked' : ''}></label>
         <div class="g-row col static" data-lock-timeout ${s.enabled ? '' : 'hidden'}><span>Lock after leaving</span>
           <div class="seg" role="radiogroup" aria-label="Lock after leaving the app">
             ${TIMEOUTS.map((t) => `<label><input type="radio" name="locktime" value="${t.ms}" ${s.timeout === t.ms ? 'checked' : ''}><span>${esc(t.label)}</span></label>`).join('')}
@@ -60,11 +60,19 @@ export function shouldAsk(s, { supported, tourBusy }) {
   return !!supported && !s.asked && !s.enabled && !tourBusy;
 }
 
-export function maybeAskLock({ tourBusy = false, store = localStorage } = {}) {
+/** One thing at a time: not over a running tour, the tour invite card, or the "Updated to" note. */
+const otherPromptUp = ({ tourBusy, noteSettled }) =>
+  !!tourBusy || !noteSettled || !!(typeof document !== 'undefined' && document.querySelector('[data-tour-offer], dialog[open]'));
+
+export function maybeAskLock({ tourBusy = false, noteSettled = true, store = localStorage } = {}) {
   const lock = appLock();
-  if (!lock || !shouldAsk(readSettings(store), { supported: lockSupported(), tourBusy })) return false;
-  writeSettings({ asked: true }, store); // once, whatever the answer
-  lock.whenUnlocked().then(() => showAsk(lock)); // never over the lock screen
+  if (!lock || !shouldAsk(readSettings(store), { supported: lockSupported(), tourBusy: otherPromptUp({ tourBusy, noteSettled }) })) return false;
+  lock.whenUnlocked().then(() => {
+    // Asked is saved only once the sheet is actually shown; if something else came up meanwhile, a later Today visit asks.
+    if (otherPromptUp({ tourBusy: false, noteSettled }) || readSettings(store).asked) return;
+    writeSettings({ asked: true }, store);
+    showAsk(lock); // never over the lock screen
+  });
   return true;
 }
 

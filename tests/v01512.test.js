@@ -1,11 +1,11 @@
 // v0.15.12: the Face ID app lock (settings, the lock/unlock/shield states, error mapping, the early script, wiring).
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { readSettings, writeSettings, shouldLock, outcomeOf, createLock, createDevice, TIMEOUTS } from '../js/native/lock.js';
+import { markReloadPass, takeReloadPass, readSettings, writeSettings, shouldLock, outcomeOf, createLock, createDevice, TIMEOUTS } from '../js/native/lock.js';
 import { shouldAsk } from '../js/native/lock-ui.js';
 
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
-const store = (init = {}) => { const m = { ...init }; return { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, m }; };
+const store = (init = {}) => { const m = { ...init }; return { getItem: (k) => (k in m ? m[k] : null), setItem: (k, v) => { m[k] = String(v); }, removeItem: (k) => { delete m[k]; }, m }; };
 const flush = () => new Promise((r) => setTimeout(r, 0));
 
 /** A lock with a fake device (answers from `answers`, in order) and a view that records what it was told. */
@@ -27,7 +27,7 @@ test('settings: defaults are off / Immediately / not asked, and survive junk', (
   writeSettings({ enabled: true, timeout: 60000 }, s);
   eq(JSON.stringify(readSettings(s)), JSON.stringify({ enabled: true, timeout: 60000, asked: false }));
   eq(readSettings(store({ 'forge.lock': '{"enabled":true,"timeout":123}' })).timeout, 0); // not one of the three choices
-  eq(TIMEOUTS.map((t) => t.label).join('|'), 'Immediately|1 min|5 min');
+  eq(TIMEOUTS.map((t) => t.label).join('|'), 'Now|1 min|5 min');
 });
 
 test('shouldLock: Immediately always, 1 and 5 min only after that long away', () => {
@@ -46,7 +46,7 @@ test('outcomeOf: cancel, no passcode, and plain failure are told apart', () => {
   eq(outcomeOf({ code: 11 }), 'cancel');
   eq(outcomeOf({ code: '14', message: 'Passcode not set' }), 'unavailable');
   eq(outcomeOf({ code: '10', message: 'Authentication failed' }), 'failed');
-  eq(outcomeOf(new Error('boom')), 'failed');
+  eq(outcomeOf(new Error('boom')), 'unknown'); // the device re-checks whether Face ID/passcode exist
 });
 
 test('device: asks for Face ID with the passcode fallback on, and maps errors', async () => {
@@ -108,7 +108,7 @@ test('leaving the app: a shield at once (the app-switcher picture), then lock by
   eq(r.asked.length, 2);
 });
 
-test('Immediately: any trip away locks on return', async () => {
+test('Now: any trip to the background locks on return', async () => {
   const r = rig({ saved: { enabled: true, timeout: 0 }, answers: ['ok', 'cancel'] });
   r.lock.start(); await flush();
   r.lock.away(); r.lock.back();
@@ -230,4 +230,75 @@ test('wiring: plist string, plugin, Package.swift, update hold, settings section
   assert(/Face ID lock is available in the iPhone app\./.test(ui), 'one-line note on the web');
   assert(ui.includes('Lock Forge with Face ID') && ui.includes('Privacy &amp; security'), 'names');
   assert(src('CHANGELOG.md').includes('## 0.15.12'), 'changelog entry');
+});
+
+test('inactive (Control Center, banners, permission alerts) shows the shield only: no Face ID on return', async () => {
+  const r = rig({ saved: { enabled: true, timeout: 0 }, answers: ['ok'] });
+  r.lock.start(); await flush();
+  r.asked.length = 0;
+  r.lock.inactive();
+  eq(r.lock.state, 'shield');
+  r.tick(5000); r.lock.back();
+  eq(r.lock.state, 'unlocked');
+  eq(r.asked.length, 0);
+  // inactive, then really backgrounded: the lock clock starts at pause and it locks
+  r.lock.inactive(); r.lock.away(); r.lock.back();
+  eq(r.lock.state, 'locked');
+  await flush();
+  eq(r.asked.length, 1);
+});
+
+test('a timeout counts from the background (pause), not from going inactive', async () => {
+  const r = rig({ saved: { enabled: true, timeout: 60000 }, answers: ['ok'] });
+  r.lock.start(); await flush();
+  r.lock.inactive(); r.tick(50000); r.lock.away(); r.tick(30000); r.lock.back();
+  eq(r.lock.state, 'unlocked'); // 30 s in the background, not 80
+});
+
+test('our own reload right after an unlock does not ask Face ID again; a cold launch always does', async () => {
+  const ss = store();
+  let t = 1000;
+  markReloadPass(true, ss, () => t);
+  const r = rig({ saved: { enabled: true, timeout: 0 } });
+  const lock = createLock({ device: { available: async () => true, verify: async () => { r.asked.push('x'); return 'ok'; } }, view: { show() {}, hide() {}, error() {} }, store: r.st, session: ss, now: () => t });
+  lock.start();
+  eq(lock.state, 'unlocked');
+  eq(r.asked.length, 0);
+  // the marker is used once
+  eq(takeReloadPass(ss, () => t), false);
+  // expired marker
+  markReloadPass(true, ss, () => t); t += 31000;
+  eq(takeReloadPass(ss, () => t), false);
+  // not written while locked
+  const s2 = store(); markReloadPass(false, s2, () => t);
+  eq(takeReloadPass(s2, () => t), false);
+  // no marker: a cold launch locks
+  const cold = createLock({ device: { available: async () => true, verify: async () => 'cancel' }, view: { show() {}, hide() {}, error() {} }, store: r.st, session: store() });
+  cold.start();
+  eq(cold.state, 'locked');
+});
+
+test('the plugin\'s exact "no passcode" rejections let you in; code 13 retries quietly', async () => {
+  const mk = (rej, avail) => createDevice({ isAvailable: async () => ({ isAvailable: avail }), verifyIdentity: async () => { throw rej; } });
+  eq(await mk({ message: 'Authentication not available' }, false).verify(), 'unavailable');
+  eq(await mk({ message: 'Authentication not available' }, true).verify(), 'failed'); // still has Face ID: not a lock-out
+  eq(await mk({ code: '14', message: 'Passcode not set' }, true).verify(), 'unavailable');
+  eq(await mk({ code: '13', message: 'Not interactive' }, true).verify(), 'retry');
+  const r = rig({ saved: { enabled: true, timeout: 0 }, answers: ['retry', 'ok'] });
+  r.lock.start(); await flush();
+  eq(r.lock.state, 'locked');
+  assert(!r.log.some((x) => x.startsWith('error:That')), 'no error text for a silent retry');
+  r.lock.back(); await flush(); // the next time the app is in front
+  eq(r.lock.state, 'unlocked');
+});
+
+test('locking keeps open sheets (unsaved input); the lock only hides them', () => {
+  const lock = src('js/native/lock.js');
+  assert(!/closeAllSheets|d\.close\(\)/.test(lock), 'lock.js does not close sheets or dialogs');
+});
+
+test('the Face ID ask waits for the tour invite and the update note, and is marked asked only when shown', () => {
+  const ui = src('js/native/lock-ui.js');
+  assert(/data-tour-offer/.test(ui) && /noteSettled/.test(ui), 'checks the invite card and the update note');
+  assert(ui.indexOf("writeSettings({ asked: true }, store);") > ui.indexOf('whenUnlocked().then'), 'asked is saved inside the then, not before');
 });

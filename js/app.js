@@ -251,7 +251,7 @@ async function render() {
     // A brand-new account sees the how-to tour once, on Today, right after onboarding.
     if (route === 'today' && state.profile.tour === 'pending') import('./tour/tour.js').then((m) => m.maybeStartTour());
     // The Face ID lock is offered once in the iPhone app, after the tour is out of the way.
-    else if (route === 'today' && isNative() && appLock()) import('./tour/tour.js').then((t) => import('./native/lock-ui.js').then((m) => m.maybeAskLock({ tourBusy: t.isTourActive() })));
+    else if (route === 'today' && isNative() && appLock()) Promise.all([import('./tour/tour.js'), import('./native/update.js'), import('./native/lock-ui.js')]).then(([t, u, m]) => m.maybeAskLock({ tourBusy: t.isTourActive(), noteSettled: u.updateNoteSettled() }));
   } catch (e) {
     console.error(e);
     firstPaint();

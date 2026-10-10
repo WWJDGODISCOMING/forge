@@ -8,7 +8,7 @@ import { isNative, plugin } from './bridge.js';
 
 const KEY = 'forge.lock';
 export const TIMEOUTS = [
-  { ms: 0, label: 'Immediately' },
+  { ms: 0, label: 'Now' },
   { ms: 60000, label: '1 min' },
   { ms: 300000, label: '5 min' },
 ];
@@ -36,10 +36,36 @@ export function outcomeOf(err) {
   if (!err) return 'ok';
   const code = String(err.code ?? '');
   const msg = String(err.message || err).toLowerCase();
+  if (code === '13') return 'retry'; // notInteractive: the prompt began before the app was active; ask again on the next back()
   if (code === '11' || code === '15' || code === '16' || /cancel/.test(msg)) return 'cancel'; // app, system, user
   if (code === '14' || /passcode (is )?not set/.test(msg)) return 'unavailable'; // the plugin's PASSCODE_NOT_SET
+  // No code at all, or "Authentication not available": the plugin's answer when the phone can't evaluate any policy (passcode removed).
+  if (!code || /not available/.test(msg)) return 'unknown';
   return 'failed';
 }
+
+const PASS_KEY = 'forge.lock.passUntil';
+const PASS_MS = 30000;
+const sess = () => { try { return sessionStorage; } catch { return null; } };
+
+/** Right before an app-initiated reload while unlocked: the page that loads next skips the lock once (a cold launch never has this). */
+export function markReloadPass(unlocked, store = sess(), now = Date.now) {
+  if (!store || !unlocked) return;
+  try { store.setItem(PASS_KEY, String(now() + PASS_MS)); } catch { /* private mode: it just asks again */ }
+}
+
+/** True once if a fresh marker is there; always clears it. */
+export function takeReloadPass(store = sess(), now = Date.now) {
+  if (!store) return false;
+  try {
+    const t = Number(store.getItem(PASS_KEY));
+    store.removeItem(PASS_KEY);
+    return t > now();
+  } catch { return false; }
+}
+
+/** Mark a pass for a reload, if the running app lock is unlocked (or off, where it does no harm). */
+export function passForReload() { markReloadPass(!current || current.state === 'unlocked' || current.state === 'off'); }
 
 /** The device side. `bio` is the NativeBiometric plugin (or a stub in tests). */
 export function createDevice(bio = plugin('NativeBiometric')) {
@@ -56,7 +82,12 @@ export function createDevice(bio = plugin('NativeBiometric')) {
       try {
         await bio.verifyIdentity({ reason, title: 'Unlock Forge', useFallback: true, fallbackTitle: 'Use passcode', maxAttempts: 3 });
         return 'ok';
-      } catch (e) { return outcomeOf(e); }
+      } catch (e) {
+        const out = outcomeOf(e);
+        if (out !== 'unknown') return out;
+        // Codeless / "not available": if the phone really has no Face ID or passcode, nobody is being kept out.
+        return (await this.available()) ? 'failed' : 'unavailable';
+      }
     },
   };
 }
@@ -65,7 +96,7 @@ export function createDevice(bio = plugin('NativeBiometric')) {
  * The state machine. `view.show('locked' | 'shield')` / `view.hide()` draw it. States: 'off', 'locked', 'shield' (away or
  * covered, still unlocked), 'unlocked'. Everything is injected so the tests can drive it.
  */
-export function createLock({ device, view, store, now = Date.now } = {}) {
+export function createLock({ device, view, store, session, now = Date.now } = {}) {
   let state = 'off';
   let hiddenAt = null;
   let authing = false;
@@ -88,7 +119,8 @@ export function createLock({ device, view, store, now = Date.now } = {}) {
 
     /** Cold launch (and every reload): locked before anything is drawn when the lock is on. */
     start() {
-      if (!settings().enabled) { set('off'); return state; }
+      if (!settings().enabled) { set('off'); takeReloadPass(session, now); return state; }
+      if (takeReloadPass(session, now)) { set('unlocked'); return state; } // our own reload a moment after an unlock
       set('locked');
       api.unlock();
       return state;
@@ -108,21 +140,29 @@ export function createLock({ device, view, store, now = Date.now } = {}) {
         set('unlocked');
         return out;
       }
-      view.error(out === 'cancel' ? '' : 'That didn’t work. Try again.');
+      view.error(out === 'cancel' || out === 'retry' ? '' : 'That didn’t work. Try again.');
       return out;
     },
 
-    /** The app left the front (inactive or backgrounded). The Face ID prompt itself does this too, so it's ignored. */
+    /** The app went inactive (Control Center, a call banner, a permission alert): cover it, but the lock clock doesn't start. */
+    inactive() {
+      if (authing || !settings().enabled) return;
+      if (state === 'unlocked') set('shield');
+    },
+
+    /** The app really left the front (backgrounded). The lock clock starts here. The Face ID prompt itself does this too, so it's ignored. */
     away() {
       if (authing || !settings().enabled) return;
-      if (state === 'unlocked') { hiddenAt = now(); set('shield'); }
+      if (state === 'unlocked') set('shield');
+      if (state === 'shield' && hiddenAt == null) hiddenAt = now();
     },
 
     /** Back in front. */
     back() {
       if (authing || !settings().enabled) return;
       if (state === 'shield') {
-        if (shouldLock(settings(), hiddenAt, now())) { set('locked'); api.unlock(); } else { hiddenAt = null; set('unlocked'); }
+        // No background in between (it was only inactive): drop the shield, no Face ID.
+        if (hiddenAt != null && shouldLock(settings(), hiddenAt, now())) { set('locked'); api.unlock(); } else { hiddenAt = null; set('unlocked'); }
       } else if (state === 'locked') api.unlock();
     },
 
@@ -177,12 +217,10 @@ export function pageView() {
       root().classList.toggle('app-locked', mode === 'locked');
       root().classList.toggle('app-shield', mode === 'shield');
       inertBehind(true);
-      // Sheets and dialogs sit in the top layer above everything; close them so nothing shows through.
-      if (mode === 'locked') import('../ui/sheets.js').then((m) => m.closeAllSheets()).catch(() => {});
-      if (mode === 'locked') document.querySelectorAll('dialog[open]').forEach((d) => { try { d.close(); } catch { /* gone */ } });
+      // Open sheets stay open (they may hold unsaved input): css/lock.css hides them and inertBehind blocks them.
       const e = el();
       if (e) e.setAttribute('aria-hidden', mode === 'locked' ? 'false' : 'true');
-      if (mode === 'locked' && e) { const b = e.querySelector('[data-unlock]'); if (b) b.focus({ preventScroll: true }); }
+      if (mode === 'locked' && e) { const b = e.querySelector('[data-unlock]'); if (b) b.focus({ preventScroll: true }); } // :focus-visible is off for this, see lock.css
     },
     hide() {
       root().classList.remove('app-locked', 'app-shield');
@@ -207,15 +245,18 @@ export const lockSupported = () => isNative() && !!plugin('NativeBiometric');
 export function setupLock() {
   if (current || !isNative()) return current;
   const view = pageView();
-  current = createLock({ device: createDevice(), view, store: localStorage });
+  current = createLock({ device: createDevice(), view, store: localStorage, session: sess() });
   const btn = document.querySelector('#lock [data-unlock]');
   if (btn) btn.addEventListener('click', () => current.unlock());
   current.start();
   const App = plugin('App');
   if (App && App.addListener) {
     try {
-      const h = App.addListener('appStateChange', (s) => (s && s.isActive ? current.back() : current.away()));
+      // Inactive (Control Center, banners, permission alerts) only covers the app; `pause` is the real trip to the background.
+      const h = App.addListener('appStateChange', (s) => (s && s.isActive ? current.back() : current.inactive()));
       if (h && h.catch) h.catch(() => {});
+      const p = App.addListener('pause', () => current.away());
+      if (p && p.catch) p.catch(() => {});
     } catch { /* the page events below cover it */ }
   }
   // Fallbacks (and the web view's own signal): the page being hidden or shown again.

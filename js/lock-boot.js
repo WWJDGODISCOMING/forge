@@ -5,6 +5,9 @@
     var c = window.Capacitor;
     var native = !!c && (c.isNativePlatform ? c.isNativePlatform() : c.platform && c.platform !== 'web');
     var s = JSON.parse(localStorage.getItem('forge.lock') || 'null');
-    if (native && s && s.enabled) document.documentElement.classList.add('app-locked');
+    var pass = false;
+    try { pass = Number(sessionStorage.getItem('forge.lock.passUntil')) > Date.now(); } catch (e) { /* no session storage */ }
+    // our own reload just after an unlock; lock.js start() clears it
+    if (native && s && s.enabled && !pass) document.documentElement.classList.add('app-locked');
   } catch (e) { /* no lock */ }
 })();

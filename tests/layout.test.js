@@ -503,7 +503,7 @@ if (standalone) {
       if (sh.btn !== 'hidden') note('the shield shows the Unlock button', at);
       if (shots) await browser.screenshot(`${shots}/lock-shield-${w}x${h}.png`);
       // 4. coming back with "Immediately": locked again (a cancelled Face ID leaves it locked)
-      await browser.eval('window.__cb.appStateChange({ isActive: true })');
+      await browser.eval("window.__cb.pause && window.__cb.pause(); window.__cb.appStateChange({ isActive: true })");
       await wait(300);
       if (!(await browser.eval(`document.documentElement.classList.contains('app-locked') && ${hidden}`))) note('coming back did not lock the app again', at);
     }
@@ -523,7 +523,8 @@ if (standalone) {
       const r = box.getBoundingClientRect();
       return { text: box.innerText.replace(/\\s+/g, ' ').trim(), sw: !!box.querySelector('input[name=applock]'), time: !!box.querySelector('input[name=locktime]'),
         out: [...box.querySelectorAll('*')].some((e) => e.getBoundingClientRect().right > innerWidth + 0.5),
-        segLines: [...box.querySelectorAll('.seg label')].map(lines), inside: r.left >= 0 && r.right <= innerWidth };
+        segLines: [...box.querySelectorAll('.seg label')].map(lines),
+        segSpill: [...box.querySelectorAll('.seg label span')].some((e) => e.scrollWidth > e.clientWidth + 0.5), inside: r.left >= 0 && r.right <= innerWidth };
     })()`;
     for (const [w, h] of LOCK_SIZES) for (const ts of [1, 1.35]) {
       const at = `${w}${ts !== 1 ? 'T' : ''}`;
@@ -540,6 +541,7 @@ if (standalone) {
       if (!r || !r.sw || !r.time) { note(`the app should show the toggle and timeout: ${JSON.stringify(r)}`, at); continue; }
       if (r.out || !r.inside) note('Privacy & security runs off-screen or is clipped', at);
       if (ts === 1 && r.segLines.some((n) => n !== 1)) note('a timeout choice wraps', at);
+      if (r.segSpill) note('a timeout choice spills out of its segment', at);
       if (shots && ts === 1) { await browser.eval("document.querySelector('[data-privacy]').scrollIntoView({ block: 'center' })"); await wait(200); await browser.screenshot(`${shots}/privacy-${w}x${h}.png`); }
       // turning it off asks Face ID: refused → stays on; allowed → off
       await browser.eval("window.__allow = false; document.querySelector('input[name=applock]').click()"); await wait(500);

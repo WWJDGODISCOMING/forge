@@ -12,6 +12,7 @@ html.app-locked, html.app-shield { overflow: hidden; }
 #lock .lk-sub { margin: 0; max-width: 28ch; color: var(--text-2); font-size: calc(16px * var(--ts, 1)); line-height: 1.4; }
 #lock .lk-btn { min-height: 56px; width: min(320px, 100%); border: 0; border-radius: 16px; background: var(--accent-gradient); color: var(--accent-ink);
   font: 700 calc(18px * var(--ts, 1)) var(--font, inherit); cursor: pointer; box-shadow: 0 8px 28px rgba(198, 255, 61, .28); touch-action: manipulation; }
+#lock .lk-btn:focus:not(:focus-visible) { outline: none; }
 #lock .lk-btn:active { transform: scale(.98); }
 #lock .lk-err { margin: 0; min-height: 1.4em; color: var(--danger); font-size: calc(15px * var(--ts, 1)); }
 html.app-shield:not(.app-locked) #lock .lk-ui { visibility: hidden; }
