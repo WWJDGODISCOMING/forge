@@ -8,7 +8,7 @@ import { addDays, daysBetween } from '../weight/smoothing.js';
 import { weightToDisplay } from '../units.js';
 import { lineChartSVG, bindScrub, unitOf } from '../ui/linechart.js';
 import { metricDef, metricPoints, metricEmptyChoice, dailySeries, fmtMetric, heightM, periodAverage } from '../withings/body.js';
-import { trendMetric, trendsFor } from '../health/trends.js';
+import { trendMetric, trendsFor, notEnoughText } from '../health/trends.js';
 import { intel } from '../health/intel.js';
 import { fmtAmount } from '../health/insights.js';
 import { weekOf } from '../workouts/awards.js';
@@ -69,7 +69,7 @@ export function renderMetric(el, key) {
   const fmt = (v, o = {}) => fmtMetric(key, v, u, { ...o, kind: def.kind });
   // The same trend the Trends screen uses: Theil–Sen slope, Mann–Kendall significance, noise floor.
   const tr = trendMetric(key) ? trendsFor(daily, key, todayKey())[28] : null;
-  const trendLine = !tr ? '' : !tr.enough ? 'Not enough readings in the last 4 weeks for a trend.'
+  const trendLine = !tr ? '' : !tr.enough ? notEnoughText(key, tr.n)
     : tr.direction === 'flat' ? 'Over the last 4 weeks this is steady.'
       : `Over the last 4 weeks this is going ${tr.direction} by about ${fmtAmount(key, tr.slopePerWeek, u)} a week.`;
   const disp = (v) => (def.kind === 'mass' ? weightToDisplay(v, u) : v);

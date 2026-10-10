@@ -3,6 +3,11 @@
 .meter-row--big .meter { height: 12px; }
 .meter-row--big:first-child .row { align-items: flex-end; }
 .meter-row--big:first-child .meter-val b { font-size: calc(34px * var(--ts)); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.meter-row > .row.between { flex-wrap: wrap; align-items: baseline; column-gap: var(--s-3); row-gap: 2px; }
+.meter-row > .row.between > .label { white-space: nowrap; }
+/* Value and "of target" stay one unit: if it doesn't fit beside the label it drops under it; at the largest text the target drops under the number. Never mid-value. */
+.meter-row > .row.between > span:last-child { display: flex; flex-wrap: wrap; justify-content: flex-end; column-gap: .3em; white-space: nowrap; flex: 1 1 auto; }
+.meter-row > .row.between > span:last-child > * { white-space: nowrap; }
 .meter-val { font-size: calc(17px * var(--ts)); font-variant-numeric: tabular-nums; }
 .meter { height: 8px; border-radius: var(--r-pill); background: var(--surface-3); overflow: hidden; }
 .meter i { display: block; height: 100%; border-radius: var(--r-pill); background: var(--accent); }
@@ -106,3 +111,15 @@
 .coach-line-ic { display: inline-flex; color: var(--accent-text); flex: none; }
 .coach-line-text { flex: 1; min-width: 0; font-size: calc(15px * var(--ts)); line-height: 1.3; text-wrap: balance; }
 .rings-card .link { min-height: 44px; display: inline-flex; align-items: center; }
+
+/* Carbs and Fat sit in half-width cells: label on top, value under it on purpose (left-aligned), instead of squeezing beside it. */
+.food-minor .meter-row > .row.between { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; }
+.food-minor .meter-row > .row.between > span:last-child { flex: 0 0 auto; justify-content: flex-start; }
+@media (max-width: 359px) {
+  .food-minor { grid-template-columns: 1fr; }
+  .food-minor .meter-row > .row.between { flex-direction: row; flex-wrap: wrap; align-items: baseline; }
+  .food-minor .meter-row > .row.between > span:last-child { flex: 1 1 auto; justify-content: flex-end; }
+}
+
+/* Log food dock macro line: each value stays with its unit; the line only breaks between macros. */
+.macro-line .nb { white-space: nowrap; }

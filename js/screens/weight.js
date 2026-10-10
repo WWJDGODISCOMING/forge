@@ -5,7 +5,8 @@ import { tick } from '../ui/haptic.js';
 import { weightToDisplay, weightFromInput, weightUnit, formatWeight } from '../units.js';
 import { trendChange, weeklyRate, dayKey } from '../weight/smoothing.js';
 import { weightChartSVG } from '../weight/chart.js';
-import { weightSeries, mySuspects } from '../derived.js';
+import { timeOf, readingLabel } from '../weight/reading.js';
+import { weightSeries, mySuspects, latestWeighIn } from '../derived.js';
 import { SCALE_SOURCES } from '../withings/review.js';
 import { progressTabs } from './progress.js';
 import { icon, emptyState } from '../ui/icons.js';
@@ -18,17 +19,7 @@ let range = 90;
 let showAll = false;
 const HISTORY_LIMIT = 20;
 
-/**
- * " · 7:42 AM" when the weigh-in has a real time: scale and Apple Health readings, and typed-in weights
- * logged for today. Typed-in weights for a past day get a placeholder 8 AM, so they show no time.
- */
-export function timeOf(w) {
-  if (!w.measured_at) return '';
-  const d = new Date(w.measured_at);
-  if (Number.isNaN(d.getTime())) return '';
-  if (w.source === 'manual' && !(w.created_at && dayKey(w.created_at) === w.day)) return '';
-  return ` · ${d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
-}
+export { timeOf, readingLabel };
 
 export function openLogWeight() {
   const u = getUnits();
@@ -71,6 +62,7 @@ export function renderWeight(el) {
   const change7 = trendChange(series, 7);
   const rate = weeklyRate(series);
   const latest = series.length ? series[series.length - 1] : null;
+  const reading = latestWeighIn();
   const entries = [...state.weights].sort((a, b) => (a.measured_at < b.measured_at ? 1 : -1));
   // Days whose trend point is a scale reading (earliest Withings weigh-in): typed-in entries those days are shown but not used.
   const sus = mySuspects();
@@ -89,7 +81,8 @@ export function renderWeight(el) {
       </div>
       ${latest ? `
       <div class="card">
-        <div class="stats">
+        <div class="stats stats-2">
+          <div><span>${reading ? esc(reading.day === todayKey() ? 'Today' : readingLabel(reading, todayKey())) : 'Latest'}</span><b data-count>${formatWeight(reading ? reading.kg : latest.kg, u)}</b></div>
           <div><span>Trend</span><b data-count>${formatWeight(latest.trend, u)}</b></div>
           <div><span>7 days</span><b data-count>${change7 == null ? '—' : `${change7 > 0 ? '+' : ''}${weightToDisplay(change7, u).toFixed(1)}`}</b></div>
           <div><span>Per week</span><b data-count>${rate == null ? '—' : `${rate > 0 ? '+' : ''}${weightToDisplay(rate, u).toFixed(2)}`}</b></div>

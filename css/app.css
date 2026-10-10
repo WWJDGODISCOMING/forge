@@ -29,7 +29,13 @@ main {
 .row { display: flex; }
 .row.end { justify-content: flex-end; }
 .one-line { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.weight-card > .row.end { margin-top: var(--s-2); }
+.weight-card .weight-text { flex: 1; min-width: 0; }
+.weight-card .spark { flex: none; width: 72px; margin-left: var(--s-2); }
+@media (min-width: 400px) { .weight-card .spark { width: 120px; } }
+.weight-card .nw { white-space: nowrap; }
+.weight-actions { flex-wrap: nowrap; align-items: center; gap: 0 var(--s-3); margin-top: var(--s-1); }
+.weight-why { flex: 1 1 auto; min-width: 0; white-space: normal; background: none; border: 0; padding: 0; min-height: 44px; color: var(--accent-text); font: inherit; text-align: left; cursor: pointer; }
+.weight-actions .btn { min-height: 44px; flex: none; }
 .row.gap, .gap { gap: var(--s-3); }
 .between { justify-content: space-between; }
 .center { align-items: center; }
@@ -584,8 +590,9 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 .body-hero .bh-tap > span { padding-right: 16px; }
 .body-hero .bh-tap::after { content: "\203A"; position: absolute; right: var(--s-4); bottom: var(--s-4); font: 700 calc(20px * var(--ts))/1 var(--font); color: var(--text-3); }
 .body-hero .bh-tap:active { background: var(--surface-2); }
-.timer-screen .seg.small span { padding-inline: 2px; }
-@media (max-width: 340px) { .timer-screen .seg.small span { font-size: calc(12px * var(--ts)); } }
+.timer-screen .seg.small span { padding-inline: 2px; font-size: calc(13px * min(var(--ts), 1.2)); } /* five presets in one row: cap the growth so "Custom" fits at the largest text */
+.timer-screen > .row.gap { align-items: flex-end; } /* labels may wrap differently; the three inputs stay on one line */
+@media (max-width: 340px) { .timer-screen .seg.small span { font-size: calc(12px * min(var(--ts), 1.05)); } }
 .tour-card:focus { outline: none; } /* after a tap focus lands on the card (so VoiceOver reads it), with no ring */
 
 /* ---------- v0.15.7: Today density, button pairs and large text ---------- */
@@ -615,3 +622,6 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 .rings-svg { flex: none; }
 .rings-legend { flex: 1 1 calc(120px * var(--ts)); min-width: 0; }
 .rings-card > .row { flex-wrap: wrap; row-gap: 0; }
+
+/* two-by-two stats (Weight: latest, trend, 7 days, per week) */
+.stats.stats-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; row-gap: var(--s-3); }

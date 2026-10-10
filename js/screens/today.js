@@ -3,9 +3,10 @@ import { esc, $, isStandalone, isIOS } from '../ui.js';
 import { weightToDisplay, weightUnit } from '../units.js';
 import { trendChange } from '../weight/smoothing.js';
 import { sparklineSVG } from '../weight/chart.js';
-import { weightSeries, currentTargets } from '../derived.js';
+import { weightSeries, currentTargets, latestWeighIn } from '../derived.js';
 import { FLOOR_SOURCE } from '../nutrition/targets.js';
 import { openLogWeight } from './weight.js';
+import { readingLabel } from '../weight/reading.js';
 import { activeWorkout, historyIndex, activeProgram } from '../workouts/plan.js';
 import { deloadInfo } from '../workouts/generator.js';
 import { dayKey } from '../weight/smoothing.js';
@@ -196,6 +197,7 @@ export function renderToday(el) {
   const series = weightSeries();
   const latest = series.length ? series[series.length - 1] : null;
   const change = trendChange(series, 7);
+  const reading = latestWeighIn();
   const goal = state.profile.goal;
   const goalKg = state.profile.targetWeightKg;
   const fmtGoalDay = (d) => new Date(`${d}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(d.slice(0, 4) !== todayKey().slice(0, 4) ? { year: 'numeric' } : {}) }).replace(/ /g, ' '); // keep a date together
@@ -256,16 +258,21 @@ export function renderToday(el) {
       ${missionsCard()}
 
       <div class="card weight-card">
-        <div class="row between center card-head"><p class="label">Weight trend</p><a class="card-link" href="#/weight">See chart${icon('chev', { size: 14 })}</a></div>
-        <div class="row between center">
-          <div>
-            <p class="hero-num">${latest ? `<span data-count>${weightToDisplay(latest.trend, u).toFixed(1)}</span> <small>${weightUnit(u)}</small>` : '—'}</p>
-            <p class="small ${tone}">${change == null ? 'Log a few days to see your trend' : `${arrow} ${Math.abs(weightToDisplay(change, u)).toFixed(1)} this week`}</p>
+        <div class="row between center card-head"><p class="label">Weight</p><a class="card-link" href="#/weight">See chart${icon('chev', { size: 14 })}</a></div>
+        <div class="row between center weight-main">
+          <div class="weight-text">
+            <p class="small muted" data-weight-when>${reading ? esc(readingLabel(reading, todayKey())) : ''}</p>
+            <p class="hero-num">${reading ? `<span data-count>${weightToDisplay(reading.kg, u).toFixed(1)}</span> <small>${weightUnit(u)}</small>` : '—'}</p>
+            <p class="small ${tone}" data-weight-trend>${!latest || change == null ? 'Log a few days to see your trend' : `<span class="nw">Trend ${weightToDisplay(latest.trend, u).toFixed(1)}</span> · <span class="nw">${arrow} ${Math.abs(weightToDisplay(change, u)).toFixed(1)} this week</span>`}</p>
           </div>
           ${sparklineSVG(series)}
         </div>
+        <div class="row between center weight-actions">
+          <button class="weight-why small" type="button" data-layout-ok data-weight-why aria-expanded="false" aria-controls="weight-why-text">What’s trend weight?</button>
+          <button class="btn small" data-log type="button">Log weight</button>
+        </div>
+        <p class="small muted" id="weight-why-text" data-weight-why-text hidden>Your trend smooths out daily ups and downs from water and salt, so it shows the real direction. Today’s number is just what the scale said.</p>
         ${goalSentence ? `<p class="small muted" data-goal-line>${esc(goalSentence)}</p>` : ''}
-        <div class="row end"><button class="btn small" data-log>Log weight</button></div>
       </div>
 
       ${programLine()}
@@ -282,6 +289,11 @@ export function renderToday(el) {
     </section>`;
 
   $('[data-log]', el).onclick = openLogWeight;
+  $('[data-weight-why]', el).onclick = (e) => {
+    const open = e.currentTarget.getAttribute('aria-expanded') !== 'true';
+    e.currentTarget.setAttribute('aria-expanded', String(open));
+    $('[data-weight-why-text]', el).hidden = !open;
+  };
   $('[data-food-log]', el).onclick = () => import('./food.js').then((m) => m.openLogFood());
   const why = $('[data-ready-why]', el);
   if (why) why.onclick = () => {

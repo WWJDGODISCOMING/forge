@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.15.10 — Fit-and-finish, part 4: weight card, Food at 320, Log food dock (2026-10-10)
+
+Issue #64, part 4. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Weight card (Today):** today's weigh-in is the big number, labelled "Today · 7:42 AM" (or "Yesterday" / "Latest · Oct 8"). Under it: "Trend 207.7 · ↑ 2.0 this week", and a one-line "What's trend weight?" explainer. Weight screen: the stats show Today/Latest next to Trend (two-by-two).
+- **Weight detail message:** instead of "Not enough readings…" it says how many weigh-ins there are, e.g. "Only 2 weigh-ins in the last 4 weeks. The trend line is your smoothed average. Weigh in 3+ times a week for a reliable 4-week direction."
+- **Steps insight:** the "Steps are trending up" wording from 0.15.6 comes from one function that both the Today card and the Body card use. A phone still showing "Steps is…" is on an older build.
+- **Food summary at 320:** each value and its "of target" stay on one line at 320, 375 and 390, at normal and large text. When they don't fit beside the label the value goes under it on purpose; Carbs and Fat stack label over value.
+- **Log food dock:** each macro keeps its number with its unit ("5 g fat" never splits); the line only breaks between macros.
+- **Round 1 review fixes:**
+  - Today weight card heading is "Weight" (the big number is the scale reading, the trend has its own line).
+  - "Trend 208.3 · ↑ 0.4 this week" stays on one line at 390 and 375; when it must break it breaks only at the dot. The text column takes the free width and the sparkline is narrower on small screens.
+  - "What's trend weight?" and Log weight share one row (44 pt targets); the explainer opens below. At 320 or large text the button drops to its own line instead of overflowing.
+  - Weight detail message: "No weigh-ins in the last 4 weeks." (not "Only no…"), and a separate honest line when there are enough readings but no clear change. Weight screen's first stat reads "Yesterday" / "Latest · Oct 8" when the newest reading isn't today.
+- **Round 2 review fixes:**
+  - The weight card's action row never wraps: "What's trend weight?" can take two lines on the left, Log weight stays on the right edge, both centred and 44 pt; the explainer opens below the row.
+  - Interval timer presets: the 320px rule now caps text growth too, so "EMOM", "Tabata" and "Custom" fit at the largest text with space between them.
+  - Interval timer Work / Rest / Rounds inputs line up on one line even when a label wraps.
+- Tests: `tests/v01510.test.js`; the layout test covers over-target Food at 320/375/390 (scale 1 and 1.35) and the dock macro line at 320/390 (scale 1 and 1.35).
+
 ## 0.15.9 — USDA food search (2026-10-10)
 
 Part 4 of the audit in issue #57. **The functions (`foodSearch`, and the `withingsDisconnect` change) are already deployed.** `firestore.rules` is unchanged (the `usda:<fdcId>` id fits the existing `food_id` string, and the portion text is an extra field the rules already allow), and so are `firebase.json` and `config.js`. The web app updates by itself; the iPhone app needs one Refresh Forge run.

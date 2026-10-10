@@ -20,6 +20,7 @@ const CASES = [
   ...SIZES.map(([w, h]) => ({ w, h, dark: true, long: false })),
   { w: 375, h: 667, dark: false, long: false },
   { w: 375, h: 667, dark: true, long: true }, { w: 390, h: 844, dark: false, long: true },
+  { w: 320, h: 568, dark: true, long: false, over: true }, { w: 390, h: 844, dark: true, long: false, over: true, ts: 1.35 }, // past every food target
   { w: 390, h: 844, dark: true, long: false, ts: 1.3 }, // iOS Text Size at ~130%: lines may wrap, but nothing may clip
 ];
 
@@ -35,7 +36,7 @@ for (const route of standalone ? ROUTES : []) {
     const found = new Map();
     for (const c of CASES) {
       await browser.viewport(c.w, c.h, c.dark);
-      await browser.open(route, seed({ long: c.long, active: route === 'play' }));
+      await browser.open(route, seed({ long: c.long, over: c.over, active: route === 'play' }));
       const cls = await browser.eval('window.__cls || 0'); // before any text-size change
       if (c.ts) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${c.ts}')`); await new Promise((r) => setTimeout(r, 300)); }
       const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: !!c.ts })})`);
@@ -46,7 +47,7 @@ for (const route of standalone ? ROUTES : []) {
         await browser.screenshot(`${shots}/${route}-${c.w}x${c.h}-${c.dark ? 'dark' : 'light'}${c.long ? '-long' : ''}${c.ts ? '-text' : ''}-bottom.png`);
       }
       if (cls > 0.02) probs.push(`layout shift ${cls.toFixed(3)} on first render`);
-      for (const p of probs) found.set(p, [...(found.get(p) || []), `${c.w}${c.dark ? "d" : "l"}${c.long ? "L" : ""}${c.ts ? "T" : ""}`]);
+      for (const p of probs) found.set(p, [...(found.get(p) || []), `${c.w}${c.dark ? "d" : "l"}${c.long ? "L" : ""}${c.over ? "O" : ""}${c.ts ? "T" : ""}`]);
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
@@ -82,6 +83,61 @@ if (standalone) {
       const r = await browser.eval("(() => { const p = document.querySelector('[data-workout-place]'); if (!p) return null; const m = p.previousElementSibling; return { place: p.getBoundingClientRect().height < 30, dot: /·\\s*$/.test(m.innerText), lines: (() => { const rg = document.createRange(); rg.selectNodeContents(m); return new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 6))).size; })() }; })()");
       if (!r) continue; // seed has no planned workout today
       assert(r.place && !r.dot && r.lines === 1, `workout meta/place wrapped badly at 320: ${JSON.stringify(r)}`);
+    }
+  });
+}
+
+if (standalone) {
+  test('layout: Today weight card: trend line breaks only at the dot, the two actions share one row', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    for (const w of [320, 390]) for (const ts of [1, 1.35]) {
+      await browser.viewport(w, w === 320 ? 568 : 844, true);
+      await browser.open('today', seed());
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const r = await browser.eval(`(() => {
+        const c = document.querySelector('.weight-card'); if (!c) return null;
+        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 4))).size; };
+        const t = c.querySelector('[data-weight-trend]'); const why = c.querySelector('[data-weight-why]'); const log = c.querySelector('[data-log]');
+        const a = why.getBoundingClientRect(), b = log.getBoundingClientRect();
+        return { heading: c.querySelector('.label').innerText, tw: t ? t.getBoundingClientRect().width : 0, sw: t ? t.scrollWidth : 0, halves: t ? [...t.querySelectorAll('.nw')].map(lines) : [], whole: t ? lines(t) : 0,
+          sameRow: Math.abs((a.top + a.height / 2) - (b.top + b.height / 2)) < 4, h: [a.height, b.height], over: c.scrollWidth > c.clientWidth + 1 };
+      })()`);
+      if (!r) continue; // no weight data in the seed
+      const at = `${w}px text ${ts}`;
+      assert(r.heading === 'Weight', `heading reads "${r.heading}" at ${at}`);
+      assert(r.halves.every((n) => n === 1), `trend halves wrap at ${at}: ${JSON.stringify(r.halves)}`);
+      if (ts === 1 && w === 390) assert(r.whole === 1, `trend line wraps at ${at}: ${JSON.stringify(r)}`);
+      assert(r.sameRow && r.h[0] >= 44 && r.h[1] >= 44 && !r.over, `weight actions at ${at}: ${JSON.stringify(r)}`);
+      const g = await browser.eval(`(() => {
+        const c = document.querySelector('.weight-card'); const log = c.querySelector('[data-log]'); const why = c.querySelector('[data-weight-why]'); const row = c.querySelector('.weight-actions');
+        c.querySelector('[data-weight-why-text]').hidden = false;
+        const b = log.getBoundingClientRect(), a = why.getBoundingClientRect(), cs = getComputedStyle(c), cr = c.getBoundingClientRect();
+        const edge = cr.right - parseFloat(cs.paddingRight), e = c.querySelector('[data-weight-why-text]').getBoundingClientRect();
+        return { edge: Math.abs(b.right - edge), mid: (b.top + b.height / 2) >= a.top && (b.top + b.height / 2) <= a.bottom, below: e.top >= row.getBoundingClientRect().bottom - 1 };
+      })()`);
+      assert(g.edge <= 1 && g.mid && g.below, `weight actions layout at ${at}: ${JSON.stringify(g)}`);
+    }
+  });
+}
+
+if (standalone) {
+  test('layout: Interval timer: presets do not overflow or touch, the three inputs share one top', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    for (const w of [320, 390]) for (const ts of [1, 1.35]) {
+      await browser.viewport(w, w === 320 ? 568 : 844, true);
+      await browser.open('timer', seed());
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const r = await browser.eval(`(() => {
+        const spans = [...document.querySelectorAll('.timer-screen .seg.small span')];
+        const rects = spans.map((s) => { const rg = document.createRange(); rg.selectNodeContents(s); return rg.getBoundingClientRect(); });
+        const gaps = rects.slice(1).map((q, i) => q.left - rects[i].right);
+        return { over: spans.filter((s) => s.scrollWidth > s.clientWidth + 1).length, gaps, tops: [...document.querySelectorAll('.timer-screen .field input')].map((i) => Math.round(i.getBoundingClientRect().top)) };
+      })()`);
+      const at = `${w}px text ${ts}`;
+      assert(r.over === 0 && r.gaps.every((x) => x >= 4), `timer presets at ${at}: ${JSON.stringify(r)}`);
+      assert(r.tops.length === 3 && new Set(r.tops).size === 1, `timer inputs not on one line at ${at}: ${JSON.stringify(r.tops)}`);
     }
   });
 }
@@ -209,6 +265,66 @@ if (!standalone) {
     const { spawnSync } = await import('node:child_process');
     const r = spawnSync(process.execPath, [new URL(import.meta.url).pathname], { encoding: 'utf8', timeout: 540000 });
     assert(r.status === 0, '\n' + r.stdout.split('\n').filter((l) => !l.includes('✓')).join('\n'));
+  });
+}
+
+if (standalone) {
+  test('layout: Food summary: over-target values stay on one line at 320, 375 and 390, normal and large text', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    for (const [w, h] of [[320, 568], [375, 667], [390, 844]]) {
+      for (const ts of [1, 1.35]) {
+        await browser.viewport(w, h, true);
+        await browser.open('food', seed({ over: true }));
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+        const rows = await browser.eval(`(() => [...document.querySelectorAll('.meter-row')].map((r) => {
+          const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => [(q.top + q.bottom) / 2, q.height]).sort((x, y) => x[0] - y[0]); const hh = Math.max(...c.map((q) => q[1])); return c.filter((q, i) => i === 0 || q[0] - c[i - 1][0] > hh * 0.6).length; };
+          const label = r.querySelector('.label'); const val = label.parentElement.lastElementChild;
+          const a = label.getBoundingClientRect(); const b = val.getBoundingClientRect();
+          return { name: label.textContent.trim(), label: lines(label), val: lines(val), side: Math.abs(a.top - b.top) < 4, overlap: Math.abs(a.top - b.top) < 4 && a.right > b.left + 1, parts: [...val.children].map(lines), text: val.textContent.replace(/\\s+/g, ' ').trim(), out: b.right > r.getBoundingClientRect().right + 1 };
+        }))()`);
+        const at = `${w}${ts !== 1 ? 'T' : ''}`;
+        if (!rows.length) note('no meter rows on Food', at);
+        for (const r of rows) {
+          if (r.label !== 1) note(`${r.name}: label wraps`, at);
+          if (r.val !== 1 && ts === 1) note(`${r.name}: value "${r.text}" wraps`, at);
+          if (r.parts.some((n) => n !== 1)) note(`${r.name}: "${r.text}" breaks mid-value`, at);
+          if (r.overlap || r.out) note(`${r.name}: value overlaps the label or runs off-screen`, at);
+        }
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
+if (standalone) {
+  test('layout: Log food dock: each macro value stays with its unit at 320 and 390, normal and large text', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    for (const [w, h] of [[320, 568], [390, 844]]) {
+      for (const ts of [1, 1.35]) {
+        await browser.viewport(w, h, true);
+        await browser.open('food', seed({ over: true }));
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+        await browser.eval("document.querySelector('[data-log-food]').click()"); await wait(600);
+        await browser.eval("document.querySelector('dialog.sheet [data-results] li[data-i]').click()"); await wait(500);
+        const r = await browser.eval(`(() => {
+          const line = document.querySelector('dialog.sheet [data-sel-line]'); if (!line) return null;
+          const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => (q.top + q.bottom) / 2).sort((x, y) => x - y); return c.filter((q, i) => i === 0 || q - c[i - 1] > 6).length; };
+          return { parts: [...line.querySelectorAll('.nb')].map((n) => [n.textContent, lines(n)]), cut: line.scrollWidth > line.clientWidth + 1 };
+        })()`);
+        const at = `${w}${ts !== 1 ? 'T' : ''}`;
+        if (!r || !r.parts.length) { note('dock macro line missing', at); continue; }
+        for (const [t, n] of r.parts) if (n !== 1) note(`"${t}" splits across lines`, at);
+        if (r.cut) note('macro line is cut off', at);
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
 }
 

@@ -1,6 +1,7 @@
 // Values computed from state that several screens need.
 import { state } from './state.js';
 import { dailyWeights, smooth } from './weight/smoothing.js';
+import { pickLatest } from './weight/reading.js';
 import { computeTargets } from './nutrition/targets.js';
 import { suspectIds } from './withings/review.js';
 
@@ -11,6 +12,14 @@ export const mySuspects = () => suspectIds(state.weights, (state.profile && stat
 export function weightSeries() {
   const sus = mySuspects();
   return smooth(dailyWeights(state.weights.map((w) => ({ day: w.day, kg: w.kg, source: w.source, measured_at: w.measured_at, review: w.review || sus.has(w.id) }))));
+}
+
+/**
+ * The most recent weigh-in you've actually made (not the smoothed trend): { kg, day, measured_at, source } or null.
+ * Weigh-ins waiting in "Is this you?" are left out, same as the trend.
+ */
+export function latestWeighIn() {
+  return pickLatest(state.weights, mySuspects());
 }
 
 /** Body measurements that are yours: not waiting in "Is this you?" (a family member's body fat shouldn't be in your tiles). */

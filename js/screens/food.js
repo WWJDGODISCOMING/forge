@@ -172,7 +172,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
             </div>
             <p class="small muted" data-portion-note></p>
           </div>
-          <p class="small muted" data-sel-line></p>
+          <p class="small muted macro-line" data-sel-line></p>
           <div class="meal-chips" role="radiogroup" aria-label="Meal">${MEALS.map((m) => `<button type="button" class="chip-btn" role="radio" data-meal="${m}">${MEAL_LABEL[m]}</button>`).join('')}</div>
           <button class="btn" data-add></button>
         </div>
@@ -232,11 +232,13 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       const brandEl = $('[data-sel-brand]', dock);
       brandEl.textContent = s.brand || '';
       brandEl.hidden = !s.brand;
+      const macro = (n, unit) => `<span class="nb">${n.toLocaleString('en-US')}\u00a0${unit}</span>`;
+      const selLine = (parts) => parts.join(' <span aria-hidden="true">·</span> ');
       if (usda) {
-        $('[data-sel-line]', dock).textContent = `${s.kcal.toLocaleString('en-US')} kcal · ${Math.round(s.protein_g)} g protein · ${Math.round(s.carbs_g)} g carbs · ${Math.round(s.fat_g)} g fat`;
+        $('[data-sel-line]', dock).innerHTML = selLine([macro(s.kcal, 'kcal'), macro(Math.round(s.protein_g), 'g\u00a0protein'), macro(Math.round(s.carbs_g), 'g\u00a0carbs'), macro(Math.round(s.fat_g), 'g\u00a0fat')]);
       } else {
         $('[data-serv]', dock).textContent = `${fmtNum(flow.f.servings)} ${flow.f.servings === 1 ? 'serving' : 'servings'}`;
-        $('[data-sel-line]', dock).textContent = `${Math.round(s.kcal * flow.f.servings).toLocaleString('en-US')} kcal · ${Math.round(s.protein_g * flow.f.servings)} g protein${s.serving ? ` · ${s.serving} each` : ''}`;
+        $('[data-sel-line]', dock).innerHTML = selLine([macro(Math.round(s.kcal * flow.f.servings), 'kcal'), macro(Math.round(s.protein_g * flow.f.servings), 'g\u00a0protein')].concat(s.serving ? [`<span class="nb">${esc(s.serving)}\u00a0each</span>`] : []));
       }
       $('[data-add]', dock).disabled = false;
       paintMeal();
