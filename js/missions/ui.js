@@ -32,7 +32,7 @@ export function missionsCard() {
   return `<div class="card ms-card" data-missions>
     <div class="row between center"><p class="label">Today’s missions</p><span class="small muted">${m.done} of ${m.total}</span></div>
     <ul class="ms-list">${rows}</ul>
-    <p class="small muted">Finish ${m.total === 2 ? 'both' : `all ${m.total}`} for +${m.bonus} XP more.</p>
+    <p class="small muted ms-foot">Finish ${m.total === 2 ? 'both' : `all ${m.total}`} for a <span class="nw">+${m.bonus} XP bonus.</span></p>
   </div>`;
 }
 

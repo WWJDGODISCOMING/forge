@@ -11,6 +11,7 @@
     "native:open": "npx cap open ios"
   },
   "devDependencies": {
+    "@capacitor/app": "^8.1.2",
     "@capacitor/assets": "^3.0.5",
     "@capacitor/browser": "^8.0.0",
     "@capacitor/cli": "^8.0.0",

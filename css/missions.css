@@ -75,3 +75,5 @@
   .pg-ring-fg { transition: stroke-dashoffset .6s var(--ease-out); }
   .pg-dot { transition: left .4s var(--ease-out); }
 }
+.ms-foot { text-wrap: balance; }
+.ms-foot .nw { white-space: nowrap; }

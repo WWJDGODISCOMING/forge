@@ -97,6 +97,7 @@ fieldset.card legend + * { clear: both; }
 .refresh-banner { display: flex; gap: var(--s-3); align-items: flex-start; width: 100%; text-align: left; border: 0; color: var(--text-1); font: inherit; font-size: calc(15px * var(--ts)); cursor: pointer; }
 .refresh-banner .rb-ic { flex: none; display: inline-flex; padding-top: 1px; }
 .refresh-steps { margin: 0; padding-left: 1.3em; display: grid; gap: var(--s-2); }
+.whats-new { margin: 0; padding-left: 1.2em; display: grid; gap: var(--s-2); }
 .g-pad { padding: var(--s-3) 20px var(--s-4); display: flex; flex-direction: column; gap: var(--s-3); }
 .g-row.col { flex-direction: column; align-items: stretch; padding: var(--s-3) 20px; gap: var(--s-2); }
 

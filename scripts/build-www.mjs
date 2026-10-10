@@ -32,6 +32,29 @@ export function cdnRefs(text) {
 /** Point CDN imports at the bundled copies. */
 export const localise = (text) => text.replace(CDN, (_, v, f) => `${LOCAL}${f}`);
 
+/** The app version, read from js/version.js. */
+export const readVersion = (text) => (/VERSION\s*=\s*'([^']+)'/.exec(text) || [])[1] || null;
+
+const plain = (t) => t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1').replace(/\s+/g, ' ').trim();
+const short = (t, n = 150) => (t.length <= n ? t : `${t.slice(0, n - 1).replace(/\s+\S*$/, '')}…`);
+
+/** CHANGELOG.md → { "0.15.11": { title, items: [...] } } for the newest `max` versions (top-level bullets, plain text). */
+export function whatsNew(changelog, max = 6) {
+  const out = {};
+  let cur = null;
+  for (const line of changelog.split('\n')) {
+    const h = /^## (\d+\.\d+\.\d+)\s+[—-]\s+(.*?)(?:\s+\(\d{4}-\d{2}-\d{2}\))?\s*$/.exec(line);
+    if (h) {
+      if (Object.keys(out).length >= max) break;
+      cur = out[h[1]] = { title: plain(h[2]), items: [] };
+    } else if (cur && /^- /.test(line) && cur.items.length < 6) {
+      const t = plain(line.slice(2));
+      if (t && !/^(Issue #|Tests?:|Part \d)/i.test(t)) cur.items.push(short(t));
+    }
+  }
+  return out;
+}
+
 async function main() {
   await rm(OUT, { recursive: true, force: true });
   await mkdir(OUT, { recursive: true });
@@ -73,7 +96,11 @@ async function main() {
   if (ok) for (const [p, t] of texts) await writeFile(p, localise(t));
   else console.warn('Firebase not bundled: the app will load it from the internet (it still works when online).');
   // When this copy was built: the app's weekly-refresh countdown starts here (js/native/expiry.js).
-  await writeFile(join(OUT, 'app-install.json'), JSON.stringify({ builtAt: new Date().toISOString() }) + '\n');
+  // `version` + `builtAt` let a running app notice that a newer build was installed over it (js/native/update.js).
+  const version = readVersion(await readFile(join(ROOT, 'js', 'version.js'), 'utf8'));
+  await writeFile(join(OUT, 'app-install.json'), JSON.stringify({ version, builtAt: new Date().toISOString() }) + '\n');
+  // The short "What's new" list shown once after an update (generated from CHANGELOG.md).
+  await writeFile(join(OUT, 'whats-new.json'), JSON.stringify(whatsNew(await readFile(join(ROOT, 'CHANGELOG.md'), 'utf8'))) + '\n');
   console.log(`www/ ready (${COPY.join(', ')}). Next: npx cap sync ios`);
 }
 

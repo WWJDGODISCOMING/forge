@@ -234,7 +234,14 @@ if [ -n "$EXP_EPOCH" ]; then
 else
   printf '\nForge is refreshed: good for 7 more days.\n'
 fi
+# Start Forge again so a copy that was already open doesn't keep showing the old version. The phone must be unlocked;
+# if this Xcode has no --terminate-existing, or the launch fails, the last line asks you to reopen it yourself.
+RELAUNCHED=""
+if xcrun devicectl device process launch --help 2> /dev/null | grep -q -- '--terminate-existing'; then
+  step_run xcrun devicectl device process launch --terminate-existing --device "$UDID" "$BUNDLE_ID" && RELAUNCHED=1
+fi
 [ -n "${COUNTDOWN_OFF:-}" ] && printf '(The countdown inside Forge may be off by a day or so this time.)\n'
+if [ -n "$RELAUNCHED" ]; then printf '(Forge was restarted on the phone, so it already shows the new version.)\n'; else printf '(If Forge was open on the phone, close and reopen it.)\n'; fi
 printf '(Your Forge data is untouched. Open Forge on the phone. If it says "Untrusted Developer", trust your Apple ID once in Settings → General → VPN & Device Management.)\n'
 wait_key
 exit 0
