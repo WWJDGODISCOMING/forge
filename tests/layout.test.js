@@ -328,6 +328,118 @@ if (standalone) {
   });
 }
 
+if (standalone) {
+  test('layout: Today missions footer keeps "+30 XP bonus." together at 320 and 390, normal and large text', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const found = new Map();
+    for (const [w, h] of [[320, 568], [390, 844]]) for (const ts of [1, 1.35]) {
+      await browser.viewport(w, h, true);
+      await browser.open('today', seed());
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const r = await browser.eval(`(() => {
+        const f = document.querySelector('.ms-foot'); if (!f) return null;
+        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+        const t = f.querySelector('.nw');
+        return { text: f.innerText, tail: t ? lines(t) : 0, all: lines(f), cut: f.scrollWidth > f.clientWidth + 1 };
+      })()`);
+      const at = `${w}${ts !== 1 ? 'T' : ''}`;
+      if (!r) { found.set('missions footer missing', [at]); continue; }
+      if (r.tail !== 1) found.set(`the bonus splits across lines: "${r.text}"`, [...(found.get(`the bonus splits across lines: "${r.text}"`) || []), at]);
+      if (r.all > 2 || r.cut) found.set(`footer too long or cut: ${JSON.stringify(r)}`, [at]);
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
+// A fake iPhone shell for the update tests: a native Capacitor with the App plugin, and app-install.json / whats-new.json served
+// from sessionStorage so a reload keeps them. The setup script is kept across the reload (open(..., { persist: true })).
+const NATIVE_SHELL = `
+  const read = (k, d) => { try { return JSON.parse(sessionStorage.getItem(k) || d); } catch (e) { return JSON.parse(d); } };
+  const realFetch = window.fetch.bind(window);
+  window.fetch = (u, o) => {
+    const s = String(u);
+    if (s.includes('app-install.json')) return Promise.resolve(new Response(JSON.stringify(read('__install', '{"version":"0.15.10","builtAt":"2026-10-10T10:00:00Z"}')), { status: 200 }));
+    if (s.includes('whats-new.json')) return Promise.resolve(new Response(JSON.stringify(read('__news', '{}')), { status: 200 }));
+    return realFetch(u, o);
+  };
+  window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: (n) => n === 'App', Plugins: { App: { addListener: (ev, cb) => { (window.__cb = window.__cb || {})[ev] = cb; return Promise.resolve({ remove() {} }); } } } };
+`;
+
+if (standalone) {
+  test('layout: resume with a changed app-install.json reloads, then toasts "Updated to …" and opens What\'s new (never mid-workout)', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const version = (await import('../js/version.js')).VERSION;
+    const news = { [version]: { title: 'Test notes', items: ['First highlight', 'Second highlight'] } };
+    const newBuild = JSON.stringify({ version, builtAt: '2026-10-12T09:00:00Z' });
+    const newerBuild = JSON.stringify({ version, builtAt: '2026-10-13T09:00:00Z' }); // (sessionStorage outlives a test page: each scenario needs a build that differs from the last one's)
+    const reloaded = () => browser.eval("performance.getEntriesByType('navigation')[0].type === 'reload' && !window.__marker");
+    for (const [w, h] of [[320, 568], [390, 844]]) {
+      await browser.viewport(w, h, true);
+      // 1. a normal screen: resume → reload → toast → sheet
+      await browser.open('today', seed(), NATIVE_SHELL, { persist: true });
+      await wait(2300); // the app's own first check and its (silent) version note have run; resume events closer than 1.5 s are ignored
+      await browser.eval(`sessionStorage.setItem('__news', ${JSON.stringify(JSON.stringify(news))}); localStorage.setItem('forge.seenVersion', '0.0.1'); window.__marker = 1; sessionStorage.setItem('__install', ${JSON.stringify(newBuild)})`);
+      assert(await browser.eval("typeof window.__cb.resume === 'function'"), 'the app registered a resume listener');
+      await browser.eval('window.__cb.resume()');
+      await wait(2500);
+      assert(await reloaded(), `resume with a new build did not reload the app at ${w}`);
+      for (let i = 0; i < 30 && !(await browser.eval("!!document.querySelector('.toast-act')")); i++) await wait(200);
+      assert((await browser.eval("(document.querySelector('.toast-msg') || {}).textContent")) === `Updated to ${version}`, 'no "Updated to" toast after the reload');
+      await browser.eval("document.querySelector('.toast-act').click()");
+      await wait(900);
+      const sheetInfo = await browser.eval("({ title: (document.querySelector('dialog.sheet h2') || {}).textContent, items: [...document.querySelectorAll('dialog.sheet .whats-new li')].map((l) => l.textContent) })");
+      assert(sheetInfo.title === `What’s new in ${version}` && sheetInfo.items.length === 2, `What's new sheet: ${JSON.stringify(sheetInfo)}`);
+      await browser.eval("['main', 'nav', 'navbar'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = 'hidden'; })"); // the sheet on its own
+      const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: false })})`);
+      assert(probs.length === 0, `What's new sheet at ${w}: ${probs.join(' | ')}`);
+      await browser.eval("localStorage.setItem('forge.seenVersion', '" + version + "')");
+      // 2. mid-workout: the player is left alone until you leave it
+      await browser.open('play', seed({ active: true }), NATIVE_SHELL, { persist: true });
+      await wait(2300);
+      await browser.eval(`window.__marker = 1; sessionStorage.setItem('__install', ${JSON.stringify(newerBuild)})`);
+      await browser.eval('window.__cb.resume()');
+      await wait(2000);
+      assert(await browser.eval('window.__marker === 1'), `the app reloaded in the middle of a workout at ${w}`);
+      await browser.eval("location.hash = '#/today'");
+      await wait(2500);
+      assert(await reloaded(), `the waiting update did not go through after leaving the player at ${w}`);
+    }
+    await browser.dropInit();
+  });
+}
+
+for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
+  test(`layout: tour keeps each target in view above the card at ${w}x${h}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await browser.viewport(w, h, true);
+    await browser.open('today', seed({}));
+    await browser.eval("import('./js/tour/tour.js').then((m) => m.startTour({ replay: true }))");
+    await wait(600);
+    const bad = [];
+    for (let i = 0; i < 11; i++) {
+      await wait(450);
+      const m = await browser.eval(`(() => { const c = document.querySelector('.tour-card').getBoundingClientRect(); const s = document.querySelector('.tour-spot'); const sr = s.getBoundingClientRect(); return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), ctop: c.top, sbot: sr.bottom, stop: sr.top, sh: sr.height, bar: (() => { const b = document.getElementById('navbar'); return b && !b.hidden ? b.getBoundingClientRect().bottom : 0; })() }; })()`);
+      if (shots) await browser.screenshot(`${shots}/tour-${i + 1}-${w}x${h}.png`);
+      // The tab-bar step puts the card above its target; a target taller than the room is pinned under the nav bar.
+      const fits = !m.empty && m.stop < m.ctop && m.sh + 12 + 36 <= m.ctop;
+      if (fits) {
+        const gap = m.ctop - m.sbot; // spotlight outline (8px pad included) to the top of the card
+        if (gap < 11) bad.push(`step ${i + 1} "${m.t}": only ${Math.round(gap)}px between target and card`);
+        if (m.stop < 30) bad.push(`step ${i + 1} "${m.t}": only ${Math.round(m.stop)}px of page above the target`);
+      }
+      // The ring never overlaps the top bar (it is drawn 8px out, so it clears the bar by its own pad).
+      if (!m.empty && m.stop < m.ctop && m.stop < m.bar - 0.5) bad.push(`step ${i + 1} "${m.t}": spotlight top ${Math.round(m.stop)}px is under the top bar (bottom ${Math.round(m.bar)}px)`);
+      await browser.eval("document.querySelector('[data-next]').click()");
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;

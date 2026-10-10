@@ -1,5 +1,24 @@
 # Changelog
 
+## 0.15.11 — Fit-and-finish, part 5: the running app picks up Refresh Forge (2026-10-10)
+
+Issue #64, part 5 (item 26). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. **New native dependency `@capacitor/app`:** Refresh Forge installs it and runs `cap sync` by itself, so the usual double-click is all that's needed.
+
+- **Update on resume (iPhone app):** `app-install.json` now carries `version` next to `builtAt`. When Forge comes back to the front (the `@capacitor/app` resume event, with `visibilitychange` as a fallback) it re-reads that file (`no-store`). If the version, build time or signing date changed, it reloads, so an app that was left open shows the new version and the Settings countdown without a force-quit.
+- **Never mid-workout:** the reload waits while the player or workout list is open, while an interval timer is running, while a sheet or dialog is open, during the tour, or while you are typing in a field, and goes through as soon as you leave. A running rest timer and the active workout are saved and survive a reload anyway.
+- **"Updated to 0.15.11 · What's new":** once per version, after the update, a toast with a What's new button. The sheet lists that version's highlights from `whats-new.json`, which the build generates from this CHANGELOG. Nothing shows on a first install.
+- **Native cleanup:** on the iPhone app's first launch of this build, any service worker and `forge-*` cache left from older builds is removed, so a stale cached file can never be served inside the app.
+- **Refresh Forge.command** now relaunches Forge on the phone after installing (`devicectl device process launch --terminate-existing`, phone unlocked). If this Xcode lacks the flag or the launch fails, it says "If Forge was open on the phone, close and reopen it."
+- **Missions footer:** "Finish all 4 for a +30 XP bonus." The bonus can't split from its number or leave "XP" alone on a line, and the sentence balances across two lines.
+- **Tour:** a target that fits now gets about 28 px of page above it as well as clear space over the card, on every step at 320, 375 and 390 (the tab-bar step and cards taller than the room, like Rings and Recovery, are pinned under the nav bar). The layout test steps through all 11 and checks it.
+- Tests: `tests/v01511.test.js`; the layout test simulates a resume with a changed `app-install.json` (reload, then the toast and sheet), and checks the missions footer at 320/390, text scale 1 and 1.35.
+
+### What's new
+
+- Forge now updates itself when you open it after a refresh.
+- A workout or timer in progress is never interrupted by an update.
+- Today's missions read cleaner.
+
 ## 0.15.10 — Fit-and-finish, part 4: weight card, Food at 320, Log food dock (2026-10-10)
 
 Issue #64, part 4. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

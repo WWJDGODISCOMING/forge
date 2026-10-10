@@ -44,6 +44,9 @@ function say(text) {
   speechSynthesis.speak(u);
 }
 
+/** True while an interval run is in memory (any route): an app update must not reload it away. */
+export const isTimerRunning = () => !!run;
+
 export function stopIntervalTimer() {
   clearInterval(tickId);
   run = null;

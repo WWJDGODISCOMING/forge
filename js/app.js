@@ -2,7 +2,7 @@
 import { isNative, syncStatusBar, hideSplash, setupKeyboard, scheduleExpiryReminder } from './native/bridge.js';
 import { configured } from './firebase.js';
 import { state, subscribe, LOADED_KEYS } from './state.js';
-import { esc, toast, closeAllSheets } from './ui.js';
+import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
 import { viewTransition, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
@@ -32,6 +32,15 @@ if (isNative()) {
   syncStatusBar(dark.matches);
   dark.addEventListener('change', (e) => syncStatusBar(e.matches));
   setupKeyboard();
+  // A newer build installed over this running app (Refresh Forge): notice on resume, reload when it's safe, say what's new.
+  import('./native/update.js').then(async (u) => {
+    await u.cleanOldCaches(); // no service worker or forge-* cache may ever answer for the app's own files
+    const [{ isTimerRunning }, { isTourActive }] = await Promise.all([import('./screens/timer.js'), import('./tour/tour.js')]);
+    u.holdReloadWhile(isTimerRunning);
+    u.holdReloadWhile(isTourActive);
+    u.setupUpdates();
+    setTimeout(() => u.announceUpdate({ toast, sheet, esc }), 1800);
+  }).catch(() => {});
 }
 // The splash stays up until the first real screen is on the page (never a white flash or a blank frame), with a
 // fallback so a slow start can't leave it covering the app.
