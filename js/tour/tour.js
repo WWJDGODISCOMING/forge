@@ -88,6 +88,12 @@ export async function startTour({ replay = false } = {}) {
   probe.style.cssText = 'position:fixed;visibility:hidden;pointer-events:none;padding-top:var(--safe-top)';
   root.appendChild(probe);
   const safeTop = () => 12 + (parseFloat(getComputedStyle(probe).paddingTop) || 0);
+  // The top bar (Good afternoon, Body…) sits over the page, so a pinned target must start 8px below its bottom edge.
+  const minTop = () => {
+    const bar = document.getElementById('navbar');
+    const shown = bar && !bar.hidden && getComputedStyle(bar).display !== 'none';
+    return Math.max(safeTop(), shown ? bar.getBoundingClientRect().bottom + 8 : 0);
+  };
 
   let lastInput = 'pointer'; // the Next pill takes focus (and its ring) only for keyboard users; after a tap the card does
   const onPointer = () => { lastInput = 'pointer'; };
@@ -110,7 +116,7 @@ export async function startTour({ replay = false } = {}) {
     let r = el.getBoundingClientRect();
     if (!fixed) {
       // Keep the element above the card (measured, so the home indicator inset counts): scroll it, instantly.
-      const dy = scrollToClear(r, card.getBoundingClientRect().top, { pad, minTop: safeTop(), context: 28 });
+      const dy = scrollToClear(r, card.getBoundingClientRect().top, { pad, minTop: minTop(), context: 28 });
       if (dy) {
         scrollBy({ top: dy, behavior: 'instant' });
         r = el.getBoundingClientRect();

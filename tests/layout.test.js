@@ -423,7 +423,7 @@ for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
     const bad = [];
     for (let i = 0; i < 11; i++) {
       await wait(450);
-      const m = await browser.eval(`(() => { const c = document.querySelector('.tour-card').getBoundingClientRect(); const s = document.querySelector('.tour-spot'); const sr = s.getBoundingClientRect(); return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), ctop: c.top, sbot: sr.bottom, stop: sr.top, sh: sr.height }; })()`);
+      const m = await browser.eval(`(() => { const c = document.querySelector('.tour-card').getBoundingClientRect(); const s = document.querySelector('.tour-spot'); const sr = s.getBoundingClientRect(); return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), ctop: c.top, sbot: sr.bottom, stop: sr.top, sh: sr.height, bar: (() => { const b = document.getElementById('navbar'); return b && !b.hidden ? b.getBoundingClientRect().bottom : 0; })() }; })()`);
       if (shots) await browser.screenshot(`${shots}/tour-${i + 1}-${w}x${h}.png`);
       // The tab-bar step puts the card above its target; a target taller than the room is pinned under the nav bar.
       const fits = !m.empty && m.stop < m.ctop && m.sh + 12 + 36 <= m.ctop;
@@ -432,6 +432,8 @@ for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
         if (gap < 11) bad.push(`step ${i + 1} "${m.t}": only ${Math.round(gap)}px between target and card`);
         if (m.stop < 30) bad.push(`step ${i + 1} "${m.t}": only ${Math.round(m.stop)}px of page above the target`);
       }
+      // The ring never overlaps the top bar (it is drawn 8px out, so it clears the bar by its own pad).
+      if (!m.empty && m.stop < m.ctop && m.stop < m.bar - 0.5) bad.push(`step ${i + 1} "${m.t}": spotlight top ${Math.round(m.stop)}px is under the top bar (bottom ${Math.round(m.bar)}px)`);
       await browser.eval("document.querySelector('[data-next]').click()");
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
