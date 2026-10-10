@@ -15,6 +15,7 @@ import { hapticSupport } from '../ui/haptic.js';
 import { icon } from '../ui/icons.js';
 import { photoSettingsHtml, bindPhotoSettings } from '../photos/settings.js';
 import { missionSettings, setMissionSetting } from '../missions/store.js';
+import { privacySettingsHtml, bindPrivacySettings } from '../native/lock-ui.js';
 
 function withingsLine() {
   const w = state.integrations && state.integrations.withings;
@@ -113,6 +114,8 @@ export function renderSettings(el) {
       </div>
 
       ${photoSettingsHtml()}
+
+      ${privacySettingsHtml()}
 
       <p class="sec-title">Account</p>
       <div class="group">
@@ -218,6 +221,7 @@ export function renderSettings(el) {
   };
 
   bindPhotoSettings(el);
+  bindPrivacySettings(el);
   $('[data-delete]', el).onclick = () => openDeleteEverything();
   $('[data-tour-again]', el).onclick = () => import('../tour/tour.js').then((m) => m.startTour({ replay: true }));
 }

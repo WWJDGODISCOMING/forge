@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.15.12 — Face ID app lock (2026-10-10)
+
+Issue #79, part 1 (part 2, two-step sign-in, comes later). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. **New native dependency `@capgo/capacitor-native-biometric`:** Refresh Forge runs `npm ci` and `cap sync ios` by itself, so the usual double-click is all that's needed. `NSFaceIDUsageDescription` is in Info.plist.
+
+- **Settings → Privacy & security → "Lock Forge with Face ID"** (iPhone app only). Face ID first; the passcode button on the same prompt is the fallback. Turning it on checks that Face ID or the passcode works; turning it off needs Face ID or the passcode. "Lock after leaving": Immediately (default), 1 min or 5 min. In Safari/the web app the toggle is replaced by one line saying it's an iPhone-app feature.
+- **Asked once** after the how-to tour (or on the first Today of an existing install): "Lock Forge with Face ID?" with Turn on / Not now.
+- **No flash:** `js/lock-boot.js` runs in `<head>` and marks the page locked before the first paint, and `css/lock.css` hides everything but the lock screen (and makes it inert for VoiceOver). Sheets are closed when the lock comes up. The cold launch prompts Face ID by itself; the lock screen has the Forge mark, the lime glow and one Unlock button.
+- **App switcher:** the moment Forge stops being the front app (the `@capacitor/app` state change, with `visibilitychange` and `pagehide` as fallbacks) it is covered by a blurred shield, so a photo never shows in the multitasking view. The Face ID prompt itself is ignored, so it can't re-lock the app under you.
+- **Self-update on resume** (`js/native/update.js`): the reload never runs while the Face ID prompt is up, a reload always comes back locked (the lock is decided before the first paint), and the "Updated to" note waits until you've unlocked.
+- If the phone has no passcode at all, the lock lets you in rather than locking you out for good (anyone could open the phone anyway).
+- Tests: `tests/v01512.test.js` (settings, timeout rule, error mapping, lock/unlock/shield states, the early script, plist, plugin wiring); the layout test checks the lock screen and shield at 320/375/390 and iPhone Duo widths (folded about 5.4 inch and unfolded about 7.6 inch, both wide).
+
+### What's new
+
+- Lock Forge with Face ID: turn it on in Settings → Privacy & security.
+- Your progress photos stay hidden in the app switcher.
+- Forge asks once whether you want the lock.
+
 ## 0.15.11 — Fit-and-finish, part 5: the running app picks up Refresh Forge (2026-10-10)
 
 Issue #64, part 5 (item 26). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. **New native dependency `@capacitor/app`:** Refresh Forge installs it and runs `cap sync` by itself, so the usual double-click is all that's needed.
