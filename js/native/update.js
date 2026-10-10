@@ -26,10 +26,11 @@ export function isNewBuild(running, latest) {
 /**
  * Reloading must never cost a set or a running rest. A workout screen (the player or the list) is left alone until you
  * leave it; so is a field you're typing in. Everything else is saved (workouts live in Firestore and the local cache,
- * the rest timer in localStorage) and survives a reload.
+ * the rest timer in localStorage) and survives a reload. The interval timer's run lives in memory only, and an open
+ * sheet or dialog holds unsaved input, so a running timer, an open dialog and the first-run tour hold it too.
  */
-export function safeToReload({ route = '', typing = false } = {}) {
-  if (typing) return false;
+export function safeToReload({ route = '', typing = false, busy = false } = {}) {
+  if (typing || busy) return false;
   return route !== 'play' && route !== 'session';
 }
 
@@ -61,9 +62,16 @@ let running = null;
 let pending = false;
 let checking = false;
 let lastCheck = 0;
+let busyHooks = []; // app.js registers 'is the interval timer running?' and 'is the tour active?'
+
+export const holdReloadWhile = (fn) => { busyHooks.push(fn); };
+const isBusy = () => {
+  try { if (typeof document !== 'undefined' && document.querySelector('dialog[open]')) return true; } catch { /* no DOM */ }
+  return busyHooks.some((f) => { try { return !!f(); } catch { return false; } });
+};
 
 /** → 'reloading' | 'later' (new build, not safe yet) | 'same'. `deps` is for tests. */
-export async function checkForUpdate({ read = readInstall, route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'today').split('/')[0], typing = () => { const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }, reload = () => location.reload(), force = false } = {}) {
+export async function checkForUpdate({ read = readInstall, route = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'today').split('/')[0], typing = () => { const a = document.activeElement; return !!a && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName); }, reload = () => location.reload(), busy = isBusy, force = false } = {}) {
   if (checking && !force) return 'same';
   checking = true;
   try {
@@ -74,14 +82,14 @@ export async function checkForUpdate({ read = readInstall, route = () => (locati
       if (!isNewBuild(running, latest)) return 'same';
       pending = true;
     }
-    if (!safeToReload({ route: route(), typing: typing() })) return 'later';
+    if (!safeToReload({ route: route(), typing: typing(), busy: busy() })) return 'later';
     pending = false;
     reload();
     return 'reloading';
   } finally { checking = false; }
 }
 
-export const _reset = () => { running = null; pending = false; checking = false; lastCheck = 0; };
+export const _reset = () => { busyHooks = []; running = null; pending = false; checking = false; lastCheck = 0; };
 
 /** Re-check when the app comes back to the front, and again when you leave a workout screen (a reload that had to wait). */
 export function setupUpdates() {
@@ -98,6 +106,7 @@ export function setupUpdates() {
   const retry = () => { if (pending) setTimeout(() => checkForUpdate().catch(() => {}), 600); };
   window.addEventListener('hashchange', retry);
   document.addEventListener('focusout', retry);
+  document.addEventListener('close', retry, true); // a dialog closing (close doesn't bubble)
   const App = plugin('App');
   if (App && App.addListener) {
     try { const h = App.addListener('resume', go); if (h && h.catch) h.catch(() => {}); } catch { /* the visibilitychange fallback covers it */ }

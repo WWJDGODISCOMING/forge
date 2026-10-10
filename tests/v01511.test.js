@@ -28,6 +28,44 @@ test('safeToReload: never in the player or workout list, or while typing', () =>
   eq(safeToReload({ route: 'play' }), false);
   eq(safeToReload({ route: 'session' }), false);
   eq(safeToReload({ route: 'today', typing: true }), false);
+  eq(safeToReload({ route: 'timer', busy: true }), false);
+  eq(safeToReload({ route: 'timer', busy: false }), true);
+});
+
+test('checkForUpdate: holds while a timer run, a dialog or the tour is active, then reloads', async () => {
+  _reset();
+  let reloads = 0, busy = false, build = { version: '0.15.10', builtAt: 'a' };
+  const deps = { read: async () => build, route: () => 'timer', typing: () => false, busy: () => busy, reload: () => { reloads++; } };
+  await checkForUpdate(deps);
+  build = { version: '0.15.11', builtAt: 'b' };
+  busy = true; // a boxing round running, Log food open, or the tour showing
+  eq(await checkForUpdate(deps), 'later');
+  eq(await checkForUpdate(deps), 'later');
+  eq(reloads, 0);
+  busy = false;
+  eq(await checkForUpdate(deps), 'reloading');
+  eq(reloads, 1);
+});
+
+test('the default busy check sees dialog[open], the timer run and the tour', async () => {
+  _reset();
+  const u = src('js/native/update.js');
+  assert(u.includes("dialog[open]") && u.includes('holdReloadWhile'));
+  assert(src('js/screens/timer.js').includes('export const isTimerRunning'));
+  const app = src('js/app.js');
+  assert(app.includes('holdReloadWhile(isTimerRunning)') && app.includes('holdReloadWhile(isTourActive)'));
+  const { checkForUpdate: c, holdReloadWhile, _reset: r } = await import('../js/native/update.js');
+  r();
+  let reloads = 0, hook = true, build = { version: '1', builtAt: 'a' };
+  holdReloadWhile(() => hook);
+  const deps = { read: async () => build, route: () => 'today', typing: () => false, reload: () => { reloads++; } };
+  await c(deps);
+  build = { version: '2', builtAt: 'b' };
+  eq(await c(deps), 'later');
+  hook = false;
+  eq(await c(deps), 'reloading');
+  eq(reloads, 1);
+  r();
 });
 
 test('cmpVersion compares numbers, not strings', () => {

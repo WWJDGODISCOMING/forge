@@ -35,6 +35,9 @@ if (isNative()) {
   // A newer build installed over this running app (Refresh Forge): notice on resume, reload when it's safe, say what's new.
   import('./native/update.js').then(async (u) => {
     await u.cleanOldCaches(); // no service worker or forge-* cache may ever answer for the app's own files
+    const [{ isTimerRunning }, { isTourActive }] = await Promise.all([import('./screens/timer.js'), import('./tour/tour.js')]);
+    u.holdReloadWhile(isTimerRunning);
+    u.holdReloadWhile(isTourActive);
     u.setupUpdates();
     setTimeout(() => u.announceUpdate({ toast, sheet, esc }), 1800);
   }).catch(() => {});
