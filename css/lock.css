@@ -1,9 +1,10 @@
 /* The app lock (js/native/lock.js). <html> gets .app-locked (lock screen) or .app-shield (blurred cover while the app is
    away, for the app-switcher snapshot). js/lock-boot.js sets .app-locked before the first paint, so nothing flashes. */
-#lock { display: none; position: fixed; inset: 0; z-index: 2147483000; flex-direction: column; align-items: center; justify-content: center;
+#lock { display: none; position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; box-sizing: border-box; z-index: 2147483000; flex-direction: column; align-items: center; justify-content: center;
   gap: 16px; padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); text-align: center;
   background: radial-gradient(120% 70% at 50% 28%, rgba(198, 255, 61, .16), rgba(198, 255, 61, 0) 60%), var(--bg); color: var(--text-1); }
 html.app-locked #lock, html.app-shield #lock { display: flex; }
+#lock::backdrop { background: transparent; }
 html.app-shield:not(.app-locked) #lock { background: rgba(10, 10, 11, .72); -webkit-backdrop-filter: blur(40px) saturate(1.4); backdrop-filter: blur(40px) saturate(1.4); }
 html.app-locked body > :not(#lock):not(script), html.app-shield body > :not(#lock):not(script) { visibility: hidden !important; }
 html.app-locked, html.app-shield { overflow: hidden; }

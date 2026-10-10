@@ -297,6 +297,12 @@ test('locking keeps open sheets (unsaved input); the lock only hides them', () =
   assert(!/closeAllSheets|d\.close\(\)/.test(lock), 'lock.js does not close sheets or dialogs');
 });
 
+test('#lock is a modal <dialog> shown over open sheets, and Escape cannot dismiss it', () => {
+  const lock = src('js/native/lock.js');
+  assert(/<dialog id="lock"/.test(src('index.html')), '#lock is a dialog');
+  assert(/showModal\(\)/.test(lock) && /addEventListener\('cancel'/.test(lock), 'showModal on lock, cancel blocked');
+});
+
 test('the Face ID ask waits for the tour invite and the update note, and is marked asked only when shown', () => {
   const ui = src('js/native/lock-ui.js');
   assert(/data-tour-offer/.test(ui) && /noteSettled/.test(ui), 'checks the invite card and the update note');

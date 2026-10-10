@@ -220,12 +220,19 @@ export function pageView() {
       // Open sheets stay open (they may hold unsaved input): css/lock.css hides them and inertBehind blocks them.
       const e = el();
       if (e) e.setAttribute('aria-hidden', mode === 'locked' ? 'false' : 'true');
+      // A sheet open underneath is a modal <dialog> and would make #lock inert (Unlock untappable): the lock goes on top of it
+      // in the top layer, so it is the live modal and the sheet is the inert one. The sheet and its input stay untouched.
+      if (e && e.showModal) {
+        if (mode === 'locked' && !e.open) { try { e.showModal(); } catch { /* not connected: the CSS still covers */ } }
+        else if (mode !== 'locked' && e.open) e.close();
+      }
       if (mode === 'locked' && e) { const b = e.querySelector('[data-unlock]'); if (b) b.focus({ preventScroll: true }); } // :focus-visible is off for this, see lock.css
     },
     hide() {
       root().classList.remove('app-locked', 'app-shield');
       inertBehind(false);
       const e = el();
+      if (e && e.open) e.close();
       if (e) e.setAttribute('aria-hidden', 'true');
     },
     error(msg) {
@@ -248,6 +255,8 @@ export function setupLock() {
   current = createLock({ device: createDevice(), view, store: localStorage, session: sess() });
   const btn = document.querySelector('#lock [data-unlock]');
   if (btn) btn.addEventListener('click', () => current.unlock());
+  const dlg = document.getElementById('lock');
+  if (dlg) dlg.addEventListener('cancel', (ev) => ev.preventDefault()); // Escape can't dismiss the lock
   current.start();
   const App = plugin('App');
   if (App && App.addListener) {

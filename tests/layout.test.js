@@ -506,6 +506,17 @@ if (standalone) {
       await browser.eval("window.__cb.pause && window.__cb.pause(); window.__cb.appStateChange({ isActive: true })");
       await wait(300);
       if (!(await browser.eval(`document.documentElement.classList.contains('app-locked') && ${hidden}`))) note('coming back did not lock the app again', at);
+      // 5. a sheet (modal <dialog>) is open with typed input: the lock sits above it, Unlock is tappable, the sheet comes back untouched
+      await browser.eval('window.__allow = true'); await browser.eval("document.querySelector('#lock [data-unlock]').click()"); await wait(400);
+      await browser.eval("(() => { const d = document.createElement('dialog'); d.id = 'sheetprobe'; d.innerHTML = '<input id=sheetin>'; document.body.appendChild(d); d.showModal(); document.getElementById('sheetin').value = '211.6'; window.__allow = false; })()");
+      await browser.eval("window.__cb.pause && window.__cb.pause(); window.__cb.appStateChange({ isActive: true })"); await wait(300);
+      const top = await browser.eval("(() => { const b = document.querySelector('#lock [data-unlock]').getBoundingClientRect(); const e = document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2); return !!e && !!e.closest('#lock') && document.documentElement.classList.contains('app-locked'); })()");
+      if (!top) note('with a sheet open, the Unlock button cannot be reached (the lock is under the sheet)', at);
+      if (shots) await browser.screenshot(`${shots}/lock-over-sheet-${w}x${h}.png`);
+      await browser.eval('window.__allow = true');
+      await browser.eval("(() => { const b = document.querySelector('#lock [data-unlock]').getBoundingClientRect(); document.elementFromPoint(b.left + b.width / 2, b.top + b.height / 2).click(); })()"); await wait(500);
+      const kept = await browser.eval("({ open: document.getElementById('sheetprobe').open, val: document.getElementById('sheetin').value, locked: document.documentElement.classList.contains('app-locked') })");
+      if (kept.locked || !kept.open || kept.val !== '211.6') note(`the sheet did not survive lock and unlock: ${JSON.stringify(kept)}`, at);
     }
     await browser.dropInit();
     assert(found.size === 0, report(found));

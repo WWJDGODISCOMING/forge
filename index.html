@@ -35,13 +35,13 @@
   <link rel="modulepreload" href="https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js">
 </head>
 <body>
-  <div id="lock" role="dialog" aria-modal="true" aria-label="Forge is locked" aria-hidden="true">
+  <dialog id="lock" aria-label="Forge is locked" aria-hidden="true">
     <img class="lk-mark" src="icons/icon-192.png" alt="" width="88" height="88">
     <h1 class="lk-ui">Forge is locked</h1>
     <p class="lk-sub lk-ui">Your training and photos are private. Unlock with Face ID or your passcode.</p>
     <button type="button" class="lk-btn lk-ui" data-unlock>Unlock</button>
     <p class="lk-err lk-ui" data-lock-error role="status"></p>
-  </div>
+  </dialog>
   <button id="update" class="update-capsule" hidden><span>Update available</span><b>Reload</b></button>
   <header id="navbar" class="navbar" hidden>
     <button class="nb-back" type="button" aria-label="Back" hidden>
