@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { test, eq as eq1, assert } from './harness.js';
 import { isNewBuild, safeToReload, cmpVersion, versionChange, checkForUpdate, cleanOldCaches, announceUpdate, highlightsFor, _reset } from '../js/native/update.js';
-import { whatsNew, readVersion } from '../scripts/build-www.mjs';
+import { whatsNew, readVersion, highlightProblem } from '../scripts/build-www.mjs';
 
 const eq = (a, b, m) => (a && typeof a === 'object' ? eq1(JSON.stringify(a), JSON.stringify(b), m) : eq1(a, b, m));
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -118,10 +118,14 @@ test('announceUpdate: a toast with a What’s new action, only on native and onl
   native();
   const s = store();
   s.setItem('forge.seenVersion', '0.0.1');
-  eq(await announceUpdate({ store: s, toast: t }), true);
+  const cur = readVersion(src('js/version.js'));
+  eq(await announceUpdate({ store: s, toast: t, load: async () => ({ [cur]: { items: ['Something plain.'] } }) }), true);
   assert(/^Updated to \d+\.\d+\.\d+$/.test(toasts[0][0]), toasts[0][0]);
   eq(toasts[0][2].action.label, 'What’s new');
   eq(await announceUpdate({ store: s, toast: t }), false);
+  s.setItem('forge.seenVersion', '0.0.1'); // a version with no highlights: the toast has no button
+  eq(await announceUpdate({ store: s, toast: t, load: async () => ({}) }), true);
+  eq(toasts[1][2], undefined);
   web();
 });
 
@@ -143,22 +147,32 @@ test('cleanOldCaches: native only, removes service workers and forge-* caches on
   web();
 });
 
-test('whatsNew and readVersion read CHANGELOG.md and js/version.js', () => {
-  const md = '# Changelog\n\n## 0.15.11 — Update on resume (2026-10-10)\n\nIssue #64.\n\n- **Resume:** reloads **safely**, see `app-install.json`.\n  - sub bullet\n- Tests: x\n\n## 0.15.10 — Older (2026-10-10)\n\n- Old thing\n';
+test('whatsNew reads only the plain What is new block; readVersion reads js/version.js', () => {
+  const md = '# Changelog\n\n## 0.15.11 — Update on resume (2026-10-10)\n\n- **Dev:** see `app-install.json`.\n\n### What\'s new\n\n- Forge **updates** itself.\n- Timers are safe.\n\n## 0.15.10 — Older (2026-10-10)\n\n- Old thing\n';
   const w = whatsNew(md);
   eq(Object.keys(w), ['0.15.11', '0.15.10']);
-  eq(w['0.15.11'].title, 'Update on resume');
-  eq(w['0.15.11'].items, ['Resume: reloads safely, see app-install.json.']);
+  eq(w['0.15.11'].items, ['Forge updates itself.', 'Timers are safe.']);
+  eq(w['0.15.10'].items, []);
   eq(Object.keys(whatsNew(md, 1)), ['0.15.11']);
   eq(readVersion("export const VERSION = '0.15.11';"), '0.15.11');
   const real = whatsNew(src('CHANGELOG.md'));
-  assert(real[readVersion(src('js/version.js'))].items.length > 0, 'the current version has highlights');
+  const cur = real[readVersion(src('js/version.js'))].items;
+  assert(cur.length >= 1 && cur.length <= 4, 'the current version has 1 to 4 highlights');
   eq(highlightsFor(real, 'nope'), []);
+});
+
+test('every What is new highlight is short, plain and complete (no code, file names or an ellipsis)', () => {
+  eq(highlightProblem('Forge now updates itself.'), '');
+  for (const bad of ['See `x`', 'app-install.json changed', 'run.js', 'a.command', '--flag', 'Cut off…', 'x'.repeat(91)]) assert(highlightProblem(bad), bad);
+  const bad = [];
+  for (const [v, { items }] of Object.entries(whatsNew(src('CHANGELOG.md'), 99))) for (const t of items) { const p = highlightProblem(t); if (p) bad.push(`${v}: "${t}" ${p}`); }
+  assert(bad.length === 0, bad.join('; '));
 });
 
 test('the build writes version into app-install.json, and the app wires the check', () => {
   const b = src('scripts/build-www.mjs');
   assert(/JSON\.stringify\(\{ version, builtAt/.test(b) && b.includes('whats-new.json'));
+  assert(!b.includes('short('), 'no truncation with an ellipsis');
   const app = src('js/app.js');
   assert(app.includes('./native/update.js') && app.includes('setupUpdates'));
   const u = src('js/native/update.js');

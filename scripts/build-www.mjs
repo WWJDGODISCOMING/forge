@@ -36,21 +36,29 @@ export const localise = (text) => text.replace(CDN, (_, v, f) => `${LOCAL}${f}`)
 export const readVersion = (text) => (/VERSION\s*=\s*'([^']+)'/.exec(text) || [])[1] || null;
 
 const plain = (t) => t.replace(/\*\*([^*]+)\*\*/g, '$1').replace(/`([^`]+)`/g, '$1').replace(/\s+/g, ' ').trim();
-const short = (t, n = 150) => (t.length <= n ? t : `${t.slice(0, n - 1).replace(/\s+\S*$/, '')}…`);
+/** A highlight must read like a plain App Store line: one short sentence, no code or file names. */
+export const MAX_HIGHLIGHT = 90;
+export const highlightProblem = (t) => (t.length > MAX_HIGHLIGHT ? `over ${MAX_HIGHLIGHT} characters` : /`|\.json|\.js\b|\.command|--|…/.test(t) ? 'has code, a file name or an ellipsis' : '');
 
-/** CHANGELOG.md → { "0.15.11": { title, items: [...] } } for the newest `max` versions (top-level bullets, plain text). */
+/**
+ * CHANGELOG.md → { "0.15.11": { items: [...] } } for the newest `max` versions. Only the plain "### What's new" block
+ * under a version's heading is read (1 to 4 bullets); a version without one gets no items, so the app shows no button.
+ */
 export function whatsNew(changelog, max = 6) {
   const out = {};
-  let cur = null;
+  let cur = null, inBlock = false;
   for (const line of changelog.split('\n')) {
-    const h = /^## (\d+\.\d+\.\d+)\s+[—-]\s+(.*?)(?:\s+\(\d{4}-\d{2}-\d{2}\))?\s*$/.exec(line);
+    const h = /^## (\d+\.\d+\.\d+)\b/.exec(line);
     if (h) {
       if (Object.keys(out).length >= max) break;
-      cur = out[h[1]] = { title: plain(h[2]), items: [] };
-    } else if (cur && /^- /.test(line) && cur.items.length < 6) {
+      cur = out[h[1]] = { items: [] };
+      inBlock = false;
+    } else if (/^### /.test(line)) {
+      inBlock = !!cur && /^### What['’]s new\s*$/i.test(line);
+    } else if (inBlock && /^- /.test(line) && cur.items.length < 4) {
       const t = plain(line.slice(2));
-      if (t && !/^(Issue #|Tests?:|Part \d)/i.test(t)) cur.items.push(short(t));
-    }
+      if (t) cur.items.push(t);
+    } else if (inBlock && line.trim() && !/^\s*-/.test(line)) inBlock = false;
   }
   return out;
 }

@@ -136,25 +136,25 @@ export function highlightsFor(data, version) {
   return v && Array.isArray(v.items) ? v.items.slice(0, 6) : [];
 }
 
-export async function announceUpdate({ store = localStorage, toast, sheet, esc } = {}) {
+const loadWhatsNew = async () => {
+  try { const r = await fetch('./whats-new.json'); return r.ok ? r.json() : null; } catch { return null; } // none bundled
+};
+
+export async function announceUpdate({ store = localStorage, toast, sheet, esc, load = loadWhatsNew } = {}) {
   if (!isNative()) return false;
   const change = versionChange(store);
   if (!change) return false;
-  toast(`Updated to ${change.to}`, 7000, {
+  const items = highlightsFor(await load(), change.to);
+  // No highlights for this version: just say it updated, with no button leading to nothing.
+  toast(`Updated to ${change.to}`, 7000, items.length ? {
     action: {
       label: 'What’s new',
-      onClick: async () => {
-        let data = null;
-        try { const r = await fetch('./whats-new.json'); if (r.ok) data = await r.json(); } catch { /* none bundled */ }
-        const items = highlightsFor(data, change.to);
-        const title = (data && data[change.to] && data[change.to].title) || '';
-        sheet(`What’s new in ${change.to}`, (body, close) => {
-          body.innerHTML = `${title ? `<p class="muted">${esc(title)}</p>` : ''}${items.length ? `<ul class="whats-new">${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>` : '<p class="muted">No notes for this version.</p>'}
-            <button type="button" class="btn ghost grow" data-done>Done</button>`;
-          body.querySelector('[data-done]').addEventListener('click', close);
-        });
-      },
+      onClick: () => sheet(`What’s new in ${change.to}`, (body, close) => {
+        body.innerHTML = `<ul class="whats-new">${items.map((t) => `<li>${esc(t)}</li>`).join('')}</ul>
+          <button type="button" class="btn ghost grow" data-done>Done</button>`;
+        body.querySelector('[data-done]').addEventListener('click', close);
+      }),
     },
-  });
+  } : undefined);
   return true;
 }
