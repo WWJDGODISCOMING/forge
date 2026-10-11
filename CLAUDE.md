@@ -4,7 +4,7 @@ Forge is Christian Everett's personal fitness app. It's a PWA on GitHub Pages pl
 
 ## Who does what
 - **Christian (owner):** merges PRs, and does anything that needs his own devices or accounts: deploying Cloud Functions and `firestore.rules` (he taps the **Deploy** button in GitHub Actions on his phone, see `docs/deploy-from-phone.md`; the Mac with the iPhone hotspot is only a fallback), the Firebase or Google Cloud console, the Withings developer dashboard, and secrets. He does not want to relay messages between us or be asked to check in.
-- **His review bot (comments as christianeverett1988-boop, tags @claude):** it writes specs, opens issues, opens PRs from your branches, reviews them, renders the UI at iPhone size, and sends you fixes. It speaks for Christian on scope and priorities.
+- **His review bot (comments as WWJDGODISCOMING, tags @claude):** it writes specs, opens issues, opens PRs from your branches, reviews them, renders the UI at iPhone size, and sends you fixes. It speaks for Christian on scope and priorities.
 - **You (Claude):** build, test, push to your branch, and report back in the issue/PR comment.
 
 ## How we work without Christian

@@ -39,7 +39,7 @@ const CLIENT_SECRET = defineSecret('WITHINGS_CLIENT_SECRET');
 const WEBHOOK_KEY = defineSecret('WITHINGS_WEBHOOK_KEY');
 const USDA_KEY = defineSecret('USDA_API_KEY');
 const CLIENT_ID = defineString('WITHINGS_CLIENT_ID', { description: 'Client ID of your Withings developer app (not secret)' });
-const APP_URL = defineString('FORGE_APP_URL', { default: 'https://christianeverett1988-boop.github.io/forge/' });
+const APP_URL = defineString('FORGE_APP_URL', { default: 'https://wwjdgodiscoming.github.io/forge/' });
 
 const project = () => process.env.GCLOUD_PROJECT || JSON.parse(process.env.FIREBASE_CONFIG || '{}').projectId;
 const base = () => `https://${REGION}-${project()}.cloudfunctions.net`;

@@ -38,7 +38,7 @@ This tells Google to accept deploys from this one GitHub workflow, started by yo
 4. Copy this one line, paste it into Cloud Shell, and press Return. It runs [`scripts/deploy-setup.sh`](../scripts/deploy-setup.sh) from main. Read that file first if you'd like to see what it does.
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/christianeverett1988-boop/forge/main/scripts/deploy-setup.sh | bash
+curl -fsSL https://raw.githubusercontent.com/WWJDGODISCOMING/forge/main/scripts/deploy-setup.sh | bash
 ```
 
 5. It takes 1–3 minutes. At the end it prints **All set** and two values. Keep the tab open.
@@ -61,7 +61,7 @@ Done. Run your first deploy with the steps at the top.
 
 The deploy runs as a robot account, `forge-deployer`, that has no key. Google only lets a GitHub run act as it when **all** of these are true. GitHub signs each of these facts, so they can't be faked:
 
-- the repo is `christianeverett1988-boop/forge` (checked by its permanent numeric id, so a renamed or re-created repo doesn't count);
+- the repo is `WWJDGODISCOMING/forge` (checked by its permanent numeric id, so a renamed or re-created repo doesn't count);
 - the run was started by you (your numeric GitHub id);
 - it was started with the Run workflow button;
 - it runs `.github/workflows/deploy.yml` **as it is on main**.
@@ -100,7 +100,7 @@ Use the Mac (`firebase deploy --only functions,firestore:rules` with the hotspot
 
 - **A new kind of trigger** the project has never had, such as the first Firestore or Storage trigger. Those need project-permission changes, which the robot can't make.
 - **A new secret.** Set it in your own terminal (`firebase functions:secrets:set NAME`). Then run the setup line from step 1 again with the new name on the end, so the functions can read it:
-  `curl -fsSL https://raw.githubusercontent.com/christianeverett1988-boop/forge/main/scripts/deploy-setup.sh | bash -s -- NEW_SECRET_NAME`
+  `curl -fsSL https://raw.githubusercontent.com/WWJDGODISCOMING/forge/main/scripts/deploy-setup.sh | bash -s -- NEW_SECRET_NAME`
   (Also ask for the name to be added to the `SECRETS=` line in `scripts/deploy-setup.sh`, so later re-runs keep it.)
 - **Removing or renaming a function.** The deploy stops rather than delete a live function. To delete on purpose, run the button with **Also delete live functions…** turned on. That option also skips a few other "are you sure?" questions: functions that start retrying on failure, or a higher minimum bill.
 
