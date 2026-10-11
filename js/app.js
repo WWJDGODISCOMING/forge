@@ -10,6 +10,7 @@ import { viewTransition, animateCounters, resetCounters, reducedMotion } from '.
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
+import { mountQuickLog, syncQuickLog } from './ui/quicklog.js';
 import { setupTextSize } from './ui/textsize.js';
 import { setupResizeAnchor } from './ui/anchor.js';
 import { enhanceSegs } from './ui/controls.js';
@@ -18,7 +19,7 @@ import { attachPull, detachPull, canPullSync, waitAtMost, PULL_WAIT_MS } from '.
 import { call } from './functions.js';
 import { attachSwipeBack } from './ui/swipeback.js';
 import { skeletonHTML } from './ui/skeleton.js';
-import { tabOf, routeDepth, transitionKind, backTarget, backLabel, redirectRoute, noteRoute, TITLE_FOR, createScrollMemory } from './nav.js';
+import { tabOf, routeDepth, transitionKind, backTarget, backLabel, redirectRoute, noteRoute, noteNavigation, TITLE_FOR, createScrollMemory } from './nav.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
@@ -215,7 +216,17 @@ function addAvatar(route) {
 }
 let avatarFit = null;
 
+// The quick-log + follows the screen: shown on tab roots only, never while a screen is changing.
+const syncQL = (busy = false) => syncQuickLog({ parts: routeParts(), navHidden: nav.hidden, busy });
 async function render() {
+  try {
+    await renderScreen();
+  } finally {
+    syncQL(false);
+  }
+}
+
+async function renderScreen() {
   if (applyRedirect()) return;
   // Don't redraw under your fingers: if you're typing in the page, wait until you leave the field.
   const a = document.activeElement;
@@ -442,6 +453,7 @@ window.addEventListener('hashchange', async () => {
   const from = prevParts;
   const to = routeParts();
   prevParts = to;
+  noteNavigation(from, to);
   scrollMemory.save(from[0] || 'today', window.scrollY);
   // A focused field (e.g. Library search) would make render() wait for blur; a route change always renders.
   if (document.activeElement && main.contains(document.activeElement)) document.activeElement.blur();
@@ -455,6 +467,7 @@ window.addEventListener('hashchange', async () => {
     return;
   }
   const kind = transitionKind(from, to);
+  if (kind !== 'tab') syncQL(true); // hide the + at once for a push or pop; render() brings it back on a root
   // Keep the screen we are leaving (one level) so a swipe back can show it sliding in behind.
   if (kind === 'push') snapshot = { route: from.join('/'), html: main.innerHTML, scroll: window.scrollY };
   viewTransition(async () => {
@@ -498,6 +511,7 @@ attachSwipeBack({
 window.addEventListener('forge:error', (e) => toast(e.detail, 4000));
 
 // ---------- boot ----------
+mountQuickLog();
 const WATCH = [
   ['profile', (rows) => ({ profile: rows.find((r) => r.id === 'main') || null })],
   ['settings', (rows) => ({ settings: rows.find((r) => r.id === 'main') || null })],

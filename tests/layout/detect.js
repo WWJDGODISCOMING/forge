@@ -65,7 +65,7 @@ export function detect(opts = {}) {
   });
 
   // 2b. Controls must not sit on top of each other (a stepper whose + runs into its neighbour, for example).
-  const hit = [...document.querySelectorAll('a[href], button, select, summary')].filter((e) => vis(e) && !e.closest('svg, #nav, #navbar') && !e.matches('.insight-x') && !allowed(e));
+  const hit = [...document.querySelectorAll('a[href], button, select, summary')].filter((e) => vis(e) && !e.closest('svg, #nav, #navbar, #quicklog') && !e.matches('.insight-x') && !allowed(e));
   const boxes = hit.map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.bottom > 0 && r.top < window.innerHeight * 3);
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length; j++) {
@@ -102,7 +102,9 @@ export function detect(opts = {}) {
       if (b > bottom) { bottom = b; worst = e; }
     }
     const top = nav.getBoundingClientRect().top;
-    if (worst && bottom > top + 1) problems.push(`content runs under the tab bar (${Math.round(bottom)}>${Math.round(top)}): ${label(worst)} (scrollY ${Math.round(window.scrollY)} of ${document.documentElement.scrollHeight})`);
+    const fab = document.getElementById('quicklog');
+    const fabTop = fab && fab.classList.contains('on') ? fab.getBoundingClientRect().top : top;
+    if (worst && bottom > Math.min(top, fabTop) + 1) problems.push(`content runs under the tab bar (${Math.round(bottom)}>${Math.round(top)}): ${label(worst)} (scrollY ${Math.round(window.scrollY)} of ${document.documentElement.scrollHeight})`);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   return problems;

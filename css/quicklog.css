@@ -1,0 +1,36 @@
+/* Quick-log + (v0.15.19): bottom-right above the tab bar, tab roots only, and its sheet. Colours come from tokens only. */
+.ql-fab {
+  position: fixed; z-index: 6; box-sizing: border-box; width: 56px; height: 56px; padding: 0; border: 0; border-radius: 50%;
+  right: max(16px, calc(var(--safe-right) + 16px));
+  bottom: calc(var(--safe-bottom) + 55px + 14px); /* the tab bar is 55px plus the home-indicator inset */
+  display: grid; place-items: center; cursor: pointer;
+  background: var(--accent); color: var(--accent-ink);
+  box-shadow: var(--elev-3), inset 0 0 0 .5px var(--hairline);
+  opacity: 0; visibility: hidden; scale: .85; pointer-events: none;
+  transition: opacity var(--t-fast) var(--ease-out), scale var(--t-fast) var(--ease-out), visibility 0s linear var(--t-fast);
+}
+.ql-fab.on { opacity: 1; visibility: visible; scale: 1; pointer-events: auto; transition-delay: 0s; }
+.ql-fab:active { scale: .94; }
+.ql-fab:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+.ql-fab svg { width: 28px; height: 28px; stroke-width: 2.4; }
+/* Room for the last card to scroll clear of the +. */
+body.ql-room main { padding-bottom: calc(var(--safe-bottom) + 150px); }
+@media (prefers-reduced-motion: reduce) { .ql-fab { transition: none; scale: 1; } .ql-fab:active { scale: 1; } }
+
+/* The sheet: six big rows, centered and capped on the wide inner screen of the Duo. */
+dialog.sheet.ql-sheet { max-width: min(440px, 100% - var(--safe-left) - var(--safe-right)); }
+.ql-list { list-style: none; margin: 0; padding: 0 0 calc(var(--safe-bottom) + 8px); display: flex; flex-direction: column; gap: 4px; }
+.ql-row {
+  width: 100%; min-height: 56px; padding: 0 16px; border: 0; border-radius: var(--r-md); cursor: pointer;
+  display: flex; align-items: center; gap: 14px; text-align: left; background: var(--surface-2); color: var(--text);
+  font: 600 calc(17px * min(var(--ts), 1.2)) var(--font); white-space: nowrap;
+}
+.ql-row:active { background: var(--surface-3); }
+.ql-row .ic { flex: none; color: var(--accent-text); }
+.ql-row span { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+@media (max-height: 500px) and (min-width: 600px) {
+  .ql-fab { bottom: calc(var(--safe-bottom) + 46px + 10px); }
+  dialog.sheet.ql-sheet { max-width: min(640px, 100% - var(--safe-left) - var(--safe-right)); }
+  .ql-list { display: grid; grid-template-columns: 1fr 1fr; }
+  .ql-row { min-height: 48px; }
+}
