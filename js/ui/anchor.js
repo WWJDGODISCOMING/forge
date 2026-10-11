@@ -9,15 +9,18 @@ const insetTop = () => {
   return r && r.height ? Math.max(0, r.bottom) : 0;
 };
 
-/** The first card or section whose bottom edge is still below the nav bar. */
+/** The card (or heading) whose top edge is closest to the bottom of the nav bar: what the reader is looking at first. */
 export function pickAnchor(root = document.getElementById('main')) {
   if (!root) return null;
   const inset = insetTop();
-  for (const el of root.querySelectorAll('.card, .slot, section, h1, h2')) {
+  let best = null;
+  for (const el of root.querySelectorAll('.card, h1, h2')) {
     const r = el.getBoundingClientRect();
-    if (r.height && r.bottom > inset + 1) return { el, top: r.top };
+    if (!r.height || r.bottom <= inset + 1) continue;
+    const d = Math.abs(r.top - inset);
+    if (!best || d < best.d) best = { el, top: r.top, d };
   }
-  return null;
+  return best && { el: best.el, top: best.top };
 }
 
 export function captureAnchor() {

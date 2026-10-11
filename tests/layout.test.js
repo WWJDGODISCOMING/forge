@@ -627,6 +627,69 @@ if (standalone) {
   });
 }
 
+// Folding or unfolding the Duo mid-session (item 31): the same route, the same card at the top, sheets and timers carry on.
+if (standalone) {
+  test('layout: resizing 466x678 → 626x890 → 890x626 → 466x678 keeps the route, scroll spot, sheet, focus and rest timer', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const CHAIN = [[626, 890], [890, 626], [466, 678]];
+    const bad = [];
+    const errs0 = browser.errors.length;
+    // 1. Today, scrolled so the Food card is at the top
+    await browser.viewport(466, 678, true);
+    await browser.open('today', seed());
+    const topOfFood = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
+    await browser.eval("(() => { const e = document.querySelector('[data-food-card]'); const bar = document.querySelector('.navbar'); window.scrollBy({ top: e.getBoundingClientRect().top - (bar ? bar.getBoundingClientRect().bottom : 0) - 4, behavior: 'instant' }); })()");
+    await wait(400);
+    // the card the reader sees first (the Food card here); it has to stay put through every size
+    assert(await browser.eval("import('./js/ui/anchor.js').then((m) => { const a = m.pickAnchor(); if (a) a.el.setAttribute('data-test-top', ''); return !!a && !!a.el.closest('[data-food-card]') || (a && a.el.matches('[data-food-card]')); })"), 'the top card at the start should be the Food card');
+    const before = await browser.eval(topOfFood);
+    for (const [w, h] of CHAIN) {
+      await browser.viewport(w, h, true);
+      await wait(500);
+      const route = await browser.eval('location.hash');
+      const now = await browser.eval(topOfFood);
+      if (route !== '#/today') bad.push(`today: route became ${route} at ${w}x${h}`);
+      if (now == null || Math.abs(now - before) > 16) bad.push(`today: the top card moved from ${before}px to ${now}px from the top at ${w}x${h}`);
+    }
+    // 2. the player mid-rest
+    await browser.viewport(466, 678, true);
+    await browser.open('play', seed({ active: true }));
+    await browser.eval("document.querySelector('[data-done]').click()"); // finishing a set starts the rest
+    await wait(1500);
+    const left0 = await browser.eval("document.querySelector('[data-restclock]') ? 1 : 0");
+    if (!left0) bad.push('player: the rest screen did not show');
+    const rest0 = await browser.eval("import('./js/timer.js').then((m) => m.restInfo().left)");
+    for (const [w, h] of CHAIN) {
+      await browser.viewport(w, h, true);
+      await wait(600);
+      const info = await browser.eval("import('./js/timer.js').then((m) => { const r = m.restInfo(); return r ? { left: r.left, paused: r.paused } : null; })");
+      if (!info || info.paused || !(info.left < rest0) || info.left <= 0) bad.push(`player: the rest timer stopped or reset at ${w}x${h}: ${JSON.stringify(info)} (was ${rest0})`);
+      if (!(await browser.eval("location.hash.startsWith('#/play')"))) bad.push(`player: left the player at ${w}x${h}`);
+      if (!(await browser.eval("!!document.querySelector('[data-restclock]')"))) bad.push(`player: the rest screen vanished at ${w}x${h}`);
+    }
+    // 3. the Log weight sheet, with its field focused
+    await browser.viewport(466, 678, true);
+    await browser.open('today', seed());
+    await browser.eval("document.querySelector('[data-log]').click()");
+    await wait(800);
+    const focusOf = "(() => { const a = document.activeElement; return a && a.closest && a.closest('dialog.sheet') ? (a.tagName + (a.name || a.id || '')) : null; })()";
+    const f0 = await browser.eval(focusOf);
+    for (const [w, h] of CHAIN) {
+      await browser.viewport(w, h, true);
+      await wait(500);
+      if (!(await browser.eval("!!document.querySelector('dialog.sheet[open]')"))) { bad.push(`sheet: closed at ${w}x${h}`); break; }
+      const fits = await browser.eval("(() => { const r = document.querySelector('dialog.sheet[open]').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; })()");
+      if (!fits) bad.push(`sheet: does not fit the screen at ${w}x${h}`);
+      if (f0 && (await browser.eval(focusOf)) !== f0) bad.push(`sheet: the focused field lost focus at ${w}x${h}`);
+    }
+    const errs = browser.errors.slice(errs0).filter((e) => !/Failed to load resource|net::ERR/.test(e));
+    if (errs.length) bad.push(`console errors: ${errs.slice(0, 3).join(' | ')}`);
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
   test(`layout: tour keeps each target in view above the card at ${w}x${h}`, async () => {
     if (skipReason()) return;
