@@ -342,3 +342,16 @@ body.playing .navbar { display: none; }
 .pick small.one { display: block; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .pick:disabled { opacity: .55; cursor: default; }
 .pick:disabled .chev { display: none; }
+
+/* Wide canvas (iPhone Duo inner screen, landscape): demo and target on the left; steppers, effort and the set controls on the right, Done set pinned at the bottom of its column. Type and tap targets stay phone size. */
+@media (min-width: 840px) {
+  .pl-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; flex: 1; align-items: stretch; }
+  .pl-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+  .pl-col-a { justify-content: center; }
+  .pl-col-a .pl-demo.has-fig { height: clamp(150px, 34vh, 280px); }
+  .pl-col-a .pl-demo { min-height: clamp(120px, 28vh, 240px); }
+  .pl-col-a .fig-wrap { inset: 8px; }
+  .pl-col-a .pl-muscles { padding: 18px; }
+  .pl-col-a .pl-hero { padding: 6px 0; }
+  .pl-col-a .pl-hero-n b { font-size: clamp(72px, 11vh, 96px); }
+}
