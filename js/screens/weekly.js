@@ -63,6 +63,8 @@ export function renderWeekly(el) {
 
   const t = r.training;
   const body = r.hasData ? `
+    <div class="pg-cols">
+    <div class="col col-a">
     ${scoreBlock}
     <div class="card stack" data-w-body>
       <p class="label">Body</p>
@@ -82,6 +84,8 @@ export function renderWeekly(el) {
         ${line('Cardio', `${Math.round(t.cardioMin)} min`, null)}
       </ul>
     </div>
+    </div>
+    <div class="col col-b">
     ${r.nutrition ? `
     <div class="card stack" data-w-nutrition>
       <p class="label">Nutrition</p>
@@ -109,7 +113,9 @@ export function renderWeekly(el) {
       <p class="label">One thing for next week</p>
       <p class="big-title">${esc(r.suggestion.text)}</p>
     </div>
-    <button class="btn bigbtn" data-share>${icon('share')}Share</button>` : `
+    <button class="btn bigbtn" data-share>${icon('share')}Share</button>
+    </div>
+    </div>` : `
     <div class="card" data-empty>${emptyState({ icon: 'calendar', title: 'Nothing logged this week', text: 'Log a weigh-in or a workout and this report fills in. Use the arrows above to see an earlier week.', action: { href: '#/weight', label: 'Log a weigh-in' } })}</div>`;
 
   el.innerHTML = `

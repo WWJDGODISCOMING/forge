@@ -96,8 +96,12 @@ export function renderScore(el) {
     <section class="stack">
       ${progressTabs('score')}
       <h1>Forge Score</h1>
+      <div class="pg-cols">
+      <div class="col col-a">
       ${hero}
       ${movers}
+      </div>
+      <div class="col col-b">
       <div class="pillar-grid">${s.pillars.map(tile).join('')}</div>
       <div data-detail-slot>${open ? detail(s.pillars.find((p) => p.key === open)) : ''}</div>
       ${hasData ? `<p class="small muted tcenter" style="text-align:center" data-based-on>Based on ${s.trackedCount} of 5 parts</p>` : ''}
@@ -108,6 +112,8 @@ export function renderScore(el) {
         <summary>How is this worked out?</summary>
         <p class="small muted" style="margin-top:8px">Each day gets a score from 0 to 100, and you see the average of the last 7. Weights: Body 25%, Recovery 20%, Sleep 15%, Training 25%, Nutrition 15%. If a part has no data, its weight is shared out, never scored as zero. Your score is only ever compared with your own past weeks.</p>
       </details>
+      </div>
+      </div>
       <p class="disclaimer">General fitness information, not medical advice.</p>
     </section>`;
 

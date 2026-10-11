@@ -640,7 +640,15 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   .train-cols .tool { flex-direction: row; align-items: center; min-height: 56px; padding: var(--s-2) var(--s-4); white-space: nowrap; }
   .pv-txt b { white-space: normal; overflow: visible; text-overflow: clip; } /* the preview column is narrower than a phone: names wrap instead of cutting */
 }
-@media (max-width: 839.98px) { .today-cols, .train-cols, .body-cols, .pl-cols, .today-cols > .col, .train-cols > .col, .body-cols > .col, .pl-col { display: contents; } }
+@media (max-width: 839.98px) { .today-cols, .train-cols, .body-cols, .pl-cols, .pg-cols, .today-cols > .col, .train-cols > .col, .body-cols > .col, .pg-cols > .col, .pl-col { display: contents; } }
+
+/* Score and Week: two columns of cards (left column first in the DOM, no CSS order). Trends: one card whose rows flow down two columns. All sit under the same full-width tab control. */
+@media (min-width: 840px) {
+  .pg-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
+  .pg-cols > .col { display: flex; flex-direction: column; gap: var(--s-5); min-width: 0; }
+  .trend-list { column-count: 2; column-gap: 0; }
+  .trend-list .g-row { break-inside: avoid; }
+}
 
 /* Body: the Recovery map beside the rest (composition, insights, programs). The left column follows you down the page. */
 @media (min-width: 840px) {
