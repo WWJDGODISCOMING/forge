@@ -372,7 +372,7 @@ body.playing .navbar { display: none; }
   .pl-col-a .pl-demo .fig-wrap { display: grid; inset: 4px; }
   .pl-col-a .pl-demo .pl-muscles { display: flex; padding: 8px; }
   .pl-col-a .pl-demo .pl-demo-cap { display: none; }
-  .pl-col-a .pl-howto { top: auto; bottom: 6px; right: 8px; translate: none; }
+  .pl-col-a .pl-howto { top: 6px; bottom: auto; right: 8px; translate: none; }
   .pl-name { font-size: calc(20px * min(var(--ts), 1.2)); line-height: 1.15; }
   .pl-col-a .pl-hero { padding: 0; }
   .pl-col-a .pl-hero-n b { font-size: 44px; }
