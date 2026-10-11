@@ -26,9 +26,9 @@ export const TOUR_STEPS = [
     body: 'Forge picks a workout for you each day. Tap Start to begin, or See plan to look at it first.',
   },
   {
-    id: 'food', route: 'today', target: '[data-tour="food"]',
-    title: 'Log your food',
-    body: 'Your calories and protein for today live here, with your daily targets. When the tour is done, Log food on this card adds a meal in a couple of taps, and See meals shows what you’ve eaten.',
+    id: 'food', route: 'food', target: '.tabbar a[href="#/food"]',
+    title: 'Food has its own tab',
+    body: 'Your calories and protein for today live here, with your daily targets. Log food adds a meal in a couple of taps, and the diary shows what you’ve eaten.',
   },
   {
     id: 'weight', route: 'today', target: '.weight-card [data-log]',
@@ -61,9 +61,9 @@ export const TOUR_STEPS = [
     body: 'Here you’ll find your weight chart, your past workouts, your personal records, your progress photos, and the badges and XP you earn.',
   },
   {
-    id: 'settings', route: 'settings', target: '[data-tour="settings-profile"]',
-    title: 'Settings',
-    body: 'Change your profile and targets, your locations and equipment, your units (lb or kg) and the coach audio. You can play this tour again from the bottom of Settings.',
+    id: 'settings', route: 'weight', target: '[data-avatar]',
+    title: 'Settings and profile',
+    body: 'Tap your circle at the top right of any tab to change your profile and targets, your locations and equipment, your units (lb or kg) and the coach audio. You can play this tour again from the bottom of Settings.',
   },
 ];
 

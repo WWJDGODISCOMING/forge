@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.15.18 — New tab bar: Today · Train · Food · Body · Progress (2026-10-11)
+
+Issue #63, part 1 of the approved IA (skeleton only). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Tab bar:** Today, Train, **Food** (new, the existing food screen), Body, Progress. The Settings tab is gone.
+- **Settings avatar:** a 44pt circle with your initial at the top-right of every tab root's large title (labelled "Settings and profile" for VoiceOver). It pushes Settings with the normal push transition. Settings and its children (Profile, Locations, Withings, Apple Health, Report) light the tab you came from (Today when opened by link), and Back returns there.
+- **Nav rules (`js/nav.js`):** `food` is its own tab; Settings is depth 1; `redirectRoute` sends old links (`#/home`, `#/log`, `#/foods`, `#/diary`) to their new homes; `#/weight` is Progress and `#/settings` still works.
+- **Tour:** the Food step now points at the Food tab and the last step points at the avatar.
+- **Fit:** the tab bar columns can shrink (`minmax(0, 1fr)`) with no label wrapping; Progress's "+ Log" button drops the word "weight" on phones so the avatar fits (phones at 340 or narrower only).
+- **Not in this part:** the quick-log + button, card reordering, Duo two-column rules.
+- **Tests:** tab order, `TAB_FOR`, Settings origin and Back, redirects, depth and transitions.
+
+### What's new
+
+- Food now has its own tab in the bar at the bottom.
+- Settings opens from your circle at the top right.
+
 ## 0.15.17 — Mission celebrations and the Perfect Week (2026-10-11)
 
 Issue #86. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

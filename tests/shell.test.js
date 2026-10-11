@@ -2,18 +2,19 @@
 // count-up formatting, and a CSS guard so form fields can't drop below 16px (iOS zooms into smaller ones).
 import { readFileSync, readdirSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { routeDepth, transitionKind, backTarget, backLabel, tabOf, createScrollMemory } from '../js/nav.js';
+import { routeDepth, transitionKind, backTarget, backLabel, tabOf, createScrollMemory, TAB_ORDER, TAB_FOR, redirectRoute, noteRoute, setSettingsOrigin } from '../js/nav.js';
 import { shouldDismiss, rubberBand, dragProgress, velocityOf, shouldPop, scrimOpacity } from '../js/ui/gesture.js';
 import { parseCountText, formatCount } from '../js/ui/motion.js';
 
 const p = (hash) => hash.replace(/^#\/?/, '').split('/');
 
 test('route depth: tab roots are 0, detail screens 1, deeper screens 2', () => {
-  for (const r of ['today', 'train', 'body', 'weight', 'score', 'trends', 'weekly', 'settings', 'progress']) eq(routeDepth([r]), 0, r);
-  for (const r of ['session', 'library', 'timer', 'locations', 'withings', 'apple', 'metric', 'profile', 'history', 'awards']) eq(routeDepth([r]), 1, r);
+  for (const r of ['today', 'train', 'food', 'body', 'weight', 'score', 'trends', 'weekly', 'progress']) eq(routeDepth([r]), 0, r);
+  for (const r of ['settings', 'session', 'library', 'timer', 'metric', 'history', 'awards']) eq(routeDepth([r]), 1, r);
+  for (const r of ['locations', 'report', 'profile', 'withings', 'apple']) eq(routeDepth([r]), 2, `${r} sits on Settings`);
   eq(routeDepth(p('#/play')), 2);
   eq(routeDepth(p('#/summary/abc')), 2);
-  eq(routeDepth(p('#/withings/check')), 2, 'Data check sits on Withings');
+  eq(routeDepth(p('#/withings/check')), 3, 'Data check sits on Withings');
   eq(routeDepth([]), 0, 'empty hash is Today');
 });
 
@@ -24,8 +25,9 @@ test('transition kind: deeper = push, shallower = pop, tab to tab = crossfade', 
   eq(transitionKind(p('#/session'), p('#/play')), 'push');
   eq(transitionKind(p('#/play'), p('#/summary/x')), 'fade', 'same depth between detail screens');
   eq(transitionKind(p('#/summary/x'), p('#/today')), 'pop');
-  eq(transitionKind(p('#/today'), p('#/settings')), 'tab');
-  eq(transitionKind(p('#/settings'), p('#/today')), 'tab');
+  eq(transitionKind(p('#/today'), p('#/settings')), 'push', 'Settings pushes from the avatar');
+  eq(transitionKind(p('#/settings'), p('#/today')), 'pop');
+  eq(transitionKind(p('#/today'), p('#/food')), 'tab');
   eq(transitionKind(p('#/weight'), p('#/trends')), 'tab', 'Progress siblings crossfade');
   eq(transitionKind(p('#/weight'), p('#/history')), 'push', 'History is a row under Weight');
   eq(transitionKind(p('#/withings'), p('#/withings/check')), 'push');
@@ -53,6 +55,47 @@ test('back target: roots have none; detail screens go to their parent', () => {
   eq(backTarget(p('#/photos/take')), '#/body');
   eq(tabOf('photos'), 'body');
   eq(routeDepth(['photos']), 1);
+});
+
+test('tab bar: Today, Train, Food, Body, Progress; no Settings tab', () => {
+  eq(JSON.stringify(TAB_ORDER), JSON.stringify(['today', 'train', 'food', 'body', 'weight']));
+  eq(Object.values(TAB_FOR).filter((t) => !TAB_ORDER.includes(t)).length, 0, 'every screen lights a real tab');
+  const tabs = {
+    food: 'food', coach: 'today', program: 'today', history: 'weight', awards: 'weight', score: 'weight', trends: 'weight',
+    weekly: 'weight', progress: 'weight', metric: 'body', photos: 'body', session: 'train', library: 'train',
+  };
+  for (const [r, t] of Object.entries(tabs)) eq(tabOf(r), t, r);
+});
+
+test('settings has no tab: it and its children light the tab you came from, Back returns there', () => {
+  setSettingsOrigin('today');
+  eq(tabOf('settings'), 'today', 'fallback is Today');
+  for (const from of ['today', 'train', 'food', 'body', 'weight']) {
+    noteRoute(from);
+    for (const r of ['settings', 'locations', 'report', 'profile', 'withings', 'apple']) eq(tabOf(r), from, `${r} from ${from}`);
+    eq(backTarget(['settings']), `#/${from}`);
+    eq(backLabel(['settings']), { today: 'Today', train: 'Train', food: 'Food', body: 'Body', weight: 'Progress' }[from]);
+    eq(backTarget(['locations']), '#/settings');
+    eq(backTarget(['withings', 'check']), '#/withings');
+  }
+  noteRoute('settings'); noteRoute('locations');
+  eq(tabOf('settings'), 'weight', 'opening Settings children does not forget the origin');
+  noteRoute('score');
+  eq(tabOf('settings'), 'weight', 'Score is a Progress screen');
+  noteRoute('food');
+  eq(tabOf('settings'), 'food');
+  setSettingsOrigin('nonsense');
+  eq(tabOf('settings'), 'today');
+});
+
+test('old links: removed or renamed routes redirect; current ones are left alone', () => {
+  const j = JSON.stringify;
+  eq(j(redirectRoute(['home'])), j(['today']));
+  eq(j(redirectRoute(['log'])), j(['food']));
+  eq(j(redirectRoute(['foods', 'x'])), j(['food', 'x']));
+  for (const r of ['weight', 'settings', 'food', 'today', 'progress', 'locations']) eq(redirectRoute([r]), null, r);
+  eq(redirectRoute([]), null);
+  eq(redirectRoute(['toString']), null, 'no prototype lookups');
 });
 
 test('scroll memory: each tab root keeps its own position; detail screens always start at the top', () => {

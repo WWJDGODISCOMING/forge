@@ -65,6 +65,20 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
 .large-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding-top: 2px; }
 .large-title h1 { font-size: 34px; line-height: 41px; font-weight: 700; letter-spacing: -.022em; }
 .large-title .lt-actions { display: flex; align-items: center; gap: 8px; flex: none; }
+/* Settings avatar (no Settings tab): a 44pt circle with the initial, top-right of every tab root's large title. */
+.avatar-btn {
+  width: 44px; height: 44px; flex: none; border-radius: 50%; display: inline-grid; place-items: center;
+  background: var(--surface-2); color: var(--accent-text); font-weight: 700; font-size: calc(18px * var(--ts)); text-decoration: none;
+  box-shadow: inset 0 0 0 .5px var(--hairline); -webkit-user-select: none; user-select: none;
+}
+.large-title.snug h1 { font-size: 29px; line-height: 35px; }
+.large-title.snug { gap: 8px; }
+.large-title.snug .lt-actions { gap: 6px; }
+.large-title.snug .lt-actions .btn.small { padding-inline: 12px; }
+.large-title.tight .hide-xs { display: none; }
+.large-title.tight .lt-actions .btn.small { padding-inline: 10px; }
+.avatar-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
+.avatar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 .offline-banner {
   position: fixed; z-index: 6; left: 50%; top: calc(var(--safe-top) + 48px); translate: -50% 0;
@@ -78,7 +92,7 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
 /* ---------- Tab bar: truly translucent, hairline on top ---------- */
 .tabbar {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 4px max(8px, var(--safe-right)) calc(var(--safe-bottom) + 2px) max(8px, var(--safe-left));
   background: var(--glass);
   -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
@@ -88,7 +102,7 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
 .tabbar a {
   position: relative;
   display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
-  min-height: 49px; color: var(--text-2); text-decoration: none; font-size: calc(10.5px * min(var(--ts), 1.15)); font-weight: 600; letter-spacing: .01em;
+  min-height: 49px; color: var(--text-2); text-decoration: none; font-size: calc(10.5px * min(var(--ts), 1.15)); font-weight: 600; letter-spacing: .01em; white-space: nowrap; min-width: 0;
 }
 .tabbar svg { width: 26px; height: 26px; stroke-linecap: round; stroke-linejoin: round; }
 .tabbar .ic-off { fill: none; stroke: currentColor; stroke-width: 1.9; }

@@ -51,8 +51,8 @@ test('tour: 10–11 steps; Food, Coach and Body steps spotlight elements that ex
   const ids = TOUR_STEPS.map((s) => s.id);
   for (const id of ['food', 'coach', 'body']) assert(ids.includes(id), id);
   assert(new Set(ids).size === ids.length, 'unique step ids');
-  const screens = { today: src('js/screens/today.js'), body: src('js/screens/body.js'), train: src('js/screens/train.js'), settings: src('js/screens/settings.js'), weight: src('js/screens/weight.js') };
-  const find = { food: 'data-tour="food"', coach: 'data-coach-card', body: 'data-tour="body-recovery"' };
+  const screens = { food: src('index.html'), today: src('js/screens/today.js'), body: src('js/screens/body.js'), train: src('js/screens/train.js'), settings: src('js/screens/settings.js'), weight: src('js/screens/weight.js') };
+  const find = { food: 'href="#/food"', coach: 'data-coach-card', body: 'data-tour="body-recovery"' };
   for (const [id, needle] of Object.entries(find)) {
     const step = TOUR_STEPS.find((s) => s.id === id);
     assert(step.target && step.route, `${id} has a target and a route`);

@@ -90,6 +90,31 @@ if (standalone) {
       assert(r.place && !r.dot && r.lines === 1, `workout meta/place wrapped badly at 320: ${JSON.stringify(r)}`);
     }
   });
+
+  test('layout: the Progress title row refits on resize without a re-render (890 → 320 → 390)', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const read = () => browser.eval(`(() => { const l = document.querySelector('#main .large-title'), a = l.querySelector('.lt-actions'), t = l.querySelector('h1, .lt-title') || l.firstElementChild; return { actionsRight: a.getBoundingClientRect().right, titleRight: l.getBoundingClientRect().right, snug: l.classList.contains('snug'), tight: l.classList.contains('tight'), label: (document.querySelector('[data-log]') || {}).innerText, fs: parseFloat(getComputedStyle(t).fontSize) }; })()`);
+    const sizes = [[890, 626], [320, 568], [390, 844]];
+    const fresh = {};
+    for (const [w, h] of sizes) { // what a fresh render gives at each size
+      await browser.viewport(w, h, true);
+      await browser.open('weight', seed());
+      await wait(300);
+      fresh[w] = await read();
+    }
+    await browser.viewport(890, 626, true);
+    await browser.open('weight', seed());
+    for (const [w, h] of [...sizes.slice(1), sizes[0], sizes[2], sizes[0]]) { // same page, no re-render
+      await browser.viewport(w, h, true);
+      await wait(300);
+      const r = await read(), f = fresh[w];
+      assert(r.actionsRight <= r.titleRight + 0.5, `actions run past the title row at ${w}: ${JSON.stringify(r)}`);
+      assert(r.snug === f.snug && r.tight === f.tight && r.label === f.label && r.fs === f.fs, `resized page differs from a fresh render at ${w}: ${JSON.stringify(r)} vs ${JSON.stringify(f)}`);
+    }
+    assert(fresh[890].label === '+ Log weight' && !fresh[890].snug && fresh[390].label === '+ Log weight', 'full label expected at 390 and 890');
+  });
 }
 
 if (standalone) {
@@ -849,7 +874,7 @@ for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
       }
       // The ring never overlaps the top bar (it is drawn 8px out, so it clears the bar by its own pad).
       if (!m.empty && m.stop < m.ctop && m.stop < m.bar - 0.5) bad.push(`step ${i + 1} "${m.t}": spotlight top ${Math.round(m.stop)}px is under the top bar (bottom ${Math.round(m.bar)}px)`);
-      await browser.eval("document.querySelector('[data-next]').click()");
+      await browser.eval("document.querySelector('.tour-card [data-next]').click()");
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });
@@ -873,14 +898,14 @@ for (const [w, h] of standalone ? [[890, 626]] : []) {
         return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), card: [c.left, c.top, c.right, c.bottom], spot: [sr.left, sr.top, sr.right, sr.bottom], two: !!document.querySelector('.today-cols, .train-cols') && getComputedStyle(document.querySelector('.today-cols, .train-cols')).display === 'grid', vw: innerWidth, vh: innerHeight };
       })()`);
       if (shots) await browser.screenshot(`${shots}/tour2-${i + 1}-${w}x${h}.png`);
-      if (!m.empty && m.two) { // Today and Train; the one-column screens keep the phone behaviour (tested above)
+      if (!m.empty && (m.two || /^(Food has its own tab|Settings and profile)$/.test(m.t))) { // Today and Train, plus the Food tab and avatar steps; other one-column screens keep the phone behaviour (tested above)
         const [cl, ct, cr, cb] = m.card; const [sl, st, sr, sb] = m.spot;
         const hit = cl < sr && cr > sl && ct < sb && cb > st;
         checked++;
         if (hit) bad.push(`step ${i + 1} "${m.t}": card (${[cl, ct, cr, cb].map(Math.round)}) covers the spotlight (${[sl, st, sr, sb].map(Math.round)})`);
         if ((st < 0 || sb > m.vh)) bad.push(`step ${i + 1} "${m.t}": spotlight is off-screen`);
       }
-      await browser.eval("document.querySelector('[data-next]').click()");
+      await browser.eval("document.querySelector('.tour-card [data-next]').click()");
     }
     assert(checked >= 4, `only ${checked} two-column steps were checked`);
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
