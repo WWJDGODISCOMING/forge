@@ -793,6 +793,39 @@ if (standalone) {
   });
 }
 
+// Scrolling by hand right after an unfold must stick (no snap-back from the pending restores) and become the new anchor.
+if (standalone) {
+  for (const delay of [150, 450]) {
+    test(`layout: scrolling by hand ${delay} ms after unfolding sticks and is what a fold back keeps`, async () => {
+      if (skipReason()) return;
+      browser = browser || await launch();
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const bad = [];
+      const topOf = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
+      await browser.viewport(466, 678, true);
+      await browser.open('today', seed());
+      await browser.eval("(() => { const s = document.createElement('style'); s.textContent = 'html, body, * { overflow-anchor: none !important }'; document.head.append(s); })()");
+      await browser.eval("window.scrollTo({ top: (document.documentElement.scrollHeight - innerHeight) * 0.2, behavior: 'instant' })");
+      await wait(600);
+      await browser.viewport(890, 626, true);
+      await wait(delay);
+      await browser.eval("(() => { window.dispatchEvent(new WheelEvent('wheel', { deltaY: 450 })); window.scrollBy({ top: 450, behavior: 'instant' }); })()");
+      await wait(60);
+      const y0 = await browser.eval('Math.round(scrollY)');
+      await wait(1000);
+      const y1 = await browser.eval('Math.round(scrollY)');
+      if (Math.abs(y1 - y0) > 2) bad.push(`scrollY went from ${y0} to ${y1} after the reader scrolled`);
+      await browser.eval("import('./js/ui/anchor.js').then((m) => { const a = m.pickAnchor(); if (a) a.el.setAttribute('data-test-top', ''); })");
+      const before = await browser.eval(topOf);
+      await browser.viewport(466, 678, true);
+      await wait(800);
+      const now = await browser.eval(topOf);
+      if (before == null || now == null || Math.abs(now - before) > 16) bad.push(`the top card went from ${before}px to ${now}px after folding back`);
+      assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+    });
+  }
+}
+
 for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
   test(`layout: tour keeps each target in view above the card at ${w}x${h}`, async () => {
     if (skipReason()) return;
