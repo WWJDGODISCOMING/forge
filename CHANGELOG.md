@@ -11,6 +11,11 @@ Issue #64, part 6b-1 (Settings sidebar, short landscape, and fold keeping state 
 - **Today:** folding or unfolding keeps keyboard and VoiceOver focus on the control you were on.
 - **Tests:** layout test asserts two columns on Body and the player at 890, one column below 840, the left column first in the DOM with no CSS `order`, Done set in view, and full-width charts with 11 px axis text on Progress.
 
+### What's new
+
+- Body and the workout player use two columns on a wide screen.
+- Charts fill the wide screen without getting bigger text.
+
 ## 0.15.13 — iPhone Duo, round one (2026-10-11)
 
 Issue #64, part 6a (Body, Progress, the player, Settings, the short landscape screen and folding mid-session come in 6b). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

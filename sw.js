@@ -85,6 +85,7 @@ const SHELL = [
   './js/timer.js',
   './js/ui/motion.js',
   './js/ui/gesture.js',
+  './js/ui/charts.js',
   './js/ui/controls.js',
   './js/ui/icons.js',
   './js/ui/pull.js',

@@ -1,12 +1,12 @@
 // Charts are drawn in a fixed viewBox and scale with their card. On a wide canvas that would blow the axis text up,
-// so each chart reports how much it is scaled (--ck = viewBox width / rendered width) and the CSS multiplies the
-// text and line size by it, which keeps them at phone size while the plot grows.
+// so each chart reports --ck = viewBox width / rendered width (never above 1) and the CSS multiplies the text and
+// line size by it, which keeps them at phone size while the plot grows.
 let ro = null;
 
-/** The factor that undoes the scaling; 1 when the chart is at or below its drawn width (phones already match). */
+/** The factor that undoes the growth: 1 when the chart is at or below its drawn width (phones already match), vb/rendered when it is wider. */
 export function scaleFor(viewBoxWidth, renderedWidth) {
   if (!(renderedWidth > 0) || !(viewBoxWidth > 0)) return 1;
-  return Math.max(1, Math.round((viewBoxWidth / renderedWidth) * 100) / 100);
+  return Math.min(1, Math.round((viewBoxWidth / renderedWidth) * 1000) / 1000);
 }
 
 function setScale(svg, w) {
