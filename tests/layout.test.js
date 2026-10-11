@@ -743,6 +743,56 @@ if (standalone) {
   });
 }
 
+// WebKit has no CSS scroll anchoring, so anchor.js alone must keep the card in place: switch Chromium's off and chase the same
+// element through fold → unfold → rotate → fold on each screen. A height-only resize (the keyboard) must not move the page.
+if (standalone) {
+  test('layout: the same card stays put through a fold round trip without browser scroll anchoring, and the keyboard does not scroll', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const CHAIN = [[626, 890], [890, 626], [466, 678]];
+    const bad = [];
+    const topOf = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
+    const noAnchoring = "(() => { const s = document.createElement('style'); s.textContent = 'html, body, * { overflow-anchor: none !important }'; document.head.append(s); })()";
+    for (const route of ['today', 'body', 'score', 'trends']) {
+      await browser.viewport(466, 678, true);
+      await browser.open(route, seed());
+      await browser.eval(noAnchoring);
+      // scroll about 45% down (25% on Score, whose wide page is much shorter, so the card has to stay reachable); on Today, to a card that lands in the right column when wide
+      const picked = await browser.eval(`(async () => {
+        const bar = document.querySelector('.navbar'); const inset = bar ? bar.getBoundingClientRect().bottom : 0;
+        let target = ${route === 'today' ? "document.querySelector('.slot[data-o=\"5\"]')" : 'null'};
+        if (!target) window.scrollTo({ top: (document.documentElement.scrollHeight - innerHeight) * ${route === 'score' ? 0.25 : 0.45}, behavior: 'instant' });
+        else window.scrollBy({ top: target.getBoundingClientRect().top - inset - 4, behavior: 'instant' });
+        await new Promise((r) => setTimeout(r, 500));
+        const a = (await import('./js/ui/anchor.js')).pickAnchor();
+        if (a) a.el.setAttribute('data-test-top', '');
+        return !!a;
+      })()`);
+      if (!picked) { bad.push(`${route}: found no card to follow`); continue; }
+      const before = await browser.eval(topOf);
+      for (const [w, h] of CHAIN) {
+        await browser.viewport(w, h, true);
+        await wait(700);
+        const now = await browser.eval(topOf);
+        if (now == null || Math.abs(now - before) > 16) bad.push(`${route}: the card went from ${before}px to ${now}px at ${w}x${h} (${await browser.eval("(() => { const e = document.querySelector('[data-test-top]'); return e.tagName + '.' + e.className + ' ' + (e.textContent || '').trim().slice(0, 30) + ' y=' + Math.round(scrollY) + '/' + (document.documentElement.scrollHeight - innerHeight); })()")})`);
+      }
+    }
+    // keyboard: only the height changes, with a field focused
+    await browser.viewport(390, 844, true);
+    await browser.open('library', seed());
+    await browser.eval("document.querySelector('[data-q]').focus({ preventScroll: true })");
+    const y0 = await browser.eval('Math.round(scrollY)');
+    for (const h of [508, 844]) {
+      await browser.viewport(390, h, true);
+      await wait(500);
+      const y = await browser.eval('Math.round(scrollY)');
+      if (y !== y0) bad.push(`keyboard: scrollY went from ${y0} to ${y} at 390x${h}`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
   test(`layout: tour keeps each target in view above the card at ${w}x${h}`, async () => {
     if (skipReason()) return;

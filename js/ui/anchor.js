@@ -27,20 +27,33 @@ export function captureAnchor() {
   anchor = pickAnchor();
 }
 
-/** Scroll so the remembered element is where it was; no-op if it left the page. */
+const SETTLE_MS = 300;
+let settleUntil = 0; // while a fold or rotation settles, keep the card picked before it started; scroll events then aren't the reader
+
+/** Scroll so the remembered element is where it was; no-op if it left the page. Keeps the same card through the whole resize burst. */
 export function restoreAnchor() {
-  if (!anchor || !anchor.el.isConnected) { captureAnchor(); return; }
+  if (!anchor || !anchor.el.isConnected) { anchor = null; captureAnchor(); return; }
+  settleUntil = Date.now() + SETTLE_MS;
   const dy = anchor.el.getBoundingClientRect().top - anchor.top;
   if (Math.abs(dy) > 1) window.scrollBy({ top: dy, behavior: 'instant' });
-  captureAnchor();
 }
 
 export function setupResizeAnchor() {
-  let raf = 0;
-  const schedule = () => { if (!raf) raf = requestAnimationFrame(() => { raf = 0; captureAnchor(); }); };
+  let raf = 0, width = window.innerWidth;
+  const schedule = () => {
+    if (Date.now() < settleUntil || raf) return;
+    raf = requestAnimationFrame(() => { raf = 0; if (Date.now() >= settleUntil) captureAnchor(); });
+  };
   addEventListener('scroll', schedule, { passive: true });
   addEventListener('hashchange', () => { anchor = null; setTimeout(captureAnchor, 400); });
-  let t = 0;
-  addEventListener('resize', () => { restoreAnchor(); clearTimeout(t); t = setTimeout(restoreAnchor, 120); }); // again once media-query layouts have settled
+  let t1 = 0, t2 = 0;
+  addEventListener('resize', () => {
+    if (window.innerWidth === width) return; // the keyboard opening or closing only changes the height: leave the scroll alone
+    width = window.innerWidth;
+    restoreAnchor();
+    clearTimeout(t1); clearTimeout(t2);
+    t1 = setTimeout(restoreAnchor, 120); // again once media-query layouts have settled
+    t2 = setTimeout(restoreAnchor, SETTLE_MS);
+  });
   setTimeout(captureAnchor, 400);
 }

@@ -1,6 +1,7 @@
 // Progress → Score: your Forge Score (7-day average), the five pillars, what moved it since last week, and
 // the raw inputs behind every number. Never compared with any other app's score.
 import { state } from '../state.js';
+import { restoreAnchor } from '../ui/anchor.js';
 import { esc, $, $$ } from '../ui.js';
 import { progressTabs } from './progress.js';
 import { currentScore } from '../health/today.js';
@@ -68,6 +69,7 @@ function arrangeScoreCols(el) {
     const focused = document.activeElement;
     const hadFocus = focused && focused !== document.body && slot.contains(focused);
     if (wideQuery.matches) a.append(slot); else home.after(slot);
+    restoreAnchor(); // moving the card changes the page height; keep the one at the top of the screen where it was
     if (hadFocus && focused.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
   };
   wideListener = () => { if (el.isConnected) apply(); };

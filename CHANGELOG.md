@@ -4,9 +4,9 @@
 
 Issue #64, part 6b-3. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
 
-- **Folding keeps your place:** the card at the top of the screen stays at the top when the window changes size (fold, unfold, rotate). Nothing is re-rendered, so open sheets, focused fields, charts and the rest timer carry on. Today also keeps its place when it moves cards between one and two columns.
+- **Folding keeps your place:** the card at the top of the screen stays at the top when the window changes size (fold, unfold, rotate). Nothing is re-rendered, so open sheets, focused fields, charts and the rest timer carry on. Today and Score also keep their place when they move cards between one and two columns. The card is picked before the size change and kept for the whole change, and a height-only resize (the keyboard) never scrolls the page.
 - **Player Next line:** the "·" between the exercise name and "Set 2 of 3" is back where they share a line, and is hidden when the set drops to a second line.
-- **Tests:** a resize chain (466×678 → 626×890 → 890×626 → 466×678) on Today, the player mid-rest and the Log weight sheet; Today's two columns end within 120 px of each other at 890×626 and 932×430, with the phone order unchanged; the Next line dot.
+- **Tests:** a resize chain (466×678 → 626×890 → 890×626 → 466×678) with browser scroll anchoring switched off, following the same card on Today, Body, Score and Trends, plus a keyboard-height resize; the same chain on the player mid-rest and the Log weight sheet; Today's two columns end within 120 px of each other at 890×626 and 932×430, with the phone order unchanged; the Next line dot.
 
 ### What's new
 
