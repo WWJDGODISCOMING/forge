@@ -630,8 +630,9 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 /* ---------- Wide canvas (iPhone Duo inner screen, landscape): Today and Train go two-column once each column gets ~340px; every other screen stays the 560px column until its own layout lands ---------- */
 @media (min-width: 840px) {
   main:has(.today-cols, .train-cols) { max-width: 1000px; padding-left: max(28px, var(--safe-left)); padding-right: max(28px, var(--safe-right)); }
-  .today-cols, .train-cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 32px; align-items: start; }
+  .today-cols, .train-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
   .today-cols > .col, .train-cols > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .today-cols .weight-card .spark { width: 72px; }
   .train-cols { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); }
   .train-cols > .col { gap: var(--s-5); }
   .train-cols .tools { grid-template-columns: 1fr; gap: var(--s-2); }

@@ -253,14 +253,6 @@ export function renderToday(el) {
         ${ringsHtml(rings)}
       </div>
 
-      </div>
-      <div class="col col-b">
-      ${workoutCard()}
-
-      ${foodCard(t)}
-
-      ${missionsCard()}
-
       <div class="card weight-card">
         <div class="row between center card-head"><p class="label">Weight</p><a class="card-link" href="#/weight">See chart${icon('chev', { size: 14 })}</a></div>
         <div class="row between center weight-main">
@@ -279,15 +271,24 @@ export function renderToday(el) {
         ${goalSentence ? `<p class="small muted" data-goal-line>${esc(goalSentence)}</p>` : ''}
       </div>
 
+      ${scoreCard()}
+
       ${programLine()}
 
-      ${scoreCard()}
+      ${insightsBlock()}
+
+      </div>
+      <div class="col col-b">
+      ${workoutCard()}
+
+      ${foodCard(t)}
+
+      ${missionsCard()}
 
       ${weeklyCard()}
 
       <div data-photo-reminder></div>
 
-      ${insightsBlock()}
       </div>
       </div>
 

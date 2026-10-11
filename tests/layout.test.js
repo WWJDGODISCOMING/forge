@@ -428,6 +428,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
       if (w < 840 && two) bad.push(`${at}: should stay one column`);
       if (w >= 840 && two && m.a.r - m.a.l < 340) bad.push(`${at}: left column ${Math.round(m.a.r - m.a.l)}px is narrower than 340px`);
       if (w >= 840 && two && m.b.r - m.b.l < 340) bad.push(`${at}: right column ${Math.round(m.b.r - m.b.l)}px is narrower than 340px`);
+      if (route === 'today' && w >= 840 && two && Math.abs(m.a.b - m.b.b) > 120) bad.push(`${at}: Today's columns end ${Math.round(Math.abs(m.a.b - m.b.b))}px apart (left ${Math.round(m.a.b)}, right ${Math.round(m.b.b)}), should be within 120px`);
       if (w >= 840 && two && m.b.l - m.a.r < 24) bad.push(`${at}: gutter ${Math.round(m.b.l - m.a.r)}px is under 24px`);
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
