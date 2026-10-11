@@ -418,8 +418,9 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         const ch = document.querySelector('#main svg.chart'), cq = ch && ch.getBoundingClientRect(), card = ch && ch.closest('.card'), cdq = card && card.getBoundingClientRect();
         const ordered = [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length;
         const axis = document.querySelector('#main svg.chart .axis'), ax = axis && parseFloat(getComputedStyle(axis).fontSize) * (cq.width / ch.viewBox.baseVal.width);
+        const dm = document.querySelector('#main [data-demo]'), st = document.querySelector('#main .pl-steppers'), top = (e) => e ? e.getBoundingClientRect().top : null;
         const dom = a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null;
-        return { dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        return { demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
       const cols = route === 'today' || route === 'train' || route === 'body' || route === 'play';
@@ -439,6 +440,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         if (m.dom === false) bad.push(`${at}: the left column comes after the right in the DOM`);
         if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
       }
+      if (route === 'play' && w >= 840 && m.demoTop != null && m.stepTop != null && Math.abs(m.demoTop - m.stepTop) > 4) bad.push(`${at}: demo top ${Math.round(m.demoTop)} and steppers top ${Math.round(m.stepTop)} do not line up`);
       if (route === 'play' && m.doneBox && (m.doneBox.t < 0 || m.doneBox.b > m.vh + 0.5)) bad.push(`${at}: Done set is not in view (${Math.round(m.doneBox.t)}-${Math.round(m.doneBox.b)} of ${m.vh})`);
       if (route === 'weight' && m.chart) { // charts take the card's width, keep their proportions, and keep phone-size axis text
         if (w >= 840 && m.main.r - m.main.l <= 560 + 1) bad.push(`${at}: Progress did not widen (${Math.round(m.main.r - m.main.l)}px)`);

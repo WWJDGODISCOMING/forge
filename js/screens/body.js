@@ -21,6 +21,12 @@ const ago = (iso) => {
 };
 const status = (pct) => (pct < 50 ? 'Needs rest' : pct < 85 ? 'Recovering' : 'Ready');
 
+// The card's date: the reading's time, or its day when an older entry has no timestamp (never "Invalid Date").
+function bcDate(doc) {
+  const d = new Date(doc.measured_at || (doc.day ? `${doc.day}T12:00:00` : NaN));
+  return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+}
+
 // Body composition tiles: every metric the scale sent (plus BMI, FFMI, FMI), latest value and 30-day change.
 function compositionCard() {
   const docs = myBodyMeasures();
@@ -54,7 +60,7 @@ function compositionCard() {
   const olderTiles = old.length ? `<details class="learn-more bc-older" data-bc-older><summary>Show older (${old.length})</summary><div class="bc-grid">${old.map((t) => t.tile).join('')}</div>${hrOld ? hrNote : ''}</details>` : '';
   const last = [...docs].sort((a, b) => (a.measured_at < b.measured_at ? 1 : -1))[0];
   return `<div class="card">
-    <div class="row between"><p class="label">Body composition</p><span class="small muted">${last ? new Date(last.measured_at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : ''}</span></div>
+    <div class="row between"><p class="label">Body composition</p><span class="small muted">${last ? bcDate(last) : ''}</span></div>
     ${gap ? `<p class="notice info small" data-bc-gap>Your last ${gap === 1 ? 'weigh-in' : `${gap} weigh-ins`} had no body composition. Stand barefoot with dry feet on the electrodes and keep still until the scale finishes.</p>` : ''}
     <div class="bc-grid">${tiles}</div>${olderTiles}
     ${hrFresh ? hrNote : ''}

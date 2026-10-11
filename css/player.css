@@ -347,7 +347,9 @@ body.playing .navbar { display: none; }
 @media (min-width: 840px) {
   .pl-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; flex: 1; align-items: stretch; }
   .pl-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
-  .pl-col-a { justify-content: center; }
+  .pl-col-a { justify-content: flex-start; }
+  .pl-next { flex-wrap: wrap; white-space: normal; }
+  .pl-next-name { overflow: visible; text-overflow: clip; }
   .pl-col-a .pl-demo.has-fig { height: clamp(150px, 34vh, 280px); }
   .pl-col-a .pl-demo { min-height: clamp(120px, 28vh, 240px); }
   .pl-col-a .fig-wrap { inset: 8px; }
