@@ -675,3 +675,14 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   .set-pane:not(.on) { display: none; }
 }
 @media (max-width: 839.98px) { .set-cols, .set-panes, .set-pane { display: contents; } }
+
+/* ---------- v0.15.15: short landscape (Duo outer screen turned sideways, 678x466): compact title, slimmer tab bar, less padding under the content ---------- */
+@media (max-height: 500px) and (min-width: 600px) {
+  main { padding-top: calc(var(--safe-top) + 40px); padding-bottom: calc(var(--safe-bottom) + 72px); }
+  main:has(.pl-cols, [data-play]) { max-width: none; padding-top: calc(var(--safe-top) + 24px); }
+  .large-title { min-height: 36px; padding-top: 0; }
+  .large-title h1 { font-size: 24px; line-height: 30px; }
+  .tabbar { padding-top: 2px; padding-bottom: calc(var(--safe-bottom) + 0px); }
+  .tabbar a { min-height: 44px; gap: 0; }
+  .tabbar svg { width: 22px; height: 22px; }
+}
