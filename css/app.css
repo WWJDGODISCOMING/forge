@@ -585,7 +585,8 @@ body.tour-on main { padding-bottom: 360px; } /* room to scroll the last cards ab
 }
 @media (max-width: 400px) { .rp-actions { flex-direction: column; } }
 html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
-[data-photos-slot]:empty { min-height: 150px; } /* reserve the Progress photos card so Body doesn't jump when it mounts */
+[data-photos-slot]:empty { min-height: 132px; } /* reserve the Progress photos card (its empty-state height) so Body does not jump when it mounts; photos.css must not hide the empty slot */
+@media (max-width: 420px) { [data-photos-slot]:empty { min-height: 152px; } } /* the invitation wraps to two lines on a phone */
 .body-hero .bh-tile { background: var(--surface); border: 0; border-radius: var(--r-xl); padding: var(--s-4); display: flex; flex-direction: column; text-align: left; font: inherit; color: inherit; text-decoration: none; min-height: 96px; cursor: pointer; }
 .body-hero .bh-tile > span { overflow-wrap: normal; }
 .body-hero .bh-tap { position: relative; transition: background var(--t-fast); }

@@ -1,5 +1,5 @@
 /* Progress photos (v0.8.0): gallery, capture sheet, compare, time-lapse. Colours come from tokens only. */
-[data-photos-slot]:empty, [data-photo-reminder]:empty { display: none; }
+[data-photo-reminder]:empty { display: none; }
 .center-text { text-align: center; }
 
 .pp-date { font-size: calc(17px * var(--ts)); line-height: calc(22px * var(--ts)); font-weight: 600; font-variant-numeric: tabular-nums; }
