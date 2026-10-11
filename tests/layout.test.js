@@ -488,6 +488,51 @@ if (standalone) {
 }
 
 if (standalone) {
+  test('layout: Trends, Score and Week: two columns from 840, one below, same tab control width, no CSS order, no card past ~560px', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    for (const [w, h] of [[390, 844], [678, 466], [890, 626]]) {
+      const segs = [];
+      for (const route of ['weight', 'trends', 'score', 'weekly']) {
+        await browser.viewport(w, h, true);
+        await browser.open(route, seed({}));
+        await wait(300);
+        const at = `${w}x${h} ${route}`;
+        const m = await browser.eval(`(() => {
+          const q = (e) => e && e.getBoundingClientRect();
+          const a = document.querySelector('#main .pg-cols > .col-a'), b = document.querySelector('#main .pg-cols > .col-b');
+          const rows = [...document.querySelectorAll('#main .trend-row')].map((e) => q(e));
+          const cards = [...document.querySelectorAll('#main .card')].filter((e) => !e.querySelector('.score-hero, svg.chart')).map((e) => q(e).width);
+          return { seg: q(document.querySelector('#main .progress-seg')).width, a: a && { l: q(a).left, r: q(a).right, t: q(a).top, b: q(a).bottom }, b: b && { l: q(b).left, r: q(b).right, t: q(b).top },
+            dom: a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null,
+            rowL: rows.length ? [...new Set(rows.map((r) => Math.round(r.left)))].length : 0, rowW: rows.length ? Math.max(...rows.map((r) => r.width)) : 0,
+            ordered: [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length, cards: Math.max(0, ...cards), vw: innerWidth };
+        })()`);
+        segs.push(m.seg);
+        if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
+        if (route !== 'weight' && w >= 840 && m.cards > 561) bad.push(`${at}: a card is ${Math.round(m.cards)}px wide`);
+        if (route === 'score' || route === 'weekly') {
+          if (!m.a || !m.b) { bad.push(`${at}: no columns found`); continue; }
+          if (!m.dom) bad.push(`${at}: left column is after the right in the DOM`);
+          const two = m.a.r - m.a.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
+          if (w >= 840 && !two) bad.push(`${at}: not two columns`);
+          if (w < 840 && two) bad.push(`${at}: should be one column`);
+        }
+        if (route === 'trends') {
+          if (w >= 840 && m.rowL < 2) bad.push(`${at}: rows are not in two columns`);
+          if (w >= 840 && m.rowW > 561) bad.push(`${at}: a trend row is ${Math.round(m.rowW)}px wide`);
+          if (w < 840 && m.rowL > 1) bad.push(`${at}: rows should be one column`);
+        }
+      }
+      if (Math.max(...segs) - Math.min(...segs) > 1) bad.push(`${w}x${h}: tab control width differs between tabs: ${segs.map(Math.round)}`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+if (standalone) {
   test('layout: resume with a changed app-install.json reloads, then toasts "Updated to …" and opens What\'s new (never mid-workout)', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
