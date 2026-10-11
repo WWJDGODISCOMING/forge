@@ -12,7 +12,7 @@ import { isNative, haptic } from '../native/bridge.js';
 import { hapticsOn } from '../ui/haptic.js';
 import { badgeSVG, perfectWeekMedal } from '../ui/badges.js';
 import { shareImage } from '../ui/sharecard.js';
-import { todayMissions, seenToday, celebratedTier, recordCelebrated, weekProgress, perfectWeekEnds, recordPerfectWeek } from './store.js';
+import { todayMissions, seenToday, rememberDone, celebratedTier, recordCelebrated, weekProgress, perfectWeekEnds, recordPerfectWeek } from './store.js';
 import { tierToPlay, effectsFor, hapticPlan, vibratePattern, perfectWeekDue, weekStreak, PERFECT_WEEK_XP } from './celebrate-core.js';
 
 const VOLT = '#C6FF3D';
@@ -48,13 +48,21 @@ function startRun() {
     run.els.forEach((el) => el.remove());
     run.stops.forEach((fn) => fn());
     removeEventListener('pointerdown', cut, true);
+    removeEventListener('pointerup', tapEnd, true);
     removeEventListener('keydown', cut, true);
     removeEventListener('hashchange', cut, true);
     if (current === run) current = null;
     run.done?.();
   };
-  const cut = (e) => { if (!run.keep || e.type === 'hashchange') { clearParticles(); if (navigator.vibrate) navigator.vibrate(0); run.end(); } };
+  const cut = (e) => {
+    if (run.soft && e.type === 'pointerdown') { down = { x: e.clientX, y: e.clientY }; return; } // a touch might be the start of a scroll
+    if (!run.keep || e.type === 'hashchange') { clearParticles(); if (navigator.vibrate) navigator.vibrate(0); run.end(); }
+  };
+  // Tiers 1 and 2 start mid-scroll, so only a tap (no movement) cuts them, not a flick.
+  let down = null;
+  const tapEnd = (e) => { if (run.soft && down && Math.hypot(e.clientX - down.x, e.clientY - down.y) < 10) cut({ type: 'tap' }); down = null; };
   addEventListener('pointerdown', cut, true);
+  addEventListener('pointerup', tapEnd, true);
   addEventListener('keydown', cut, true);
   addEventListener('hashchange', cut, true);
   if (current) current.end();
@@ -121,6 +129,7 @@ function toast(run, xp) {
 function playTier(tier, { fresh, xp }) {
   const fx = effectsFor(tier, reducedMotion());
   const run = startRun();
+  run.soft = tier < 3;
   const card = document.querySelector('.ms-card, .ms-done');
   const row = fresh.length ? document.querySelector(`[data-mission="${CSS.escape(fresh[fresh.length - 1])}"] .ms-check`) : null;
   const [cx, cy] = centerOf(card);
@@ -310,25 +319,27 @@ function playPerfectWeek({ n, streak }) {
 }
 
 // ---------- the one entry point ----------
-let watcher = null; // waits for the card to scroll into view (tiers 1 and 2)
-let owed = new Set(); // missions finished but not celebrated yet because the card never showed, kept across re-renders
+let watcher = null; // waits for the card to scroll into view
 
 /**
- * Called after Today renders. Plays the highest tier not yet played today, but only if a mission was finished since
- * the card was last shown (so a reload, resume or re-render never replays). Tiers 1 and 2 wait until the missions card
- * is at least half on screen and are recorded only when they play, so leaving Today first just defers them to the next
- * time the card shows. The finale is full screen, so it plays right away.
+ * Called after Today renders. Plays the highest tier not yet played today for a mission finished since the card was
+ * last shown (so a reload, resume or re-render never replays). A mission only counts as shown (missions_seen) once the
+ * card has really been on screen, so closing the app before scrolling down defers the celebration to the next visit.
+ * Tiers 1 and 2 wait until the card is at least half visible and are recorded only when they play. The finale is full
+ * screen, so it plays right away. Recording does not re-render Today (app.js skips that), so the card the effect is
+ * drawn on stays the live one.
  */
 export function celebrateMissions() {
   if (watcher) { watcher.disconnect(); watcher = null; }
   const m = todayMissions();
   if (!m.started || !m.list.length) return;
   const seen = seenToday();
-  const fresh = m.list.filter((x) => x.done && (!seen.has(x.id) || owed.has(x.id))).map((x) => x.id);
+  const doneIds = m.list.filter((x) => x.done).map((x) => x.id);
+  const fresh = doneIds.filter((id) => !seen.has(id));
   const tier = tierToPlay({ done: m.done, total: m.total, celebrated: celebratedTier(m.day), hasNew: fresh.length > 0 });
-  if (!tier) { owed = new Set(); return; }
+  if (!tier && !fresh.length) return;
   const play = () => {
-    owed = new Set();
+    if (!tier) { rememberDone(doneIds); return; }
     recordCelebrated(tier, m.day);
     enqueue(() => playTier(tier, { fresh, xp: m.xp }));
     if (tier === 3 && perfectWeekDue(weekProgress(), perfectWeekEnds(), m.day)) {
@@ -336,10 +347,11 @@ export function celebrateMissions() {
       const ends = perfectWeekEnds();
       enqueue(() => playPerfectWeek({ n: ends.length, streak: weekStreak(ends) }));
     }
+    // marked seen once the effect is over (the check's spring and the bar fill finish first)
+    setTimeout(() => rememberDone(doneIds), tier === 3 ? 3400 : 1300);
   };
   const card = document.querySelector('[data-missions]');
   if (tier === 3 || !card || typeof IntersectionObserver === 'undefined') { play(); return; }
-  owed = new Set(fresh);
   watcher = new IntersectionObserver((entries) => {
     if (!entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.5)) return;
     watcher.disconnect();

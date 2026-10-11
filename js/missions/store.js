@@ -132,6 +132,7 @@ export function rememberDone(ids) {
   const keep = shiftDay(day, -14);
   const next = Object.fromEntries(Object.entries(seen).filter(([d]) => d >= keep));
   next[day] = [...new Set([...have, ...ids])];
+  state.settings.missions_seen = next; // right away, like missions_cele
   patch('settings', 'main', { missions_seen: next });
 }
 

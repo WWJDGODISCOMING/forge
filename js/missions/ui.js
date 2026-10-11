@@ -5,7 +5,7 @@ import { badgeSVG } from '../ui/badges.js';
 import { units as getUnits } from '../state.js';
 import { rememberBadges } from '../workouts/awards-store.js';
 import { celebrateMissions } from './celebrate.js';
-import { todayMissions, seenToday, rememberDone, weekProgress, unseenMissionBadges, MISSION_XP } from './store.js';
+import { todayMissions, seenToday, weekProgress, unseenMissionBadges, MISSION_XP } from './store.js';
 
 const fmt = (n) => Math.round(n).toLocaleString();
 
@@ -38,13 +38,9 @@ export function missionsCard() {
   </div>`;
 }
 
-/** After the card is on screen: remember what was shown as done (later, so the check's spring isn't cut off). */
+/** After Today renders: celebrate what is new. */
 export function afterMissionsRender() {
-  const m = todayMissions();
-  const ids = m.list.filter((x) => x.done).map((x) => x.id);
-  if (!ids.length) return;
-  celebrateMissions(); // reads what is new before rememberDone below marks it seen
-  setTimeout(() => rememberDone(ids), 1200);
+  celebrateMissions(); // marks missions seen itself, once the card has really been shown
 }
 
 const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];

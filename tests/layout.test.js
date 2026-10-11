@@ -1023,14 +1023,37 @@ if (standalone) {
     assert(top > 844, `the missions card should start below the fold for this test (top ${top})`);
     assert((await browser.eval(cele)) === 0, 'nothing is recorded as played while the card is off screen');
     assert(!(await browser.eval("!!document.querySelector('.ms-glow')")), 'no glow while the card is off screen');
-    await browser.eval("document.querySelector('[data-missions]').scrollIntoView({ block: 'center', behavior: 'instant' })");
+    // closing the app now must not lose the celebration: nothing counts as seen until the card has been on screen
+    await new Promise((r) => setTimeout(r, 1800));
+    const seenJs = "import('/js/state.js').then((m) => Object.values(m.state.settings.missions_seen || {}).flat().length)";
+    assert((await browser.eval(seenJs)) === 0, 'missions are not marked seen while the card is off screen');
+    await browser.eval("window.__card = null; document.querySelector('[data-missions]').scrollIntoView({ block: 'center', behavior: 'instant' })");
     let glow = false;
-    for (let i = 0; i < 30 && !glow; i++) {
-      await new Promise((r) => setTimeout(r, 50));
-      glow = await browser.eval("!!document.querySelector('[data-missions] .ms-glow')");
+    for (let i = 0; i < 60 && !glow; i++) {
+      await new Promise((r) => setTimeout(r, 10));
+      glow = await browser.eval("(() => { const g = document.querySelector('[data-missions] .ms-glow'); if (g) window.__card = g.closest('[data-missions]'); return !!g; })()");
     }
     assert(glow, 'the glow is drawn inside the card once it is scrolled into view');
+    // Firestore echoes every settings write back as a snapshot (the fixture does not), which re-renders Today unless it is skipped
+    const echo = "import('/js/state.js').then((m) => m.state.set({ settings: { ...m.state.settings, updated_at: new Date().toISOString() } }))";
+    await browser.eval(echo);
+    // what the user sees: a bit later the glow is still attached to the live card and visible
+    await new Promise((r) => setTimeout(r, 100));
+    const live = await browser.eval(`(() => {
+      const g = document.querySelector('.ms-glow'); const c = document.querySelector('[data-missions]');
+      return { connected: !!g && g.isConnected, inside: !!g && c.contains(g), sameCard: c === window.__card, opacity: g ? Number(getComputedStyle(g).opacity) : 0 };
+    })()`);
+    assert(live.connected && live.inside, `the glow is on the live card (${JSON.stringify(live)})`);
+    assert(live.sameCard, 'recording the celebration must not replace the card while it plays');
+    assert(live.opacity > 0.3, `the glow is visible (opacity ${live.opacity})`);
     assert((await browser.eval(cele)) >= 1, 'recorded as played once it plays');
+    // once and only once, and the missions count as seen after it ends (that save echoes back too)
+    await new Promise((r) => setTimeout(r, 1400));
+    await browser.eval(echo);
+    await new Promise((r) => setTimeout(r, 2200));
+    assert((await browser.eval("document.querySelectorAll('.ms-glow').length")) === 0, 'the glow is gone after the effect and does not replay');
+    assert((await browser.eval(seenJs)) > 0, 'missions are marked seen after the effect');
+    assert((await browser.eval(cele)) === 1, 'tier 1 played exactly once');
   });
 }
 
