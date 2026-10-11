@@ -226,5 +226,6 @@ html.native input, html.native textarea, html.native .token-box { -webkit-user-s
   .tabbar { padding-top: 2px; padding-bottom: calc(var(--safe-bottom) + 0px); }
   .tabbar a { min-height: 44px; gap: 0; }
   .tabbar svg { width: 22px; height: 22px; }
+  .set-nav { gap: 0; margin-top: -16px; top: calc(var(--safe-top) + 40px); }
   .set-nav-item { min-height: 44px; }
 }
