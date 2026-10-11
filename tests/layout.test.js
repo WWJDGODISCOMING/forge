@@ -265,9 +265,20 @@ if (!standalone) {
   test('layout: every screen, 320 to 440 wide, dark and light, large text (headless Chromium)', async () => {
     if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
     if (process.argv.includes('--no-layout')) { console.log('      (skipped: --no-layout)'); return; }
-    const { spawnSync } = await import('node:child_process');
-    const r = spawnSync(process.execPath, [new URL(import.meta.url).pathname], { encoding: 'utf8', timeout: 540000 });
-    assert(r.status === 0, '\n' + r.stdout.split('\n').filter((l) => !l.includes('✓')).join('\n'));
+    const { spawn } = await import('node:child_process');
+    // the screens are independent, so run them as parallel shards (each with its own Chromium) instead of one long serial run
+    const SHARDS = 3;
+    const runs = Array.from({ length: SHARDS }, (_, i) => new Promise((resolve) => {
+      const p = spawn(process.execPath, [new URL(import.meta.url).pathname, `--shard=${i + 1}/${SHARDS}`], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let out = '';
+      p.stdout.on('data', (d) => { out += d; });
+      p.stderr.on('data', (d) => { out += d; });
+      const timer = setTimeout(() => { p.kill('SIGKILL'); out += `\nshard ${i + 1} timed out`; }, 420000);
+      p.on('close', (status) => { clearTimeout(timer); resolve({ status, out }); });
+    }));
+    const results = await Promise.all(runs);
+    const bad = results.filter((r) => r.status !== 0);
+    assert(!bad.length, '\n' + bad.map((r) => r.out.split('\n').filter((l) => !l.includes('✓')).join('\n')).join('\n'));
   });
 }
 
@@ -642,7 +653,12 @@ test('layout: close the browser', async () => {
 });
 
 if (standalone) {
-  const { runAll } = await import('./harness.js');
+  const { runAll, tests } = await import('./harness.js');
+  const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/3 → every third test, starting at the second
+  if (shard.length === 2) {
+    const keep = tests.filter((t, i) => i % shard[1] === shard[0] - 1 || t.name === 'layout: close the browser');
+    tests.splice(0, tests.length, ...keep);
+  }
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);
 }
