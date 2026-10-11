@@ -191,6 +191,33 @@ function greeting() {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
+// Two columns (>= 840px): slot numbers on the left or right. The DOM stays in the phone's reading order and only
+// moves into columns while the wide query matches, so VoiceOver and Tab order follow the screen on every size.
+const LEFT_SLOTS = new Set(['1', '2', '3', '7', '8', '9', '12']);
+let wideQuery = null;
+let wideListener = null;
+function arrangeTodayCols(el) {
+  if (typeof matchMedia !== 'function') return;
+  if (wideQuery && wideListener) wideQuery.removeEventListener('change', wideListener);
+  wideQuery = matchMedia('(min-width: 840px)');
+  const apply = () => {
+    const host = $('[data-today-cols]', el);
+    if (!host) return;
+    const slots = [...host.querySelectorAll('.slot')].sort((a, b) => Number(a.dataset.o) - Number(b.dataset.o));
+    if (wideQuery.matches) {
+      const a = document.createElement('div'); a.className = 'col col-a';
+      const b = document.createElement('div'); b.className = 'col col-b';
+      host.replaceChildren(a, b);
+      for (const sl of slots) (LEFT_SLOTS.has(sl.dataset.o) ? a : b).append(sl);
+    } else {
+      host.replaceChildren(...slots);
+    }
+  };
+  wideListener = () => { if (el.isConnected) apply(); };
+  wideQuery.addEventListener('change', wideListener);
+  apply();
+}
+
 export function renderToday(el) {
   const u = getUnits();
   const t = currentTargets();
@@ -241,8 +268,7 @@ export function renderToday(el) {
 
       ${tourOfferCard()}
 
-      <div class="today-cols">
-      <div class="col col-a">
+      <div class="today-cols" data-today-cols>
       <div class="slot" data-o="1">${readinessCard()}</div>
 
       <div class="slot" data-o="2">${coachLine()}</div>
@@ -254,6 +280,12 @@ export function renderToday(el) {
         ${ringsHtml(rings)}
       </div>
       </div>
+
+      <div class="slot" data-o="4">${workoutCard()}</div>
+
+      <div class="slot" data-o="5">${foodCard(t)}</div>
+
+      <div class="slot" data-o="6">${missionsCard()}</div>
 
       <div class="slot" data-o="7">
       <div class="card weight-card">
@@ -275,30 +307,21 @@ export function renderToday(el) {
       </div>
       </div>
 
-      <div class="slot" data-o="9">${scoreCard()}</div>
-
       <div class="slot" data-o="8">${programLine()}</div>
 
-      <div class="slot" data-o="12">${insightsBlock()}</div>
-
-      </div>
-      <div class="col col-b">
-      <div class="slot" data-o="4">${workoutCard()}</div>
-
-      <div class="slot" data-o="5">${foodCard(t)}</div>
-
-      <div class="slot" data-o="6">${missionsCard()}</div>
+      <div class="slot" data-o="9">${scoreCard()}</div>
 
       <div class="slot" data-o="10">${weeklyCard()}</div>
 
       <div class="slot" data-o="11"><div data-photo-reminder></div></div>
 
-      </div>
+      <div class="slot" data-o="12">${insightsBlock()}</div>
       </div>
 
       <p class="disclaimer">General fitness information, not medical advice.</p>
     </section>`;
 
+  arrangeTodayCols(el);
   $('[data-log]', el).onclick = openLogWeight;
   $('[data-weight-why]', el).onclick = (e) => {
     const open = e.currentTarget.getAttribute('aria-expanded') !== 'true';
