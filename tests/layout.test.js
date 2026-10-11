@@ -369,10 +369,10 @@ const NATIVE_SHELL = `
   window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: (n) => n === 'App', Plugins: { App: { addListener: (ev, cb) => { (window.__cb = window.__cb || {})[ev] = cb; return Promise.resolve({ remove() {} }); } } } };
 `;
 
-// Wide canvas (item 28/30): two columns on Today and Train from 600 px, the tab bar as wide as the content, and nothing inside the side insets.
-for (const route of standalone ? ['today', 'train'] : []) {
+// Wide canvas (item 28/30): two columns on Today and Train from 840 px (each column >= 340px), every other screen stays the 560px column, the tab bar is full width on every tab, and nothing sits inside the side insets.
+for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] : []) {
   if (only && !only.includes(route)) continue;
-  test(`layout: ${route}: wide canvas has the right columns, a tab bar as wide as the content, and respects left/right insets`, async () => {
+  test(`layout: ${route}: wide canvas has the right columns, a full-width tab bar, and respects left/right insets`, async () => {
     if (skipReason()) return;
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -393,12 +393,17 @@ for (const route of standalone ? ['today', 'train'] : []) {
         });
         return { main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
-      if (Math.abs((m.tab.r - m.tab.l) - (m.main.r - m.main.l)) > 1 || Math.abs(m.tab.l - m.main.l) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not as wide as the content ${Math.round(m.main.l)}-${Math.round(m.main.r)}`);
+      if (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
+      const cols = route === 'today' || route === 'train';
+      if (!cols && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
       if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
+      if (!cols) continue;
       const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
-      if (w >= 600 && !two) bad.push(`${at}: not two columns`);
-      if (w < 600 && two) bad.push(`${at}: should stay one column`);
-      if (w >= 600 && two && m.b.l - m.a.r < 24) bad.push(`${at}: gutter ${Math.round(m.b.l - m.a.r)}px is under 24px`);
+      if (w >= 840 && !two) bad.push(`${at}: not two columns`);
+      if (w < 840 && two) bad.push(`${at}: should stay one column`);
+      if (w >= 840 && two && m.a.r - m.a.l < 340) bad.push(`${at}: left column ${Math.round(m.a.r - m.a.l)}px is narrower than 340px`);
+      if (w >= 840 && two && m.b.r - m.b.l < 340) bad.push(`${at}: right column ${Math.round(m.b.r - m.b.l)}px is narrower than 340px`);
+      if (w >= 840 && two && m.b.l - m.a.r < 24) bad.push(`${at}: gutter ${Math.round(m.b.l - m.a.r)}px is under 24px`);
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });

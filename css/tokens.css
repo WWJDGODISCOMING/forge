@@ -71,7 +71,6 @@
   --safe-bottom: env(safe-area-inset-bottom, 0px);
   --safe-left: env(safe-area-inset-left, 0px);
   --safe-right: env(safe-area-inset-right, 0px);
-  --content-max: 560px; /* main, tab bar: one width (wide screens raise it, see app.css) */
   --gutter: 20px;
 
   /* Heatmap + plate colours */

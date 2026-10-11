@@ -77,7 +77,7 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
 
 /* ---------- Tab bar: truly translucent, hairline on top ---------- */
 .tabbar {
-  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5; margin: 0 auto; max-width: var(--content-max);
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
   display: grid; grid-template-columns: repeat(5, 1fr);
   padding: 4px max(8px, var(--safe-right)) calc(var(--safe-bottom) + 2px) max(8px, var(--safe-left));
   background: var(--glass);
