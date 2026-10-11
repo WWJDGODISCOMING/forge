@@ -218,3 +218,14 @@ html.native input, html.native textarea, html.native .token-box { -webkit-user-s
 .toast .toast-act { flex: none; min-height: 44px; min-width: 44px; margin: -12px -10px -12px 4px; padding: 0 14px; border: 0; border-radius: var(--r-pill);
   color: var(--accent-text); font: inherit; font-weight: 700; background: transparent; }
 .toast .toast-act:active { background: var(--surface-3); }
+
+/* Short landscape (Duo outer screen sideways, every iPhone sideways): compact title and slim tab bar. Lives here, after the base rules, so it wins. */
+@media (max-height: 500px) and (min-width: 600px) {
+  .large-title { min-height: 36px; padding-top: 0; }
+  .large-title h1, main h1 { font-size: calc(24px * var(--ts)); line-height: calc(30px * var(--ts)); }
+  .tabbar { padding-top: 2px; padding-bottom: calc(var(--safe-bottom) + 0px); }
+  .tabbar a { min-height: 44px; gap: 0; }
+  .tabbar svg { width: 22px; height: 22px; }
+  .set-nav { gap: 0; margin-top: -16px; top: calc(var(--safe-top) + 40px); }
+  .set-nav-item { min-height: 44px; }
+}

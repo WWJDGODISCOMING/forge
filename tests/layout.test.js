@@ -9,7 +9,9 @@ import { detect } from './layout/detect.js';
 import { seed } from './layout/seed.js';
 
 const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
-const WIDE = [[466, 678], [678, 466], [626, 890], [890, 626]];
+const shortLand0 = (w, h) => w >= 600 && h <= 500;
+const SAFE_BOTTOM = 21; // the home indicator in landscape
+const WIDE = [[466, 678], [678, 466], [844, 390], [874, 402], [932, 430], [626, 890], [890, 626]]; // 844x390, 874x402 and 932x430 are current iPhones sideways
 const ROUTES = ['play', 'today', 'train', 'body', 'weight', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
 const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || process.env['LAYOUT_' + k.toUpperCase()];
 const only = arg('routes') ? arg('routes').split(',') : null;
@@ -392,11 +394,11 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
     for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
       await browser.viewport(w, h, true);
       await browser.open(route, seed({ active: route === 'play' }));
-      if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px')`); await wait(300); }
+      if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px'); document.documentElement.style.setProperty('--safe-bottom', '${SAFE_BOTTOM}px')`); await wait(300); }
       const at = `${w}x${h}${inset ? ' inset ' + inset : ''}`;
       const m = await browser.eval(`(() => {
         const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
-        const a = document.querySelector('#main .col-a, #main .pl-col-a'), b = document.querySelector('#main .col-b, #main .pl-col-b');
+        const a = document.querySelector('#main .col-a, #main .pl-col-a, #main .set-nav'), b = document.querySelector('#main .col-b, #main .pl-col-b, #main .set-panes');
         const out = [];
         document.querySelectorAll('#main a[href], #main button, #main .card, #nav a').forEach((e) => {
           const q = e.getBoundingClientRect();
@@ -420,10 +422,12 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         const axis = document.querySelector('#main svg.chart .axis'), ax = axis && parseFloat(getComputedStyle(axis).fontSize) * (cq.width / ch.viewBox.baseVal.width);
         const dm = document.querySelector('#main [data-demo]'), st = document.querySelector('#main .pl-steppers'), top = (e) => e ? e.getBoundingClientRect().top : null;
         const dom = a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null;
-        return { demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        const h1 = document.querySelector('#main h1'), tabs = [...document.querySelectorAll('#nav a')].map((e) => e.getBoundingClientRect().height);
+        const rows = [...document.querySelectorAll('#main .set-nav [data-pane]')], lastRow = rows.length ? rows[rows.length - 1].getBoundingClientRect() : null;
+        return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
-      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'play';
+      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'play' || route === 'settings';
       if (!cols && route !== 'weight' && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
       if (w === 390 && !inset) base = new Set(m.wrap);
       const fresh = m.wrap.filter((x) => !base.has(x));
@@ -436,11 +440,32 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 2, 3, 7, 8, 9, 12].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
+      if (route === 'settings') { // list left, selected section right; a phone keeps the whole page (list hidden, every section shown)
+        const st = await browser.eval(`(() => ({ cur: [...document.querySelectorAll('#main .set-nav [aria-selected="true"]')].map((e) => e.dataset.pane), shown: [...document.querySelectorAll('#main .set-pane')].filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.id), navW: document.querySelector('#main .set-nav').getBoundingClientRect().width }))()`);
+        if (w >= 840) {
+          if (st.cur.join() !== 'general') bad.push(`${at}: the first section should be selected, got ${st.cur}`);
+          if (st.shown.join() !== 'set-general') bad.push(`${at}: only the selected section should show, got ${st.shown}`);
+          if (Math.abs(st.navW - 300) > 2) bad.push(`${at}: the list is ${Math.round(st.navW)}px wide, should be about 300`);
+          await browser.eval("document.querySelector('#main .set-nav [data-pane=connections]').click()");
+          const st2 = await browser.eval("[...document.querySelectorAll('#main .set-pane')].filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.id).join()");
+          if (st2 !== 'set-connections') bad.push(`${at}: picking Connections shows ${st2}`);
+          await browser.eval("document.querySelector('#main .set-nav [data-pane=general]').click()");
+        } else {
+          if (st.navW > 1) bad.push(`${at}: the section list should be hidden on a phone`);
+          if (st.shown.length !== 5) bad.push(`${at}: a phone shows every section, got ${st.shown}`);
+        }
+      }
       if (route === 'body' || route === 'play') { // reading order is the screen order: left column first in the DOM, and no CSS order anywhere
         if (m.dom === false) bad.push(`${at}: the left column comes after the right in the DOM`);
         if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
       }
       if (route === 'play' && w >= 840 && m.demoTop != null && m.stepTop != null && Math.abs(m.demoTop - m.stepTop) > 4) bad.push(`${at}: demo top ${Math.round(m.demoTop)} and steppers top ${Math.round(m.stepTop)} do not line up`);
+      if (shortLand0(w, h)) { // compact title and slim tab bar (nav.css), and the Settings list clears the bar
+        if (m.h1 && (Math.abs(m.h1.fs - 24) > 0.5 || Math.abs(m.h1.h - 30) > 1)) bad.push(`${at}: the title is ${m.h1.fs}px font / ${Math.round(m.h1.h)}px tall, should be 24 / 30`);
+        if (route !== 'play' && (!m.tabH.length || m.tabH.some((x) => Math.abs(x - 44) > 0.5))) bad.push(`${at}: tab items are ${m.tabH.map(Math.round)} px tall, should be 44`);
+        if (route === 'settings' && w >= 840 && m.lastRowB != null && m.lastRowB > m.tabTop + 0.5) bad.push(`${at}: the last Settings row ends at ${Math.round(m.lastRowB)}, under the tab bar (${Math.round(m.tabTop)})`);
+      }
+      if (route === 'play' && shortLand0(w, h) && m.scrollH > m.vh + 1) bad.push(`${at}: the player scrolls (${m.scrollH} > ${m.vh}), Done set, steppers and target should fit`);
       if (route === 'play' && m.doneBox && (m.doneBox.t < 0 || m.doneBox.b > m.vh + 0.5)) bad.push(`${at}: Done set is not in view (${Math.round(m.doneBox.t)}-${Math.round(m.doneBox.b)} of ${m.vh})`);
       if (route === 'weight' && m.chart) { // charts take the card's width, keep their proportions, and keep phone-size axis text
         if (w >= 840 && m.main.r - m.main.l <= 560 + 1) bad.push(`${at}: Progress did not widen (${Math.round(m.main.r - m.main.l)}px)`);
@@ -449,11 +474,13 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         if (w >= 840 && Math.abs(m.axisPx - 11) > 1.5) bad.push(`${at}: chart axis text is ${m.axisPx.toFixed(1)}px, should stay 11px`);
       }
       if (!cols) continue;
-      const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
-      if (w >= 840 && !two) bad.push(`${at}: not two columns`);
-      if (w < 840 && two) bad.push(`${at}: should stay one column`);
-      if (w >= 840 && two && m.a.r - m.a.l < 340) bad.push(`${at}: left column ${Math.round(m.a.r - m.a.l)}px is narrower than 340px`);
-      if (w >= 840 && two && m.b.r - m.b.l < 340) bad.push(`${at}: right column ${Math.round(m.b.r - m.b.l)}px is narrower than 340px`);
+      const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < (route === 'settings' ? 40 : 4); // (the Settings list sits a little higher than its pane in short landscape)
+      const minCol = w >= 880 ? 340 : 320; // an 844 phone sideways with 47px insets has 750px for two columns
+      const shortLand = route === 'play' && w >= 600 && h <= 500; // item 29: the player goes two-column on the short outer screen sideways
+      if ((w >= 840 || shortLand) && !two) bad.push(`${at}: not two columns`);
+      if (w < 840 && !shortLand && two) bad.push(`${at}: should stay one column`);
+      if (w >= 840 && two && route !== 'settings' && m.a.r - m.a.l < minCol) bad.push(`${at}: left column ${Math.round(m.a.r - m.a.l)}px is narrower than ${minCol}px`);
+      if (w >= 840 && two && m.b.r - m.b.l < minCol) bad.push(`${at}: right column ${Math.round(m.b.r - m.b.l)}px is narrower than ${minCol}px`);
       if (route === 'today' && w >= 840 && two && Math.abs(m.a.b - m.b.b) > 120) bad.push(`${at}: Today's columns end ${Math.round(Math.abs(m.a.b - m.b.b))}px apart (left ${Math.round(m.a.b)}, right ${Math.round(m.b.b)}), should be within 120px`);
       if (w >= 840 && two && m.b.l - m.a.r < 24) bad.push(`${at}: gutter ${Math.round(m.b.l - m.a.r)}px is under 24px`);
     }

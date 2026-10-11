@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.15.15 — iPhone Duo, round three (2026-10-11)
+
+Issue #64, part 6b-2. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Settings, from 840 px:** the section list sits on the left (about 300 px, selected row highlighted) and the chosen section on the right; General is selected first. Under 840 px nothing changes.
+- **Short landscape (outer screen sideways):** compact title, slimmer tab bar, and the player in two columns so the target, steppers and Done set fit without scrolling.
+- **iPhone rotation:** the app can rotate to portrait and landscape left and right again (`Info.plist`). Refresh Forge is enough.
+- **Round 1 review fixes:** the compact title and slim tab bar now really apply (rules moved into `nav.css`, Today's greeting included); all five Settings rows clear the tab bar sideways; the player drops its negative margin and fits at 844×390, 874×402 and 932×430, with the exercise picture filling the left column's spare height; the "Next" line wraps instead of truncating; the Settings list is now a proper tab list for VoiceOver.
+- **Tests:** layout tests cover Settings at 890×626 and 390×844, the player and every wide route at 678×466 and at 844×390, 874×402 and 932×430 (title size, tab height, no scrolling, Account visible).
+
+### What's new
+
+- Settings shows a section list beside the details on a wide screen.
+- On the short folded screen sideways, the workout player fits without scrolling.
+- Forge can rotate to landscape again.
+
 ## 0.15.14 — iPhone Duo, round two (2026-10-11)
 
 Issue #64, part 6b-1 (Settings sidebar, short landscape, and fold keeping state and scroll come in 6b-2). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

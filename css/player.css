@@ -113,6 +113,7 @@ body.playing .navbar { display: none; }
 .pl-next { display: flex; justify-content: center; gap: 4px; color: var(--muted); font-size: calc(15px * var(--ts)); white-space: nowrap; }
 .pl-next-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pl-next-meta { flex: none; }
+.pl-next-meta::before { content: "· "; }
 .pl-next b { color: var(--text); }
 .pl-nav { display: flex; justify-content: space-between; gap: 8px; }
 .pl-nav button { flex: 1; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font: 700 calc(14px * var(--ts)) var(--font); cursor: pointer; }
@@ -348,7 +349,8 @@ body.playing .navbar { display: none; }
   .pl-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; flex: 1; align-items: stretch; }
   .pl-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .pl-col-a { justify-content: flex-start; }
-  .pl-next { flex-wrap: wrap; white-space: normal; }
+  .pl-next { flex-wrap: wrap; white-space: normal; column-gap: 10px; }
+  .pl-next-meta::before { content: none; } /* where the line may wrap, the dot would start the second line */
   .pl-next-name { overflow: visible; text-overflow: clip; }
   .pl-col-a .pl-demo.has-fig { height: clamp(150px, 34vh, 280px); }
   .pl-col-a .pl-demo { min-height: clamp(120px, 28vh, 240px); }
@@ -356,4 +358,39 @@ body.playing .navbar { display: none; }
   .pl-col-a .pl-muscles { padding: 18px; }
   .pl-col-a .pl-hero { padding: 6px 0; }
   .pl-col-a .pl-hero-n b { font-size: clamp(72px, 11vh, 96px); }
+}
+
+/* Short landscape (any iPhone sideways, Duo outer screen sideways): two columns, everything compact so the top bar, picture, target, steppers, effort row, Done set and Back/Undo/Next fit with no scrolling. The picture takes the left column's spare height. */
+@media (min-width: 600px) and (max-height: 500px) {
+  body.fullscreen main { padding-bottom: 0; } /* the dock already clears the home indicator */
+  .player { min-height: 0; gap: 4px; margin-top: 0; }
+  .pl-top { grid-template-columns: 44px 1fr 44px; }
+  .pl-ico { width: 44px; height: 44px; }
+  .pl-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 24px; align-items: stretch; flex: none; }
+  .pl-col { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .pl-col-a .pl-demo, .pl-col-a .pl-demo.has-fig { flex: 1 1 0; height: auto; min-height: 56px; overflow: hidden; }
+  .pl-col-a .pl-demo .fig-wrap { display: grid; inset: 4px; }
+  .pl-col-a .pl-demo .pl-muscles { display: flex; padding: 8px; }
+  .pl-col-a .pl-demo .pl-demo-cap { display: none; }
+  .pl-col-a .pl-howto { top: 6px; bottom: auto; right: 8px; translate: none; }
+  .pl-name { font-size: calc(20px * min(var(--ts), 1.2)); line-height: 1.15; }
+  .pl-col-a .pl-hero { padding: 0; }
+  .pl-col-a .pl-hero-n b { font-size: 44px; }
+  .pl-hero-w b { font-size: 32px; }
+  .pl-steppers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+  .stepper button { height: 44px; }
+  .pl-last { min-height: 0; font-size: calc(13px * var(--ts)); }
+  .pl-rir button { height: 44px; }
+  .pl-done { min-height: 50px; border-radius: 16px; }
+  .pl-dock { position: static; padding: 0; background: none; margin-top: 0; gap: 4px; }
+  .pl-next { font-size: calc(13px * var(--ts)); flex-wrap: wrap; white-space: normal; column-gap: 10px; }
+  .pl-next-meta::before { content: none; }
+  .pl-next-name { overflow: visible; text-overflow: clip; }
+  .pl-nav button { min-height: 44px; }
+  .pl-count { font-size: calc(12px * var(--ts)); }
+}
+
+/* Narrow right column (678 wide with the 47 px side insets leaves 280 px): the steppers stack, so weights like 102.5 get the whole row. */
+@media (min-width: 600px) and (max-width: 760px) and (max-height: 500px) {
+  .pl-steppers { grid-template-columns: minmax(0, 1fr); }
 }
