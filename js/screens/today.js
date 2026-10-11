@@ -203,6 +203,8 @@ function arrangeTodayCols(el) {
   const apply = () => {
     const host = $('[data-today-cols]', el);
     if (!host) return;
+    const focused = document.activeElement; // moving a node drops focus to the page, so put it back (VoiceOver, keyboard)
+    const hadFocus = focused && focused !== document.body && host.contains(focused);
     const slots = [...host.querySelectorAll('.slot')].sort((a, b) => Number(a.dataset.o) - Number(b.dataset.o));
     if (wideQuery.matches) {
       const a = document.createElement('div'); a.className = 'col col-a';
@@ -212,6 +214,7 @@ function arrangeTodayCols(el) {
     } else {
       host.replaceChildren(...slots);
     }
+    if (hadFocus && focused.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
   };
   wideListener = () => { if (el.isConnected) apply(); };
   wideQuery.addEventListener('change', wideListener);

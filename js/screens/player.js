@@ -275,6 +275,8 @@ function drawSet(el) {
       <div class="pl-segs" role="progressbar" aria-valuemin="0" aria-valuemax="${order.length}" aria-valuenow="${exNo}" aria-label="Exercise ${exNo} of ${order.length}">${segs}</div>
       <p class="pl-count">Exercise ${exNo} of ${order.length}${tag ? ` <span class="tag ss">${esc(tag)}</span>` : ''}${s.warmup ? ' <span class="tag wu">Warm-up</span>' : ''}</p>
 
+      <div class="pl-cols">
+      <div class="pl-col pl-col-a">
       <button class="pl-demo ${hasFigure(ex.id) || hasPhotos(ex.id) ? 'has-fig' : ''}" data-demo aria-label="How to do ${esc(ex.name)}">
         ${hasFigure(ex.id) ? '<div class="fig-wrap" data-fig></div>' : hasPhotos(ex.id) ? photoLoop(ex.id, ex.name) : `<div class="pl-muscles">${muscles}<span class="muted small">Tap for how-to</span></div>`}
         <span class="pl-demo-cap">${esc(MUSCLE_LABELS[ex.primary[0]] || '')}</span><span class="pl-howto">How-To</span>
@@ -290,6 +292,8 @@ function drawSet(el) {
         <div class="pl-ring" data-ring hidden><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" class="ring-bg"/><circle cx="50" cy="50" r="45" class="ring-fg" data-ringfg/></svg></div>
       </div>
 
+      </div>
+      <div class="pl-col pl-col-b">
       <div class="pl-steppers">
         ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv>${draft.weight ?? '—'}</b><small>${u}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
         <div class="stepper"><button data-r="-1" aria-label="${isTimed ? 'Fewer seconds' : 'Fewer reps'}">−</button><div><b data-rv>${draft.reps}</b><small>${isTimed ? 'sec' : 'reps'}</small></div><button data-r="1" aria-label="${isTimed ? 'More seconds' : 'More reps'}">+</button></div>
@@ -313,6 +317,8 @@ function drawSet(el) {
         <button data-undo>Undo set</button>
         <button data-skip ${k >= q.length - 1 ? 'disabled' : ''}>Next ${icon('chev', { size: 16 })}</button>
       </nav>
+      </div>
+      </div>
     </section>`;
 
   // Demo: figure, or photos (falling back to the muscle chips if a photo can't load offline).

@@ -88,6 +88,8 @@ export function renderBody(el) {
           : days === 0 ? '<div class="bh-tile"><b class="bh-word">Today</b><span>last workout</span></div>'
           : `<div class="bh-tile"><b data-count>${days}</b><span>${days === 1 ? 'day' : 'days'} since last workout</span></div>`}
       </div>
+      <div class="body-cols">
+      <div class="col col-a">
       <div class="card" data-tour="body-recovery" id="body-recovery" tabindex="-1">
         <div class="row between"><p class="label">Recovery</p><span class="small muted">Tap a muscle</span></div>
         ${bodyMap(rec, { mode: 'recovery', tappable: true })}
@@ -99,6 +101,8 @@ export function renderBody(el) {
         ${tired.length ? `<p class="small muted">Least recovered: ${tired.map((m) => `${esc(MUSCLE_LABELS[m])} ${rec[m]}%`).join(' · ')}</p>` : '<p class="small muted">Everything is recovered. Good day to train anything.</p>'}
         <p class="small muted">Based on your sets, effort and time since (big muscles ~72 h, small ~48 h).</p>
       </div>
+      </div>
+      <div class="col col-b">
       <div data-photos-slot></div>
       ${insightCards()}
       ${compositionCard()}
@@ -106,6 +110,8 @@ export function renderBody(el) {
       ${goalPathCard()}
       ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}) : ''}
       <a class="card row between center nav-card" href="#/trends"><div><p class="label">Trends</p><p class="small">See how every number is moving</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
+      </div>
+      </div>
     </section>`;
 
   $('[data-goto-recovery]', el)?.addEventListener('click', () => {
