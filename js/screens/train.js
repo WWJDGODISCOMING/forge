@@ -111,6 +111,8 @@ export function renderTrain(el) {
           <label class="chip"><input type="radio" name="loc" value="${esc(l.id)}" ${loc && l.id === loc.id ? 'checked' : ''}><span>${esc(l.name)}</span></label>`).join('')}
       </div>
 
+      <div class="train-cols">
+      <div class="col col-a">
       ${active ? `
         <a class="card resume" href="${playerRoute()}">
           <p class="label">In progress</p>
@@ -128,6 +130,8 @@ export function renderTrain(el) {
       ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
       ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
 
+      </div>
+      <div class="col col-b">
       <div class="card">
         <div class="row between center">
           <p class="label">Program</p>
@@ -148,6 +152,8 @@ export function renderTrain(el) {
         <button class="tool" data-plates><span class="t-ic" aria-hidden="true">${icon('dumbbell')}</span>Plates</button>
         <a class="tool" href="#/library"><span class="t-ic" aria-hidden="true">${icon('book')}</span>Exercises</a>
         <a class="tool" href="#/history"><span class="t-ic" aria-hidden="true">${icon('chart')}</span>History</a>
+      </div>
+      </div>
       </div>
     </section>`;
 

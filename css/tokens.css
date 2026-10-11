@@ -69,6 +69,9 @@
   --ts: 1; /* text scale: js/ui/textsize.js sets it from iOS Settings → Text Size (1 to 1.35) */
   --safe-top: env(safe-area-inset-top, 0px);
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --gutter: 20px;
 
   /* Heatmap + plate colours */
   --heat-1: rgba(198, 255, 61, .24); --heat-2: rgba(198, 255, 61, .48); --heat-3: rgba(198, 255, 61, .74); --heat-4: var(--accent);

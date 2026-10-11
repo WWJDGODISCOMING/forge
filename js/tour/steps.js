@@ -28,7 +28,7 @@ export const TOUR_STEPS = [
   {
     id: 'food', route: 'today', target: '[data-tour="food"]',
     title: 'Log your food',
-    body: 'Your calories and protein for today live here, with your daily targets. Tap Log food to add a meal in a couple of taps, or See meals to look at what you’ve eaten.',
+    body: 'Your calories and protein for today live here, with your daily targets. When the tour is done, Log food on this card adds a meal in a couple of taps, and See meals shows what you’ve eaten.',
   },
   {
     id: 'weight', route: 'today', target: '.weight-card [data-log]',

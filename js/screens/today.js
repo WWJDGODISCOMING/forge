@@ -191,6 +191,33 @@ function greeting() {
   return h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : 'Good evening';
 }
 
+// Two columns (>= 840px): slot numbers on the left or right. The DOM stays in the phone's reading order and only
+// moves into columns while the wide query matches, so VoiceOver and Tab order follow the screen on every size.
+const LEFT_SLOTS = new Set(['1', '2', '3', '7', '8', '9', '12']);
+let wideQuery = null;
+let wideListener = null;
+function arrangeTodayCols(el) {
+  if (typeof matchMedia !== 'function') return;
+  if (wideQuery && wideListener) wideQuery.removeEventListener('change', wideListener);
+  wideQuery = matchMedia('(min-width: 840px)');
+  const apply = () => {
+    const host = $('[data-today-cols]', el);
+    if (!host) return;
+    const slots = [...host.querySelectorAll('.slot')].sort((a, b) => Number(a.dataset.o) - Number(b.dataset.o));
+    if (wideQuery.matches) {
+      const a = document.createElement('div'); a.className = 'col col-a';
+      const b = document.createElement('div'); b.className = 'col col-b';
+      host.replaceChildren(a, b);
+      for (const sl of slots) (LEFT_SLOTS.has(sl.dataset.o) ? a : b).append(sl);
+    } else {
+      host.replaceChildren(...slots);
+    }
+  };
+  wideListener = () => { if (el.isConnected) apply(); };
+  wideQuery.addEventListener('change', wideListener);
+  apply();
+}
+
 export function renderToday(el) {
   const u = getUnits();
   const t = currentTargets();
@@ -241,22 +268,26 @@ export function renderToday(el) {
 
       ${tourOfferCard()}
 
-      ${readinessCard()}
+      <div class="today-cols" data-today-cols>
+      <div class="slot" data-o="1">${readinessCard()}</div>
 
-      ${coachLine()}
+      <div class="slot" data-o="2">${coachLine()}</div>
 
+      <div class="slot" data-o="3">
       <div class="card rings-card">
         <div class="row between center"><p class="label">Training and food</p>
           <span class="row gap"><a class="link small" href="#/weekly" data-this-week>This week</a><a class="link small" href="#/awards">Awards ${icon('chev', { size: 14 })}</a></span></div>
         ${ringsHtml(rings)}
       </div>
+      </div>
 
-      ${workoutCard()}
+      <div class="slot" data-o="4">${workoutCard()}</div>
 
-      ${foodCard(t)}
+      <div class="slot" data-o="5">${foodCard(t)}</div>
 
-      ${missionsCard()}
+      <div class="slot" data-o="6">${missionsCard()}</div>
 
+      <div class="slot" data-o="7">
       <div class="card weight-card">
         <div class="row between center card-head"><p class="label">Weight</p><a class="card-link" href="#/weight">See chart${icon('chev', { size: 14 })}</a></div>
         <div class="row between center weight-main">
@@ -274,20 +305,23 @@ export function renderToday(el) {
         <p class="small muted" id="weight-why-text" data-weight-why-text hidden>Your trend smooths out daily ups and downs from water and salt, so it shows the real direction. Today’s number is just what the scale said.</p>
         ${goalSentence ? `<p class="small muted" data-goal-line>${esc(goalSentence)}</p>` : ''}
       </div>
+      </div>
 
-      ${programLine()}
+      <div class="slot" data-o="8">${programLine()}</div>
 
-      ${scoreCard()}
+      <div class="slot" data-o="9">${scoreCard()}</div>
 
-      ${weeklyCard()}
+      <div class="slot" data-o="10">${weeklyCard()}</div>
 
-      <div data-photo-reminder></div>
+      <div class="slot" data-o="11"><div data-photo-reminder></div></div>
 
-      ${insightsBlock()}
+      <div class="slot" data-o="12">${insightsBlock()}</div>
+      </div>
 
       <p class="disclaimer">General fitness information, not medical advice.</p>
     </section>`;
 
+  arrangeTodayCols(el);
   $('[data-log]', el).onclick = openLogWeight;
   $('[data-weight-why]', el).onclick = (e) => {
     const open = e.currentTarget.getAttribute('aria-expanded') !== 'true';

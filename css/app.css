@@ -20,7 +20,7 @@ code { background: var(--surface-2); padding: 2px 6px; border-radius: 6px; }
 main {
   max-width: 560px;
   margin: 0 auto;
-  padding: calc(var(--safe-top) + 44px) 20px calc(var(--safe-bottom) + 104px);
+  padding: calc(var(--safe-top) + 44px) max(var(--gutter), var(--safe-right)) calc(var(--safe-bottom) + 104px) max(var(--gutter), var(--safe-left));
   outline: none;
 }
 
@@ -372,7 +372,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .setrow.done input { background: transparent; }
 
 .restbar {
-  position: fixed; left: 12px; right: 12px; bottom: calc(var(--safe-bottom) + 76px); z-index: 12;
+  position: fixed; left: max(12px, var(--safe-left)); right: max(12px, var(--safe-right)); bottom: calc(var(--safe-bottom) + 76px); z-index: 12;
   display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: var(--s-3);
   padding: var(--s-3) var(--s-4); border-radius: var(--r-xl); background: var(--glass-float);
   -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
@@ -626,3 +626,19 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 
 /* two-by-two stats (Weight: latest, trend, 7 days, per week) */
 .stats.stats-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; row-gap: var(--s-3); }
+
+/* ---------- Wide canvas (iPhone Duo inner screen, landscape): Today and Train go two-column once each column gets ~340px; every other screen stays the 560px column until its own layout lands ---------- */
+@media (min-width: 840px) {
+  main:has(.today-cols, .train-cols) { max-width: 1000px; padding-left: max(28px, var(--safe-left)); padding-right: max(28px, var(--safe-right)); }
+  .today-cols, .train-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
+  .today-cols > .col, .train-cols > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .today-cols .weight-card .spark { width: 72px; }
+  .train-cols { grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); }
+  .train-cols > .col { gap: var(--s-5); }
+  .train-cols .tools { grid-template-columns: 1fr; gap: var(--s-2); }
+  .train-cols .tool { flex-direction: row; align-items: center; min-height: 56px; padding: var(--s-2) var(--s-4); white-space: nowrap; }
+  .pv-txt b { white-space: normal; overflow: visible; text-overflow: clip; } /* the preview column is narrower than a phone: names wrap instead of cutting */
+}
+@media (max-width: 839.98px) { .today-cols, .train-cols, .today-cols > .col, .train-cols > .col { display: contents; } }
+
+.slot { display: contents; }

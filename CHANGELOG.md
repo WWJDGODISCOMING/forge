@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.15.13 — iPhone Duo, round one (2026-10-11)
+
+Issue #64, part 6a (Body, Progress, the player, Settings, the short landscape screen and folding mid-session come in 6b). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Rotation:** `UIRequiresFullScreen` is off so the app can resize on both Duo screens. `UISupportedInterfaceOrientations` stays portrait-only for now; Landscape Left/Right is turned on in 6b together with the short-landscape screens. `preferredContentMode: "mobile"` is unchanged.
+- **Side safe areas:** new `--safe-left` / `--safe-right` tokens are used by the page, nav bar, tab bar, rest bar, toasts and sheets.
+- **Wide canvas:** from 840 px (each column at least 340 px) Today and Train use up to 1000 px; every other screen stays the 560 px column until its 6b layout lands, and the tab bar is full width on every tab with its items inside the side insets. Narrower wide screens (466 to 839 px) use one centred 560 px column. Today puts Readiness, Coach, Rings, Weight, Program, Score and Insights on the left and Workout, Food, Missions and Weekly on the right (two equal columns), so they end within about 120 px of each other. On a phone the order is unchanged, and the page order (VoiceOver, Tab) always matches the screen: the cards only move into columns while the screen is 840 px or wider, and move back if you fold. Train puts the preview card next to Program, Recovery and a one-column Tools list. A 32 px gutter sits on the centre line (the fold crease). Type and tap targets don't scale with width. Under 600 px nothing changes.
+- **Tour on two columns:** the card moves over the other column, one column wide, so it never covers the card it points at; a layout test checks the card and spotlight never overlap on Today and Train at 890×626.
+- **Tour step 4** no longer tells you to tap a button that sits under the card at 320.
+- **Tests:** layout test now covers 466×678, 678×466, 626×890 and 890×626, asserts two columns on Today and Train, tab bar width, nothing inside simulated 47 px side insets, a ≥24 px gutter, and that a waiting update reload holds while a sheet is open.
+
+### What's new
+
+- Today and Train use two columns on a wide screen.
+
 ## 0.15.12 — Face ID app lock (2026-10-10)
 
 Issue #79, part 1 (part 2, two-step sign-in, comes later). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. **New native dependency `@capgo/capacitor-native-biometric`:** Refresh Forge runs `npm ci` and `cap sync ios` by itself, so the usual double-click is all that's needed. `NSFaceIDUsageDescription` is in Info.plist.

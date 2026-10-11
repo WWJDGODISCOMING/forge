@@ -9,6 +9,7 @@ import { detect } from './layout/detect.js';
 import { seed } from './layout/seed.js';
 
 const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
+const WIDE = [[466, 678], [678, 466], [626, 890], [890, 626]];
 const ROUTES = ['play', 'today', 'train', 'body', 'weight', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
 const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || process.env['LAYOUT_' + k.toUpperCase()];
 const only = arg('routes') ? arg('routes').split(',') : null;
@@ -19,6 +20,8 @@ let browser = null;
 const CASES = [
   ...SIZES.map(([w, h]) => ({ w, h, dark: true, long: false })),
   { w: 375, h: 667, dark: false, long: false },
+  ...WIDE.map(([w, h]) => ({ w, h, dark: true, long: false })), // iPhone Duo: folded (outer) and unfolded (inner), portrait and landscape
+  { w: 626, h: 890, dark: false, long: true },
   { w: 375, h: 667, dark: true, long: true }, { w: 390, h: 844, dark: false, long: true },
   { w: 320, h: 568, dark: true, long: false, over: true }, { w: 390, h: 844, dark: true, long: false, over: true, ts: 1.35 }, // past every food target
   { w: 390, h: 844, dark: true, long: false, ts: 1.3 }, // iOS Text Size at ~130%: lines may wrap, but nothing may clip
@@ -262,9 +265,20 @@ if (!standalone) {
   test('layout: every screen, 320 to 440 wide, dark and light, large text (headless Chromium)', async () => {
     if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
     if (process.argv.includes('--no-layout')) { console.log('      (skipped: --no-layout)'); return; }
-    const { spawnSync } = await import('node:child_process');
-    const r = spawnSync(process.execPath, [new URL(import.meta.url).pathname], { encoding: 'utf8', timeout: 540000 });
-    assert(r.status === 0, '\n' + r.stdout.split('\n').filter((l) => !l.includes('✓')).join('\n'));
+    const { spawn } = await import('node:child_process');
+    // the screens are independent, so run them as parallel shards (each with its own Chromium) instead of one long serial run
+    const SHARDS = 3;
+    const runs = Array.from({ length: SHARDS }, (_, i) => new Promise((resolve) => {
+      const p = spawn(process.execPath, [new URL(import.meta.url).pathname, `--shard=${i + 1}/${SHARDS}`], { stdio: ['ignore', 'pipe', 'pipe'] });
+      let out = '';
+      p.stdout.on('data', (d) => { out += d; });
+      p.stderr.on('data', (d) => { out += d; });
+      const timer = setTimeout(() => { p.kill('SIGKILL'); out += `\nshard ${i + 1} timed out`; }, 420000);
+      p.on('close', (status) => { clearTimeout(timer); resolve({ status, out }); });
+    }));
+    const results = await Promise.all(runs);
+    const bad = results.filter((r) => r.status !== 0);
+    assert(!bad.length, '\n' + bad.map((r) => r.out.split('\n').filter((l) => !l.includes('✓')).join('\n')).join('\n'));
   });
 }
 
@@ -366,6 +380,69 @@ const NATIVE_SHELL = `
   window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: (n) => n === 'App', Plugins: { App: { addListener: (ev, cb) => { (window.__cb = window.__cb || {})[ev] = cb; return Promise.resolve({ remove() {} }); } } } };
 `;
 
+// Wide canvas (item 28/30): two columns on Today and Train from 840 px (each column >= 340px), every other screen stays the 560px column, the tab bar is full width on every tab, and nothing sits inside the side insets.
+for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] : []) {
+  if (only && !only.includes(route)) continue;
+  test(`layout: ${route}: wide canvas has the right columns, a full-width tab bar, and respects left/right insets`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    let base = new Set(); // what already wraps on a 390 phone isn't a wide-layout problem
+    for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
+      await browser.viewport(w, h, true);
+      await browser.open(route, seed());
+      if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px')`); await wait(300); }
+      const at = `${w}x${h}${inset ? ' inset ' + inset : ''}`;
+      const m = await browser.eval(`(() => {
+        const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+        const a = document.querySelector('#main .col-a'), b = document.querySelector('#main .col-b');
+        const out = [];
+        document.querySelectorAll('#main a[href], #main button, #main .card, #nav a').forEach((e) => {
+          const q = e.getBoundingClientRect();
+          if (q.width < 1 || q.height < 1 || getComputedStyle(e).visibility === 'hidden') return;
+          if (q.left < ${inset} - 0.5 || q.right > innerWidth - ${inset} + 0.5) out.push((e.className || e.tagName) + ' ' + Math.round(q.left) + '-' + Math.round(q.right));
+        });
+        const wrap = [];
+        const lineCount = (e) => { const g = document.createRange(); g.selectNodeContents(e); return new Set([...g.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top / 6))).size; };
+        document.querySelectorAll('#main .weight-text .hero-num, #main .weight-text [data-weight-trend] .nw, #main .rings-card > .row a, #main .food-card-kcal b, #main [data-weight-why]').forEach((e) => {
+          if (e.getBoundingClientRect().width < 1) return;
+          if (lineCount(e) > 1) wrap.push('wraps: ' + (e.className || e.tagName) + ' "' + e.textContent.trim().slice(0, 24) + '"');
+          if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).display !== 'inline') wrap.push('overflows: ' + (e.className || e.tagName));
+        });
+        const kc = document.querySelector('#main .food-card-kcal'); if (kc && lineCount(kc) > 1) wrap.push('wraps: food headline');
+        const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
+        const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
+        const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
+        return { slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+      })()`);
+      if (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
+      const cols = route === 'today' || route === 'train';
+      if (!cols && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
+      if (w === 390 && !inset) base = new Set(m.wrap);
+      const fresh = m.wrap.filter((x) => !base.has(x));
+      if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
+      if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
+      if (route === 'today') { // reading order (VoiceOver, Tab) must match the screen: DOM order = visual order on a phone, and the right column per card on two columns
+        const shown = m.slots.filter((x) => x.t != null);
+        if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10,11,12') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
+        if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
+        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 2, 3, 7, 8, 9, 12].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
+        if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
+      }
+      if (!cols) continue;
+      const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
+      if (w >= 840 && !two) bad.push(`${at}: not two columns`);
+      if (w < 840 && two) bad.push(`${at}: should stay one column`);
+      if (w >= 840 && two && m.a.r - m.a.l < 340) bad.push(`${at}: left column ${Math.round(m.a.r - m.a.l)}px is narrower than 340px`);
+      if (w >= 840 && two && m.b.r - m.b.l < 340) bad.push(`${at}: right column ${Math.round(m.b.r - m.b.l)}px is narrower than 340px`);
+      if (route === 'today' && w >= 840 && two && Math.abs(m.a.b - m.b.b) > 120) bad.push(`${at}: Today's columns end ${Math.round(Math.abs(m.a.b - m.b.b))}px apart (left ${Math.round(m.a.b)}, right ${Math.round(m.b.b)}), should be within 120px`);
+      if (w >= 840 && two && m.b.l - m.a.r < 24) bad.push(`${at}: gutter ${Math.round(m.b.l - m.a.r)}px is under 24px`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 if (standalone) {
   test('layout: resume with a changed app-install.json reloads, then toasts "Updated to …" and opens What\'s new (never mid-workout)', async () => {
     if (skipReason()) return;
@@ -375,6 +452,7 @@ if (standalone) {
     const news = { [version]: { title: 'Test notes', items: ['First highlight', 'Second highlight'] } };
     const newBuild = JSON.stringify({ version, builtAt: '2026-10-12T09:00:00Z' });
     const newerBuild = JSON.stringify({ version, builtAt: '2026-10-13T09:00:00Z' }); // (sessionStorage outlives a test page: each scenario needs a build that differs from the last one's)
+    const newestBuild = JSON.stringify({ version, builtAt: '2026-10-14T09:00:00Z' });
     const reloaded = () => browser.eval("performance.getEntriesByType('navigation')[0].type === 'reload' && !window.__marker");
     for (const [w, h] of [[320, 568], [390, 844]]) {
       await browser.viewport(w, h, true);
@@ -406,6 +484,19 @@ if (standalone) {
       await browser.eval("location.hash = '#/today'");
       await wait(2500);
       assert(await reloaded(), `the waiting update did not go through after leaving the player at ${w}`);
+      // 3. an open sheet (it may hold unsaved input): the reload waits until it closes
+      await browser.open('today', seed(), NATIVE_SHELL, { persist: true });
+      await wait(2300);
+      await browser.eval("document.querySelector('[data-log]').click()");
+      await wait(700);
+      assert(await browser.eval("!!document.querySelector('dialog.sheet[open]')"), `the Log weight sheet did not open at ${w}`);
+      await browser.eval(`window.__marker = 1; sessionStorage.setItem('__install', ${JSON.stringify(newestBuild)})`);
+      await browser.eval('window.__cb.resume()');
+      await wait(2000);
+      assert(await browser.eval('window.__marker === 1 && !!document.querySelector("dialog.sheet[open]")'), `the app reloaded under an open sheet at ${w}`);
+      await browser.eval("document.querySelector('dialog.sheet[open]').close()");
+      await wait(2500);
+      assert(await reloaded(), `the waiting update did not go through after the sheet closed at ${w}`);
     }
     await browser.dropInit();
   });
@@ -436,6 +527,38 @@ for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
       if (!m.empty && m.stop < m.ctop && m.stop < m.bar - 0.5) bad.push(`step ${i + 1} "${m.t}": spotlight top ${Math.round(m.stop)}px is under the top bar (bottom ${Math.round(m.bar)}px)`);
       await browser.eval("document.querySelector('[data-next]').click()");
     }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+for (const [w, h] of standalone ? [[890, 626]] : []) {
+  test(`layout: tour card never covers its target on two-column screens at ${w}x${h}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await browser.viewport(w, h, true);
+    await browser.open('today', seed({}));
+    await browser.eval("import('./js/tour/tour.js').then((m) => m.startTour({ replay: true }))");
+    await wait(600);
+    const bad = [];
+    let checked = 0;
+    for (let i = 0; i < 11; i++) {
+      await wait(450);
+      const m = await browser.eval(`(() => {
+        const c = document.querySelector('.tour-card').getBoundingClientRect(); const s = document.querySelector('.tour-spot'); const sr = s.getBoundingClientRect();
+        return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), card: [c.left, c.top, c.right, c.bottom], spot: [sr.left, sr.top, sr.right, sr.bottom], two: !!document.querySelector('.today-cols, .train-cols') && getComputedStyle(document.querySelector('.today-cols, .train-cols')).display === 'grid', vw: innerWidth, vh: innerHeight };
+      })()`);
+      if (shots) await browser.screenshot(`${shots}/tour2-${i + 1}-${w}x${h}.png`);
+      if (!m.empty && m.two) { // Today and Train; the one-column screens keep the phone behaviour (tested above)
+        const [cl, ct, cr, cb] = m.card; const [sl, st, sr, sb] = m.spot;
+        const hit = cl < sr && cr > sl && ct < sb && cb > st;
+        checked++;
+        if (hit) bad.push(`step ${i + 1} "${m.t}": card (${[cl, ct, cr, cb].map(Math.round)}) covers the spotlight (${[sl, st, sr, sb].map(Math.round)})`);
+        if ((st < 0 || sb > m.vh)) bad.push(`step ${i + 1} "${m.t}": spotlight is off-screen`);
+      }
+      await browser.eval("document.querySelector('[data-next]').click()");
+    }
+    assert(checked >= 4, `only ${checked} two-column steps were checked`);
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });
 }
@@ -571,7 +694,12 @@ test('layout: close the browser', async () => {
 });
 
 if (standalone) {
-  const { runAll } = await import('./harness.js');
+  const { runAll, tests } = await import('./harness.js');
+  const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/3 → every third test, starting at the second
+  if (shard.length === 2) {
+    const keep = tests.filter((t, i) => i % shard[1] === shard[0] - 1 || t.name === 'layout: close the browser');
+    tests.splice(0, tests.length, ...keep);
+  }
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);
 }

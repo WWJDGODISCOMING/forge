@@ -16,9 +16,12 @@ test('Today: order is Readiness, Coach line, rings, workout, Food, missions, wei
   const t = src('js/screens/today.js');
   const body = t.slice(idx(t, 'el.innerHTML = `'));
   const order = ['${readinessCard()}', '${coachLine()}', 'class="card rings-card"', '${workoutCard()}', '${foodCard(t)}', '${missionsCard()}', 'class="card weight-card"', '${programLine()}', '${scoreCard()}', '${weeklyCard()}', '${insightsBlock()}'];
+  // the DOM is in the phone's reading order (VoiceOver and Tab follow it); columns are built at runtime on wide screens
   const at = order.map((n) => body.indexOf(n));
   at.forEach((p, i) => assert(p >= 0, `missing ${order[i]}`));
   for (let i = 1; i < at.length; i++) assert(at[i] > at[i - 1], `${order[i]} should come after ${order[i - 1]}`);
+  const slots = [...body.matchAll(/class="slot" data-o="(\d+)"/g)].map((m) => Number(m[1]));
+  eq(slots.join(','), '1,2,3,4,5,6,7,8,9,10,11,12', 'slots sit in the DOM in one-column order');
   assert(!body.includes('Daily targets'), 'Daily targets is no longer its own card');
   assert(body.split('data-coach-card').length === 1 && t.split('data-coach-card').length === 2, 'one Coach card only');
 });
