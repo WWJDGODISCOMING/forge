@@ -15,7 +15,7 @@ import { myBodyMeasures, weightSeries, foodTargets } from '../derived.js';
 import { todayKey } from '../ui.js';
 import { units } from '../state.js';
 
-const DOC_URL = 'https://github.com/christianeverett1988-boop/forge/blob/main/docs/forge-score.md';
+const DOC_URL = 'https://github.com/WWJDGODISCOMING/forge/blob/main/docs/forge-score.md';
 
 let open = null; // which pillar's details are showing
 let ltRange = 90; // Long term card: 90 days or 365

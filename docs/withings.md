@@ -69,7 +69,7 @@ Each block says **when**. Only ever send me the **non-secret** values marked ðŸ“
    3. Name **Forge (personal)**. Description **Personal fitness app for my own data**. Contact: your email. Accept the terms.
    4. **Callback URL**: Withings checks it with a quick request when you save. The functions don't exist yet, so for now enter:
       ```
-      https://christianeverett1988-boop.github.io/forge/
+      https://wwjdgodiscoming.github.io/forge/
       ```
       You'll change it after the deploy (step 11).
    5. Save. Copy the **Client ID** ðŸ“¤ (send it to me; it's not secret). The **Client Secret** stays with you: you'll paste it into Terminal in step 9 and nowhere else.

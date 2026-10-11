@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Forge "Deploy" button: one-time Google Cloud setup. Keyless (no key file is ever created). Safe to re-run.
-# Run:  curl -fsSL https://raw.githubusercontent.com/christianeverett1988-boop/forge/main/scripts/deploy-setup.sh | bash
+# Run:  curl -fsSL https://raw.githubusercontent.com/WWJDGODISCOMING/forge/main/scripts/deploy-setup.sh | bash
 # New secret names can be added on the end:  ... | bash -s -- NEW_SECRET_NAME
 # Everything runs inside main(), which is only called on the last line. So a cut-off download runs nothing,
 # and no command can read the rest of the script from the pipe.
@@ -10,9 +10,9 @@ main() {
 export CLOUDSDK_CORE_DISABLE_PROMPTS=1
 PROJECT=forge-web-f2351
 REGION=us-east1
-REPO_ID=1409700573   # github.com/christianeverett1988-boop/forge
-OWNER_ID=259723992   # GitHub user christianeverett1988-boop
-WORKFLOW_REF="christianeverett1988-boop/forge/.github/workflows/deploy.yml@refs/heads/main"
+REPO_ID=1409700573   # github.com/WWJDGODISCOMING/forge
+OWNER_ID=259723992   # GitHub user WWJDGODISCOMING
+WORKFLOW_REF="WWJDGODISCOMING/forge/.github/workflows/deploy.yml@refs/heads/main"
 POOL=github
 PROVIDER=forge-deploy
 SA_NAME=forge-deployer
