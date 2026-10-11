@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.15.14 — iPhone Duo, round two (2026-10-11)
+
+Issue #64, part 6b-1 (Settings sidebar, short landscape, and fold keeping state and scroll come in 6b-2). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Train first-render shift:** the loading skeleton was a 560 px column and the wide screens then jumped to 1000 px when they drew, which moved the whole page (CLS 0.185 at 890×626 in CI). Skeletons for the screens that go wide now claim the same width, so nothing moves. The threshold is unchanged.
+- **Player, from 840 px:** demo, name, set and target on the left; steppers, effort, Done set and the set controls on the right. Done set stays pinned at the bottom of its column. Type and tap targets are the same as on a phone, and under 840 px nothing changes.
+- **Body, from 840 px:** the Recovery map sits on the left (it stays in view while you scroll on taller screens), with photos, insights, composition, programs and goal path on the right.
+- **Progress:** from 840 px the screens use the wide column and charts fill their card, keeping their proportions. Axis text and the trend line stay phone size.
+- **Today:** folding or unfolding keeps keyboard and VoiceOver focus on the control you were on.
+- **Tests:** layout test asserts two columns on Body and the player at 890, one column below 840, the left column first in the DOM with no CSS `order`, Done set in view, and full-width charts with 11 px axis text on Progress.
+
 ## 0.15.13 — iPhone Duo, round one (2026-10-11)
 
 Issue #64, part 6a (Body, Progress, the player, Settings, the short landscape screen and folding mid-session come in 6b). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

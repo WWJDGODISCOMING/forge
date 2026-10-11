@@ -381,7 +381,7 @@ const NATIVE_SHELL = `
 `;
 
 // Wide canvas (item 28/30): two columns on Today and Train from 840 px (each column >= 340px), every other screen stays the 560px column, the tab bar is full width on every tab, and nothing sits inside the side insets.
-for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] : []) {
+for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'food', 'settings'] : []) {
   if (only && !only.includes(route)) continue;
   test(`layout: ${route}: wide canvas has the right columns, a full-width tab bar, and respects left/right insets`, async () => {
     if (skipReason()) return;
@@ -391,12 +391,12 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
     let base = new Set(); // what already wraps on a 390 phone isn't a wide-layout problem
     for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
       await browser.viewport(w, h, true);
-      await browser.open(route, seed());
+      await browser.open(route, seed({ active: route === 'play' }));
       if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px')`); await wait(300); }
       const at = `${w}x${h}${inset ? ' inset ' + inset : ''}`;
       const m = await browser.eval(`(() => {
         const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
-        const a = document.querySelector('#main .col-a'), b = document.querySelector('#main .col-b');
+        const a = document.querySelector('#main .col-a, #main .pl-col-a'), b = document.querySelector('#main .col-b, #main .pl-col-b');
         const out = [];
         document.querySelectorAll('#main a[href], #main button, #main .card, #nav a').forEach((e) => {
           const q = e.getBoundingClientRect();
@@ -414,11 +414,16 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
         const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
         const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
         const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
-        return { slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        const done = document.querySelector('#main [data-done-label]'), dq = done && done.getBoundingClientRect();
+        const ch = document.querySelector('#main svg.chart'), cq = ch && ch.getBoundingClientRect(), card = ch && ch.closest('.card'), cdq = card && card.getBoundingClientRect();
+        const ordered = [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length;
+        const axis = document.querySelector('#main svg.chart .axis'), ax = axis && parseFloat(getComputedStyle(axis).fontSize) * (cq.width / ch.viewBox.baseVal.width);
+        const dom = a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null;
+        return { dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
-      const cols = route === 'today' || route === 'train';
-      if (!cols && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
+      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'play';
+      if (!cols && route !== 'weight' && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
       if (w === 390 && !inset) base = new Set(m.wrap);
       const fresh = m.wrap.filter((x) => !base.has(x));
       if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
@@ -429,6 +434,17 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
         if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 2, 3, 7, 8, 9, 12].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
+      }
+      if (route === 'body' || route === 'play') { // reading order is the screen order: left column first in the DOM, and no CSS order anywhere
+        if (m.dom === false) bad.push(`${at}: the left column comes after the right in the DOM`);
+        if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
+      }
+      if (route === 'play' && m.doneBox && (m.doneBox.t < 0 || m.doneBox.b > m.vh + 0.5)) bad.push(`${at}: Done set is not in view (${Math.round(m.doneBox.t)}-${Math.round(m.doneBox.b)} of ${m.vh})`);
+      if (route === 'weight' && m.chart) { // charts take the card's width, keep their proportions, and keep phone-size axis text
+        if (w >= 840 && m.main.r - m.main.l <= 560 + 1) bad.push(`${at}: Progress did not widen (${Math.round(m.main.r - m.main.l)}px)`);
+        if (m.chart.w < m.card.w - 40) bad.push(`${at}: chart ${Math.round(m.chart.w)}px is not the card's full width (${Math.round(m.card.w)})`);
+        if (Math.abs(m.chart.ar - m.chart.vb) > 0.02) bad.push(`${at}: chart aspect ${m.chart.ar.toFixed(2)} differs from its drawing ${m.chart.vb.toFixed(2)}`);
+        if (w >= 840 && Math.abs(m.axisPx - 11) > 1.5) bad.push(`${at}: chart axis text is ${m.axisPx.toFixed(1)}px, should stay 11px`);
       }
       if (!cols) continue;
       const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
