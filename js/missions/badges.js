@@ -9,6 +9,7 @@ export const MISSION_BADGES = [
   { id: 'bf1', name: 'First Point', how: 'Body fat down 1 point from where you started (needs a Withings scale)', key: 'fat_ratio_pct', drop: 1 },
   { id: 'bf2', name: 'Two Points', how: 'Body fat down 2 points from where you started (needs a Withings scale)', key: 'fat_ratio_pct', drop: 2 },
   { id: 'bf5', name: 'Five Points', how: 'Body fat down 5 points from where you started (needs a Withings scale)', key: 'fat_ratio_pct', drop: 5 },
+  { id: 'perfectweek', name: 'Perfect Week', how: 'Finish every daily mission on 7 days in a row', perfect: true },
   { id: 'lean1', name: 'Lean Gain', how: 'Lean mass up 1 kg from where you started (needs a Withings scale)', key: 'fat_free_mass_kg', gain: 1 },
 ];
 export const MISSION_BADGE_IDS = new Set(MISSION_BADGES.map((b) => b.id));
@@ -28,7 +29,7 @@ const at = (day) => `${day}T12:00:00`; // earned date, a local-noon timestamp st
  */
 export function newMissionBadges(badges, seen, started) {
   if (!seen || !started) return [];
-  return badges.filter((b) => b.earned && !seen[b.id] && b.earned.at.slice(0, 10) >= started);
+  return badges.filter((b) => b.id !== 'perfectweek' && b.earned && !seen[b.id] && b.earned.at.slice(0, 10) >= started);
 }
 
 /** For each streak length, the first day a run of that many consecutive weigh-in days was reached. */
@@ -81,7 +82,7 @@ export function compFirstDay(points, { drop = 0, gain = 0 }) {
  * `weighDays`: days with a weigh-in. `bodyMeasures`: body_measures docs (without them the body-comp badges stay locked).
  * `seen`: awards_seen, so a badge once earned stays earned.
  */
-export function missionBadges({ weighDays = [], bodyMeasures = [], seen = {}, units = 'imperial' } = {}) {
+export function missionBadges({ weighDays = [], bodyMeasures = [], seen = {}, units = 'imperial', perfectWeeks = [] } = {}) {
   const streaks = streakDays(weighDays);
   const comp = {};
   for (const key of new Set(MISSION_BADGES.filter((b) => b.key).map((b) => b.key))) {
@@ -90,7 +91,7 @@ export function missionBadges({ weighDays = [], bodyMeasures = [], seen = {}, un
       .map((d) => ({ day: d.day, v: d.metrics[key] }));
   }
   return MISSION_BADGES.map((b) => {
-    const day = b.days ? streaks[b.days] : compFirstDay(comp[b.key], b);
+    const day = b.perfect ? [...perfectWeeks].sort()[0] : b.days ? streaks[b.days] : compFirstDay(comp[b.key], b);
     const date = day ? at(day) : (seen && seen[b.id]) || null;
     return { id: b.id, name: b.name, how: b.gain ? leanText(b.gain, units) : b.how, earned: date ? { at: date, workoutId: null } : null };
   });

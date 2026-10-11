@@ -67,6 +67,7 @@ export const BADGE_ART = {
   bf1: { tier: 1, shape: 'round', icon: 'drop', n: '−1' },
   bf2: { tier: 2, shape: 'round', icon: 'drop', n: '−2' },
   bf5: { tier: 3, shape: 'round', icon: 'drop', n: '−5' },
+  perfectweek: { tier: 4, shape: 'hex', icon: 'trophy', n: '7/7' },
   lean1: { tier: 2, shape: 'shield', icon: 'plus', n: '+1 kg' },
   pg_cut4: { tier: 2, shape: 'shield', icon: 'target', n: '4 wk' },
   pg_recomp8: { tier: 3, shape: 'hex', icon: 'barbell', n: '8 wk' },

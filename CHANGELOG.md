@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.15.17 — Mission celebrations and the Perfect Week (2026-10-11)
+
+Issue #86. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Escalating celebrations on Today:** the first mission springs the check, pops the card and glows it lime with one medium tap. The next missions pop bigger, burst from the check and fill the new progress bar with a flash (medium then heavy tap, 80 ms apart). The last mission, whatever the count, is the finale: a decaying screen shake, a lime aura from the card, an edge-glow pulse, a particle explosion and bloom, an "All missions done 🔥" toast with the XP counting up, and ten heavy taps speeding up over 1.2 s that end in a success.
+- **Haptics** go through `js/native/bridge.js` (the Taptic Engine) in the iPhone app and `navigator.vibrate` on the web.
+- **Once only:** each tier plays once per day, saved in `missions_cele`. Reloads, resume and re-renders never replay it, and undoing a mission does nothing. It queues behind PR and level-up cards, and any tap, key press or screen change cuts it short. Only transform, opacity and the shared canvas animate; nothing catches taps.
+- **Reduced motion:** no shake or particles; the haptics, a fade and the toast stay.
+- **Perfect Week:** every mission done on 7 days in a row plays a 3 to 4 s takeover after that day's finale: the screen darkens, lime charges up around the edges, then erupts (aura, shockwave ring, falling sparks, a heavier shake) and the Perfect Week medal forges in with the week counter and +100 XP. Long haptic charge-up, a burst, then a success pattern. It plays once per week (saved in `perfect_weeks`; weeks never overlap), a tap skips it, and Share makes a "Perfect Week #N" card. New Perfect Week badge in Awards. With reduced motion: the medal, haptics and a fade only.
+- **Tests:** tier choice for 1 to 4 missions, once per day, undo, haptic plans, reduced motion, 7 of 7 detection across a month end, a DST change and a year end, once per week, streak counter and the badge.
+
+### What's new
+
+- Each daily mission you finish now celebrates bigger, ending in a finale.
+- Seven perfect days in a row earns a Perfect Week badge.
+
 ## 0.15.16 — iPhone Duo, round four (2026-10-11)
 
 Issue #64, part 6b-3. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

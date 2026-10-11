@@ -29,6 +29,7 @@ import './photos.test.js';
 import './coach.test.js';
 import './coach-v0143.test.js';
 import './missions.test.js';
+import './celebrate.test.js';
 import './longterm.test.js';
 import './report.test.js';
 import './bodyprograms.test.js';
