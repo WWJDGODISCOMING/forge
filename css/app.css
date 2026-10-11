@@ -681,7 +681,7 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   main { padding-top: calc(var(--safe-top) + 40px); padding-bottom: calc(var(--safe-bottom) + 72px); }
   main:has(.pl-cols, [data-play]) { max-width: none; padding-top: calc(var(--safe-top) + 24px); }
   .large-title { min-height: 36px; padding-top: 0; }
-  .large-title h1 { font-size: 24px; line-height: 30px; }
+  .large-title h1 { font-size: calc(24px * var(--ts)); line-height: calc(30px * var(--ts)); }
   .tabbar { padding-top: 2px; padding-bottom: calc(var(--safe-bottom) + 0px); }
   .tabbar a { min-height: 44px; gap: 0; }
   .tabbar svg { width: 22px; height: 22px; }
