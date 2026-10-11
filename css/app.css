@@ -640,3 +640,10 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   .pv-txt b { white-space: normal; overflow: visible; text-overflow: clip; } /* the preview column is narrower than a phone: names wrap instead of cutting */
 }
 @media (max-width: 839.98px) { .today-cols, .train-cols, .today-cols > .col, .train-cols > .col { display: contents; } }
+
+/* Today's two-column split puts some cards in a different column than their phone position; each .slot carries its place in the one-column order. */
+.slot { display: contents; }
+.today-stack > .disclaimer { order: 99; }
+.slot[data-o="1"] > * { order: 1; } .slot[data-o="2"] > * { order: 2; } .slot[data-o="3"] > * { order: 3; } .slot[data-o="4"] > * { order: 4; }
+.slot[data-o="5"] > * { order: 5; } .slot[data-o="6"] > * { order: 6; } .slot[data-o="7"] > * { order: 7; } .slot[data-o="8"] > * { order: 8; }
+.slot[data-o="9"] > * { order: 9; } .slot[data-o="10"] > * { order: 10; } .slot[data-o="11"] > * { order: 11; } .slot[data-o="12"] > * { order: 12; }

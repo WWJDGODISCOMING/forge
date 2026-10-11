@@ -105,6 +105,7 @@ export async function startTour({ replay = false } = {}) {
     const step = tour.step;
     const el = step.target ? document.querySelector(step.target) : null;
     card.style.bottom = '';
+    card.style.left = card.style.right = card.style.maxWidth = card.style.margin = '';
     spot.classList.toggle('empty', !el); // no outline without a target: a 0×0 box would paint as a dot
     if (!el) {
       // No target (welcome step, or the element isn't on screen): dim everything, just show the card.
@@ -114,9 +115,17 @@ export async function startTour({ replay = false } = {}) {
     const pad = 8;
     const fixed = !!el.closest('.tabbar');
     let r = el.getBoundingClientRect();
+    // With two columns showing, the card sits over the other column so it never covers the target (and the target needn't clear it).
+    const own = el.closest('.today-cols > .col, .train-cols > .col');
+    const other = own && getComputedStyle(own.parentElement).display === 'grid'
+      ? [...own.parentElement.children].find((c) => c !== own && c.classList.contains('col')) : null;
+    if (other) {
+      const o = other.getBoundingClientRect();
+      Object.assign(card.style, { left: `${o.left}px`, right: `${innerWidth - o.right}px`, maxWidth: 'none', margin: '0' });
+    }
     if (!fixed) {
       // Keep the element above the card (measured, so the home indicator inset counts): scroll it, instantly.
-      const dy = scrollToClear(r, card.getBoundingClientRect().top, { pad, minTop: minTop(), context: 28 });
+      const dy = scrollToClear(r, other ? (document.getElementById('nav')?.getBoundingClientRect().top ?? innerHeight) : card.getBoundingClientRect().top, { pad, minTop: minTop(), context: 28 });
       if (dy) {
         scrollBy({ top: dy, behavior: 'instant' });
         r = el.getBoundingClientRect();

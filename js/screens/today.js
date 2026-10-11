@@ -243,16 +243,19 @@ export function renderToday(el) {
 
       <div class="today-cols">
       <div class="col col-a">
-      ${readinessCard()}
+      <div class="slot" data-o="1">${readinessCard()}</div>
 
-      ${coachLine()}
+      <div class="slot" data-o="2">${coachLine()}</div>
 
+      <div class="slot" data-o="3">
       <div class="card rings-card">
         <div class="row between center"><p class="label">Training and food</p>
           <span class="row gap"><a class="link small" href="#/weekly" data-this-week>This week</a><a class="link small" href="#/awards">Awards ${icon('chev', { size: 14 })}</a></span></div>
         ${ringsHtml(rings)}
       </div>
+      </div>
 
+      <div class="slot" data-o="7">
       <div class="card weight-card">
         <div class="row between center card-head"><p class="label">Weight</p><a class="card-link" href="#/weight">See chart${icon('chev', { size: 14 })}</a></div>
         <div class="row between center weight-main">
@@ -270,24 +273,25 @@ export function renderToday(el) {
         <p class="small muted" id="weight-why-text" data-weight-why-text hidden>Your trend smooths out daily ups and downs from water and salt, so it shows the real direction. Today’s number is just what the scale said.</p>
         ${goalSentence ? `<p class="small muted" data-goal-line>${esc(goalSentence)}</p>` : ''}
       </div>
+      </div>
 
-      ${scoreCard()}
+      <div class="slot" data-o="9">${scoreCard()}</div>
 
-      ${programLine()}
+      <div class="slot" data-o="8">${programLine()}</div>
 
-      ${insightsBlock()}
+      <div class="slot" data-o="12">${insightsBlock()}</div>
 
       </div>
       <div class="col col-b">
-      ${workoutCard()}
+      <div class="slot" data-o="4">${workoutCard()}</div>
 
-      ${foodCard(t)}
+      <div class="slot" data-o="5">${foodCard(t)}</div>
 
-      ${missionsCard()}
+      <div class="slot" data-o="6">${missionsCard()}</div>
 
-      ${weeklyCard()}
+      <div class="slot" data-o="10">${weeklyCard()}</div>
 
-      <div data-photo-reminder></div>
+      <div class="slot" data-o="11"><div data-photo-reminder></div></div>
 
       </div>
       </div>

@@ -16,7 +16,8 @@ test('Today: order is Readiness, Coach line, rings, workout, Food, missions, wei
   const t = src('js/screens/today.js');
   const body = t.slice(idx(t, 'el.innerHTML = `'));
   const order = ['${readinessCard()}', '${coachLine()}', 'class="card rings-card"', '${workoutCard()}', '${foodCard(t)}', '${missionsCard()}', 'class="card weight-card"', '${programLine()}', '${scoreCard()}', '${weeklyCard()}', '${insightsBlock()}'];
-  const at = order.map((n) => body.indexOf(n));
+  // the columns are split for wide screens, so the one-column order is each card's data-o slot number
+  const at = order.map((n) => { const i = body.indexOf(n); const all = i < 0 ? [] : [...body.slice(0, i).matchAll(/data-o="(\d+)"/g)]; return all.length ? Number(all[all.length - 1][1]) : -1; });
   at.forEach((p, i) => assert(p >= 0, `missing ${order[i]}`));
   for (let i = 1; i < at.length; i++) assert(at[i] > at[i - 1], `${order[i]} should come after ${order[i - 1]}`);
   assert(!body.includes('Daily targets'), 'Daily targets is no longer its own card');

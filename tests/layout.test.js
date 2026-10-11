@@ -523,6 +523,38 @@ for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
   });
 }
 
+for (const [w, h] of standalone ? [[890, 626]] : []) {
+  test(`layout: tour card never covers its target on two-column screens at ${w}x${h}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await browser.viewport(w, h, true);
+    await browser.open('today', seed({}));
+    await browser.eval("import('./js/tour/tour.js').then((m) => m.startTour({ replay: true }))");
+    await wait(600);
+    const bad = [];
+    let checked = 0;
+    for (let i = 0; i < 11; i++) {
+      await wait(450);
+      const m = await browser.eval(`(() => {
+        const c = document.querySelector('.tour-card').getBoundingClientRect(); const s = document.querySelector('.tour-spot'); const sr = s.getBoundingClientRect();
+        return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), card: [c.left, c.top, c.right, c.bottom], spot: [sr.left, sr.top, sr.right, sr.bottom], two: !!document.querySelector('.today-cols, .train-cols') && getComputedStyle(document.querySelector('.today-cols, .train-cols')).display === 'grid', vw: innerWidth, vh: innerHeight };
+      })()`);
+      if (shots) await browser.screenshot(`${shots}/tour2-${i + 1}-${w}x${h}.png`);
+      if (!m.empty && m.two) { // Today and Train; the one-column screens keep the phone behaviour (tested above)
+        const [cl, ct, cr, cb] = m.card; const [sl, st, sr, sb] = m.spot;
+        const hit = cl < sr && cr > sl && ct < sb && cb > st;
+        checked++;
+        if (hit) bad.push(`step ${i + 1} "${m.t}": card (${[cl, ct, cr, cb].map(Math.round)}) covers the spotlight (${[sl, st, sr, sb].map(Math.round)})`);
+        if ((st < 0 || sb > m.vh)) bad.push(`step ${i + 1} "${m.t}": spotlight is off-screen`);
+      }
+      await browser.eval("document.querySelector('[data-next]').click()");
+    }
+    assert(checked >= 4, `only ${checked} two-column steps were checked`);
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 // A fake iPhone shell with the Face ID plugin: verifyIdentity rejects (user cancel) until window.__allow is set.
 const LOCK_SHELL = `
   localStorage.setItem('forge.lock', JSON.stringify({ enabled: true, timeout: 0, asked: true }));
