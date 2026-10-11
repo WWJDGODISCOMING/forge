@@ -11,6 +11,7 @@ import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
 import { setupTextSize } from './ui/textsize.js';
+import { setupResizeAnchor } from './ui/anchor.js';
 import { enhanceSegs } from './ui/controls.js';
 import { fitCharts } from './ui/charts.js';
 import { attachPull, detachPull, canPullSync, waitAtMost, PULL_WAIT_MS } from './ui/pull.js';
@@ -26,6 +27,7 @@ const offlineBanner = document.getElementById('offline');
 const scrollMemory = createScrollMemory();
 
 setupTextSize(); // follow iOS Settings → Text Size (web and app)
+setupResizeAnchor(); // folding or rotating keeps the card you were reading in place
 
 // ---------- the iPhone app (Capacitor shell) ----------
 if (isNative()) {

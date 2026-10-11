@@ -627,6 +627,205 @@ if (standalone) {
   });
 }
 
+// Today's two columns should end at about the same height, and the phone order must not change.
+if (standalone) {
+  test('layout: Today columns end within 120px of each other at 890x626 and 932x430, and the phone order is unchanged at 390x844', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    const measure = `(() => {
+      const a = document.querySelector('.col-a'), b = document.querySelector('.col-b');
+      const end = (c) => (c ? Math.round(c.getBoundingClientRect().bottom + scrollY) : null);
+      return { a: end(a), b: end(b), order: [...document.querySelectorAll('[data-today-cols] .slot')].map((s) => s.dataset.o).join(',') };
+    })()`;
+    for (const [w, h] of [[890, 626], [932, 430]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('today', seed());
+      const m = await browser.eval(measure);
+      if (m.a == null || m.b == null) bad.push(`${w}x${h}: no two columns`);
+      else if (Math.abs(m.a - m.b) > 120) bad.push(`${w}x${h}: columns end ${m.a}px and ${m.b}px down (${Math.abs(m.a - m.b)}px apart)`);
+    }
+    await browser.viewport(390, 844, true);
+    await browser.open('today', seed());
+    const p = await browser.eval(measure);
+    const nums = p.order.split(',').map(Number);
+    if (p.a != null || nums.some((n, i) => i && n < nums[i - 1])) bad.push(`390x844: phone order changed: ${p.order}`);
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+// The player's "Next: name · Set 2 of 3" keeps its dot on one line, and never starts a wrapped second line with it.
+if (standalone) {
+  test('layout: player Next line has the separator dot only when the set stays on the same line', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    let sawDot = false;
+    for (const [w, h] of [[390, 844], [466, 678], [626, 890], [844, 390], [890, 626], [932, 430]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('play', seed({ active: true }));
+      const r = await browser.eval(`(() => {
+        const line = document.querySelector('.pl-next'), name = line && line.querySelector('.pl-next-name'), meta = line && line.querySelector('.pl-next-meta');
+        if (!meta) return null;
+        return { wrapped: meta.offsetTop > name.offsetTop + 2, dot: getComputedStyle(meta, '::before').visibility === 'hidden' ? '' : getComputedStyle(meta, '::before').content };
+      })()`);
+      if (!r) continue; // "Last one" has no dot to check
+      const hasDot = r.dot.includes('·');
+      if (r.wrapped && hasDot) bad.push(`${w}x${h}: a wrapped second line starts with the dot`);
+      if (!r.wrapped && !hasDot) bad.push(`${w}x${h}: the Next line is on one line but has no dot`);
+      if (hasDot) sawDot = true;
+    }
+    if (!sawDot) bad.push('no size showed the dot (is there a Next exercise in the seed?)');
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+// Folding or unfolding the Duo mid-session (item 31): the same route, the same card at the top, sheets and timers carry on.
+if (standalone) {
+  test('layout: resizing 466x678 → 626x890 → 890x626 → 466x678 keeps the route, scroll spot, sheet, focus and rest timer', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const CHAIN = [[626, 890], [890, 626], [466, 678]];
+    const bad = [];
+    const errs0 = browser.errors.length;
+    // 1. Today, scrolled so the Food card is at the top
+    await browser.viewport(466, 678, true);
+    await browser.open('today', seed());
+    const topOfFood = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
+    await browser.eval("(() => { const e = document.querySelector('[data-food-card]'); const bar = document.querySelector('.navbar'); window.scrollBy({ top: e.getBoundingClientRect().top - (bar ? bar.getBoundingClientRect().bottom : 0) - 4, behavior: 'instant' }); })()");
+    await wait(400);
+    // the card the reader sees first (the Food card here); it has to stay put through every size
+    assert(await browser.eval("import('./js/ui/anchor.js').then((m) => { const a = m.pickAnchor(); if (a) a.el.setAttribute('data-test-top', ''); return !!a && !!a.el.closest('[data-food-card]') || (a && a.el.matches('[data-food-card]')); })"), 'the top card at the start should be the Food card');
+    const before = await browser.eval(topOfFood);
+    for (const [w, h] of CHAIN) {
+      await browser.viewport(w, h, true);
+      await wait(500);
+      const route = await browser.eval('location.hash');
+      const now = await browser.eval(topOfFood);
+      if (route !== '#/today') bad.push(`today: route became ${route} at ${w}x${h}`);
+      if (now == null || Math.abs(now - before) > 16) bad.push(`today: the top card moved from ${before}px to ${now}px from the top at ${w}x${h}`);
+    }
+    // 2. the player mid-rest
+    await browser.viewport(466, 678, true);
+    await browser.open('play', seed({ active: true }));
+    await browser.eval("document.querySelector('[data-done]').click()"); // finishing a set starts the rest
+    await wait(1500);
+    const left0 = await browser.eval("document.querySelector('[data-restclock]') ? 1 : 0");
+    if (!left0) bad.push('player: the rest screen did not show');
+    const rest0 = await browser.eval("import('./js/timer.js').then((m) => m.restInfo().left)");
+    for (const [w, h] of CHAIN) {
+      await browser.viewport(w, h, true);
+      await wait(600);
+      const info = await browser.eval("import('./js/timer.js').then((m) => { const r = m.restInfo(); return r ? { left: r.left, paused: r.paused } : null; })");
+      if (!info || info.paused || !(info.left < rest0) || info.left <= 0) bad.push(`player: the rest timer stopped or reset at ${w}x${h}: ${JSON.stringify(info)} (was ${rest0})`);
+      if (!(await browser.eval("location.hash.startsWith('#/play')"))) bad.push(`player: left the player at ${w}x${h}`);
+      if (!(await browser.eval("!!document.querySelector('[data-restclock]')"))) bad.push(`player: the rest screen vanished at ${w}x${h}`);
+    }
+    // 3. the Log weight sheet, with its field focused
+    await browser.viewport(466, 678, true);
+    await browser.open('today', seed());
+    await browser.eval("document.querySelector('[data-log]').click()");
+    await wait(800);
+    const focusOf = "(() => { const a = document.activeElement; return a && a.closest && a.closest('dialog.sheet') ? (a.tagName + (a.name || a.id || '')) : null; })()";
+    const f0 = await browser.eval(focusOf);
+    for (const [w, h] of CHAIN) {
+      await browser.viewport(w, h, true);
+      await wait(500);
+      if (!(await browser.eval("!!document.querySelector('dialog.sheet[open]')"))) { bad.push(`sheet: closed at ${w}x${h}`); break; }
+      const fits = await browser.eval("(() => { const r = document.querySelector('dialog.sheet[open]').getBoundingClientRect(); return r.left >= 0 && r.right <= innerWidth + 1 && r.bottom <= innerHeight + 1; })()");
+      if (!fits) bad.push(`sheet: does not fit the screen at ${w}x${h}`);
+      if (f0 && (await browser.eval(focusOf)) !== f0) bad.push(`sheet: the focused field lost focus at ${w}x${h}`);
+    }
+    const errs = browser.errors.slice(errs0).filter((e) => !/Failed to load resource|net::ERR/.test(e));
+    if (errs.length) bad.push(`console errors: ${errs.slice(0, 3).join(' | ')}`);
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+// WebKit has no CSS scroll anchoring, so anchor.js alone must keep the card in place: switch Chromium's off and chase the same
+// element through fold → unfold → rotate → fold on each screen. A height-only resize (the keyboard) must not move the page.
+if (standalone) {
+  test('layout: the same card stays put through a fold round trip without browser scroll anchoring, and the keyboard does not scroll', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const CHAIN = [[626, 890], [890, 626], [466, 678]];
+    const bad = [];
+    const topOf = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
+    const noAnchoring = "(() => { const s = document.createElement('style'); s.textContent = 'html, body, * { overflow-anchor: none !important }'; document.head.append(s); })()";
+    for (const route of ['today', 'body', 'score', 'trends']) {
+      await browser.viewport(466, 678, true);
+      await browser.open(route, seed());
+      await browser.eval(noAnchoring);
+      // scroll about 45% down (25% on Score, whose wide page is much shorter, so the card has to stay reachable); on Today, to a card that lands in the right column when wide
+      const picked = await browser.eval(`(async () => {
+        const bar = document.querySelector('.navbar'); const inset = bar ? bar.getBoundingClientRect().bottom : 0;
+        let target = ${route === 'today' ? "document.querySelector('.slot[data-o=\"5\"]')" : 'null'};
+        if (!target) window.scrollTo({ top: (document.documentElement.scrollHeight - innerHeight) * ${route === 'score' ? 0.25 : 0.45}, behavior: 'instant' });
+        else window.scrollBy({ top: target.getBoundingClientRect().top - inset - 4, behavior: 'instant' });
+        await new Promise((r) => setTimeout(r, 500));
+        const a = (await import('./js/ui/anchor.js')).pickAnchor();
+        if (a) a.el.setAttribute('data-test-top', '');
+        return !!a;
+      })()`);
+      if (!picked) { bad.push(`${route}: found no card to follow`); continue; }
+      const before = await browser.eval(topOf);
+      for (const [w, h] of CHAIN) {
+        await browser.viewport(w, h, true);
+        await wait(700);
+        const now = await browser.eval(topOf);
+        if (now == null || Math.abs(now - before) > 16) bad.push(`${route}: the card went from ${before}px to ${now}px at ${w}x${h} (${await browser.eval("(() => { const e = document.querySelector('[data-test-top]'); return e.tagName + '.' + e.className + ' ' + (e.textContent || '').trim().slice(0, 30) + ' y=' + Math.round(scrollY) + '/' + (document.documentElement.scrollHeight - innerHeight); })()")})`);
+      }
+    }
+    // keyboard: only the height changes, with a field focused
+    await browser.viewport(390, 844, true);
+    await browser.open('library', seed());
+    await browser.eval("document.querySelector('[data-q]').focus({ preventScroll: true })");
+    const y0 = await browser.eval('Math.round(scrollY)');
+    for (const h of [508, 844]) {
+      await browser.viewport(390, h, true);
+      await wait(500);
+      const y = await browser.eval('Math.round(scrollY)');
+      if (y !== y0) bad.push(`keyboard: scrollY went from ${y0} to ${y} at 390x${h}`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+// Scrolling by hand right after an unfold must stick (no snap-back from the pending restores) and become the new anchor.
+if (standalone) {
+  for (const delay of [150, 450]) {
+    test(`layout: scrolling by hand ${delay} ms after unfolding sticks and is what a fold back keeps`, async () => {
+      if (skipReason()) return;
+      browser = browser || await launch();
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const bad = [];
+      const topOf = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
+      await browser.viewport(466, 678, true);
+      await browser.open('today', seed());
+      await browser.eval("(() => { const s = document.createElement('style'); s.textContent = 'html, body, * { overflow-anchor: none !important }'; document.head.append(s); })()");
+      await browser.eval("window.scrollTo({ top: (document.documentElement.scrollHeight - innerHeight) * 0.2, behavior: 'instant' })");
+      await wait(600);
+      await browser.viewport(890, 626, true);
+      await wait(delay);
+      await browser.eval("(() => { window.dispatchEvent(new WheelEvent('wheel', { deltaY: 450 })); window.scrollBy({ top: 450, behavior: 'instant' }); })()");
+      await wait(60);
+      const y0 = await browser.eval('Math.round(scrollY)');
+      await wait(1000);
+      const y1 = await browser.eval('Math.round(scrollY)');
+      if (Math.abs(y1 - y0) > 2) bad.push(`scrollY went from ${y0} to ${y1} after the reader scrolled`);
+      await browser.eval("import('./js/ui/anchor.js').then((m) => { const a = m.pickAnchor(); if (a) a.el.setAttribute('data-test-top', ''); })");
+      const before = await browser.eval(topOf);
+      await browser.viewport(466, 678, true);
+      await wait(800);
+      const now = await browser.eval(topOf);
+      if (before == null || now == null || Math.abs(now - before) > 16) bad.push(`the top card went from ${before}px to ${now}px after folding back`);
+      assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+    });
+  }
+}
+
 for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
   test(`layout: tour keeps each target in view above the card at ${w}x${h}`, async () => {
     if (skipReason()) return;

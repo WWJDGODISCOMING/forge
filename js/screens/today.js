@@ -10,6 +10,7 @@ import { readingLabel } from '../weight/reading.js';
 import { activeWorkout, historyIndex, activeProgram } from '../workouts/plan.js';
 import { deloadInfo } from '../workouts/generator.js';
 import { dayKey } from '../weight/smoothing.js';
+import { restoreAnchor } from '../ui/anchor.js';
 import { todayKey } from '../ui.js';
 import { playerRoute, previewPlan, startPlan } from './train.js';
 import { todayRings } from '../workouts/rings.js';
@@ -214,6 +215,7 @@ function arrangeTodayCols(el) {
     } else {
       host.replaceChildren(...slots);
     }
+    restoreAnchor(); // moving the cards changes the page height; keep the one at the top of the screen where it was
     if (hadFocus && focused.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
   };
   wideListener = () => { if (el.isConnected) apply(); };

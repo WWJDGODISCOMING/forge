@@ -1,6 +1,6 @@
 // Service worker: caches the app so it opens with no signal, and hands off new versions.
 // Bump VERSION here AND in js/version.js on every release.
-const VERSION = '0.15.15';
+const VERSION = '0.15.16';
 const CACHE = `forge-${VERSION}`;
 const FB = 'https://www.gstatic.com/firebasejs/12.19.0';
 // Demo photos live in their own cache (not versioned, not precached): see js/ui/photos.js.
@@ -86,6 +86,7 @@ const SHELL = [
   './js/ui/motion.js',
   './js/ui/gesture.js',
   './js/ui/charts.js',
+  './js/ui/anchor.js',
   './js/ui/controls.js',
   './js/ui/icons.js',
   './js/ui/pull.js',

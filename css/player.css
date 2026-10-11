@@ -114,6 +114,7 @@ body.playing .navbar { display: none; }
 .pl-next-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pl-next-meta { flex: none; }
 .pl-next-meta::before { content: "· "; }
+.pl-next.is-wrapped .pl-next-meta::before { visibility: hidden; } /* a dot must never start the second line; it keeps its width so the line does not flip between wrapped and not */
 .pl-next b { color: var(--text); }
 .pl-nav { display: flex; justify-content: space-between; gap: 8px; }
 .pl-nav button { flex: 1; min-height: 44px; border: 0; border-radius: 12px; background: transparent; color: var(--muted); font: 700 calc(14px * var(--ts)) var(--font); cursor: pointer; }
@@ -349,8 +350,7 @@ body.playing .navbar { display: none; }
   .pl-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; flex: 1; align-items: stretch; }
   .pl-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .pl-col-a { justify-content: flex-start; }
-  .pl-next { flex-wrap: wrap; white-space: normal; column-gap: 10px; }
-  .pl-next-meta::before { content: none; } /* where the line may wrap, the dot would start the second line */
+  .pl-next { flex-wrap: wrap; white-space: normal; }
   .pl-next-name { overflow: visible; text-overflow: clip; }
   .pl-col-a .pl-demo.has-fig { height: clamp(150px, 34vh, 280px); }
   .pl-col-a .pl-demo { min-height: clamp(120px, 28vh, 240px); }
@@ -383,8 +383,7 @@ body.playing .navbar { display: none; }
   .pl-rir button { height: 44px; }
   .pl-done { min-height: 50px; border-radius: 16px; }
   .pl-dock { position: static; padding: 0; background: none; margin-top: 0; gap: 4px; }
-  .pl-next { font-size: calc(13px * var(--ts)); flex-wrap: wrap; white-space: normal; column-gap: 10px; }
-  .pl-next-meta::before { content: none; }
+  .pl-next { font-size: calc(13px * var(--ts)); flex-wrap: wrap; white-space: normal; }
   .pl-next-name { overflow: visible; text-overflow: clip; }
   .pl-nav button { min-height: 44px; }
   .pl-count { font-size: calc(12px * var(--ts)); }

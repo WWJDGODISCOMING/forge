@@ -328,6 +328,7 @@ function drawSet(el) {
   // Tempo days (the progression's slow-lowering step) slow the demo down to match.
   if (fig) mountFigure(fig, ex, { isPaused: () => paused() || !!restInfo(), slow: !!(it.target && it.target.mode === 'tempo') });
   $('[data-demo]', el).onclick = () => openHowTo(ex.id);
+  markNextWrap($('.pl-next', el));
 
   // Clock (pause-aware)
   clearInterval(clockTimer);
@@ -605,6 +606,16 @@ function drawRest(el) {
       return !info.paused && !paused();
     });
   }
+}
+
+/** Where the "Next" line may wrap, the separator dot stays between the name and the set on one line, and goes away when the set drops to a second line (it would start that line). */
+function markNextWrap(line) {
+  if (!line || typeof ResizeObserver !== 'function') return;
+  const name = line.querySelector('.pl-next-name'), meta = line.querySelector('.pl-next-meta');
+  if (!name || !meta) return;
+  const check = () => line.classList.toggle('is-wrapped', meta.offsetTop > name.offsetTop + 2);
+  new ResizeObserver(check).observe(line);
+  check();
 }
 
 function paintRest(el) {

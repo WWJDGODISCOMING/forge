@@ -681,3 +681,4 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   main { padding-top: calc(var(--safe-top) + 40px); padding-bottom: calc(var(--safe-bottom) + 72px); }
   main:has(.pl-cols, [data-play]) { max-width: none; padding-top: calc(var(--safe-top) + 8px); }
 }
+html { overflow-anchor: auto; }
