@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.15.16 — iPhone Duo, round four (2026-10-11)
+
+Issue #64, part 6b-3. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Folding keeps your place:** the card at the top of the screen stays at the top when the window changes size (fold, unfold, rotate). Nothing is re-rendered, so open sheets, focused fields, charts and the rest timer carry on. Today also keeps its place when it moves cards between one and two columns.
+- **Player Next line:** the "·" between the exercise name and "Set 2 of 3" is back where they share a line, and is hidden when the set drops to a second line.
+- **Tests:** a resize chain (466×678 → 626×890 → 890×626 → 466×678) on Today, the player mid-rest and the Log weight sheet; Today's two columns end within 120 px of each other at 890×626 and 932×430, with the phone order unchanged; the Next line dot.
+
+### What's new
+
+- Folding or unfolding your phone keeps you where you were on the page.
+- The workout player's "Next" line reads cleanly in wide layouts.
+
 ## 0.15.15 — iPhone Duo, round three (2026-10-11)
 
 Issue #64, part 6b-2. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

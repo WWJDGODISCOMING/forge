@@ -654,6 +654,32 @@ if (standalone) {
   });
 }
 
+// The player's "Next: name · Set 2 of 3" keeps its dot on one line, and never starts a wrapped second line with it.
+if (standalone) {
+  test('layout: player Next line has the separator dot only when the set stays on the same line', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    let sawDot = false;
+    for (const [w, h] of [[390, 844], [466, 678], [626, 890], [844, 390], [890, 626], [932, 430]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('play', seed({ active: true }));
+      const r = await browser.eval(`(() => {
+        const line = document.querySelector('.pl-next'), name = line && line.querySelector('.pl-next-name'), meta = line && line.querySelector('.pl-next-meta');
+        if (!meta) return null;
+        return { wrapped: meta.offsetTop > name.offsetTop + 2, dot: getComputedStyle(meta, '::before').visibility === 'hidden' ? '' : getComputedStyle(meta, '::before').content };
+      })()`);
+      if (!r) continue; // "Last one" has no dot to check
+      const hasDot = r.dot.includes('·');
+      if (r.wrapped && hasDot) bad.push(`${w}x${h}: a wrapped second line starts with the dot`);
+      if (!r.wrapped && !hasDot) bad.push(`${w}x${h}: the Next line is on one line but has no dot`);
+      if (hasDot) sawDot = true;
+    }
+    if (!sawDot) bad.push('no size showed the dot (is there a Next exercise in the seed?)');
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 // Folding or unfolding the Duo mid-session (item 31): the same route, the same card at the top, sheets and timers carry on.
 if (standalone) {
   test('layout: resizing 466x678 → 626x890 → 890x626 → 466x678 keeps the route, scroll spot, sheet, focus and rest timer', async () => {
