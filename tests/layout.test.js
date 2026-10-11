@@ -849,7 +849,7 @@ for (const [w, h] of standalone ? [[320, 568], [375, 667], [390, 844]] : []) {
       }
       // The ring never overlaps the top bar (it is drawn 8px out, so it clears the bar by its own pad).
       if (!m.empty && m.stop < m.ctop && m.stop < m.bar - 0.5) bad.push(`step ${i + 1} "${m.t}": spotlight top ${Math.round(m.stop)}px is under the top bar (bottom ${Math.round(m.bar)}px)`);
-      await browser.eval("document.querySelector('[data-next]').click()");
+      await browser.eval("document.querySelector('.tour-card [data-next]').click()");
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });
@@ -873,14 +873,14 @@ for (const [w, h] of standalone ? [[890, 626]] : []) {
         return { t: document.querySelector('#tour-title').textContent, empty: s.classList.contains('empty'), card: [c.left, c.top, c.right, c.bottom], spot: [sr.left, sr.top, sr.right, sr.bottom], two: !!document.querySelector('.today-cols, .train-cols') && getComputedStyle(document.querySelector('.today-cols, .train-cols')).display === 'grid', vw: innerWidth, vh: innerHeight };
       })()`);
       if (shots) await browser.screenshot(`${shots}/tour2-${i + 1}-${w}x${h}.png`);
-      if (!m.empty && m.two) { // Today and Train; the one-column screens keep the phone behaviour (tested above)
+      if (!m.empty && (m.two || /^(Food has its own tab|Settings and profile)$/.test(m.t))) { // Today and Train, plus the Food tab and avatar steps; other one-column screens keep the phone behaviour (tested above)
         const [cl, ct, cr, cb] = m.card; const [sl, st, sr, sb] = m.spot;
         const hit = cl < sr && cr > sl && ct < sb && cb > st;
         checked++;
         if (hit) bad.push(`step ${i + 1} "${m.t}": card (${[cl, ct, cr, cb].map(Math.round)}) covers the spotlight (${[sl, st, sr, sb].map(Math.round)})`);
         if ((st < 0 || sb > m.vh)) bad.push(`step ${i + 1} "${m.t}": spotlight is off-screen`);
       }
-      await browser.eval("document.querySelector('[data-next]').click()");
+      await browser.eval("document.querySelector('.tour-card [data-next]').click()");
     }
     assert(checked >= 4, `only ${checked} two-column steps were checked`);
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);

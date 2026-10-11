@@ -179,7 +179,7 @@ function applyRedirect() {
 function addAvatar(route) {
   const large = main.querySelector('.large-title');
   if (!large || routeDepth([route]) !== 0 || large.querySelector('[data-avatar]')) return;
-  const src = (state.user && state.user.email) || '';
+  const src = (state.profile && state.profile.name) || (state.user && state.user.email) || '';
   const initial = (src.trim()[0] || '').toUpperCase();
   const a = document.createElement('a');
   a.href = '#/settings';
@@ -194,6 +194,17 @@ function addAvatar(route) {
     large.appendChild(acts);
   }
   acts.appendChild(a);
+  // Make room for the avatar without wrapping or shrinking tap targets: first a smaller title and tighter gaps,
+  // then the short button label ("+ Log" instead of "+ Log weight").
+  const fit = () => {
+    large.classList.remove('snug', 'tight');
+    for (const step of ['snug', 'tight']) {
+      if (acts.getBoundingClientRect().right <= large.getBoundingClientRect().right + 0.5) break;
+      large.classList.add(step);
+    }
+  };
+  fit();
+  if (typeof ResizeObserver === 'function') new ResizeObserver(fit).observe(acts); // text size or fonts changing after render
 }
 
 async function render() {

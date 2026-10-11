@@ -10,10 +10,11 @@ const p = (hash) => hash.replace(/^#\/?/, '').split('/');
 
 test('route depth: tab roots are 0, detail screens 1, deeper screens 2', () => {
   for (const r of ['today', 'train', 'food', 'body', 'weight', 'score', 'trends', 'weekly', 'progress']) eq(routeDepth([r]), 0, r);
-  for (const r of ['settings', 'session', 'library', 'timer', 'locations', 'withings', 'apple', 'metric', 'profile', 'history', 'awards']) eq(routeDepth([r]), 1, r);
+  for (const r of ['settings', 'session', 'library', 'timer', 'metric', 'history', 'awards']) eq(routeDepth([r]), 1, r);
+  for (const r of ['locations', 'report', 'profile', 'withings', 'apple']) eq(routeDepth([r]), 2, `${r} sits on Settings`);
   eq(routeDepth(p('#/play')), 2);
   eq(routeDepth(p('#/summary/abc')), 2);
-  eq(routeDepth(p('#/withings/check')), 2, 'Data check sits on Withings');
+  eq(routeDepth(p('#/withings/check')), 3, 'Data check sits on Withings');
   eq(routeDepth([]), 0, 'empty hash is Today');
 });
 
@@ -57,8 +58,8 @@ test('back target: roots have none; detail screens go to their parent', () => {
 });
 
 test('tab bar: Today, Train, Food, Body, Progress; no Settings tab', () => {
-  eq(TAB_ORDER, ['today', 'train', 'food', 'body', 'weight']);
-  eq(Object.values(TAB_FOR).filter((t) => !TAB_ORDER.includes(t)), [], 'every screen lights a real tab');
+  eq(JSON.stringify(TAB_ORDER), JSON.stringify(['today', 'train', 'food', 'body', 'weight']));
+  eq(Object.values(TAB_FOR).filter((t) => !TAB_ORDER.includes(t)).length, 0, 'every screen lights a real tab');
   const tabs = {
     food: 'food', coach: 'today', program: 'today', history: 'weight', awards: 'weight', score: 'weight', trends: 'weight',
     weekly: 'weight', progress: 'weight', metric: 'body', photos: 'body', session: 'train', library: 'train',
@@ -88,9 +89,10 @@ test('settings has no tab: it and its children light the tab you came from, Back
 });
 
 test('old links: removed or renamed routes redirect; current ones are left alone', () => {
-  eq(redirectRoute(['home']), ['today']);
-  eq(redirectRoute(['log']), ['food']);
-  eq(redirectRoute(['foods', 'x']), ['food', 'x']);
+  const j = JSON.stringify;
+  eq(j(redirectRoute(['home'])), j(['today']));
+  eq(j(redirectRoute(['log'])), j(['food']));
+  eq(j(redirectRoute(['foods', 'x'])), j(['food', 'x']));
   for (const r of ['weight', 'settings', 'food', 'today', 'progress', 'locations']) eq(redirectRoute([r]), null, r);
   eq(redirectRoute([]), null);
   eq(redirectRoute(['toString']), null, 'no prototype lookups');

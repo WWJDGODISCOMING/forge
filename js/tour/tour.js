@@ -133,7 +133,10 @@ export async function startTour({ replay = false } = {}) {
     } else {
       card.style.bottom = `${innerHeight - r.top + 14}px`; // the card sits just above the tab bar
     }
-    Object.assign(spot.style, { left: `${r.left - pad}px`, top: `${r.top - pad}px`, width: `${r.width + pad * 2}px`, height: `${r.height + pad * 2}px` });
+    // The outline keeps clear of the top bar (the avatar sits right under it) and a tab at the very bottom keeps its outline on screen.
+    const top = fixed ? r.top - pad : Math.max(r.top - pad, Math.min(r.top, minTop() - 8));
+    const bottom = fixed ? Math.min(r.bottom + pad, innerHeight) : r.bottom + pad;
+    Object.assign(spot.style, { left: `${r.left - pad}px`, top: `${top}px`, width: `${r.width + pad * 2}px`, height: `${bottom - top}px` });
   };
   const schedule = () => { if (!raf) raf = requestAnimationFrame(place); };
 

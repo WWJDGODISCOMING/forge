@@ -611,7 +611,6 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 .row > .btn.grow { flex: 1 1 0; min-width: max-content; }
 .bigbtn { padding-inline: 14px; }
 .card-head + .row, .card-head + .stack { margin-top: var(--s-2); }
-@media (max-width: 440px) { .hide-sm { display: none; } } /* the avatar shares the large-title row on phones */
 @media (max-width: 340px) {
   .hide-xs { display: none; }
   .lt-actions .btn.small { padding-inline: 14px; }

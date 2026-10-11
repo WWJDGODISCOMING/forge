@@ -42,7 +42,8 @@ export function routeDepth(parts) {
   const route = parts[0] || 'today';
   if (ROOTS.has(route)) return 0;
   if (DEPTH_2.has(route)) return 2;
-  if (route === 'withings' && parts[1]) return 2; // Data check sits on top of Withings
+  if (route === 'withings' && parts[1]) return 3; // Data check sits on top of Withings
+  if (SETTINGS_SCREENS.has(route) && route !== 'settings') return 2; // pushed on top of Settings
   return 1;
 }
 

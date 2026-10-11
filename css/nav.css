@@ -71,6 +71,12 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
   background: var(--surface-2); color: var(--accent-text); font-weight: 700; font-size: calc(18px * var(--ts)); text-decoration: none;
   box-shadow: inset 0 0 0 .5px var(--hairline); -webkit-user-select: none; user-select: none;
 }
+.large-title.snug h1 { font-size: 29px; line-height: 35px; }
+.large-title.snug { gap: 8px; }
+.large-title.snug .lt-actions { gap: 6px; }
+.large-title.snug .lt-actions .btn.small { padding-inline: 12px; }
+.large-title.tight .hide-xs { display: none; }
+.large-title.tight .lt-actions .btn.small { padding-inline: 10px; }
 .avatar-btn svg { width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 1.9; stroke-linecap: round; }
 .avatar-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
