@@ -2,8 +2,9 @@
 import { weightToDisplay, weightUnit } from '../units.js';
 import { daysBetween, addDays } from './smoothing.js';
 import { formatDay } from '../ui.js';
+import { chartWidth } from '../ui/charts.js';
 
-export function weightChartSVG(series, { units, goalKg, projection, rangeDays, width = 340, height = 210 } = {}) {
+export function weightChartSVG(series, { units, goalKg, projection, rangeDays, width = chartWidth(), height = 210 } = {}) {
   if (!series.length) return '';
   const last = series[series.length - 1];
   const startDay = rangeDays ? addDays(last.day, -rangeDays) : series[0].day;

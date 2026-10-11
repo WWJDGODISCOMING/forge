@@ -381,7 +381,7 @@ const NATIVE_SHELL = `
 `;
 
 // Wide canvas (item 28/30): two columns on Today and Train from 840 px (each column >= 340px), every other screen stays the 560px column, the tab bar is full width on every tab, and nothing sits inside the side insets.
-for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] : []) {
+for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'food', 'settings'] : []) {
   if (only && !only.includes(route)) continue;
   test(`layout: ${route}: wide canvas has the right columns, a full-width tab bar, and respects left/right insets`, async () => {
     if (skipReason()) return;
@@ -391,12 +391,12 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
     let base = new Set(); // what already wraps on a 390 phone isn't a wide-layout problem
     for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
       await browser.viewport(w, h, true);
-      await browser.open(route, seed());
+      await browser.open(route, seed({ active: route === 'play' }));
       if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px')`); await wait(300); }
       const at = `${w}x${h}${inset ? ' inset ' + inset : ''}`;
       const m = await browser.eval(`(() => {
         const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
-        const a = document.querySelector('#main .col-a'), b = document.querySelector('#main .col-b');
+        const a = document.querySelector('#main .col-a, #main .pl-col-a'), b = document.querySelector('#main .col-b, #main .pl-col-b');
         const out = [];
         document.querySelectorAll('#main a[href], #main button, #main .card, #nav a').forEach((e) => {
           const q = e.getBoundingClientRect();
@@ -414,11 +414,17 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
         const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
         const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
         const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
-        return { slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        const done = document.querySelector('#main [data-done-label]'), dq = done && done.getBoundingClientRect();
+        const ch = document.querySelector('#main svg.chart'), cq = ch && ch.getBoundingClientRect(), card = ch && ch.closest('.card'), cdq = card && card.getBoundingClientRect();
+        const ordered = [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length;
+        const axis = document.querySelector('#main svg.chart .axis'), ax = axis && parseFloat(getComputedStyle(axis).fontSize) * (cq.width / ch.viewBox.baseVal.width);
+        const dm = document.querySelector('#main [data-demo]'), st = document.querySelector('#main .pl-steppers'), top = (e) => e ? e.getBoundingClientRect().top : null;
+        const dom = a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null;
+        return { demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
-      if (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
-      const cols = route === 'today' || route === 'train';
-      if (!cols && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
+      if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
+      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'play';
+      if (!cols && route !== 'weight' && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
       if (w === 390 && !inset) base = new Set(m.wrap);
       const fresh = m.wrap.filter((x) => !base.has(x));
       if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
@@ -430,6 +436,18 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
         if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 2, 3, 7, 8, 9, 12].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
+      if (route === 'body' || route === 'play') { // reading order is the screen order: left column first in the DOM, and no CSS order anywhere
+        if (m.dom === false) bad.push(`${at}: the left column comes after the right in the DOM`);
+        if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
+      }
+      if (route === 'play' && w >= 840 && m.demoTop != null && m.stepTop != null && Math.abs(m.demoTop - m.stepTop) > 4) bad.push(`${at}: demo top ${Math.round(m.demoTop)} and steppers top ${Math.round(m.stepTop)} do not line up`);
+      if (route === 'play' && m.doneBox && (m.doneBox.t < 0 || m.doneBox.b > m.vh + 0.5)) bad.push(`${at}: Done set is not in view (${Math.round(m.doneBox.t)}-${Math.round(m.doneBox.b)} of ${m.vh})`);
+      if (route === 'weight' && m.chart) { // charts take the card's width, keep their proportions, and keep phone-size axis text
+        if (w >= 840 && m.main.r - m.main.l <= 560 + 1) bad.push(`${at}: Progress did not widen (${Math.round(m.main.r - m.main.l)}px)`);
+        if (m.chart.w < m.card.w - 40) bad.push(`${at}: chart ${Math.round(m.chart.w)}px is not the card's full width (${Math.round(m.card.w)})`);
+        if (Math.abs(m.chart.ar - m.chart.vb) > 0.02) bad.push(`${at}: chart aspect ${m.chart.ar.toFixed(2)} differs from its drawing ${m.chart.vb.toFixed(2)}`);
+        if (w >= 840 && Math.abs(m.axisPx - 11) > 1.5) bad.push(`${at}: chart axis text is ${m.axisPx.toFixed(1)}px, should stay 11px`);
+      }
       if (!cols) continue;
       const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
       if (w >= 840 && !two) bad.push(`${at}: not two columns`);
@@ -438,6 +456,86 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
       if (w >= 840 && two && m.b.r - m.b.l < 340) bad.push(`${at}: right column ${Math.round(m.b.r - m.b.l)}px is narrower than 340px`);
       if (route === 'today' && w >= 840 && two && Math.abs(m.a.b - m.b.b) > 120) bad.push(`${at}: Today's columns end ${Math.round(Math.abs(m.a.b - m.b.b))}px apart (left ${Math.round(m.a.b)}, right ${Math.round(m.b.b)}), should be within 120px`);
       if (w >= 840 && two && m.b.l - m.a.r < 24) bad.push(`${at}: gutter ${Math.round(m.b.l - m.a.r)}px is under 24px`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+if (standalone) {
+  test('layout: Weight at 890x626: charts stay phone-size after a range change, and the chart fits the screen with its range picker', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await browser.viewport(890, 626, true);
+    await browser.open('weight', seed({}));
+    const probe = () => browser.eval(`(() => {
+      const ch = document.querySelector('#main svg.chart'), q = ch.getBoundingClientRect(), ax = ch.querySelector('.axis');
+      const pick = document.querySelector('#main .seg.small').getBoundingClientRect();
+      return { axis: parseFloat(getComputedStyle(ax).fontSize) * (q.width / ch.viewBox.baseVal.width), h: q.height, vh: innerHeight, pickTop: pick.top, chartBottom: q.bottom, bar: document.getElementById('nav').getBoundingClientRect().top };
+    })()`);
+    const bad = [];
+    const a = await probe();
+    if (a.h > a.vh * 0.45) bad.push(`chart is ${Math.round(a.h)}px tall, more than 45% of ${a.vh}`);
+    if (a.pickTop < 0 || a.chartBottom > a.bar + 0.5) bad.push(`range picker (${Math.round(a.pickTop)}) and chart (bottom ${Math.round(a.chartBottom)}) do not fit above the tab bar (${Math.round(a.bar)})`);
+    for (const v of ['30', '90', '0']) {
+      await browser.eval(`document.querySelector('#main input[name=range][value="${v}"]').click()`);
+      await wait(400);
+      const r = await probe();
+      if (Math.abs(r.axis - 11) > 1.5) bad.push(`axis text is ${r.axis.toFixed(1)}px after choosing range ${v}, should stay 11px`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+if (standalone) {
+  test('layout: Trends, Score and Week: two columns from 840, one below, same tab control width, no CSS order, no card past ~560px', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    for (const [w, h] of [[390, 844], [678, 466], [890, 626]]) {
+      const segs = [];
+      for (const route of ['weight', 'trends', 'score', 'weekly']) {
+        await browser.viewport(w, h, true);
+        await browser.open(route, seed({}));
+        await wait(300);
+        const at = `${w}x${h} ${route}`;
+        const m = await browser.eval(`(() => {
+          const q = (e) => e && e.getBoundingClientRect();
+          const a = document.querySelector('#main .pg-cols > .col-a'), b = document.querySelector('#main .pg-cols > .col-b');
+          const rows = [...document.querySelectorAll('#main .trend-row')].map((e) => q(e));
+          const cards = [...document.querySelectorAll('#main .card')].filter((e) => !e.querySelector('.score-hero, svg.chart')).map((e) => q(e).width);
+          return { seg: q(document.querySelector('#main .progress-seg')).width, a: a && { l: q(a).left, r: q(a).right, t: q(a).top, b: q(a).bottom }, b: b && { l: q(b).left, r: q(b).right, t: q(b).top, b: q(b).bottom },
+            ltIn: !!document.querySelector('#main .col-a [data-longterm-slot]'),
+            phoneOrder: (() => { const kids = [...document.querySelectorAll('#main .pg-cols > .col-a > *, #main .pg-cols > .col-b > *')].map((e) => e.matches('.pillar-grid') ? 'pillars' : e.matches('[data-longterm-slot]') ? 'longterm' : e.matches('details') ? 'how' : e.querySelector('.score-hero') ? 'hero' : ''); const i = kids.indexOf('pillars'), j = kids.indexOf('longterm'), k = kids.indexOf('how'); return i >= 0 && i < j && j < k && kids.indexOf('hero') < i; })(),
+            hair: [...document.querySelectorAll('#main .trend-list .g-row')].filter((e) => Math.abs(q(e).top - q(e.parentElement).top) < 1 && getComputedStyle(e, '::before').display !== 'none' && getComputedStyle(e, '::before').content !== 'none').length,
+            dom: a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null,
+            rowL: rows.length ? [...new Set(rows.map((r) => Math.round(r.left)))].length : 0, rowW: rows.length ? Math.max(...rows.map((r) => r.width)) : 0,
+            ordered: [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length, cards: Math.max(0, ...cards), vw: innerWidth };
+        })()`);
+        segs.push(m.seg);
+        if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
+        if (route !== 'weight' && w >= 840 && m.cards > 561) bad.push(`${at}: a card is ${Math.round(m.cards)}px wide`);
+        if (route === 'score' || route === 'weekly') {
+          if (!m.a || !m.b) { bad.push(`${at}: no columns found`); continue; }
+          if (!m.dom) bad.push(`${at}: left column is after the right in the DOM`);
+          const two = m.a.r - m.a.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
+          if (w >= 840 && !two) bad.push(`${at}: not two columns`);
+          if (route === 'score') {
+            if (w >= 840 && Math.abs(m.a.b - m.b.b) > 150) bad.push(`${at}: columns end ${Math.round(Math.abs(m.a.b - m.b.b))}px apart`);
+            if (w >= 840 && !m.ltIn) bad.push(`${at}: Long term is not in the left column`);
+            if (w < 840 && (m.ltIn || !m.phoneOrder)) bad.push(`${at}: phone order changed (hero, movers, pillars, ..., Long term, Longevity)`);
+          }
+          if (w < 840 && two) bad.push(`${at}: should be one column`);
+        }
+        if (route === 'trends') {
+          if (w >= 840 && m.rowL < 2) bad.push(`${at}: rows are not in two columns`);
+          if (w >= 840 && m.hair) bad.push(`${at}: ${m.hair} trend row(s) at the card top show a separator`);
+          if (w >= 840 && m.rowW > 561) bad.push(`${at}: a trend row is ${Math.round(m.rowW)}px wide`);
+          if (w < 840 && m.rowL > 1) bad.push(`${at}: rows should be one column`);
+        }
+      }
+      if (Math.max(...segs) - Math.min(...segs) > 1) bad.push(`${w}x${h}: tab control width differs between tabs: ${segs.map(Math.round)}`);
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });

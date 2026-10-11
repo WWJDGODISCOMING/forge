@@ -12,6 +12,7 @@ import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
 import { setupTextSize } from './ui/textsize.js';
 import { enhanceSegs } from './ui/controls.js';
+import { fitCharts } from './ui/charts.js';
 import { attachPull, detachPull, canPullSync, waitAtMost, PULL_WAIT_MS } from './ui/pull.js';
 import { call } from './functions.js';
 import { attachSwipeBack } from './ui/swipeback.js';
@@ -245,6 +246,7 @@ async function render() {
     else navBar({ title: TITLE_FOR[route], back: backTarget(routeParts()), backLabel: backLabel(routeParts()) });
     hapticTabs(nav, onTab);
     enhanceSegs(main);
+    fitCharts(main);
     syncPull(route);
     hapticSegments(main);
     animateCounters(main);
