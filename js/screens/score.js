@@ -54,6 +54,27 @@ function detail(p) {
     <p class="small muted">Each part is scored 0–100 against a target (or against your own usual). The line under each name shows the real number it was worked out from. The full list of targets is in <a class="link" href="${DOC_URL}" target="_blank" rel="noopener">How the Forge Score works</a>.</p></div>`;
 }
 
+// Two columns (>= 840px): Long term moves under "What moved it" so the columns end together. The DOM stays in phone
+// order and the card only moves while the wide query matches, so focus and VoiceOver follow the screen on every size.
+let wideQuery = null;
+let wideListener = null;
+function arrangeScoreCols(el) {
+  if (typeof matchMedia !== 'function') return;
+  if (wideQuery && wideListener) wideQuery.removeEventListener('change', wideListener);
+  wideQuery = matchMedia('(min-width: 840px)');
+  const apply = () => {
+    const slot = $('[data-longterm-slot]', el), home = $('[data-longterm-home]', el), a = $('.col-a', el);
+    if (!slot || !home || !a) return;
+    const focused = document.activeElement;
+    const hadFocus = focused && focused !== document.body && slot.contains(focused);
+    if (wideQuery.matches) a.append(slot); else home.after(slot);
+    if (hadFocus && focused.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
+  };
+  wideListener = () => { if (el.isConnected) apply(); };
+  wideQuery.addEventListener('change', wideListener);
+  apply();
+}
+
 export function renderScore(el) {
   const s = currentScore();
   const hasData = s.score != null;
@@ -106,6 +127,7 @@ export function renderScore(el) {
       <div data-detail-slot>${open ? detail(s.pillars.find((p) => p.key === open)) : ''}</div>
       ${hasData ? `<p class="small muted tcenter" style="text-align:center" data-based-on>Based on ${s.trackedCount} of 5 parts</p>` : ''}
       ${s.notTracked.includes('nutrition') ? `<p class="small muted"><b>Nutrition: not tracked yet.</b> It lights up once you have logged food on 3 of the last 7 days. Until then its 15% is shared among the ${s.trackedCount} part${s.trackedCount === 1 ? '' : 's'} with data, so nothing is counted against you.</p>` : ''}
+      <template data-longterm-home></template>
       <div data-longterm-slot>${longTermHtml(longTerm(weekly(), todayKey(), ltRange, { recentScored: hasData }), ltRange, todayKey())}</div>
       ${longevityHtml(longevityCards({ rows: state.health_daily || [], measures: myBodyMeasures(), profile: state.profile || {}, today: todayKey() }), units(), todayKey())}
       <details class="card">
@@ -118,6 +140,7 @@ export function renderScore(el) {
     </section>`;
 
   animateScoreRings(el);
+  arrangeScoreCols(el);
   const toggle = (key) => {
     open = open === key ? null : key;
     $$('[data-pillar]', el).forEach((b) => b.setAttribute('aria-expanded', String(b.dataset.pillar === open)));
