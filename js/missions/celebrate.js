@@ -63,8 +63,15 @@ function startRun() {
 }
 
 const finish = (run, ms) => new Promise((resolve) => { run.done = resolve; run.at(ms, () => run.end()); });
+const screenCenter = () => [innerWidth / 2, innerHeight * 0.4];
+const onScreen = (el) => {
+  if (!el || !el.isConnected) return false;
+  const r = el.getBoundingClientRect();
+  return r.bottom > 0 && r.top < innerHeight && r.right > 0 && r.left < innerWidth;
+};
+// Fixed effects are drawn at screen coordinates, so a card that is scrolled out of view gets the screen center instead.
 const centerOf = (el) => {
-  if (!el) return [innerWidth / 2, innerHeight * 0.4];
+  if (!onScreen(el)) return screenCenter();
   const r = el.getBoundingClientRect();
   return [r.left + r.width / 2, r.top + r.height / 2];
 };
@@ -88,11 +95,14 @@ function shakeScreen(run, amp, dur) {
   }
 }
 
+// The glow lives inside the card (absolute, inset 0), so it follows the card however the page scrolls.
 function glowOver(run, card, fx) {
   if (!card) return;
-  const r = card.getBoundingClientRect();
-  const g = run.layer('ms-glow');
-  Object.assign(g.style, { left: `${r.left}px`, top: `${r.top}px`, width: `${r.width}px`, height: `${r.height}px` });
+  const g = document.createElement('div');
+  g.className = 'ms-glow';
+  g.setAttribute('aria-hidden', 'true');
+  card.appendChild(g);
+  run.els.push(g);
   run.anim(g, [{ opacity: 0 }, { opacity: 1, offset: 0.25 }, { opacity: 0 }], { duration: fx.fade ? 500 : 800, easing: EASE.out });
 }
 
@@ -271,22 +281,41 @@ function playPerfectWeek({ n, streak }) {
 }
 
 // ---------- the one entry point ----------
+let watcher = null; // waits for the card to scroll into view (tiers 1 and 2)
+let owed = new Set(); // missions finished but not celebrated yet because the card never showed, kept across re-renders
+
 /**
  * Called after Today renders. Plays the highest tier not yet played today, but only if a mission was finished since
- * the card was last shown (so a reload, resume or re-render never replays), and records it before it plays.
+ * the card was last shown (so a reload, resume or re-render never replays). Tiers 1 and 2 wait until the missions card
+ * is at least half on screen and are recorded only when they play, so leaving Today first just defers them to the next
+ * time the card shows. The finale is full screen, so it plays right away.
  */
 export function celebrateMissions() {
+  if (watcher) { watcher.disconnect(); watcher = null; }
   const m = todayMissions();
   if (!m.started || !m.list.length) return;
   const seen = seenToday();
-  const fresh = m.list.filter((x) => x.done && !seen.has(x.id)).map((x) => x.id);
+  const fresh = m.list.filter((x) => x.done && (!seen.has(x.id) || owed.has(x.id))).map((x) => x.id);
   const tier = tierToPlay({ done: m.done, total: m.total, celebrated: celebratedTier(m.day), hasNew: fresh.length > 0 });
-  if (!tier) return;
-  recordCelebrated(tier, m.day);
-  enqueue(() => playTier(tier, { fresh, xp: m.xp }));
-  if (tier === 3 && perfectWeekDue(weekProgress(), perfectWeekEnds(), m.day)) {
-    recordPerfectWeek(m.day);
-    const ends = perfectWeekEnds();
-    enqueue(() => playPerfectWeek({ n: ends.length, streak: weekStreak(ends) }));
-  }
+  if (!tier) { owed = new Set(); return; }
+  const play = () => {
+    owed = new Set();
+    recordCelebrated(tier, m.day);
+    enqueue(() => playTier(tier, { fresh, xp: m.xp }));
+    if (tier === 3 && perfectWeekDue(weekProgress(), perfectWeekEnds(), m.day)) {
+      recordPerfectWeek(m.day);
+      const ends = perfectWeekEnds();
+      enqueue(() => playPerfectWeek({ n: ends.length, streak: weekStreak(ends) }));
+    }
+  };
+  const card = document.querySelector('[data-missions]');
+  if (tier === 3 || !card || typeof IntersectionObserver === 'undefined') { play(); return; }
+  owed = new Set(fresh);
+  watcher = new IntersectionObserver((entries) => {
+    if (!entries.some((e) => e.isIntersecting && e.intersectionRatio >= 0.5)) return;
+    watcher.disconnect();
+    watcher = null;
+    play();
+  }, { threshold: [0.5] });
+  watcher.observe(card);
 }
