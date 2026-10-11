@@ -460,6 +460,32 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
 }
 
 if (standalone) {
+  test('layout: Weight at 890x626: charts stay phone-size after a range change, and the chart fits the screen with its range picker', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    await browser.viewport(890, 626, true);
+    await browser.open('weight', seed({}));
+    const probe = () => browser.eval(`(() => {
+      const ch = document.querySelector('#main svg.chart'), q = ch.getBoundingClientRect(), ax = ch.querySelector('.axis');
+      const pick = document.querySelector('#main .seg.small').getBoundingClientRect();
+      return { axis: parseFloat(getComputedStyle(ax).fontSize) * (q.width / ch.viewBox.baseVal.width), h: q.height, vh: innerHeight, pickTop: pick.top, chartBottom: q.bottom, bar: document.getElementById('nav').getBoundingClientRect().top };
+    })()`);
+    const bad = [];
+    const a = await probe();
+    if (a.h > a.vh * 0.45) bad.push(`chart is ${Math.round(a.h)}px tall, more than 45% of ${a.vh}`);
+    if (a.pickTop < 0 || a.chartBottom > a.bar + 0.5) bad.push(`range picker (${Math.round(a.pickTop)}) and chart (bottom ${Math.round(a.chartBottom)}) do not fit above the tab bar (${Math.round(a.bar)})`);
+    for (const v of ['30', '90', '0']) {
+      await browser.eval(`document.querySelector('#main input[name=range][value="${v}"]').click()`);
+      await wait(400);
+      const r = await probe();
+      if (Math.abs(r.axis - 11) > 1.5) bad.push(`axis text is ${r.axis.toFixed(1)}px after choosing range ${v}, should stay 11px`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+if (standalone) {
   test('layout: resume with a changed app-install.json reloads, then toasts "Updated to …" and opens What\'s new (never mid-workout)', async () => {
     if (skipReason()) return;
     browser = browser || await launch();

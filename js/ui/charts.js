@@ -17,10 +17,28 @@ function setScale(svg, w) {
   else svg.style.setProperty('--ck', String(k));
 }
 
-/** Keep axis text and the trend line at phone size on every chart inside `root`. Call after a screen draws. */
+/** Viewbox width for a chart: the phone's width, or a wider one on a wide canvas so the plot grows sideways instead of taller. */
+export function chartWidth(base = 340, wide = 760) {
+  return typeof matchMedia === 'function' && matchMedia('(min-width: 840px)').matches ? wide : base;
+}
+
+function scan(root) {
+  ro.disconnect(); // charts from a previous draw are gone
+  root.querySelectorAll('svg.chart').forEach((svg) => { setScale(svg, svg.getBoundingClientRect().width); ro.observe(svg); });
+}
+
+let mo = null;
+let moRoot = null;
+
+/** Keep axis text and the trend line at phone size on every chart inside `root`, including ones a screen redraws itself (range pickers, "Show all"). */
 export function fitCharts(root) {
   if (typeof ResizeObserver !== 'function') return;
   if (!ro) ro = new ResizeObserver((entries) => { for (const e of entries) setScale(e.target, e.contentRect.width); });
-  ro.disconnect(); // the previous screen's charts are gone
-  root.querySelectorAll('svg.chart').forEach((svg) => { setScale(svg, svg.getBoundingClientRect().width); ro.observe(svg); });
+  scan(root);
+  if (typeof MutationObserver === 'function' && moRoot !== root) {
+    if (mo) mo.disconnect();
+    moRoot = root;
+    mo = new MutationObserver((muts) => { if (muts.some((m) => [...m.addedNodes].some((n) => n.nodeType === 1))) scan(root); });
+    mo.observe(root, { childList: true, subtree: true });
+  }
 }

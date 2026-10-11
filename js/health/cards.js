@@ -5,6 +5,7 @@ import { addDays, daysBetween } from '../weight/smoothing.js';
 import { weightToDisplay, weightUnit, formatWeight } from '../units.js';
 import { FFMI_BANDS, FMI_BANDS } from './bodyprofile.js';
 import { icon, emptyState } from '../ui/icons.js';
+import { chartWidth } from '../ui/charts.js';
 
 const fmtDate = (key, withYear = false) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) }).replace(/ /g, ' '); // a date never splits across lines
 
@@ -80,7 +81,7 @@ export function sparkSvg(points, today, days = 28, { width = 84, height = 28, mi
 // ---- goal path ----
 
 /** A small chart: the last 28 days of trend, then a dashed line to the goal with the 80% band shaded. */
-export function goalPathSvg(path, series, today, goalKg, units, { width = 340, height = 150 } = {}) {
+export function goalPathSvg(path, series, today, goalKg, units, { width = chartWidth(), height = 150 } = {}) {
   const from = addDays(today, -27);
   const pts = series.filter((p) => p.day >= from && p.day <= today);
   if (pts.length < 2) return '';

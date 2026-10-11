@@ -650,3 +650,6 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 @media (min-width: 840px) and (min-height: 760px) { .body-cols > .col-a { position: sticky; top: calc(var(--safe-top) + 52px); } }
 
 .slot { display: contents; }
+
+/* Weight on a wide canvas: the four numbers sit in one row so the range picker and the whole chart fit above the tab bar */
+@media (min-width: 840px) { .stats.stats-2 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
