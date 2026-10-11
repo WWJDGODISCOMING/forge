@@ -1035,7 +1035,8 @@ if (standalone) {
     }
     assert(glow, 'the glow is drawn inside the card once it is scrolled into view');
     // Firestore echoes every settings write back as a snapshot (the fixture does not), which re-renders Today unless it is skipped
-    const echo = "import('/js/state.js').then((m) => m.state.set({ settings: { ...m.state.settings, updated_at: new Date().toISOString() } }))";
+    // same shape as the WATCH handler in app.js: { ...toPatch(rows), loaded: { ...state.loaded, settings: true } }
+    const echo = "import('/js/state.js').then((m) => m.state.set({ settings: { ...m.state.settings, updated_at: new Date().toISOString() }, loaded: { ...m.state.loaded, settings: true } }))";
     await browser.eval(echo);
     // what the user sees: a bit later the glow is still attached to the live card and visible
     await new Promise((r) => setTimeout(r, 100));

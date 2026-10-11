@@ -325,8 +325,14 @@ const onlyQuietChanged = (a, b) => {
   return true;
 };
 
+let lastLoaded = '';
 subscribe((patch) => {
-  const quiet = Object.keys(patch).join() === 'settings' && currentRoute() === 'today' && onlyQuietChanged(lastSettings, state.settings);
+  // A real snapshot arrives as { settings, loaded: {...state.loaded, settings: true} }: `loaded` (and `sync`) only count when they changed.
+  const loadedNow = JSON.stringify(state.loaded || {});
+  const loadedChanged = loadedNow !== lastLoaded;
+  lastLoaded = loadedNow;
+  const meaningful = Object.keys(patch).filter((k) => k !== 'sync' && (k !== 'loaded' || loadedChanged));
+  const quiet = meaningful.join() === 'settings' && currentRoute() === 'today' && onlyQuietChanged(lastSettings, state.settings);
   lastSettings = state.settings ? { ...state.settings } : null;
   seedAwards();
   seedMissions();
