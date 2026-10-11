@@ -1012,6 +1012,28 @@ if (standalone) {
   });
 }
 
+if (standalone) {
+  test('layout: mission celebrations wait until the card is scrolled into view, and play inside it', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(390, 844, true);
+    await browser.open('today', seed());
+    const cele = "import('/js/state.js').then((m) => Object.values(m.state.settings.missions_cele || {})[0] || 0)";
+    const top = await browser.eval("document.querySelector('[data-missions]').getBoundingClientRect().top");
+    assert(top > 844, `the missions card should start below the fold for this test (top ${top})`);
+    assert((await browser.eval(cele)) === 0, 'nothing is recorded as played while the card is off screen');
+    assert(!(await browser.eval("!!document.querySelector('.ms-glow')")), 'no glow while the card is off screen');
+    await browser.eval("document.querySelector('[data-missions]').scrollIntoView({ block: 'center', behavior: 'instant' })");
+    let glow = false;
+    for (let i = 0; i < 30 && !glow; i++) {
+      await new Promise((r) => setTimeout(r, 50));
+      glow = await browser.eval("!!document.querySelector('[data-missions] .ms-glow')");
+    }
+    assert(glow, 'the glow is drawn inside the card once it is scrolled into view');
+    assert((await browser.eval(cele)) >= 1, 'recorded as played once it plays');
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;

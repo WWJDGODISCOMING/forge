@@ -100,7 +100,9 @@
 .pw-bg { position: fixed; inset: 0; z-index: 43; background: var(--on-bright); pointer-events: none; }
 .pw-stage { position: fixed; inset: 0; z-index: 48; display: grid; place-items: center; padding: var(--safe-top, 0px) max(16px, env(safe-area-inset-right)) var(--safe-bottom, 0px) max(16px, env(safe-area-inset-left)); overflow-y: auto; cursor: pointer; }
 .pw-ring { width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--volt); box-shadow: 0 0 30px var(--volt); z-index: 45; }
-.pw-card { display: grid; justify-items: center; gap: 6px; text-align: center; width: min(100%, 340px); }
+.pw-card { position: relative; isolation: isolate; display: grid; justify-items: center; gap: 6px; text-align: center; width: min(100%, 340px); }
+.pw-card::before { content: ''; position: absolute; inset: -44px -28px; z-index: -1; pointer-events: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--on-bright) 92%, transparent) 55%, transparent); } /* keeps confetti from showing through the text */
+.pw-stage button:focus-visible { outline: 3px solid var(--volt); outline-offset: 3px; }
 .pw-medal { filter: drop-shadow(0 0 28px color-mix(in srgb, var(--volt) 55%, transparent)); }
 .pw-title { margin: 8px 0 0; font: 900 calc(30px * var(--ts, 1))/1.1 var(--num, inherit); color: white; letter-spacing: .02em; overflow-wrap: anywhere; }
 .pw-n { margin: 0; font: 900 calc(44px * var(--ts, 1))/1 var(--num, inherit); color: var(--volt); }

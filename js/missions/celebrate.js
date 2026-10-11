@@ -10,7 +10,7 @@ import { reducedMotion, EASE, countUp } from '../ui/motion.js';
 import { burst, aura, enqueue, confetti, clearParticles } from '../ui/fx.js';
 import { isNative, haptic } from '../native/bridge.js';
 import { hapticsOn } from '../ui/haptic.js';
-import { badgeSVG } from '../ui/badges.js';
+import { badgeSVG, perfectWeekMedal } from '../ui/badges.js';
 import { shareImage } from '../ui/sharecard.js';
 import { todayMissions, seenToday, celebratedTier, recordCelebrated, weekProgress, perfectWeekEnds, recordPerfectWeek } from './store.js';
 import { tierToPlay, effectsFor, hapticPlan, vibratePattern, perfectWeekDue, weekStreak, PERFECT_WEEK_XP } from './celebrate-core.js';
@@ -186,16 +186,22 @@ async function shareCard(n, streak) {
   g.fillStyle = VOLT;
   g.font = `900 44px ${font}`;
   g.fillText('FORGE', W / 2, 150);
+  try { // the same medal as the app, drawn from its SVG
+    const img = new Image();
+    const svg = perfectWeekMedal({ size: 560 });
+    await new Promise((ok, no) => { img.onload = ok; img.onerror = no; img.src = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`; });
+    g.drawImage(img, W / 2 - 340, 260, 680, 680);
+  } catch { /* the text is enough */ }
   g.fillStyle = '#fff';
   g.font = `900 110px ${font}`;
-  g.fillText('PERFECT WEEK', W / 2, 900);
+  g.fillText('PERFECT WEEK', W / 2, 1110);
   g.fillStyle = VOLT;
-  g.font = `900 260px ${font}`;
-  g.fillText(`#${n}`, W / 2, 1150);
+  g.font = `900 200px ${font}`;
+  g.fillText(`#${n}`, W / 2, 1330);
   g.fillStyle = '#9aa4b0';
   g.font = `600 44px ${font}`;
-  g.fillText('Every mission, 7 days in a row', W / 2, 1260);
-  if (streak > 1) g.fillText(`${streak} weeks running`, W / 2, 1330);
+  g.fillText('Every mission, 7 days in a row', W / 2, 1430);
+  if (streak > 1) g.fillText(`${streak} weeks running`, W / 2, 1500);
   return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
 }
 
@@ -208,6 +214,10 @@ function playPerfectWeek({ n, streak }) {
   stage.removeAttribute('aria-hidden');
   stage.setAttribute('role', 'dialog');
   stage.setAttribute('aria-label', 'Perfect Week');
+  stage.setAttribute('aria-modal', 'true');
+  stage.tabIndex = -1;
+  const returnTo = document.activeElement;
+  stage.focus({ preventScroll: true }); // the keyboard belongs to the takeover from the start
   const [cx, cy] = [innerWidth / 2, innerHeight * 0.42];
   run.haptics('week');
 
@@ -215,7 +225,7 @@ function playPerfectWeek({ n, streak }) {
     if (stage.dataset.shown) return;
     stage.dataset.shown = '1';
     stage.innerHTML = `<div class="pw-card">
-      <div class="pw-medal">${badgeSVG('perfectweek', { shine: true, size: 132, label: 'Perfect Week' })}</div>
+      <div class="pw-medal">${badgeSVG('perfectweek', { shine: true, size: 140, label: 'Perfect Week' })}</div>
       <h2 class="pw-title">Perfect Week</h2>
       <p class="pw-n">#${n}</p>
       <p class="pw-streak">${streak > 1 ? `${streak} weeks in a row` : 'Every mission, 7 days in a row'}</p>
@@ -236,6 +246,7 @@ function playPerfectWeek({ n, streak }) {
       try { const blob = await shareCard(n, streak); if (blob) await shareImage(blob, `forge-perfect-week-${n}.png`); } catch { /* cancelled */ }
     };
     stage.dataset.ready = '1';
+    stage.querySelector('.pw-close').focus({ preventScroll: true });
   };
   const closeUp = () => {
     run.keep = false;
@@ -243,16 +254,34 @@ function playPerfectWeek({ n, streak }) {
     run.anim(bg, [{ opacity: 0.95 }, { opacity: 0 }], { duration: 250 });
     run.at(260, () => run.end());
   };
+  const skipAhead = () => {
+    run.timers.forEach(clearTimeout);
+    run.stops.forEach((fn) => fn());
+    clearParticles();
+    if (navigator.vibrate) navigator.vibrate(0);
+    showEmblem(true);
+  };
   // A tap before the emblem shows skips ahead to it; after, it dismisses.
-  stage.addEventListener('click', () => {
-    if (!stage.dataset.shown) {
-      run.timers.forEach(clearTimeout);
-      run.stops.forEach((fn) => fn());
-      clearParticles();
-      if (navigator.vibrate) navigator.vibrate(0);
-      showEmblem(true);
-    } else closeUp();
-  });
+  stage.addEventListener('click', () => { if (!stage.dataset.shown) skipAhead(); else closeUp(); });
+  // Keyboard: Escape skips ahead while it charges and closes once the emblem shows; Tab stays on the two buttons.
+  const keys = (e) => {
+    if (!run.keep) return;
+    if (e.key === 'Escape') { e.preventDefault(); if (!stage.dataset.shown) skipAhead(); else closeUp(); return; }
+    if (!stage.dataset.shown) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); skipAhead(); } return; }
+    if (e.key === 'Tab') {
+      const btns = [...stage.querySelectorAll('button')];
+      const i = btns.indexOf(document.activeElement);
+      e.preventDefault();
+      btns[(i + (e.shiftKey ? btns.length - 1 : 1)) % btns.length].focus({ preventScroll: true });
+    }
+  };
+  addEventListener('keydown', keys, true);
+  const end = run.end;
+  run.end = () => { // give the page its focus back when it closes
+    removeEventListener('keydown', keys, true);
+    end();
+    if (returnTo && returnTo.isConnected && typeof returnTo.focus === 'function') returnTo.focus({ preventScroll: true });
+  };
 
   run.anim(bg, [{ opacity: 0 }, { opacity: 0.95 }], { duration: reduced ? 300 : 450, easing: EASE.out });
   if (reduced) {

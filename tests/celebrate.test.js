@@ -99,3 +99,14 @@ test('perfect week: streak counter and the badge', () => {
   const got = missionBadges({ perfectWeeks: ['2026-10-18', '2026-10-04'] }).find((b) => b.id === 'perfectweek');
   eq(got.earned.at.slice(0, 10), '2026-10-04', 'earned on the first one');
 });
+
+test('perfect week: the medal is the Forge mark with a 7/7 ring, self-contained, and the same art serves Awards', async () => {
+  const { perfectWeekMedal, badgeSVG } = await import('../js/ui/badges.js');
+  const svg = perfectWeekMedal({ size: 100, label: 'Perfect Week', shine: true });
+  assert(svg.includes('7/7') && svg.includes('stroke-dasharray') && svg.includes('<polyline'), 'ring, pulse and 7/7');
+  assert(svg.includes('xmlns=') && svg.includes('bdg-shine') && svg.includes('role="img"'), 'standalone, shining, labelled');
+  assert(!perfectWeekMedal({ earned: false, shine: true }).includes('bdg-shine'), 'a locked medal does not shine');
+  eq(badgeSVG('perfectweek', { size: 40 }).includes('pw-medal-svg'), true, 'Awards draws the same medal');
+  const ids = [...svg.matchAll(/url\(#([\w-]+)\)/g)].map((m) => m[1]);
+  assert(ids.every((id) => svg.includes(`id="${id}"`)), 'every gradient it uses is defined inside it');
+});

@@ -67,7 +67,7 @@ export const BADGE_ART = {
   bf1: { tier: 1, shape: 'round', icon: 'drop', n: '−1' },
   bf2: { tier: 2, shape: 'round', icon: 'drop', n: '−2' },
   bf5: { tier: 3, shape: 'round', icon: 'drop', n: '−5' },
-  perfectweek: { tier: 4, shape: 'hex', icon: 'trophy', n: '7/7' },
+  perfectweek: { tier: 4, shape: 'round', icon: 'spark', n: '7/7' }, // drawn by perfectWeekMedal() instead
   lean1: { tier: 2, shape: 'shield', icon: 'plus', n: '+1 kg' },
   pg_cut4: { tier: 2, shape: 'shield', icon: 'target', n: '4 wk' },
   pg_recomp8: { tier: 3, shape: 'hex', icon: 'barbell', n: '8 wk' },
@@ -112,6 +112,7 @@ function ensureSprite() {
  *   earned  false → grey silhouette   shine  true → a light sweeps across once (new badges)
  */
 export function badgeSVG(id, { earned = true, shine = false, size = 64, label = '', units = 'imperial' } = {}) {
+  if (id === 'perfectweek') return perfectWeekMedal({ earned, shine, size, label });
   ensureSprite();
   const a = { ...(BADGE_ART[id] || { tier: 1, shape: 'round', icon: 'spark' }) };
   if (id === 'lean1') a.n = units === 'metric' ? '+1 kg' : '+2 lb'; // the 1 kg goal, in the user's units
@@ -132,5 +133,38 @@ export function badgeSVG(id, { earned = true, shine = false, size = 64, label = 
       <g fill="${m.ink}" fill-opacity=".85">${icon}</g>
     </g>${banner}
     <g clip-path="url(#bdg-clip-${a.shape})"><path class="bdg-shine" d="M-26 -4h14l-22 72h-14z" fill="url(#bdg-shine)"/></g>
+  </svg>`;
+}
+
+// ---------- the Perfect Week medal: the Forge mark (barbell and pulse) in lime and steel, with a seven-segment ring ----------
+let medalN = 0;
+/**
+ * The Perfect Week medal as SVG markup. Self-contained (own gradients), so it also draws to a canvas for the share card.
+ *   earned false → grey silhouette   shine true → the light sweep runs (the page animates .bdg-shine; skip it for canvas)
+ */
+export function perfectWeekMedal({ earned = true, shine = false, size = 64, label = '' } = {}) {
+  const k = `pwm${++medalN}`;
+  const volt = earned ? '#C6FF3D' : '#6b7480';
+  const steel = earned ? ['#f4f7fa', '#9aa6b2', '#454e58'] : ['#cfd5db', '#8e97a1', '#4a525b'];
+  const seg = 20.4; // seven arcs round r = 26.5 (circumference 166.5), one per day
+  const gap = 166.5 / 7 - seg;
+  const plate = (x) => `<rect x="${x}" y="19.5" width="4" height="19" rx="1.2" fill="url(#${k}-s)"/><rect x="${x < 32 ? x + 4.6 : x - 3.4}" y="22.5" width="2.8" height="13" rx="1" fill="url(#${k}-s)"/>`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" class="bdg pw-medal-svg ${earned ? 'bdg-on' : 'bdg-locked'} ${shine && earned ? 'bdg-new' : ''}" viewBox="0 0 64 64" width="${size}" height="${size}" style="--bdg-glow:rgba(198,255,61,.45)" ${label ? `role="img" aria-label="${escAttr(label)}"` : 'aria-hidden="true"'}>
+    <defs>
+      <linearGradient id="${k}-r" x1="0" y1="0" x2=".35" y2="1"><stop offset="0" stop-color="${steel[0]}"/><stop offset=".55" stop-color="${steel[1]}"/><stop offset="1" stop-color="${steel[2]}"/></linearGradient>
+      <linearGradient id="${k}-s" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset=".5" stop-color="#aeb9c4"/><stop offset="1" stop-color="#5d6773"/></linearGradient>
+      <radialGradient id="${k}-f" cx=".5" cy=".4" r=".75"><stop offset="0" stop-color="#2a323c"/><stop offset="1" stop-color="#0b0e12"/></radialGradient>
+      <linearGradient id="${k}-h" x1="0" y1="0" x2="1" y2="0"><stop offset="0" stop-color="#fff" stop-opacity="0"/><stop offset=".5" stop-color="#fff" stop-opacity=".85"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient>
+      <clipPath id="${k}-c"><circle cx="32" cy="32" r="30"/></clipPath>
+    </defs>
+    <circle cx="32" cy="32" r="30" fill="url(#${k}-r)"/>
+    <circle cx="32" cy="32" r="23.6" fill="url(#${k}-f)"/>
+    <circle cx="32" cy="32" r="26.5" fill="none" stroke="${volt}" stroke-width="2.6" stroke-dasharray="${seg} ${gap.toFixed(2)}" stroke-linecap="butt" transform="rotate(-90 32 32)"/>
+    <rect x="15" y="28.4" width="34" height="2.4" rx="1.2" fill="url(#${k}-s)"/>
+    ${plate(13.5)}${plate(46.5)}
+    <polyline points="18,29.6 25,29.6 28,22.5 32,36.5 35.5,25 38,29.6 46,29.6" fill="none" stroke="${volt}" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+    <rect x="22.5" y="41.5" width="19" height="9" rx="3" fill="#0b0e12" stroke="${volt}" stroke-width=".9"/>
+    <text x="32" y="48.5" text-anchor="middle" font-size="7.4" font-weight="900" fill="${volt}" font-family="system-ui,-apple-system,sans-serif">7/7</text>
+    ${shine && earned ? `<g clip-path="url(#${k}-c)"><path class="bdg-shine" d="M-26 -4h14l-22 72h-14z" fill="url(#${k}-h)"/></g>` : ''}
   </svg>`;
 }
