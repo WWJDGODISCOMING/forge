@@ -46,15 +46,15 @@ export function renderSettings(el) {
   const ms = missionSettings();
   const nav = (href, ic, title, sub, attrs = '') => `
         <a class="g-row" href="${href}" ${attrs}><span class="g-ic">${icon(ic)}</span><span class="g-text"><span>${title}</span><small>${sub}</small></span><span class="chev">${icon('chev')}</span></a>`;
-  const prev = $('.set-nav [aria-current]', el); // a re-draw while you are on Settings keeps your section
+  const prev = $('.set-nav [aria-selected="true"]', el); // a re-draw while you are on Settings keeps your section
   const sel = prev && SECTIONS.some((x) => x[0] === prev.dataset.pane) ? prev.dataset.pane : SECTIONS[0][0];
   el.innerHTML = `
     <section class="stack">
       <h1>Settings</h1>
       <div class="set-cols">
-      <nav class="set-nav" aria-label="Settings sections">${SECTIONS.map(([id, label]) => `<button type="button" class="set-nav-item" data-pane="${id}" aria-controls="set-${id}" ${id === sel ? 'aria-current="true"' : ''}>${label}</button>`).join('')}</nav>
+      <nav class="set-nav" role="tablist" aria-orientation="vertical" aria-label="Settings sections">${SECTIONS.map(([id, label]) => `<button type="button" role="tab" class="set-nav-item" id="setnav-${id}" data-pane="${id}" aria-controls="set-${id}" aria-selected="${id === sel}" tabindex="${id === sel ? 0 : -1}">${label}</button>`).join('')}</nav>
       <div class="set-panes">
-      <div class="stack set-pane${sel === 'general' ? ' on' : ''}" id="set-general">
+      <div class="stack set-pane${sel === 'general' ? ' on' : ''}" id="set-general" role="tabpanel" aria-labelledby="setnav-general">
       <div class="group" data-tour="settings-profile">
         <a class="g-row" href="#/profile"><span class="g-ic">${icon('person')}</span><span class="g-text"><span>${esc(GOALS[p.goal]?.label || 'Profile')}</span><small>${esc(p.age)} yrs · ${formatHeight(p.heightCm, u)}${p.targetWeightKg ? ` · goal ${formatWeight(p.targetWeightKg, u, 0)}` : ''}</small></span><span class="chev">${icon('chev')}</span></a>
       </div>
@@ -97,7 +97,7 @@ export function renderSettings(el) {
       </div>
 
       </div>
-      <div class="stack set-pane${sel === 'connections' ? ' on' : ''}" id="set-connections">
+      <div class="stack set-pane${sel === 'connections' ? ' on' : ''}" id="set-connections" role="tabpanel" aria-labelledby="setnav-connections">
       <p class="sec-title">Connections</p>
       <div class="group">
         ${nav('#/locations', 'pin', 'Locations', state.locations.map((l) => esc(l.name)).join(', ') || 'None yet')}
@@ -107,7 +107,7 @@ export function renderSettings(el) {
       ${isNative() ? '<p class="sec-title" data-app-refresh-title hidden>iPhone app</p><div class="group" data-app-refresh-group hidden></div>' : ''}
 
       </div>
-      <div class="stack set-pane${sel === 'data' ? ' on' : ''}" id="set-data">
+      <div class="stack set-pane${sel === 'data' ? ' on' : ''}" id="set-data" role="tabpanel" aria-labelledby="setnav-data">
       <p class="sec-title">Your data</p>
       <div class="group">
         ${nav('#/report', 'heart', 'Doctor summary', isNative() ? 'A PDF to share with your doctor' : 'A PDF to print or save for your doctor')}
@@ -125,13 +125,13 @@ export function renderSettings(el) {
       </div>
 
       </div>
-      <div class="stack set-pane${sel === 'privacy' ? ' on' : ''}" id="set-privacy">
+      <div class="stack set-pane${sel === 'privacy' ? ' on' : ''}" id="set-privacy" role="tabpanel" aria-labelledby="setnav-privacy">
       ${photoSettingsHtml()}
 
       ${privacySettingsHtml()}
 
       </div>
-      <div class="stack set-pane${sel === 'account' ? ' on' : ''}" id="set-account">
+      <div class="stack set-pane${sel === 'account' ? ' on' : ''}" id="set-account" role="tabpanel" aria-labelledby="setnav-account">
       <p class="sec-title">Account</p>
       <div class="group">
         <div class="g-row static"><span class="g-text"><span>${esc(state.user.email)}</span></span></div>
@@ -151,7 +151,7 @@ export function renderSettings(el) {
   // Wide screens show one section at a time (CSS); on a phone every section is on the page and the list is hidden.
   const items = $$('.set-nav-item', el);
   const pick = (btn) => {
-    items.forEach((b) => { if (b === btn) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+    items.forEach((b) => { b.setAttribute('aria-selected', String(b === btn)); b.tabIndex = b === btn ? 0 : -1; });
     $$('.set-pane', el).forEach((pn) => pn.classList.toggle('on', pn.id === btn.getAttribute('aria-controls')));
     window.scrollTo(0, 0);
   };

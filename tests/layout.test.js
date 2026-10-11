@@ -438,7 +438,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
       if (route === 'settings') { // list left, selected section right; a phone keeps the whole page (list hidden, every section shown)
-        const st = await browser.eval(`(() => ({ cur: [...document.querySelectorAll('#main .set-nav [aria-current]')].map((e) => e.dataset.pane), shown: [...document.querySelectorAll('#main .set-pane')].filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.id), navW: document.querySelector('#main .set-nav').getBoundingClientRect().width }))()`);
+        const st = await browser.eval(`(() => ({ cur: [...document.querySelectorAll('#main .set-nav [aria-selected="true"]')].map((e) => e.dataset.pane), shown: [...document.querySelectorAll('#main .set-pane')].filter((e) => getComputedStyle(e).display !== 'none').map((e) => e.id), navW: document.querySelector('#main .set-nav').getBoundingClientRect().width }))()`);
         if (w >= 840) {
           if (st.cur.join() !== 'general') bad.push(`${at}: the first section should be selected, got ${st.cur}`);
           if (st.shown.join() !== 'set-general') bad.push(`${at}: only the selected section should show, got ${st.shown}`);
