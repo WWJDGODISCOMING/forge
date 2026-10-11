@@ -377,7 +377,8 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const bad = [];
-    for (const [w, h] of [...WIDE, [390, 844]]) for (const inset of [0, 47]) {
+    let base = new Set(); // what already wraps on a 390 phone isn't a wide-layout problem
+    for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
       await browser.viewport(w, h, true);
       await browser.open(route, seed());
       if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px')`); await wait(300); }
@@ -391,11 +392,24 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
           if (q.width < 1 || q.height < 1 || getComputedStyle(e).visibility === 'hidden') return;
           if (q.left < ${inset} - 0.5 || q.right > innerWidth - ${inset} + 0.5) out.push((e.className || e.tagName) + ' ' + Math.round(q.left) + '-' + Math.round(q.right));
         });
-        return { main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        const wrap = [];
+        const lineCount = (e) => { const g = document.createRange(); g.selectNodeContents(e); return new Set([...g.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top / 6))).size; };
+        document.querySelectorAll('#main .weight-text .hero-num, #main .weight-text [data-weight-trend] .nw, #main .rings-card > .row a, #main .food-card-kcal b, #main [data-weight-why]').forEach((e) => {
+          if (e.getBoundingClientRect().width < 1) return;
+          if (lineCount(e) > 1) wrap.push('wraps: ' + (e.className || e.tagName) + ' "' + e.textContent.trim().slice(0, 24) + '"');
+          if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).display !== 'inline') wrap.push('overflows: ' + (e.className || e.tagName));
+        });
+        const kc = document.querySelector('#main .food-card-kcal'); if (kc && lineCount(kc) > 1) wrap.push('wraps: food headline');
+        const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
+        const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
+        return { wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
       const cols = route === 'today' || route === 'train';
       if (!cols && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
+      if (w === 390 && !inset) base = new Set(m.wrap);
+      const fresh = m.wrap.filter((x) => !base.has(x));
+      if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
       if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
       if (!cols) continue;
       const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
