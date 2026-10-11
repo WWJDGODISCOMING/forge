@@ -47,13 +47,24 @@ export function setupResizeAnchor() {
   addEventListener('scroll', schedule, { passive: true });
   addEventListener('hashchange', () => { anchor = null; setTimeout(captureAnchor, 400); });
   let t1 = 0, t2 = 0;
+  // The reader taking over (touch, wheel, pointer, scroll keys; not our own scroll events): drop the pending restores and end
+  // the settle window, so what they scroll to becomes the new anchor and the page never snaps back.
+  const SCROLL_KEYS = new Set(['ArrowUp', 'ArrowDown', 'PageUp', 'PageDown', 'Home', 'End', ' ', 'Spacebar']);
+  const takeOver = () => {
+    if (!t1 && !t2 && Date.now() >= settleUntil) return;
+    clearTimeout(t1); clearTimeout(t2); t1 = t2 = 0;
+    settleUntil = 0;
+    schedule();
+  };
+  for (const ev of ['touchstart', 'wheel', 'pointerdown']) addEventListener(ev, takeOver, { passive: true });
+  addEventListener('keydown', e => { if (SCROLL_KEYS.has(e.key)) takeOver(); });
   addEventListener('resize', () => {
     if (window.innerWidth === width) return; // the keyboard opening or closing only changes the height: leave the scroll alone
     width = window.innerWidth;
     restoreAnchor();
     clearTimeout(t1); clearTimeout(t2);
-    t1 = setTimeout(restoreAnchor, 120); // again once media-query layouts have settled
-    t2 = setTimeout(restoreAnchor, SETTLE_MS);
+    t1 = setTimeout(() => { t1 = 0; restoreAnchor(); }, 120); // again once media-query layouts have settled
+    t2 = setTimeout(() => { t2 = 0; restoreAnchor(); }, SETTLE_MS);
   });
   setTimeout(captureAnchor, 400);
 }
