@@ -17,6 +17,8 @@ import { photoSettingsHtml, bindPhotoSettings } from '../photos/settings.js';
 import { missionSettings, setMissionSetting } from '../missions/store.js';
 import { privacySettingsHtml, bindPrivacySettings } from '../native/lock-ui.js';
 
+const SECTIONS = [['general', 'General'], ['connections', 'Connections'], ['data', 'Your data'], ['privacy', 'Privacy & photos'], ['account', 'Account']];
+
 function withingsLine() {
   const w = state.integrations && state.integrations.withings;
   if (!w || !w.connected) return 'Not connected';
@@ -44,10 +46,15 @@ export function renderSettings(el) {
   const ms = missionSettings();
   const nav = (href, ic, title, sub, attrs = '') => `
         <a class="g-row" href="${href}" ${attrs}><span class="g-ic">${icon(ic)}</span><span class="g-text"><span>${title}</span><small>${sub}</small></span><span class="chev">${icon('chev')}</span></a>`;
+  const prev = $('.set-nav [aria-current]', el); // a re-draw while you are on Settings keeps your section
+  const sel = prev && SECTIONS.some((x) => x[0] === prev.dataset.pane) ? prev.dataset.pane : SECTIONS[0][0];
   el.innerHTML = `
     <section class="stack">
       <h1>Settings</h1>
-
+      <div class="set-cols">
+      <nav class="set-nav" aria-label="Settings sections">${SECTIONS.map(([id, label]) => `<button type="button" class="set-nav-item" data-pane="${id}" aria-controls="set-${id}" ${id === sel ? 'aria-current="true"' : ''}>${label}</button>`).join('')}</nav>
+      <div class="set-panes">
+      <div class="stack set-pane${sel === 'general' ? ' on' : ''}" id="set-general">
       <div class="group" data-tour="settings-profile">
         <a class="g-row" href="#/profile"><span class="g-ic">${icon('person')}</span><span class="g-text"><span>${esc(GOALS[p.goal]?.label || 'Profile')}</span><small>${esc(p.age)} yrs · ${formatHeight(p.heightCm, u)}${p.targetWeightKg ? ` · goal ${formatWeight(p.targetWeightKg, u, 0)}` : ''}</small></span><span class="chev">${icon('chev')}</span></a>
       </div>
@@ -89,6 +96,8 @@ export function renderSettings(el) {
         <label class="g-row ms-set"><span class="g-text"><span>Bedtime</span><small>In bed by this time counts.</small></span><input type="time" name="mission_bed" value="${esc(ms.bed.padStart(5, '0'))}"></label>
       </div>
 
+      </div>
+      <div class="stack set-pane${sel === 'connections' ? ' on' : ''}" id="set-connections">
       <p class="sec-title">Connections</p>
       <div class="group">
         ${nav('#/locations', 'pin', 'Locations', state.locations.map((l) => esc(l.name)).join(', ') || 'None yet')}
@@ -97,6 +106,8 @@ export function renderSettings(el) {
       </div>
       ${isNative() ? '<p class="sec-title" data-app-refresh-title hidden>iPhone app</p><div class="group" data-app-refresh-group hidden></div>' : ''}
 
+      </div>
+      <div class="stack set-pane${sel === 'data' ? ' on' : ''}" id="set-data">
       <p class="sec-title">Your data</p>
       <div class="group">
         ${nav('#/report', 'heart', 'Doctor summary', isNative() ? 'A PDF to share with your doctor' : 'A PDF to print or save for your doctor')}
@@ -113,22 +124,48 @@ export function renderSettings(el) {
         <button class="g-row" data-tour-again><span class="g-ic">${icon('help')}</span><span class="g-text"><span>Replay the how-to tour</span></span></button>
       </div>
 
+      </div>
+      <div class="stack set-pane${sel === 'privacy' ? ' on' : ''}" id="set-privacy">
       ${photoSettingsHtml()}
 
       ${privacySettingsHtml()}
 
+      </div>
+      <div class="stack set-pane${sel === 'account' ? ' on' : ''}" id="set-account">
       <p class="sec-title">Account</p>
       <div class="group">
         <div class="g-row static"><span class="g-text"><span>${esc(state.user.email)}</span></span></div>
         <button class="g-row" data-signout><span class="g-text"><span>Sign out</span></span></button>
         <button class="g-row g-danger" data-delete><span class="g-text"><span>Delete everything</span></span></button>
       </div>
+      </div>
 
       <div class="small muted g-pad">
         <p>Forge ${VERSION}</p>
         <p>General fitness information, not medical advice. Calorie math: Mifflin-St Jeor (1990). Safe floors: Harvard Health (more cautious than NIH/NHLBI). Exercise library: free-exercise-db (public domain, Unlicense) by Yuhonas. Weight trend: Hacker’s Diet exponential smoothing.</p>
       </div>
+      </div>
+      </div>
     </section>`;
+
+  // Wide screens show one section at a time (CSS); on a phone every section is on the page and the list is hidden.
+  const items = $$('.set-nav-item', el);
+  const pick = (btn) => {
+    items.forEach((b) => { if (b === btn) b.setAttribute('aria-current', 'true'); else b.removeAttribute('aria-current'); });
+    $$('.set-pane', el).forEach((pn) => pn.classList.toggle('on', pn.id === btn.getAttribute('aria-controls')));
+    window.scrollTo(0, 0);
+  };
+  items.forEach((b, i) => {
+    b.addEventListener('click', () => pick(b));
+    b.addEventListener('keydown', (e) => {
+      const d = e.key === 'ArrowDown' ? 1 : e.key === 'ArrowUp' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      const n = items[(i + d + items.length) % items.length];
+      n.focus();
+      pick(n);
+    });
+  });
 
   $$('input[name=units]', el).forEach((r) =>
     r.addEventListener('change', () => patch('settings', 'main', { units: r.value }))
