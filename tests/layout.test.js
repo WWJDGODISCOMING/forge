@@ -505,7 +505,10 @@ if (standalone) {
           const a = document.querySelector('#main .pg-cols > .col-a'), b = document.querySelector('#main .pg-cols > .col-b');
           const rows = [...document.querySelectorAll('#main .trend-row')].map((e) => q(e));
           const cards = [...document.querySelectorAll('#main .card')].filter((e) => !e.querySelector('.score-hero, svg.chart')).map((e) => q(e).width);
-          return { seg: q(document.querySelector('#main .progress-seg')).width, a: a && { l: q(a).left, r: q(a).right, t: q(a).top, b: q(a).bottom }, b: b && { l: q(b).left, r: q(b).right, t: q(b).top },
+          return { seg: q(document.querySelector('#main .progress-seg')).width, a: a && { l: q(a).left, r: q(a).right, t: q(a).top, b: q(a).bottom }, b: b && { l: q(b).left, r: q(b).right, t: q(b).top, b: q(b).bottom },
+            ltIn: !!document.querySelector('#main .col-a [data-longterm-slot]'),
+            phoneOrder: (() => { const kids = [...document.querySelectorAll('#main .pg-cols > .col-a > *, #main .pg-cols > .col-b > *')].map((e) => e.matches('.pillar-grid') ? 'pillars' : e.matches('[data-longterm-slot]') ? 'longterm' : e.matches('details') ? 'how' : e.querySelector('.score-hero') ? 'hero' : ''); const i = kids.indexOf('pillars'), j = kids.indexOf('longterm'), k = kids.indexOf('how'); return i >= 0 && i < j && j < k && kids.indexOf('hero') < i; })(),
+            hair: [...document.querySelectorAll('#main .trend-list .g-row')].filter((e) => Math.abs(q(e).top - q(e.parentElement).top) < 1 && getComputedStyle(e, '::before').display !== 'none' && getComputedStyle(e, '::before').content !== 'none').length,
             dom: a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null,
             rowL: rows.length ? [...new Set(rows.map((r) => Math.round(r.left)))].length : 0, rowW: rows.length ? Math.max(...rows.map((r) => r.width)) : 0,
             ordered: [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length, cards: Math.max(0, ...cards), vw: innerWidth };
@@ -518,10 +521,16 @@ if (standalone) {
           if (!m.dom) bad.push(`${at}: left column is after the right in the DOM`);
           const two = m.a.r - m.a.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
           if (w >= 840 && !two) bad.push(`${at}: not two columns`);
+          if (route === 'score') {
+            if (w >= 840 && Math.abs(m.a.b - m.b.b) > 150) bad.push(`${at}: columns end ${Math.round(Math.abs(m.a.b - m.b.b))}px apart`);
+            if (w >= 840 && !m.ltIn) bad.push(`${at}: Long term is not in the left column`);
+            if (w < 840 && (m.ltIn || !m.phoneOrder)) bad.push(`${at}: phone order changed (hero, movers, pillars, ..., Long term, Longevity)`);
+          }
           if (w < 840 && two) bad.push(`${at}: should be one column`);
         }
         if (route === 'trends') {
           if (w >= 840 && m.rowL < 2) bad.push(`${at}: rows are not in two columns`);
+          if (w >= 840 && m.hair) bad.push(`${at}: ${m.hair} trend row(s) at the card top show a separator`);
           if (w >= 840 && m.rowW > 561) bad.push(`${at}: a trend row is ${Math.round(m.rowW)}px wide`);
           if (w < 840 && m.rowL > 1) bad.push(`${at}: rows should be one column`);
         }
