@@ -627,6 +627,33 @@ if (standalone) {
   });
 }
 
+// Today's two columns should end at about the same height, and the phone order must not change.
+if (standalone) {
+  test('layout: Today columns end within 120px of each other at 890x626 and 932x430, and the phone order is unchanged at 390x844', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    const measure = `(() => {
+      const a = document.querySelector('.col-a'), b = document.querySelector('.col-b');
+      const end = (c) => (c ? Math.round(c.getBoundingClientRect().bottom + scrollY) : null);
+      return { a: end(a), b: end(b), order: [...document.querySelectorAll('[data-today-cols] .slot')].map((s) => s.dataset.o).join(',') };
+    })()`;
+    for (const [w, h] of [[890, 626], [932, 430]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('today', seed());
+      const m = await browser.eval(measure);
+      if (m.a == null || m.b == null) bad.push(`${w}x${h}: no two columns`);
+      else if (Math.abs(m.a - m.b) > 120) bad.push(`${w}x${h}: columns end ${m.a}px and ${m.b}px down (${Math.abs(m.a - m.b)}px apart)`);
+    }
+    await browser.viewport(390, 844, true);
+    await browser.open('today', seed());
+    const p = await browser.eval(measure);
+    const nums = p.order.split(',').map(Number);
+    if (p.a != null || nums.some((n, i) => i && n < nums[i - 1])) bad.push(`390x844: phone order changed: ${p.order}`);
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 // Folding or unfolding the Duo mid-session (item 31): the same route, the same card at the top, sheets and timers carry on.
 if (standalone) {
   test('layout: resizing 466x678 → 626x890 → 890x626 → 466x678 keeps the route, scroll spot, sheet, focus and rest timer', async () => {
