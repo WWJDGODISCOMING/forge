@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.15.13 — iPhone Duo, round one (2026-10-11)
+
+Issue #64, part 6a (Body, Progress, the player, Settings, the short landscape screen and folding mid-session come in 6b). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Rotation:** `Info.plist` now allows Landscape Left/Right and Portrait Upside Down, and `UIRequiresFullScreen` is off, so the app can rotate and resize on both Duo screens. `preferredContentMode: "mobile"` is unchanged.
+- **Side safe areas:** new `--safe-left` / `--safe-right` tokens are used by the page, nav bar, tab bar, rest bar, toasts and sheets.
+- **Wide canvas:** from 600 px the content column is up to 1000 px and the tab bar is exactly as wide as the content. Today puts Readiness, Coach, Rings and Score on the left and the cards on the right. Train puts the preview card next to Program, Recovery and a one-column Tools list. A 32 px gutter sits on the centre line (the fold crease). Type and tap targets don't scale with width. Under 600 px nothing changes.
+- **Tour step 4** no longer tells you to tap a button that sits under the card at 320.
+- **Tests:** layout test now covers 466×678, 678×466, 626×890 and 890×626, asserts two columns on Today and Train, tab bar width, nothing inside simulated 47 px side insets, a ≥24 px gutter, and that a waiting update reload holds while a sheet is open.
+
+### What's new
+
+- Forge rotates, and on a wide screen Today and Train use two columns.
+
 ## 0.15.12 — Face ID app lock (2026-10-10)
 
 Issue #79, part 1 (part 2, two-step sign-in, comes later). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. **New native dependency `@capgo/capacitor-native-biometric`:** Refresh Forge runs `npm ci` and `cap sync ios` by itself, so the usual double-click is all that's needed. `NSFaceIDUsageDescription` is in Info.plist.

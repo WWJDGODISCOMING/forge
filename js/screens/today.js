@@ -241,6 +241,8 @@ export function renderToday(el) {
 
       ${tourOfferCard()}
 
+      <div class="today-cols">
+      <div class="col col-a">
       ${readinessCard()}
 
       ${coachLine()}
@@ -251,6 +253,8 @@ export function renderToday(el) {
         ${ringsHtml(rings)}
       </div>
 
+      </div>
+      <div class="col col-b">
       ${workoutCard()}
 
       ${foodCard(t)}
@@ -284,6 +288,8 @@ export function renderToday(el) {
       <div data-photo-reminder></div>
 
       ${insightsBlock()}
+      </div>
+      </div>
 
       <p class="disclaimer">General fitness information, not medical advice.</p>
     </section>`;

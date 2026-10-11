@@ -9,6 +9,7 @@ import { detect } from './layout/detect.js';
 import { seed } from './layout/seed.js';
 
 const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
+const WIDE = [[466, 678], [678, 466], [626, 890], [890, 626]];
 const ROUTES = ['play', 'today', 'train', 'body', 'weight', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
 const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || process.env['LAYOUT_' + k.toUpperCase()];
 const only = arg('routes') ? arg('routes').split(',') : null;
@@ -19,6 +20,8 @@ let browser = null;
 const CASES = [
   ...SIZES.map(([w, h]) => ({ w, h, dark: true, long: false })),
   { w: 375, h: 667, dark: false, long: false },
+  ...WIDE.map(([w, h]) => ({ w, h, dark: true, long: false })), // iPhone Duo: folded (outer) and unfolded (inner), portrait and landscape
+  { w: 626, h: 890, dark: false, long: true },
   { w: 375, h: 667, dark: true, long: true }, { w: 390, h: 844, dark: false, long: true },
   { w: 320, h: 568, dark: true, long: false, over: true }, { w: 390, h: 844, dark: true, long: false, over: true, ts: 1.35 }, // past every food target
   { w: 390, h: 844, dark: true, long: false, ts: 1.3 }, // iOS Text Size at ~130%: lines may wrap, but nothing may clip
@@ -366,6 +369,41 @@ const NATIVE_SHELL = `
   window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: (n) => n === 'App', Plugins: { App: { addListener: (ev, cb) => { (window.__cb = window.__cb || {})[ev] = cb; return Promise.resolve({ remove() {} }); } } } };
 `;
 
+// Wide canvas (item 28/30): two columns on Today and Train from 600 px, the tab bar as wide as the content, and nothing inside the side insets.
+for (const route of standalone ? ['today', 'train'] : []) {
+  if (only && !only.includes(route)) continue;
+  test(`layout: ${route}: wide canvas has the right columns, a tab bar as wide as the content, and respects left/right insets`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    for (const [w, h] of [...WIDE, [390, 844]]) for (const inset of [0, 47]) {
+      await browser.viewport(w, h, true);
+      await browser.open(route, seed());
+      if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px')`); await wait(300); }
+      const at = `${w}x${h}${inset ? ' inset ' + inset : ''}`;
+      const m = await browser.eval(`(() => {
+        const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
+        const a = document.querySelector('#main .col-a'), b = document.querySelector('#main .col-b');
+        const out = [];
+        document.querySelectorAll('#main a[href], #main button, #main .card, #nav a').forEach((e) => {
+          const q = e.getBoundingClientRect();
+          if (q.width < 1 || q.height < 1 || getComputedStyle(e).visibility === 'hidden') return;
+          if (q.left < ${inset} - 0.5 || q.right > innerWidth - ${inset} + 0.5) out.push((e.className || e.tagName) + ' ' + Math.round(q.left) + '-' + Math.round(q.right));
+        });
+        return { main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+      })()`);
+      if (Math.abs((m.tab.r - m.tab.l) - (m.main.r - m.main.l)) > 1 || Math.abs(m.tab.l - m.main.l) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not as wide as the content ${Math.round(m.main.l)}-${Math.round(m.main.r)}`);
+      if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
+      const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
+      if (w >= 600 && !two) bad.push(`${at}: not two columns`);
+      if (w < 600 && two) bad.push(`${at}: should stay one column`);
+      if (w >= 600 && two && m.b.l - m.a.r < 24) bad.push(`${at}: gutter ${Math.round(m.b.l - m.a.r)}px is under 24px`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 if (standalone) {
   test('layout: resume with a changed app-install.json reloads, then toasts "Updated to …" and opens What\'s new (never mid-workout)', async () => {
     if (skipReason()) return;
@@ -375,6 +413,7 @@ if (standalone) {
     const news = { [version]: { title: 'Test notes', items: ['First highlight', 'Second highlight'] } };
     const newBuild = JSON.stringify({ version, builtAt: '2026-10-12T09:00:00Z' });
     const newerBuild = JSON.stringify({ version, builtAt: '2026-10-13T09:00:00Z' }); // (sessionStorage outlives a test page: each scenario needs a build that differs from the last one's)
+    const newestBuild = JSON.stringify({ version, builtAt: '2026-10-14T09:00:00Z' });
     const reloaded = () => browser.eval("performance.getEntriesByType('navigation')[0].type === 'reload' && !window.__marker");
     for (const [w, h] of [[320, 568], [390, 844]]) {
       await browser.viewport(w, h, true);
@@ -406,6 +445,19 @@ if (standalone) {
       await browser.eval("location.hash = '#/today'");
       await wait(2500);
       assert(await reloaded(), `the waiting update did not go through after leaving the player at ${w}`);
+      // 3. an open sheet (it may hold unsaved input): the reload waits until it closes
+      await browser.open('today', seed(), NATIVE_SHELL, { persist: true });
+      await wait(2300);
+      await browser.eval("document.querySelector('[data-log]').click()");
+      await wait(700);
+      assert(await browser.eval("!!document.querySelector('dialog.sheet[open]')"), `the Log weight sheet did not open at ${w}`);
+      await browser.eval(`window.__marker = 1; sessionStorage.setItem('__install', ${JSON.stringify(newestBuild)})`);
+      await browser.eval('window.__cb.resume()');
+      await wait(2000);
+      assert(await browser.eval('window.__marker === 1 && !!document.querySelector("dialog.sheet[open]")'), `the app reloaded under an open sheet at ${w}`);
+      await browser.eval("document.querySelector('dialog.sheet[open]').close()");
+      await wait(2500);
+      assert(await reloaded(), `the waiting update did not go through after the sheet closed at ${w}`);
     }
     await browser.dropInit();
   });

@@ -283,7 +283,7 @@ test('round 2: chips, toast, meal row and busy message', () => {
   assert(/\.serv-chips\.serv-chips--wrap \{[^}]*flex-wrap: wrap/.test(css) && !/\.serv-chips\.serv-chips--wrap \{[^}]*overflow-x/.test(css) && /\.serv-chips--wrap \.chip-btn \{[^}]*white-space: nowrap/.test(css), 'one-line pills that wrap onto more rows');
   assert(css.includes('.food-sub > .food-brand::after { content: " · "'), 'the brand draws its own separator');
   const nav = readFileSync(new URL('../css/nav.css', import.meta.url), 'utf8');
-  assert(/\.toast \{[^}]*width: max-content;[^}]*max-width: calc\(100vw - 32px\)/.test(nav), 'toast sizes to its text');
+  assert(/\.toast \{[^}]*width: max-content;[^}]*max-width: calc\(100vw - 32px[^)]*\)/.test(nav), 'toast sizes to its text');
   const src = readFileSync(new URL('../js/screens/food.js', import.meta.url), 'utf8');
   assert(src.includes('Serving size') && src.includes('data-measures-cap'));
   const line = src.slice(src.indexOf('function entryLine'), src.indexOf('const stepBtns'));
