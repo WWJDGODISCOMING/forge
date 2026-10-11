@@ -314,7 +314,26 @@ if (isNative()) {
   }).catch(() => {});
 }
 
+// Saving that a celebration played (or that missions were seen) must not redraw Today: it would replace the card
+// the effect is drawn on. The in-memory state is already up to date, so only these keys changing means nothing to draw.
+const QUIET_SETTINGS = new Set(['missions_seen', 'missions_cele', 'perfect_weeks', 'updated_at']);
+let lastSettings = null;
+const onlyQuietChanged = (a, b) => {
+  if (!a || !b) return false;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const k of keys) if (!QUIET_SETTINGS.has(k) && JSON.stringify(a[k]) !== JSON.stringify(b[k])) return false;
+  return true;
+};
+
+let lastLoaded = '';
 subscribe((patch) => {
+  // A real snapshot arrives as { settings, loaded: {...state.loaded, settings: true} }: `loaded` (and `sync`) only count when they changed.
+  const loadedNow = JSON.stringify(state.loaded || {});
+  const loadedChanged = loadedNow !== lastLoaded;
+  lastLoaded = loadedNow;
+  const meaningful = Object.keys(patch).filter((k) => k !== 'sync' && (k !== 'loaded' || loadedChanged));
+  const quiet = meaningful.join() === 'settings' && currentRoute() === 'today' && onlyQuietChanged(lastSettings, state.settings);
+  lastSettings = state.settings ? { ...state.settings } : null;
   seedAwards();
   seedMissions();
   settlePrograms();
@@ -323,6 +342,7 @@ subscribe((patch) => {
   // Withings finished a history import while weight.csv rows are in Forge: drop the duplicate csv copies.
   if (('weights' in patch || 'integrations' in patch) && allLoaded()) import('./withings/dedupe.js').then((m) => m.dedupeCsv());
   if (keys.length === 1 && keys[0] === 'sync') return renderSync();
+  if (quiet) return;
   const route = currentRoute();
   const onlyWorkouts = keys.every((k) => k === 'workouts' || k === 'loaded' || k === 'sync');
   if ((route === 'play' || route === 'session') && onlyWorkouts && state.workouts.some((w) => w.status === 'active' && !w.deleted)) return;

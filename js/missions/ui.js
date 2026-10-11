@@ -4,7 +4,8 @@ import { icon } from '../ui/icons.js';
 import { badgeSVG } from '../ui/badges.js';
 import { units as getUnits } from '../state.js';
 import { rememberBadges } from '../workouts/awards-store.js';
-import { todayMissions, seenToday, rememberDone, weekProgress, unseenMissionBadges, MISSION_XP } from './store.js';
+import { celebrateMissions } from './celebrate.js';
+import { todayMissions, seenToday, weekProgress, unseenMissionBadges, MISSION_XP } from './store.js';
 
 const fmt = (n) => Math.round(n).toLocaleString();
 
@@ -31,17 +32,15 @@ export function missionsCard() {
   }).join('');
   return `<div class="card ms-card" data-missions>
     <div class="row between center"><p class="label">Today’s missions</p><span class="small muted">${m.done} of ${m.total}</span></div>
+    <div class="ms-bar" aria-hidden="true"><i style="--f:${m.total ? m.done / m.total : 0}"></i><b class="ms-bar-flash"></b></div>
     <ul class="ms-list">${rows}</ul>
     <p class="small muted ms-foot">Finish ${m.total === 2 ? 'both' : `all ${m.total}`} for a <span class="nw">+${m.bonus} XP bonus.</span></p>
   </div>`;
 }
 
-/** After the card is on screen: remember what was shown as done (later, so the check's spring isn't cut off). */
+/** After Today renders: celebrate what is new. */
 export function afterMissionsRender() {
-  const m = todayMissions();
-  const ids = m.list.filter((x) => x.done).map((x) => x.id);
-  if (!ids.length) return;
-  setTimeout(() => rememberDone(ids), 1200);
+  celebrateMissions(); // marks missions seen itself, once the card has really been shown
 }
 
 const DAY_LETTER = ['S', 'M', 'T', 'W', 'T', 'F', 'S'];

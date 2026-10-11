@@ -77,3 +77,37 @@
 }
 .ms-foot { text-wrap: balance; }
 .ms-foot .nw { white-space: nowrap; }
+
+/* ---------- Mission celebrations (js/missions/celebrate.js): transform/opacity only, never catch taps ---------- */
+.ms-card { position: relative; overflow: hidden; }
+.ms-done { position: relative; }
+.ms-bar { position: absolute; left: 0; right: 0; bottom: 0; height: 4px; background: var(--surface-2); overflow: hidden; }
+.ms-bar > i { display: block; height: 100%; width: 100%; transform-origin: left; transform: scaleX(var(--f, 0)); background: var(--volt); }
+.ms-bar-flash { position: absolute; inset: 0; background: white; opacity: 0; }
+.ms-edge, .ms-bloom, .pw-ring, .pw-bloom, .pw-edge { position: fixed; pointer-events: none; z-index: 44; }
+.ms-glow { position: absolute; inset: 0; border-radius: inherit; pointer-events: none; box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--volt) 80%, transparent), inset 0 0 28px 6px color-mix(in srgb, var(--volt) 55%, transparent); }
+.ms-edge, .pw-edge { inset: 0; box-shadow: inset 0 0 70px 14px color-mix(in srgb, var(--volt) 75%, transparent); }
+.ms-bloom, .pw-bloom { inset: 0; background: radial-gradient(circle at 50% 45%, rgba(230, 255, 154, .9), rgba(198, 255, 61, .35) 45%, transparent 75%); z-index: 46; }
+.ms-toast {
+  position: fixed; z-index: 47; left: 50%; top: calc(var(--safe-top, 0px) + 8px); translate: -50% 0; pointer-events: none; width: max-content;
+  display: grid; justify-items: center; gap: 2px; padding: 12px 20px; max-width: min(92vw, 360px); text-align: center;
+  border-radius: 18px; background: color-mix(in srgb, var(--surface) 92%, transparent); border: 1px solid color-mix(in srgb, var(--volt) 45%, transparent);
+  box-shadow: 0 10px 40px rgba(0, 0, 0, .45), 0 0 30px color-mix(in srgb, var(--volt) 30%, transparent);
+}
+.ms-toast b { font-size: calc(18px * var(--ts, 1)); color: var(--text); white-space: nowrap; }
+@media (max-width: 340px) { .ms-toast b { font-size: calc(16px * var(--ts, 1)); } }
+.ms-toast-xp { font: 800 calc(15px * var(--ts, 1)) var(--num, inherit); color: var(--accent-text); font-variant-numeric: tabular-nums; }
+.pw-bg { position: fixed; inset: 0; z-index: 43; background: var(--on-bright); pointer-events: none; }
+.pw-stage { position: fixed; inset: 0; z-index: 48; display: grid; place-items: center; padding: var(--safe-top, 0px) max(16px, env(safe-area-inset-right)) var(--safe-bottom, 0px) max(16px, env(safe-area-inset-left)); overflow-y: auto; cursor: pointer; }
+.pw-ring { width: 120px; height: 120px; border-radius: 50%; border: 3px solid var(--volt); box-shadow: 0 0 30px var(--volt); z-index: 45; }
+.pw-card { position: relative; isolation: isolate; display: grid; justify-items: center; gap: 6px; text-align: center; width: min(100%, 340px); }
+.pw-card::before { content: ''; position: absolute; inset: -44px -28px; z-index: -1; pointer-events: none; background: radial-gradient(closest-side, color-mix(in srgb, var(--on-bright) 92%, transparent) 55%, transparent); } /* keeps confetti from showing through the text */
+.pw-stage button:focus-visible { outline: 3px solid var(--volt); outline-offset: 3px; }
+.pw-medal { filter: drop-shadow(0 0 28px color-mix(in srgb, var(--volt) 55%, transparent)); }
+.pw-title { margin: 8px 0 0; font: 900 calc(30px * var(--ts, 1))/1.1 var(--num, inherit); color: white; letter-spacing: .02em; overflow-wrap: anywhere; }
+.pw-n { margin: 0; font: 900 calc(44px * var(--ts, 1))/1 var(--num, inherit); color: var(--volt); }
+.pw-streak { margin: 0; color: var(--text-2); font-size: calc(16px * var(--ts, 1)); }
+.pw-xp { margin: 4px 0 8px; font: 800 calc(20px * var(--ts, 1)) var(--num, inherit); color: var(--volt); font-variant-numeric: tabular-nums; }
+.pw-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: 100%; }
+.pw-actions .btn { min-height: 52px; }
+@media (max-height: 640px) { .pw-card { gap: 2px; } .pw-medal svg { width: 96px; height: 96px; } .pw-n { font-size: calc(34px * var(--ts, 1)); } }

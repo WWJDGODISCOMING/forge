@@ -10,6 +10,7 @@ import { streak } from '../workouts/awards.js';
 import {
   DEFAULTS, indexDays, missionsFor, missionXP, weekDots, allDone, dayXP, localDay, shiftDay, MISSION_XP, ALL_DONE_XP,
 } from './core.js';
+import { PERFECT_WEEK_XP, recordTier } from './celebrate-core.js';
 import { missionBadges, newMissionBadges, currentStreak } from './badges.js';
 
 const XP_BADGE = 100;
@@ -77,7 +78,7 @@ export function missionsSummary() {
 /** Mission badges (streaks, body composition), keeping any already saved in awards_seen. */
 export function extraBadges() {
   const idx = liveIndex();
-  return missionBadges({ weighDays: [...idx.weigh], bodyMeasures: state.body_measures || [], seen: (state.settings && state.settings.awards_seen) || {}, units: getUnits() });
+  return missionBadges({ weighDays: [...idx.weigh], bodyMeasures: state.body_measures || [], seen: (state.settings && state.settings.awards_seen) || {}, units: getUnits(), perfectWeeks: perfectWeekEnds() });
 }
 
 /** Mission badges earned since missions started that Today hasn't celebrated yet. */
@@ -94,7 +95,9 @@ export function bonusXP(badges = extraBadges()) {
   if (!start) return 0;
   const idx = liveIndex();
   const fromBadges = badges.filter((b) => b.earned && b.earned.at.slice(0, 10) >= start).length * XP_BADGE;
-  return missionXP(start, today(), idx, { targets: targets() }) + fromBadges;
+  // the Perfect Week badge pays its 100 once (above); each later week pays 100 more
+  const extraWeeks = Math.max(0, perfectWeekEnds().filter((d) => d >= start).length - 1) * PERFECT_WEEK_XP;
+  return missionXP(start, today(), idx, { targets: targets() }) + fromBadges + extraWeeks;
 }
 
 /** Options that awardsFor needs to include missions: { extraBadges, bonusXP }. */
@@ -129,7 +132,31 @@ export function rememberDone(ids) {
   const keep = shiftDay(day, -14);
   const next = Object.fromEntries(Object.entries(seen).filter(([d]) => d >= keep));
   next[day] = [...new Set([...have, ...ids])];
+  state.settings.missions_seen = next; // right away, like missions_cele
   patch('settings', 'main', { missions_seen: next });
+}
+
+/** The highest celebration tier already played today (missions_cele), so each tier plays once per day. */
+export function celebratedTier(day = today()) {
+  const cele = (state.settings && state.settings.missions_cele) || {};
+  return Number(cele[day]) || 0;
+}
+
+export function recordCelebrated(tier, day = today()) {
+  if (!state.settings) return;
+  const next = recordTier(state.settings.missions_cele, day, tier);
+  state.settings.missions_cele = next; // right away, so a re-render before the save lands can't replay it
+  patch('settings', 'main', { missions_cele: next });
+}
+
+/** The last day of each Perfect Week earned (perfect_weeks), oldest first. */
+export const perfectWeekEnds = () => [...((state.settings && state.settings.perfect_weeks) || [])].sort();
+
+export function recordPerfectWeek(day = today()) {
+  if (!state.settings) return;
+  const next = [...new Set([...perfectWeekEnds(), day])].sort();
+  state.settings.perfect_weeks = next;
+  patch('settings', 'main', { perfect_weeks: next });
 }
 
 export { MISSION_XP, ALL_DONE_XP };
