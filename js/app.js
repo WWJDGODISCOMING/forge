@@ -204,8 +204,16 @@ function addAvatar(route) {
     }
   };
   fit();
-  if (typeof ResizeObserver === 'function') new ResizeObserver(fit).observe(acts); // text size or fonts changing after render
+  // Refit whenever the title row or the actions change size (rotation, folding, text size, fonts), in both directions.
+  if (avatarFit) avatarFit.disconnect();
+  avatarFit = null;
+  if (typeof ResizeObserver === 'function') {
+    avatarFit = new ResizeObserver(fit);
+    avatarFit.observe(acts);
+    avatarFit.observe(large);
+  }
 }
+let avatarFit = null;
 
 async function render() {
   if (applyRedirect()) return;

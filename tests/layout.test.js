@@ -90,6 +90,31 @@ if (standalone) {
       assert(r.place && !r.dot && r.lines === 1, `workout meta/place wrapped badly at 320: ${JSON.stringify(r)}`);
     }
   });
+
+  test('layout: the Progress title row refits on resize without a re-render (890 → 320 → 390)', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const read = () => browser.eval(`(() => { const l = document.querySelector('#main .large-title'), a = l.querySelector('.lt-actions'), t = l.querySelector('h1, .lt-title') || l.firstElementChild; return { actionsRight: a.getBoundingClientRect().right, titleRight: l.getBoundingClientRect().right, snug: l.classList.contains('snug'), tight: l.classList.contains('tight'), label: (document.querySelector('[data-log]') || {}).innerText, fs: parseFloat(getComputedStyle(t).fontSize) }; })()`);
+    const sizes = [[890, 626], [320, 568], [390, 844]];
+    const fresh = {};
+    for (const [w, h] of sizes) { // what a fresh render gives at each size
+      await browser.viewport(w, h, true);
+      await browser.open('weight', seed());
+      await wait(300);
+      fresh[w] = await read();
+    }
+    await browser.viewport(890, 626, true);
+    await browser.open('weight', seed());
+    for (const [w, h] of [...sizes.slice(1), sizes[0], sizes[2], sizes[0]]) { // same page, no re-render
+      await browser.viewport(w, h, true);
+      await wait(300);
+      const r = await read(), f = fresh[w];
+      assert(r.actionsRight <= r.titleRight + 0.5, `actions run past the title row at ${w}: ${JSON.stringify(r)}`);
+      assert(r.snug === f.snug && r.tight === f.tight && r.label === f.label && r.fs === f.fs, `resized page differs from a fresh render at ${w}: ${JSON.stringify(r)} vs ${JSON.stringify(f)}`);
+    }
+    assert(fresh[890].label === '+ Log weight' && !fresh[890].snug && fresh[390].label === '+ Log weight', 'full label expected at 390 and 890');
+  });
 }
 
 if (standalone) {
