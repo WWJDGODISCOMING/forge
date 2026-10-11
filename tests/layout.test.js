@@ -413,7 +413,8 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
         const kc = document.querySelector('#main .food-card-kcal'); if (kc && lineCount(kc) > 1) wrap.push('wraps: food headline');
         const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
         const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
-        return { wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
+        return { slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
       const cols = route === 'today' || route === 'train';
@@ -422,6 +423,13 @@ for (const route of standalone ? ['today', 'train', 'body', 'food', 'settings'] 
       const fresh = m.wrap.filter((x) => !base.has(x));
       if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
       if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
+      if (route === 'today') { // reading order (VoiceOver, Tab) must match the screen: DOM order = visual order on a phone, and the right column per card on two columns
+        const shown = m.slots.filter((x) => x.t != null);
+        if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10,11,12') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
+        if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
+        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 2, 3, 7, 8, 9, 12].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
+        if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
+      }
       if (!cols) continue;
       const two = m.a && m.b && m.a.r - m.a.l > 1 && m.b.r - m.b.l > 1 && m.b.l >= m.a.r - 0.5 && Math.abs(m.a.t - m.b.t) < 4;
       if (w >= 840 && !two) bad.push(`${at}: not two columns`);
