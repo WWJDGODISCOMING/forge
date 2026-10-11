@@ -4,7 +4,7 @@
 
 Issue #64, part 6a (Body, Progress, the player, Settings, the short landscape screen and folding mid-session come in 6b). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
 
-- **Rotation:** `Info.plist` now allows Landscape Left/Right and Portrait Upside Down, and `UIRequiresFullScreen` is off, so the app can rotate and resize on both Duo screens. `preferredContentMode: "mobile"` is unchanged.
+- **Rotation:** `UIRequiresFullScreen` is off so the app can resize on both Duo screens. `UISupportedInterfaceOrientations` stays portrait-only for now; Landscape Left/Right is turned on in 6b together with the short-landscape screens. `preferredContentMode: "mobile"` is unchanged.
 - **Side safe areas:** new `--safe-left` / `--safe-right` tokens are used by the page, nav bar, tab bar, rest bar, toasts and sheets.
 - **Wide canvas:** from 840 px (each column at least 340 px) Today and Train use up to 1000 px; every other screen stays the 560 px column until its 6b layout lands, and the tab bar is full width on every tab with its items inside the side insets. Narrower wide screens (466 to 839 px) use one centred 560 px column. Today puts Readiness, Coach, Rings, Weight, Score, Program and Insights on the left and Workout, Food, Missions and Weekly on the right (two equal columns), so they end within about 120 px of each other. Train puts the preview card next to Program, Recovery and a one-column Tools list. A 32 px gutter sits on the centre line (the fold crease). Type and tap targets don't scale with width. Under 600 px nothing changes.
 - **Tour step 4** no longer tells you to tap a button that sits under the card at 320.
@@ -12,7 +12,7 @@ Issue #64, part 6a (Body, Progress, the player, Settings, the short landscape sc
 
 ### What's new
 
-- Forge rotates, and on a wide screen Today and Train use two columns.
+- Today and Train use two columns on a wide screen.
 
 ## 0.15.12 — Face ID app lock (2026-10-10)
 
