@@ -1,5 +1,5 @@
 // Food (v0.11.0): today's totals against your targets, the day's meals, and the Log food sheet.
-// It lives under the Today tab (#/food, reached from the Food card on Today) so the tab bar stays at five.
+// It is the Food tab (#/food), also reached from the Food card on Today.
 // Log food searches My foods and recents instantly, then USDA FoodData Central a moment later (js/food/search.js).
 import { state, units } from '../state.js';
 import { put, patch, softDelete, newRecord } from '../db.js';

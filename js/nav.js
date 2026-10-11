@@ -2,20 +2,38 @@
 // deep it sits (tab root = 0), which way a screen change should animate, where "Back" goes, and
 // per-tab scroll memory.
 
-export const TAB_ORDER = ['today', 'train', 'body', 'weight', 'settings'];
+export const TAB_ORDER = ['today', 'train', 'food', 'body', 'weight'];
 
-// Which tab lights up for each screen.
+// Which tab lights up for each screen. Settings and its children have no tab: they light whichever tab opened Settings.
 export const TAB_FOR = {
   session: 'train', play: 'train', summary: 'train', timer: 'train', library: 'train',
   history: 'weight', awards: 'weight', score: 'weight',
-  locations: 'settings', report: 'settings', profile: 'settings', withings: 'settings', apple: 'settings',
   metric: 'body', photos: 'body', progress: 'weight', trends: 'weight', weekly: 'weight',
-  coach: 'today', program: 'today', food: 'today',
+  coach: 'today', program: 'today', food: 'food',
 };
-export const tabOf = (route) => TAB_FOR[route] || route;
+
+// Settings opens from the avatar on any tab root (no Settings tab). Everything behind it lights the tab you came from.
+export const SETTINGS_SCREENS = new Set(['settings', 'locations', 'report', 'profile', 'withings', 'apple']);
+let settingsOrigin = 'today';
+export const getSettingsOrigin = () => settingsOrigin;
+export const setSettingsOrigin = (tab) => { settingsOrigin = TAB_ORDER.includes(tab) ? tab : 'today'; };
+/** Call for every route change: remembers which tab Settings would go back to. */
+export function noteRoute(route) {
+  if (!SETTINGS_SCREENS.has(route)) settingsOrigin = tabOf(route);
+}
+
+export const tabOf = (route) => (SETTINGS_SCREENS.has(route) ? settingsOrigin : TAB_FOR[route] || route);
+
+/** Old bookmarks, notification links and the removed Settings tab: hash route -> where it lives now (null = unchanged). */
+const OLD_ROUTES = { home: 'today', log: 'food', foods: 'food', diary: 'food' };
+export function redirectRoute(parts) {
+  const route = parts[0] || 'today';
+  if (Object.hasOwn(OLD_ROUTES, route)) return [OLD_ROUTES[route], ...parts.slice(1)];
+  return null;
+}
 
 // Screens that live at the root of a tab (the Progress tab has four siblings behind its segmented control).
-const ROOTS = new Set(['progress', 'today', 'train', 'body', 'weight', 'score', 'trends', 'weekly', 'settings']);
+const ROOTS = new Set(['progress', 'today', 'train', 'food', 'body', 'weight', 'score', 'trends', 'weekly']);
 // Screens pushed on top of another one, one level deeper than their parent.
 const DEPTH_2 = new Set(['play', 'summary']);
 
@@ -45,12 +63,13 @@ export function backTarget(parts) {
   if (route === 'withings' && parts[1]) return '#/withings';
   if (route === 'play') return '#/session';
   if (route === 'summary') return '#/train';
-  const parent = tabOf(route);
-  return `#/${parent}`;
+  if (route === 'settings') return `#/${settingsOrigin}`;
+  if (SETTINGS_SCREENS.has(route)) return '#/settings';
+  return `#/${tabOf(route)}`;
 }
 
 const LABELS = {
-  today: 'Today', train: 'Train', body: 'Body', weight: 'Progress', settings: 'Settings',
+  today: 'Today', train: 'Train', food: 'Food', body: 'Body', weight: 'Progress', settings: 'Settings',
   withings: 'Withings', session: 'Workout',
 };
 /** Title of the screen "Back" goes to, e.g. "Settings" (iOS shows the parent's title on the back button). */

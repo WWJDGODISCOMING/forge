@@ -18,7 +18,7 @@ import { attachPull, detachPull, canPullSync, waitAtMost, PULL_WAIT_MS } from '.
 import { call } from './functions.js';
 import { attachSwipeBack } from './ui/swipeback.js';
 import { skeletonHTML } from './ui/skeleton.js';
-import { tabOf, routeDepth, transitionKind, backTarget, backLabel, TITLE_FOR, createScrollMemory } from './nav.js';
+import { tabOf, routeDepth, transitionKind, backTarget, backLabel, redirectRoute, noteRoute, TITLE_FOR, createScrollMemory } from './nav.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
@@ -167,7 +167,37 @@ function loadErrorMessage(err) {
   return `Can’t read your data (${esc(code || (err && err.message) || 'unknown error')}).`;
 }
 
+// Old bookmarks and notification links (#/home, #/log ...) land on their new home, never on a blank screen.
+function applyRedirect() {
+  const to = redirectRoute(routeParts());
+  if (!to) return false;
+  location.replace(`#/${to.join('/')}`);
+  return true;
+}
+
+// Settings has no tab: a small avatar (initials) at the top-right of each tab root's large title opens it.
+function addAvatar(route) {
+  const large = main.querySelector('.large-title');
+  if (!large || routeDepth([route]) !== 0 || large.querySelector('[data-avatar]')) return;
+  const src = (state.user && state.user.email) || '';
+  const initial = (src.trim()[0] || '').toUpperCase();
+  const a = document.createElement('a');
+  a.href = '#/settings';
+  a.className = 'avatar-btn';
+  a.dataset.avatar = '';
+  a.setAttribute('aria-label', 'Settings and profile');
+  a.innerHTML = initial ? `<span aria-hidden="true">${esc(initial)}</span>` : '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8.5" r="3.6"/><path d="M5 20c.8-3.6 3.6-5.4 7-5.4s6.2 1.8 7 5.4"/></svg>';
+  let acts = large.querySelector('.lt-actions');
+  if (!acts) {
+    acts = document.createElement('div');
+    acts.className = 'lt-actions';
+    large.appendChild(acts);
+  }
+  acts.appendChild(a);
+}
+
 async function render() {
+  if (applyRedirect()) return;
   // Don't redraw under your fingers: if you're typing in the page, wait until you leave the field.
   const a = document.activeElement;
   if (a && main.contains(a) && /^(INPUT|TEXTAREA|SELECT)$/.test(a.tagName) && a.type !== 'radio' && a.type !== 'checkbox') {
@@ -232,6 +262,7 @@ async function render() {
   if (lastRoute === 'summary' && route !== 'summary') import('./ui/fx.js').then((m) => m.clearParticles());
   if (lastRoute !== route) screenNav(null); // sub-view nav (e.g. a Locations editor) never outlives its screen
   lastRoute = route;
+  noteRoute(route);
   const tab = tabOf(route);
   nav.hidden = FULLSCREEN.has(route);
   document.body.classList.toggle('fullscreen', FULLSCREEN.has(route));
@@ -246,6 +277,7 @@ async function render() {
     firstPaint();
     if (FULLSCREEN.has(route)) hideNavBar();
     else navBar({ title: TITLE_FOR[route], back: backTarget(routeParts()), backLabel: backLabel(routeParts()) });
+    addAvatar(route);
     hapticTabs(nav, onTab);
     enhanceSegs(main);
     fitCharts(main);
