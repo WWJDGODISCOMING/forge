@@ -112,3 +112,12 @@ test('Back from a Settings child: child to child keeps where you started; Settin
   eq(backTarget(p('#/apple')), '#/settings');
   setSettingsOrigin('today');
 });
+
+test('quick-log sheet: Start workout unlocks audio inside the tap, before any timer or await', () => {
+  const code = src('js/ui/quicklog.js');
+  assert(/import \{ unlockAudio \} from '\.\/sound\.js'/.test(code), 'imported statically');
+  const click = code.slice(code.indexOf('b.onclick'), code.indexOf('});', code.indexOf('b.onclick')));
+  const at = click.indexOf('unlockAudio()');
+  assert(at > -1, 'unlockAudio runs in the click handler');
+  for (const later of ['setTimeout', 'import(', 'await', '.then(']) assert(click.indexOf(later) > at, `unlockAudio comes before ${later}`);
+});

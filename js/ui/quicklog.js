@@ -3,6 +3,7 @@ import { quickLogVisible, quickLogRows } from '../quicklog.js';
 import { icon } from './icons.js';
 import { openSheetCount, onSheetsChange } from './sheets.js';
 import { lightTap } from './haptic.js';
+import { unlockAudio } from './sound.js';
 import { sheet, esc, $$ } from '../ui.js';
 import { state } from '../state.js';
 
@@ -69,6 +70,7 @@ export function openQuickLog() {
         const row = rows.find((r) => r.id === b.dataset.row);
         b.onclick = () => {
           lightTap();
+          if (row.id === 'workout' && !row.go) unlockAudio(); // inside the tap, before any timer or import: iPhone only lets this tap unlock sound + voice
           close();
           if (row.go) location.hash = row.go;
           else setTimeout(RUN[row.run], 0);
