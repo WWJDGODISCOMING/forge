@@ -2,7 +2,7 @@
 
 ## 0.15.25 — Two-step sign-in (2026-10-12)
 
-Issue #79, part 2. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. Needs a one-time switch on the Firebase project first (SETUP.md, section 7b); until then the row says so and sign-in is untouched.
+Issue #79, part 2. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. Needs a one-time switch on the Firebase project first (SETUP.md, section 7b); until then the row shows Off, and turning it on explains the switch is missing; sign-in is untouched.
 
 - **Settings → Privacy & security → Two-step sign-in** (On or Off). Turning it on: password if Firebase asks, **Add to Passwords** (opens the `otpauth://` link so Apple Passwords can save the code), or a QR code and the setup key (grouped in 4s, with Copy) for another device, then the 6-digit code.
 - **Sign-in** asks for the code when it's on (`auth/multi-factor-auth-required`), with plain inline messages for a wrong or expired code and as many tries as you need. Delete everything asks for the code too.

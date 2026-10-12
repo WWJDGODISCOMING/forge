@@ -72,7 +72,7 @@ If anyone (including you) tries "Create an account" now, the app says new accoun
 
 ## 7b. Two-step sign-in: one-time switch (optional, do it once on your Mac)
 
-Settings → Privacy & security → **Two-step sign-in** asks for a 6-digit authenticator code (Apple Passwords works) as well as your password. Until you flip this switch on your Firebase project, the row just says "Two-step sign-in needs a one-time switch on your Firebase project". Signing in is never affected.
+Settings → Privacy & security → **Two-step sign-in** asks for a 6-digit authenticator code (Apple Passwords works) as well as your password. Until you flip this switch on your Firebase project, the row shows Off, and tapping it says two-step sign-in isn't switched on for Forge yet. Signing in is never affected.
 
 Use your own signed-in Google account. Nothing secret goes in the repo.
 

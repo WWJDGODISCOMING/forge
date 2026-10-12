@@ -10,14 +10,33 @@ export const MFA_REQUIRED = 'auth/multi-factor-auth-required';
 export const groupKey = (k) => String(k || '').replace(/\s+/g, '').replace(/(.{4})(?=.)/g, '$1 ');
 
 /** The otpauth:// link authenticator apps and Apple Passwords understand. */
-export function otpauthUri(secretKey, email, issuer = TOTP_ISSUER) {
+export function otpauthUri(secretKey, email, issuer = TOTP_ISSUER, { algorithm = 'SHA1', digits = 6, period = 30 } = {}) {
   const key = String(secretKey || '').replace(/\s+/g, '');
   const i = encodeURIComponent(issuer);
-  return 'otpauth://totp/' + i + ':' + encodeURIComponent(email || '') + '?secret=' + encodeURIComponent(key) + '&issuer=' + i + '&algorithm=SHA1&digits=6&period=30';
+  return 'otpauth://totp/' + i + ':' + encodeURIComponent(email || '') + '?secret=' + encodeURIComponent(key) + '&issuer=' + i + '&algorithm=' + encodeURIComponent(algorithm) + '&digits=' + digits + '&period=' + period;
 }
 
 /** 6 digits only; pasted "123 456" works. */
 export const cleanCode = (v) => String(v || '').replace(/\D/g, '').slice(0, 6);
+
+/**
+ * Submit once when the 6th digit arrives (typed, pasted or autofilled). The same code is never sent twice: it takes a change
+ * to the box (or reset(), after a failed try clears it) before it can fire again, so nothing can loop.
+ */
+export function autoSubmitOnce(submit) {
+  let sent = null;
+  return {
+    check(value) {
+      const c = cleanCode(value);
+      if (c.length < 6) { sent = null; return false; }
+      if (c === sent) return false;
+      sent = c;
+      submit(c);
+      return true;
+    },
+    reset() { sent = null; },
+  };
+}
 
 export const isMfaRequired = (err) => !!err && err.code === MFA_REQUIRED;
 
@@ -30,23 +49,23 @@ export function isNotEnabled(err) {
   return /totp/i.test(m) && /not (enabled|allowed)|disabled/i.test(m);
 }
 
-export const NOT_ENABLED_TEXT = 'Two-step sign-in needs a one-time switch on your Firebase project. The steps are in SETUP.md.';
+export const NOT_ENABLED_TEXT = 'Two‑step sign‑in isn’t switched on for Forge yet (one‑time setup, SETUP.md 7b).';
 
 /** Plain-English text for anything that can go wrong with a code. */
 export function mfaErrorMessage(err) {
   if (isNotEnabled(err)) return NOT_ENABLED_TEXT;
   const code = (err && err.code) || '';
   const map = {
-    'auth/invalid-verification-code': 'That code didn’t work. Codes change every 30 seconds, so wait for a new one and try again.',
+    'auth/invalid-verification-code': 'That code didn’t work. Check it’s the Forge code and try again.',
     'auth/code-expired': 'That code ran out. Wait for a new one and try again.',
-    'auth/missing-verification-code': 'Enter the 6-digit code.',
+    'auth/missing-verification-code': 'Enter the 6‑digit code.',
     'auth/invalid-multi-factor-session': 'That took too long. Close this and sign in again.',
     'auth/requires-recent-login': 'For safety, enter your password again.',
     'auth/too-many-requests': 'Too many tries. Wait a few minutes and try again.',
     'auth/network-request-failed': 'No connection. Try again when you have signal.',
-    'auth/second-factor-already-in-use': 'Two-step sign-in is already on.',
-    'auth/invalid-credential': 'Email or password is wrong.',
-    'auth/wrong-password': 'Email or password is wrong.',
+    'auth/second-factor-already-in-use': 'Two‑step sign‑in is already on.',
+    'auth/invalid-credential': 'That password is wrong.',
+    'auth/wrong-password': 'That password is wrong.',
   };
   return map[code] || 'Something went wrong. Try again.';
 }
@@ -63,7 +82,10 @@ export function mfaStatus(sdk, user) {
 export async function startEnroll(sdk, user) {
   const session = await sdk.multiFactor(user).getSession();
   const secret = await sdk.TotpMultiFactorGenerator.generateSecret(session);
-  return { secret, key: secret.secretKey, uri: otpauthUri(secret.secretKey, user.email) };
+  const uri = otpauthUri(secret.secretKey, user.email, TOTP_ISSUER, {
+    algorithm: secret.hashingAlgorithm || 'SHA1', digits: secret.codeLength || 6, period: secret.codeIntervalSeconds || 30,
+  });
+  return { secret, key: secret.secretKey, uri };
 }
 
 /** Step 2: the 6-digit code from the authenticator finishes it. */

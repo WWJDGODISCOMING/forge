@@ -225,7 +225,7 @@ test('wiring: plist string, plugin, Package.swift, update hold, settings section
   assert(app.indexOf('setupLock()') > 0 && app.indexOf('setupLock()') < app.indexOf("import('./native/update.js')"), 'the lock is set up before the update check');
   assert(/holdReloadWhile\(\(\) => \{ const l = appLock\(\)/.test(app), 'no reload under the Face ID prompt');
   assert(/whenUnlocked\(\)/.test(app), 'the update note waits for the unlock');
-  assert(src('js/screens/settings.js').includes('privacySettingsHtml()'), 'Settings has the section');
+  assert(src('js/screens/settings.js').includes('privacySettingsHtml('), 'Settings has the section');
   const ui = src('js/native/lock-ui.js');
   assert(/Face ID lock is available in the iPhone app\./.test(ui), 'one-line note on the web');
   assert(ui.includes('Lock Forge with Face ID') && ui.includes('Privacy &amp; security'), 'names');

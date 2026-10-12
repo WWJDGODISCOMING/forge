@@ -129,8 +129,7 @@ export function renderSettings(el) {
       <div class="stack set-pane${sel === 'privacy' ? ' on' : ''}" id="set-privacy" role="tabpanel" aria-labelledby="setnav-privacy">
       ${photoSettingsHtml()}
 
-      ${privacySettingsHtml()}
-      ${mfaSettingsHtml()}
+      ${privacySettingsHtml(localStorage, mfaSettingsHtml())}
 
       </div>
       <div class="stack set-pane${sel === 'account' ? ' on' : ''}" id="set-account" role="tabpanel" aria-labelledby="setnav-account">

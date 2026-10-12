@@ -3,8 +3,9 @@ import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import {
   groupKey, otpauthUri, cleanCode, isMfaRequired, isNotEnabled, mfaErrorMessage, mfaStatus,
-  startEnroll, finishEnroll, unenrollAll, startSignIn, finishSignIn, NOT_ENABLED_TEXT,
+  startEnroll, finishEnroll, unenrollAll, startSignIn, finishSignIn, NOT_ENABLED_TEXT, autoSubmitOnce,
 } from '../js/mfa.js';
+import { createLock } from '../js/native/lock.js';
 
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const fail = (code) => Object.assign(new Error(code), { code });
@@ -95,7 +96,7 @@ test('sign-in: the resolver path signs in with the right code, and a wrong code 
   eq(ctx.hint.uid, 'f1');
   const bad = await rejects(finishSignIn(sdk, ctx, '654321'));
   eq(bad.code, 'auth/invalid-verification-code');
-  assert(/30 seconds/.test(mfaErrorMessage(bad)));
+  assert(/Check it’s the Forge code/.test(mfaErrorMessage(bad)));
   const ok = await finishSignIn(sdk, ctx, '123 456'); // same resolver, no lockout on our side
   eq(ok.user.uid, 'u1');
   eq(sdk.calls.filter((c) => c[0] === 'resolve').length, 2);
@@ -141,7 +142,7 @@ test('not switched on yet: Firebase errors become the one-time-switch message, n
     eq(isNotEnabled(e), true);
     eq(mfaErrorMessage(e), NOT_ENABLED_TEXT);
   }
-  assert(/one-time switch on your Firebase project/.test(NOT_ENABLED_TEXT));
+  assert(/isn’t switched on for Forge yet/.test(NOT_ENABLED_TEXT) && /7b/.test(NOT_ENABLED_TEXT));
   eq(isNotEnabled(new Error('TOTP MFA is not enabled for this project')), true);
   eq(isNotEnabled(fail('auth/network-request-failed')), false);
   eq(mfaErrorMessage(new Error('internal stack trace words')), 'Something went wrong. Try again.');
@@ -172,4 +173,63 @@ test('SETUP.md has the one-time command; CHANGELOG has the 0.15.24 wording fix a
   const log = src('CHANGELOG.md');
   assert(/end closer together on Duo landscape/.test(log) && !/within about 40 px/.test(log));
   assert(/## 0\.15\.25/.test(log));
+});
+
+test('auto-submit: the 6th digit submits once; the same code never re-sends until the box changes', () => {
+  const sent = [];
+  const a = autoSubmitOnce((c) => sent.push(c));
+  eq(a.check('12'), false);
+  eq(a.check('123 45'), false);
+  eq(a.check('123 456'), true);
+  eq(a.check('123 456'), false); // same input event again: no loop
+  eq(a.check('123456'), false);
+  eq(sent.join(','), '123456');
+  a.check('123 45'); // edited down, then back up: allowed again
+  eq(a.check('123 456'), true);
+  a.reset(); // a failed try clears the box
+  eq(a.check('654 321'), true);
+  eq(a.check('Your code is 987654 ok'), true); // pasted text is cleaned first
+  eq(sent.join(','), '123456,123456,654321,987654');
+});
+
+test('code boxes use a neutral placeholder, no maxlength, and non-breaking hyphens in the two-step copy', () => {
+  const ui = src('js/mfa-ui.js');
+  assert(!/placeholder="[^"]*\d/.test(ui), 'placeholder has no digits');
+  assert(!/maxlength/.test(ui));
+  assert(/autoSubmitOnce/.test(ui) && /dimUntilFull: true/.test(ui), 'both sheets auto-submit; Turn on is dim until 6 digits');
+  const copy = (ui + src('js/mfa.js')).replace(/^\s*\/\/.*$|\s\/\/ .*$|\/\*[^]*?\*\//gm, '').replace(/one-time-code|otpauth/g, '');
+  assert(!/(two|sign|6)-(step|in|digit)/i.test(copy), 'two-step, sign-in, 6-digit use U+2011');
+  assert(/key:/.test(src('js/ui/icons.js')));
+});
+
+test('lock: a pass for Passwords is honoured once on the way back; any other trip still locks', async () => {
+  const mk = () => {
+    let t = 1000;
+    const log = [];
+    const st = { v: JSON.stringify({ enabled: true, timeout: 0, asked: true }), getItem() { return this.v; }, setItem(k, v) { this.v = v; } };
+    const asked = [];
+    const lock = createLock({
+      device: { available: async () => true, verify: async (r) => { asked.push(r); return 'ok'; } },
+      view: { show: (m) => log.push(m), hide: () => log.push('hide'), error() {} }, store: st, session: null, now: () => t,
+    });
+    return { lock, asked, tick: (ms) => { t += ms; } };
+  };
+  const r = mk();
+  await r.lock.enable();
+  const before = r.asked.length;
+  r.lock.passFor(120000);
+  r.lock.inactive(); r.lock.away(); r.tick(30000); r.lock.back();
+  eq(r.lock.state, 'unlocked');
+  eq(r.asked.length, before); // no second Face ID
+  r.lock.away(); r.tick(1000); r.lock.back(); // the pass was used up
+  await Promise.resolve();
+  eq(r.asked.length, before + 1);
+  const x = mk(); await x.lock.enable(); x.lock.passFor(120000);
+  x.lock.away(); x.tick(121000); x.lock.back(); // came back too late
+  await Promise.resolve();
+  eq(x.lock.state === 'unlocked' || x.lock.state === 'locked', true);
+  assert(x.asked.length >= 2, 'an expired pass still locks');
+  const y = mk(); await y.lock.enable(); y.lock.away(); y.tick(1000); y.lock.back(); // no pass at all
+  await Promise.resolve();
+  assert(y.asked.length >= 2, 'without a pass it locks as before');
 });

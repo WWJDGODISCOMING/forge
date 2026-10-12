@@ -1,14 +1,21 @@
 /* Two-step sign-in sheets (js/mfa-ui.js). The sheet itself is the shared bottom sheet: phone-width and centred on wide screens. */
 .mfa a.btn { display: flex; align-items: center; justify-content: center; min-height: 56px; text-decoration: none; text-align: center; }
 .mfa-more { border-radius: 14px; background: var(--surface-2); padding: 0 14px; }
-.mfa-more > summary { min-height: 48px; display: flex; align-items: center; cursor: pointer; font-weight: 600; font-size: calc(16px * var(--ts, 1)); list-style: none; }
+.mfa-more > summary { min-height: 48px; display: flex; align-items: center; justify-content: space-between; gap: 10px; cursor: pointer; font-weight: 600; color: var(--text-1); font-size: calc(16px * var(--ts, 1)); list-style: none; }
 .mfa-more > summary::-webkit-details-marker { display: none; }
+.mfa-more > summary .chev { color: var(--text-3); display: inline-flex; flex: none; }
+.mfa-more > summary .chev svg { width: 18px; height: 18px; }
+.mfa-more[open] > summary .chev { transform: rotate(90deg); }
+@media (prefers-reduced-motion: no-preference) { .mfa-more > summary .chev { transition: transform .18s ease; } }
+.mfa-step { margin: 4px 0 0; display: flex; align-items: center; gap: 10px; font-weight: 600; }
+.mfa-n { flex: none; width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; background: var(--surface-3); font-size: 14px; }
 .mfa-more[open] { padding-bottom: 14px; }
 .mfa-qr { width: min(220px, 100%); margin: 4px auto 12px; border-radius: 12px; overflow: hidden; background: white; }
 .mfa-qr svg { display: block; width: 100%; height: auto; }
-.mfa-keyrow { display: flex; gap: 10px; align-items: center; min-width: 0; }
-.mfa-key { flex: 1; min-width: 0; padding: 12px; border-radius: 12px; background: var(--surface-3); overflow-wrap: anywhere; word-break: break-all;
+.mfa-keyrow { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.mfa-key { display: grid; grid-template-columns: repeat(4, max-content); justify-content: center; gap: 6px 12px; padding: 12px; border-radius: 12px; background: var(--surface-3);
   font: 600 calc(15px * var(--ts, 1))/1.45 ui-monospace, Menlo, monospace; letter-spacing: .04em; user-select: all; -webkit-user-select: all; }
+.mfa-g { white-space: nowrap; }
 .mfa-keyrow .btn { flex: none; min-height: 44px; }
 .sheet-body input[name=code] { font: 600 calc(24px * var(--ts, 1)) ui-monospace, Menlo, monospace; letter-spacing: .18em; text-align: center; }
 .mfa-msg { margin: 0; color: var(--text-1); line-height: 1.4; overflow-wrap: anywhere; }

@@ -5,7 +5,7 @@ import { esc, $, sheet, toast } from '../ui.js';
 import { icon } from '../ui/icons.js';
 
 /** The section's markup. On the web there's no toggle, just one line saying why. */
-export function privacySettingsHtml(store = localStorage) {
+export function privacySettingsHtml(store = localStorage, extraRows = '') {
   const supported = lockSupported();
   const s = readSettings(store);
   const note = isNative()
@@ -15,13 +15,14 @@ export function privacySettingsHtml(store = localStorage) {
       <p class="sec-title">Privacy &amp; security</p>
       <div class="group" data-privacy>
         ${supported ? `
-        <label class="g-row sw"><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Lock Forge with Face ID</span><small>Hides Forge in the app switcher too.</small></span><input type="checkbox" switch name="applock" ${s.enabled ? 'checked' : ''}></label>
+        <label class="g-row sw"><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Face ID lock</span><small>Hides Forge in the app switcher too.</small></span><input type="checkbox" switch name="applock" ${s.enabled ? 'checked' : ''}></label>
         <div class="g-row col static" data-lock-timeout ${s.enabled ? '' : 'hidden'}><span>Lock after leaving</span>
           <div class="seg" role="radiogroup" aria-label="Lock after leaving the app">
             ${TIMEOUTS.map((t) => `<label><input type="radio" name="locktime" value="${t.ms}" ${s.timeout === t.ms ? 'checked' : ''}><span>${esc(t.label)}</span></label>`).join('')}
           </div>
         </div>` : `
         <div class="g-row static"><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Face ID lock</span><small>${note}</small></span></div>`}
+        ${extraRows}
       </div>`;
 }
 

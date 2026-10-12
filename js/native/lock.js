@@ -100,6 +100,7 @@ export function createLock({ device, view, store, session, now = Date.now } = {}
   let state = 'off';
   let hiddenAt = null;
   let authing = false;
+  let passUntil = null;
   let waiters = [];
   const settings = () => readSettings(store);
   const set = (s) => {
@@ -157,12 +158,17 @@ export function createLock({ device, view, store, session, now = Date.now } = {}
       if (state === 'shield' && hiddenAt == null) hiddenAt = now();
     },
 
+    /** Forge is about to hand over to another app that asks for Face ID itself (Passwords): the next return within `ms` doesn't ask again. Used once. */
+    passFor(ms) { if (settings().enabled && state === 'unlocked') passUntil = now() + ms; },
+
     /** Back in front. */
     back() {
       if (authing || !settings().enabled) return;
       if (state === 'shield') {
         // No background in between (it was only inactive): drop the shield, no Face ID.
-        if (hiddenAt != null && shouldLock(settings(), hiddenAt, now())) { set('locked'); api.unlock(); } else { hiddenAt = null; set('unlocked'); }
+        const passed = hiddenAt != null && passUntil != null && now() <= passUntil; // a trip we agreed to (say, to Passwords): once
+        if (hiddenAt != null) passUntil = null;
+        if (!passed && hiddenAt != null && shouldLock(settings(), hiddenAt, now())) { set('locked'); api.unlock(); } else { hiddenAt = null; set('unlocked'); }
       } else if (state === 'locked') api.unlock();
     },
 

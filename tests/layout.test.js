@@ -1091,6 +1091,11 @@ if (standalone) {
         out: kids.some((e) => { const q = e.getBoundingClientRect(); return q.width > 0 && (q.left < r.left - 0.5 || q.right > r.right + 0.5); }),
         hscroll: body.scrollWidth > body.clientWidth + 0.5, btnLines: btn ? lines(btn) : 0, btnH: btn ? btn.getBoundingClientRect().height : 0,
         keyCut: [...d.querySelectorAll('.mfa-key')].some((e) => e.scrollWidth > e.clientWidth + 0.5),
+        splitGroups: [...d.querySelectorAll('.mfa-g')].filter((e) => lines(e) > 1).length,
+        keyRows: new Set([...d.querySelectorAll('.mfa-g')].map((e) => Math.round(e.getBoundingClientRect().top / 4))).size,
+        keyPerRow: (() => { const t = {}; d.querySelectorAll('.mfa-g').forEach((e) => { const k = Math.round(e.getBoundingClientRect().top / 4); t[k] = (t[k] || 0) + 1; }); return Object.values(t); })(),
+        h2Lines: lines(d.querySelector('h2')),
+        hyphenEnds: (() => { let n = 0; const w = document.createTreeWalker(d, NodeFilter.SHOW_TEXT); let nd; while ((nd = w.nextNode())) { const t = nd.textContent; for (let i = 0; i < t.length - 1; i++) { if (t[i] !== '-' || t[i + 1] === ' ') continue; const a = document.createRange(); a.setStart(nd, i); a.setEnd(nd, i + 1); const b = document.createRange(); b.setStart(nd, i + 1); b.setEnd(nd, i + 2); const ra = a.getClientRects()[0]; const rb = b.getClientRects()[0]; if (ra && rb && rb.top > ra.bottom - 2) n++; } } return n; })(),
         input: (() => { const i = d.querySelector('input[name=code]'); return i ? { mode: i.inputMode, ac: i.autocomplete } : null; })() };
     })()`;
     for (const [w, h] of MFA_SIZES) {
@@ -1101,10 +1106,14 @@ if (standalone) {
       await browser.eval("document.querySelector('[data-mfa-row]').click()"); await wait(900);
       await browser.eval("document.querySelector('dialog.sheet[open] details').open = true"); await wait(200);
       let r = await browser.eval(probe);
-      if (!r || r.title !== 'Two-step sign-in') { note(`the turn-on sheet did not open: ${JSON.stringify(r)}`, at); continue; }
+      if (!r || r.title !== 'Two‑step sign‑in') { note(`the turn-on sheet did not open: ${JSON.stringify(r)}`, at); continue; }
       if (r.out || r.hscroll) note('the turn-on sheet clips or scrolls sideways', at);
       if (r.btnLines !== 1 || r.btnH < 44) note(`Add to Passwords wraps or is small (${r.btnLines} lines, ${r.btnH}px)`, at);
       if (r.keyCut) note('the setup key is cut off', at);
+      if (r.splitGroups) note(`${r.splitGroups} setup-key group(s) split across two lines`, at);
+      if (r.keyRows !== 2 || r.keyPerRow.some((n) => n !== 4)) note(`the setup key is not two even rows of 4 groups (${JSON.stringify(r.keyPerRow)})`, at);
+      if (r.h2Lines > 1) note(`the sheet title wraps to ${r.h2Lines} lines`, at);
+      if (r.hyphenEnds) note('a line of text ends in a hyphen', at);
       if (!r.input || r.input.mode !== 'numeric' || r.input.ac !== 'one-time-code') note('the code box lacks numeric / one-time-code', at);
       if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note(`the sheet is not phone-width and centred (${Math.round(r.w)} wide, left ${Math.round(r.left)})`, at);
       if (shots) await browser.screenshot(`${shots}/mfa-enroll-${w}x${h}.png`);
@@ -1114,6 +1123,18 @@ if (standalone) {
       r = await browser.eval(probe);
       if (!r || r.title !== 'Enter your code') { note(`the sign-in code sheet did not open: ${JSON.stringify(r)}`, at); continue; }
       if (r.out || r.hscroll) note('the sign-in code sheet clips or scrolls sideways', at);
+      if (r.h2Lines > 1) note(`the code sheet title wraps to ${r.h2Lines} lines`, at);
+      if (r.hyphenEnds) note('a line of text ends in a hyphen (code sheet)', at);
+      // turn-off sheet
+      await browser.eval("document.querySelectorAll('dialog.sheet').forEach((d) => d.remove())");
+      await browser.open('settings', seed(), 'window.__mfaOn = true;');
+      await browser.eval("document.querySelector('[data-mfa-row]').click()"); await wait(700);
+      const off = await browser.eval(probe);
+      if (!off || off.title !== 'Two‑step sign‑in') note(`the turn-off sheet did not open: ${JSON.stringify(off)}`, at);
+      else {
+        if (off.h2Lines > 1) note(`the turn-off sheet title wraps to ${off.h2Lines} lines`, at);
+        if (off.hyphenEnds) note('a line of text ends in a hyphen (turn-off sheet)', at);
+      }
       if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note('the code sheet is not phone-width and centred', at);
       if (shots) await browser.screenshot(`${shots}/mfa-code-${w}x${h}.png`);
     }

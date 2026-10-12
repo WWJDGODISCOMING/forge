@@ -2,9 +2,10 @@
 // 6-digit code) and turning it off. The logic and the error text live in js/mfa.js; Firebase loads only when this is used.
 import { auth } from './firebase.js';
 import { reauth } from './auth.js';
+import { appLock } from './native/lock.js';
 import { loadSdk } from './mfa-sdk.js';
 import {
-  groupKey, cleanCode, isMfaRequired, mfaErrorMessage, mfaStatus,
+  groupKey, cleanCode, autoSubmitOnce, isMfaRequired, mfaErrorMessage, mfaStatus,
   startEnroll, finishEnroll, unenrollAll, startSignIn, finishSignIn,
 } from './mfa.js';
 import { esc, $, sheet, toast } from './ui.js';
@@ -29,17 +30,27 @@ function askSheet(title, render) {
   });
 }
 
-const CODE_INPUT = '<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" maxlength="7" placeholder="123 456" enterkeyhint="done" autocapitalize="off" spellcheck="false">';
+const CODE_INPUT = '<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9 ]*" placeholder="––– –––" enterkeyhint="done" autocapitalize="off" spellcheck="false">';
 
 /** Wire a form's code box: digits only, "Turn on"/"Verify" button works with a pasted or autofilled code. */
-function codeForm(body, label, run, onDone) {
+function codeForm(body, label, run, onDone, { dimUntilFull = false } = {}) {
   const form = $('form', body);
   const err = $('.error', body);
   const btn = $('button[type=submit]', body);
   const input = form.code;
-  input.addEventListener('input', () => { const c = cleanCode(input.value); input.value = c.length > 3 ? c.slice(0, 3) + ' ' + c.slice(3) : c; err.textContent = ''; });
+  const auto = autoSubmitOnce(() => { if (!btn.disabled && !btn.hidden) form.requestSubmit(); });
+  const dim = (full) => { if (dimUntilFull) btn.classList.toggle('ghost', !full); };
+  dim(false);
+  input.addEventListener('input', () => {
+    const c = cleanCode(input.value);
+    input.value = c.length > 3 ? c.slice(0, 3) + ' ' + c.slice(3) : c;
+    err.textContent = '';
+    dim(c.length === 6);
+    auto.check(c);
+  });
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    if (btn.disabled) return;
     err.textContent = '';
     btn.disabled = true;
     btn.textContent = 'Checking…';
@@ -50,6 +61,8 @@ function codeForm(body, label, run, onDone) {
       err.textContent = mfaErrorMessage(ex);
       if (ex && ex.code === 'auth/invalid-multi-factor-session') btn.hidden = true;
       input.value = ''; // a wrong code is just tried again; nothing here locks you out
+      auto.reset();
+      dim(false);
       input.focus();
       btn.disabled = false;
       btn.textContent = label;
@@ -66,8 +79,8 @@ export async function promptSignInCode(error) {
   const out = await askSheet('Enter your code', (body, done) => {
     body.innerHTML = `
       <form class="stack" novalidate>
-        <p class="muted">Open your authenticator app, or Apple Passwords, and enter the 6-digit code for Forge.</p>
-        <label class="field"><span>6-digit code</span>${CODE_INPUT}</label>
+        <p class="muted">Open your authenticator app, or Apple Passwords, and enter the 6‑digit code for Forge.</p>
+        <label class="field"><span>6‑digit code</span>${CODE_INPUT}</label>
         <p class="error" aria-live="polite"></p>
         <button class="btn" type="submit">Verify</button>
       </form>`;
@@ -90,6 +103,7 @@ function passwordSheet() {
     body.innerHTML = `
       <form class="stack" novalidate>
         <p class="muted">For safety, Forge asks for your password again before changing this.</p>
+        <input type="email" name="username" autocomplete="username" value="${esc((auth.currentUser && auth.currentUser.email) || '')}" hidden tabindex="-1" aria-hidden="true">
         <label class="field"><span>Your password</span><input name="password" type="password" autocomplete="current-password"></label>
         <p class="error" aria-live="polite"></p>
         <button class="btn" type="submit">Continue</button>
@@ -97,6 +111,7 @@ function passwordSheet() {
     const form = $('form', body);
     const err = $('.error', body);
     const btn = $('button[type=submit]', body);
+    setTimeout(() => form.password.focus({ preventScroll: true }), 120);
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
       err.textContent = '';
@@ -125,7 +140,7 @@ export async function qrSvg(text) {
   qr.addData(text);
   qr.make();
   const n = qr.getModuleCount();
-  const q = 3; // quiet zone, in modules
+  const q = 4; // quiet zone, in modules
   let d = '';
   for (let r = 0; r < n; r++) for (let c = 0; c < n; c++) if (qr.isDark(r, c)) d += `M${c + q} ${r + q}h1v1h-1z`;
   const s = n + q * 2;
@@ -138,7 +153,7 @@ async function copyText(t) {
 
 // ---------- turning it on ----------
 function openEnroll(user, sdk, onChange) {
-  sheet('Two-step sign-in', (body, close, head) => {
+  sheet('Two‑step sign‑in', (body, close, head) => {
     void head;
     body.innerHTML = '<p class="muted" aria-live="polite">Getting your code ready…</p>';
     const fail = (ex) => {
@@ -148,37 +163,53 @@ function openEnroll(user, sdk, onChange) {
     withRecent(() => startEnroll(sdk, user)).then(async (setup) => {
       const svg = await qrSvg(setup.uri);
       const shown = groupKey(setup.key);
+      const groups = shown.split(' ').map((g) => `<span class="mfa-g">${esc(g)}</span>`).join(' ');
       body.innerHTML = `
         <div class="stack mfa">
-          <p>Forge will ask for a 6-digit code when you sign in, so a stolen password isn’t enough.</p>
+          <p>Forge will ask for a 6‑digit code when you sign in, so a stolen password isn’t enough.</p>
+          <p class="mfa-step"><b class="mfa-n">1</b><span>Add Forge to Passwords</span></p>
           <a class="btn" href="${esc(setup.uri)}" data-passwords>Add to Passwords</a>
-          <p class="small muted">Opens Apple Passwords on this iPhone and saves your Forge code there. Then come back and type the code it shows.</p>
+          <p class="small muted">Opens Apple Passwords on this iPhone and saves your Forge code there. Then come back here.</p>
           <details class="mfa-more">
-            <summary>Use another device or app</summary>
+            <summary><span>Use another device or app</span><span class="chev" aria-hidden="true">${icon('chev')}</span></summary>
             <div class="mfa-qr">${svg}</div>
             <p class="small muted">Scan this with an authenticator app, or type the key:</p>
-            <div class="mfa-keyrow"><code class="mfa-key" data-key>${esc(shown)}</code><button type="button" class="btn ghost" data-copy>Copy</button></div>
+            <div class="mfa-keyrow"><code class="mfa-key" data-key>${groups}</code><button type="button" class="btn ghost" data-copy>Copy key</button></div>
           </details>
+          <p class="mfa-step"><b class="mfa-n">2</b><span>Type the 6‑digit code it shows</span></p>
           <form class="stack" novalidate>
-            <label class="field"><span>6-digit code</span>${CODE_INPUT}</label>
+            <label class="field"><span>6‑digit code</span>${CODE_INPUT}</label>
             <p class="error" aria-live="polite"></p>
-            <button class="btn" type="submit">Turn on</button>
+            <button class="btn ghost" type="submit">Turn on</button>
           </form>
         </div>`;
-      $('[data-copy]', body).onclick = async () => toast((await copyText(setup.key)) ? 'Setup key copied' : 'Press and hold the key to copy it');
-      codeForm(body, 'Turn on', (code) => finishEnroll(sdk, user, setup.secret, code), () => {
-        close();
-        toast('Two-step sign-in is on');
-        onChange();
+      $('[data-passwords]', body).addEventListener('click', () => {
+        // Passwords asks for Face ID itself, so coming back from it must not ask again (once, within 2 minutes).
+        const lock = appLock();
+        if (lock) lock.passFor(120000);
+        const back = () => {
+          if (!body.isConnected) { document.removeEventListener('visibilitychange', back); return; }
+          if (document.visibilityState !== 'visible') return;
+          document.removeEventListener('visibilitychange', back);
+          setTimeout(() => { const i = $('input[name=code]', body); if (i && i.isConnected) i.focus(); }, 250);
+        };
+        document.addEventListener('visibilitychange', back);
       });
+      $('[data-copy]', body).onclick = async () => toast((await copyText(setup.key)) ? 'Setup key copied' : 'Press and hold the key to copy it');
+      codeForm(body, 'Turn on', (code) => withRecent(() => finishEnroll(sdk, user, setup.secret, code)), () => {
+        close();
+        toast('Two‑step sign‑in is on');
+        onChange();
+      }, { dimUntilFull: true });
     }).catch((ex) => { if (!wasCancelled(ex)) fail(ex); else close(); });
   });
 }
 
 function openTurnOff(user, sdk, onChange) {
-  sheet('Turn off two-step sign-in?', (body, close) => {
+  sheet('Two‑step sign‑in', (body, close) => {
     body.innerHTML = `
       <div class="stack">
+        <p><b>Turn off two‑step sign‑in?</b></p>
         <p>Anyone who knows your password will be able to sign in to Forge. You can turn it back on any time.</p>
         <p class="error" aria-live="polite"></p>
         <div class="row gap">
@@ -193,7 +224,7 @@ function openTurnOff(user, sdk, onChange) {
       try {
         await withRecent(() => unenrollAll(sdk, user));
         close();
-        toast('Two-step sign-in is off');
+        toast('Two‑step sign‑in is off');
         onChange();
       } catch (ex) {
         yes.disabled = false;
@@ -205,10 +236,7 @@ function openTurnOff(user, sdk, onChange) {
 
 // ---------- Settings → Privacy & security row ----------
 export function mfaSettingsHtml() {
-  return `
-      <div class="group" data-mfa>
-        <button type="button" class="g-row" data-mfa-row><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Two-step sign-in</span><small data-mfa-note>A code from an authenticator app, as well as your password.</small></span><span class="g-val" data-mfa-state>…</span></button>
-      </div>`;
+  return `<button type="button" class="g-row" data-mfa-row><span class="g-ic">${icon('key')}</span><span class="g-text"><span>Two‑step sign‑in</span><small data-mfa-note>A code from an authenticator app, as well as your password.</small></span><span class="g-val" data-mfa-state>…</span><span class="chev">${icon('chev')}</span></button>`;
 }
 
 export function bindMfaSettings(el) {
