@@ -4,6 +4,8 @@
 
 Issue #83. **Touches Cloud Functions** (new `snapMealPhoto`); no `firestore.rules`, `firebase.json` or `config.js` changes. Deploy with the phone **Deploy** button, choice `functions`. It uses the existing `XAI_API_KEY` secret, so there is no new secret and no new `.env` setting.
 
+Review round 2: the portion stepper no longer shrinks under Swap at 320 px, the Log meal footer now reaches the sheet's bottom edge, meal chips never truncate (2×2 when four won't fit), and Retake is an icon-only button on narrow sheets so the header text stays on clean lines.
+
 - **Take photo** (camera button beside search in Log food) and **Snap a meal** in the quick-log +. Camera or photo library (iPhone offers both).
 - **Analyzing:** your photo, a moving scan bar and plain words while the foods are spotted (still, with reduced motion).
 - **Editable rows:** each food with its portion, calories and protein. A stepper changes the portion (¼ steps up to 1, then ½), the swap button finds a USDA match (it keeps the estimated weight), and remove drops the row. Shaky guesses say "Not sure about this one. Check it." The sheet says **Estimate, check portions**.

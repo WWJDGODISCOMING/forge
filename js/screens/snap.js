@@ -103,7 +103,7 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
       const t = totalsOfRows(rows);
       root.innerHTML = `
         <div class="snap-top">${thumb()}<div class="snap-head"><b>${rows.length} ${rows.length === 1 ? 'food' : 'foods'} spotted</b><small class="muted">${ESTIMATE_NOTE}</small></div>
-          <label class="btn ghost snap-again">${icon('camera')}Retake${photoInput()}</label></div>
+          <label class="btn ghost snap-again">${icon('camera')}<span class="snap-again-t">Retake photo</span>${photoInput()}</label></div>
         ${rows.length ? `<ul class="list snap-rows">${rows.map(rowHtml).join('')}</ul>` : '<p class="small muted">Everything is removed. Take another photo or close this.</p>'}
         <div class="snap-foot">
           <p class="small muted macro-line"><span class="nb">${num(t.kcal)} kcal</span> <span class="nb">· ${t.protein_g} g protein</span> <span class="nb">· ${t.carbs_g} g carbs</span> <span class="nb">· ${t.fat_g} g fat</span></p>
