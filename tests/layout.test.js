@@ -1234,6 +1234,59 @@ if (standalone) {
   });
 }
 
+test('layout: the Recovery row puts the recovery card under the title bar (tap and cold load, 390x844 and 890x626)', async () => {
+  if (skipReason()) return;
+  browser = browser || await launch();
+  const top = "(() => { const c = document.querySelector('[data-recovery-card]'); return c ? Math.round(c.getBoundingClientRect().top) : null; })()";
+  for (const [w, h] of [[390, 844], [890, 626]]) {
+    await browser.viewport(w, h, true);
+    await browser.open('body', seed());
+    await browser.eval("document.querySelector('[data-recovery-link]').scrollIntoView()");
+    await new Promise((r) => setTimeout(r, 150));
+    await browser.eval("document.querySelector('[data-recovery-link]').click()");
+    await new Promise((r) => setTimeout(r, 1000));
+    const tapped = await browser.eval(top);
+    assert(tapped !== null && tapped >= 40 && tapped <= 200, `Recovery card top after tapping the row at ${w}x${h}: ${tapped}`);
+    await browser.open('train/recovery', seed());
+    await new Promise((r) => setTimeout(r, 600));
+    const cold = await browser.eval(top);
+    assert(cold !== null && cold >= 40 && cold <= 200, `Recovery card top on a cold load at ${w}x${h}: ${cold}`);
+  }
+});
+
+test('layout: at 320 the weigh-in meta and the Recovery subtitle keep each dot-separated part on one line, and no line starts with a dot', async () => {
+  if (skipReason()) return;
+  browser = browser || await launch();
+  await browser.viewport(320, 568, true);
+  const data = seed();
+  data.weights.forEach((w, i) => { w.source = i % 2 ? 'withings' : 'manual'; });
+  await browser.open('body', data);
+  const r = await browser.eval(`(() => {
+    const bad = [];
+    const check = (el, label) => {
+      for (const part of el.querySelectorAll('.nw')) {
+        const rg = document.createRange(); rg.selectNodeContents(part);
+        if (new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 4))).size > 1) bad.push(label + ' part wraps: ' + part.textContent);
+      }
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
+      let n;
+      while ((n = walker.nextNode())) {
+        const i = n.data.indexOf('·');
+        if (i < 0) continue;
+        const rg = document.createRange(); rg.setStart(n, i); rg.setEnd(n, i + 1);
+        const dot = rg.getBoundingClientRect();
+        const prevEl = n.previousSibling;
+        if (prevEl && prevEl.getBoundingClientRect && Math.abs(prevEl.getBoundingClientRect().bottom - dot.bottom) > 6) bad.push(label + ' dot starts a line');
+      }
+    };
+    document.querySelectorAll('[data-weigh-ins] li small').forEach((s) => check(s, 'weigh-in'));
+    const rec = document.querySelector('[data-recovery-link] .small'); if (rec) check(rec, 'recovery');
+    return { bad, rows: document.querySelectorAll('[data-weigh-ins] li small').length, rec: !!rec };
+  })()`);
+  assert(r.rows > 0 && r.rec, `Body rendered weigh-ins and the Recovery row: ${JSON.stringify(r)}`);
+  assert(r.bad.length === 0, `wrap problems at 320: ${r.bad.join('; ')}`);
+});
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;
