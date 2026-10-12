@@ -110,7 +110,9 @@
 .coach-line { display: flex; flex-direction: row; align-items: center; text-align: left; gap: var(--s-3); min-height: 48px; padding-top: var(--s-2); padding-bottom: var(--s-2); }
 .coach-line-ic { display: inline-flex; color: var(--accent-text); flex: none; }
 .coach-line-text { flex: 1; min-width: 0; font-size: calc(15px * var(--ts)); line-height: 1.3; text-wrap: balance; }
-.rings-card .link { min-height: 44px; display: inline-flex; align-items: center; }
+.rings-card .link { min-height: 44px; display: inline-flex; align-items: center; white-space: nowrap; }
+.rings-card > .row > .label { min-width: 0; }
+.rings-card > .row > .row.gap { flex: none; flex-wrap: nowrap; }
 
 /* Carbs and Fat sit in half-width cells: label on top, value under it on purpose (left-aligned), instead of squeezing beside it. */
 .food-minor .meter-row > .row.between { flex-direction: column; flex-wrap: nowrap; align-items: flex-start; }
