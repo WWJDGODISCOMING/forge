@@ -1234,6 +1234,7 @@ if (standalone) {
   });
 }
 
+if (standalone) {
 test('layout: the Recovery row puts the recovery card under the title bar (tap and cold load, 390x844 and 890x626)', async () => {
   if (skipReason()) return;
   browser = browser || await launch();
@@ -1268,15 +1269,16 @@ test('layout: at 320 the weigh-in meta and the Recovery subtitle keep each dot-s
         const rg = document.createRange(); rg.selectNodeContents(part);
         if (new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 4))).size > 1) bad.push(label + ' part wraps: ' + part.textContent);
       }
-      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT);
-      let n;
-      while ((n = walker.nextNode())) {
-        const i = n.data.indexOf('·');
-        if (i < 0) continue;
-        const rg = document.createRange(); rg.setStart(n, i); rg.setEnd(n, i + 1);
-        const dot = rg.getBoundingClientRect();
-        const prevEl = n.previousSibling;
-        if (prevEl && prevEl.getBoundingClientRect && Math.abs(prevEl.getBoundingClientRect().bottom - dot.bottom) > 6) bad.push(label + ' dot starts a line');
+      // every dot is a leading ::before on its part; the part that starts a line must have it clipped away, so no line starts or ends with a dot
+      const inner = el.querySelector('.dots-in'); if (!inner) { bad.push(label + ' has no .dots-in'); return; }
+      const outer = el.getBoundingClientRect(), parts = [...inner.children];
+      let lineTop = null;
+      for (const part of parts) {
+        const q = part.getBoundingClientRect(), dotW = parseFloat(getComputedStyle(part, '::before').width) || 0;
+        const startsLine = lineTop === null || q.top - lineTop > 4;
+        lineTop = startsLine ? q.top : lineTop;
+        if (startsLine && q.left + dotW > outer.left + 1) bad.push(label + ' a line starts with a visible dot: ' + part.textContent);
+        if (!startsLine && q.left + dotW <= outer.left + 1) bad.push(label + ' dot hidden mid-line: ' + part.textContent);
       }
     };
     document.querySelectorAll('[data-weigh-ins] li small').forEach((s) => check(s, 'weigh-in'));
@@ -1286,6 +1288,7 @@ test('layout: at 320 the weigh-in meta and the Recovery subtitle keep each dot-s
   assert(r.rows > 0 && r.rec, `Body rendered weigh-ins and the Recovery row: ${JSON.stringify(r)}`);
   assert(r.bad.length === 0, `wrap problems at 320: ${r.bad.join('; ')}`);
 });
+}
 
 test('layout: close the browser', async () => {
   if (browser) await browser.close();

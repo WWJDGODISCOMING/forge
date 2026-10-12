@@ -74,12 +74,12 @@ test('weight links open Body at the weight hero (#/body/weight) and Log weight b
 
 test('Body: the Recovery row opens #/train/recovery and says how long since the last workout', () => {
   const day = 86400000, now = Date.parse('2026-10-12T12:00:00Z');
-  const s = (days) => recoverySubtitle(18, { finished_at: new Date(now - days * day).toISOString() }, now).replace(/<[^>]+>/g, '');
+  const s = (days) => recoverySubtitle(18, { finished_at: new Date(now - days * day).toISOString() }, now).replace(/<\/span><span class="nw">/g, ' · ').replace(/<[^>]+>/g, '');
   eq(s(2), '18 fresh · last workout 2 days ago');
   eq(s(1), '18 fresh · last workout yesterday');
   eq(s(0), '18 fresh · last workout today');
   eq(recoverySubtitle(18, undefined, now), 'No workouts yet');
-  const at = (last, nowD) => recoverySubtitle(18, { finished_at: new Date(last).toISOString() }, new Date(nowD).getTime()).replace(/<[^>]+>/g, '');
+  const at = (last, nowD) => recoverySubtitle(18, { finished_at: new Date(last).toISOString() }, new Date(nowD).getTime()).replace(/<\/span><span class="nw">/g, ' · ').replace(/<[^>]+>/g, '');
   eq(at(new Date(2026, 9, 11, 18, 30), new Date(2026, 9, 12, 8, 0)), '18 fresh · last workout yesterday'); // Sun 6:30 PM → Mon 8 AM
   eq(at(new Date(2026, 9, 10, 21, 0), new Date(2026, 9, 12, 8, 0)), '18 fresh · last workout 2 days ago'); // Sat 9 PM → Mon 8 AM
   eq(at(new Date(2026, 9, 11, 23, 30), new Date(2026, 9, 12, 0, 15)), '18 fresh · last workout yesterday');

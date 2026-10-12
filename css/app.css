@@ -685,3 +685,6 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 html { overflow-anchor: auto; }
 [data-weigh-ins] { max-width: 560px; } /* a readable column on wide screens, not a 1000px strip */
 .nw{white-space:nowrap}
+.dots{display:block;overflow:hidden}
+.dots-in{display:flex;flex-wrap:wrap;margin-left:-1em}
+.dots-in>*::before{content:"·";display:inline-block;width:1em;text-align:center}

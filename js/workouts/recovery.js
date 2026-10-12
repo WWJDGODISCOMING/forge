@@ -108,5 +108,5 @@ export function recoverySubtitle(fresh, last, now = Date.now()) {
   const dayNum = (t) => { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); };
   const days = Math.max(0, dayNum(now) - dayNum(Date.parse(last.finished_at || last.started_at)));
   const when = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
-  return `<span class="nw"><span data-count>${fresh}</span> fresh</span> · <span class="nw">last workout ${when}</span>`;
+  return `<span class="dots"><span class="dots-in"><span class="nw"><span data-count>${fresh}</span> fresh</span><span class="nw">last workout ${when}</span></span></span>`;
 }
