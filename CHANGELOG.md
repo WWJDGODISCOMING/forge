@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.15.23 — Wide-screen polish (2026-10-12)
+
+Issue #63, part 5b. CSS only; nothing moves and nothing is new. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Food totals stay in view** on the Duo's wide landscape screens (they used to stick only on screens 760 tall or more).
+- **Body's right column** is a little tighter, so the two sides end closer together.
+- **Goal label** on the Goal path chart stays clear of the top and bottom of the plot.
+- **Phones and the upright inner screen:** unchanged.
+
+### What's new
+
+- On the unfolded Duo sideways, your Food totals stay in view as you scroll.
+
 ## 0.15.22 — Food and Body on the wide screen (2026-10-12)
 
 Issue #63, part 5a of the approved IA. CSS and markup wrappers only; nothing moves between screens and nothing is new. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
