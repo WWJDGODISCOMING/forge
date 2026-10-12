@@ -342,6 +342,37 @@ if (standalone) {
 }
 
 if (standalone) {
+  test('layout: Today Food row: text never runs under Log food at 320, 375, 390 and 890, text size 1 to 1.35', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    for (const [w, h] of [[320, 568], [375, 667], [390, 844], [890, 626]]) {
+      for (const ts of [1, 1.12, 1.35]) {
+        await browser.viewport(w, h, true);
+        await browser.open('today', seed({ over: true }));
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+        const m = await browser.eval(`(() => {
+          const row = document.querySelector('#main .food-row-compact'); if (!row) return null;
+          const box = row.querySelector('.food-card-text').getBoundingClientRect(), lb = row.querySelector('[data-food-log]').getBoundingClientRect(), rg = row.querySelector('.food-card-ring').getBoundingClientRect();
+          const lines = (e) => { const r = document.createRange(); r.selectNodeContents(e); const rs = [...r.getClientRects()].filter((q) => q.width > 0.5); return { n: rs.length ? (Math.max(...rs.map((q) => q.bottom)) - Math.min(...rs.map((q) => q.bottom)) > 8 ? 2 : 1) : 0, right: rs.reduce((a, q) => Math.max(a, q.right), 0) }; };
+          const ps = [...row.querySelectorAll('.food-card-text p')].map(lines);
+          return { kcal: lines(row.querySelector('.food-card-kcal')).n, nb: [...row.querySelectorAll('.nb')].map((e) => lines(e).n), right: Math.max(...ps.map((p) => p.right)), boxR: box.right, logL: lb.left, logW: lb.width, logH: lb.height, dy: Math.abs((rg.top + rg.bottom) / 2 - (lb.top + lb.bottom) / 2) };
+        })()`);
+        const at = `${w}x${h}${ts !== 1 ? ' ts' + ts : ''}`;
+        if (!m) { note('no Food row on Today', at); continue; }
+        if (ts === 1 && m.kcal !== 1) note('headline wraps at normal text size', at);
+        if (ts === 1 && m.nb.some((n) => n !== 1)) note('a note phrase wraps at normal text size', at);
+        if (m.right > m.boxR + 0.5) note('text runs past its box', at);
+        if (m.right > m.logL - 4) note('text runs under Log food', at);
+        if (m.dy > 8) note('ring and Log food are not on one row', at);
+        if (m.logW < 43.5 || m.logH < 43.5) note('Log food is under 44x44', at);
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' | ')}]`).join('\n        ')}`);
+  });
+
   test('layout: Log food dock: each macro value stays with its unit at 320 and 390, normal and large text', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
@@ -438,7 +469,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
           if (lineCount(e) > 1) wrap.push('wraps: ' + (e.className || e.tagName) + ' "' + e.textContent.trim().slice(0, 24) + '"');
           if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).display !== 'inline') wrap.push('overflows: ' + (e.className || e.tagName));
         });
-        const kc = document.querySelector('#main .food-card-kcal'); if (kc && lineCount(kc) > 1) wrap.push('wraps: food headline');
+        const kc = document.querySelector('#main .food-card-kcal'); if (kc && (() => { const g = document.createRange(); g.selectNodeContents(kc); const k = [...g.getClientRects()].filter((x) => x.width > 0).map((x) => x.bottom); return k.length && Math.max(...k) - Math.min(...k) > 8; })()) wrap.push('wraps: food headline');
         const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
         const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
         const fr = document.querySelector('#main .food-row-compact'); if (fr) { const rg = fr.querySelector('.food-card-ring'), lb = fr.querySelector('[data-food-log]'); if (rg && lb) { if (Math.abs(rg.getBoundingClientRect().top - lb.getBoundingClientRect().top) > 6 && Math.abs(rg.getBoundingClientRect().bottom - lb.getBoundingClientRect().bottom) > 6 && Math.abs((rg.getBoundingClientRect().top + rg.getBoundingClientRect().bottom) - (lb.getBoundingClientRect().top + lb.getBoundingClientRect().bottom)) > 12) wrap.push('wraps: Today food row'); if (lb.getBoundingClientRect().height < 43.5) wrap.push('small: Log food'); } }
