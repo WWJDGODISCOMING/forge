@@ -1227,7 +1227,7 @@ if (standalone) {
 
 // v0.15.19: the quick-log + and its sheet fit at every size, and the + shows on tab roots only.
 if (standalone) {
-  test('layout: quick-log +: 44pt, in the title row, not covered; the sheet has six one-line rows and is centered', async () => {
+  test('layout: quick-log +: 44pt, in the title row, not covered; the sheet has seven one-line rows and is centered', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -1268,7 +1268,7 @@ if (standalone) {
           rows: rows.map((b) => { const sp = b.querySelector('span'), rg = document.createRange(); rg.selectNodeContents(sp);
             return { t: sp.textContent, h: b.getBoundingClientRect().height, lines: new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 6))).size, clip: sp.scrollWidth > sp.clientWidth + 1 }; }) }; })()`);
       if (!s) { note('the sheet did not open', at); continue; }
-      if (s.rows.length !== 6) note(`sheet has ${s.rows.length} rows`, at);
+      if (s.rows.length !== 7) note(`sheet has ${s.rows.length} rows`, at);
       for (const r of s.rows) if (r.lines !== 1 || r.clip || r.h < 44) note(`row "${r.t}": ${r.lines} lines, clipped ${r.clip}, ${r.h}px tall`, at);
       if (Math.abs(s.left - s.right) > 1.5) note(`sheet not centered (${s.left} vs ${s.right})`, at);
       if (s.width > 640.5 || (w >= 560 && h > 500 && s.width > 440.5)) note(`sheet is ${s.width}px wide`, at);

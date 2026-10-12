@@ -50,6 +50,7 @@ export function syncQuickLog(next) {
 
 const RUN = {
   logFood: () => import('../screens/food.js').then((m) => m.openLogFood()),
+  snapMeal: () => import('../screens/snap.js').then((m) => m.openSnapMeal()),
   logWeight: () => import('../screens/weight.js').then((m) => m.openLogWeight()),
   logCardio: () => import('../screens/tools.js').then((m) => m.openCardioLog()),
   startWorkout: () => import('../screens/train.js').then((m) => {

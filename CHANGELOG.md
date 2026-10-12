@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.15.26 — Snap a meal (2026-10-12)
+
+Issue #83. **Touches Cloud Functions** (new `snapMealPhoto`); no `firestore.rules`, `firebase.json` or `config.js` changes. Deploy with the phone **Deploy** button, choice `functions`. It uses the existing `XAI_API_KEY` secret, so there is no new secret and no new `.env` setting.
+
+- **Take photo** (camera button beside search in Log food) and **Snap a meal** in the quick-log +. Camera or photo library (iPhone offers both).
+- **Analyzing:** your photo, a moving scan bar and plain words while the foods are spotted (still, with reduced motion).
+- **Editable rows:** each food with its portion, calories and protein. A stepper changes the portion (¼ steps up to 1, then ½), the swap button finds a USDA match (it keeps the estimated weight), and remove drops the row. Shaky guesses say "Not sure about this one. Check it." The sheet says **Estimate, check portions**.
+- **Log meal** adds one entry per food to the meal you pick (chosen by time of day), so they edit and copy like any other entry.
+- **Offline or an error:** a plain sentence, **Try another photo**, or **Search for the food instead**. Nothing is lost.
+- **Server:** `snapMealPhoto` (signed-in only, 20 photos an hour per person, 1.5 MB cap, JPEG or PNG only) sends the photo to xAI vision and returns foods with portion, calories, protein, carbs, fat and a confidence score. The photo is shrunk to 1024 px on the phone first, is **never stored or logged** on the server, and the app doesn't keep it either. Only the counter (hour start and count) is stored, and Delete everything clears it.
+
+### What's new
+
+- Snap a meal: photograph your plate for a calorie estimate.
+
 ## 0.15.25 — Two-step sign-in (2026-10-12)
 
 Issue #79, part 2. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. Needs a one-time switch on the Firebase project first (SETUP.md, section 7b); until then the row shows Off, and turning it on explains the switch is missing; sign-in is untouched.

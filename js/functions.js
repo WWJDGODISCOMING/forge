@@ -31,7 +31,7 @@ export function friendly(e) {
   const code = String((e && e.code) || '').replace('functions/', '');
   const msg = (e && e.message) || '';
   // Messages Forge's server wrote for you pass straight through.
-  if (['failed-precondition', 'unavailable', 'resource-exhausted'].includes(code) && msg && msg !== code) return msg;
+  if (['failed-precondition', 'unavailable', 'resource-exhausted', 'invalid-argument'].includes(code) && msg && msg !== code) return msg;
   if (code === 'unauthenticated') return 'Sign in again, then try once more.';
   if (code === 'not-found' || (code === 'internal' && (msg === 'internal' || !msg))) {
     // No answer at all (the browser blocks it): usually the functions aren't deployed yet.

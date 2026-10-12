@@ -38,10 +38,10 @@ test('quick-log +: hidden while the keyboard, a sheet, a dialog or an overlay is
   eq(quickLogVisible({ ...base }), true, 'and back again once all clear');
 });
 
-test('quick-log sheet: six rows in order, one-line labels, each with an icon', () => {
+test('quick-log sheet: seven rows in order, one-line labels, each with an icon', () => {
   const rows = quickLogRows({});
-  eq(rows.map((r) => r.label).join('|'), 'Log food|Log weight|Start workout|Log cardio|Take progress photos|Ask Coach');
-  eq(rows.length, 6);
+  eq(rows.map((r) => r.label).join('|'), 'Log food|Snap a meal|Log weight|Start workout|Log cardio|Take progress photos|Ask Coach');
+  eq(rows.length, 7);
   for (const r of rows) {
     assert(r.icon && r.id, `${r.label} has an icon and id`);
     assert(r.label.length <= 22, `${r.label} is short enough for one line at 320`);
@@ -52,6 +52,7 @@ test('quick-log sheet: six rows in order, one-line labels, each with an icon', (
 test('quick-log sheet: targets go to the existing screens and flows', () => {
   const by = Object.fromEntries(quickLogRows({}).map((r) => [r.id, r]));
   eq(by.food.run, 'logFood');
+  eq(by.snap.run, 'snapMeal');
   eq(by.weight.run, 'logWeight');
   eq(by.workout.run, 'startWorkout');
   eq(by.cardio.run, 'logCardio');
@@ -65,7 +66,7 @@ test('quick-log sheet: Start workout becomes Resume workout while one is in prog
   eq(w.go, '#/play');
   eq(quickLogRows({ active: true, playerRoute: '#/session' }).find((r) => r.id === 'workout').go, '#/session', 'list-view players resume in the list');
   eq(quickLogRows({ active: false }).find((r) => r.id === 'workout').label, 'Start workout');
-  eq(quickLogRows({ active: true }).length, 6);
+  eq(quickLogRows({ active: true }).length, 7);
 });
 
 test('quick-log: the + is a 44pt lime circle in the title row labelled "Quick log", wired in the app shell', () => {
