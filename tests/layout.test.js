@@ -1072,6 +1072,56 @@ if (standalone) {
   });
 }
 
+// Two-step sign-in sheets: 320/375/390 phones, the Duo folded-upright and unfolded sizes, and the wide sideways screen.
+const MFA_SIZES = [[320, 568], [375, 667], [390, 844], [466, 678], [626, 890], [890, 626]];
+if (standalone) {
+  test('layout: two-step sign-in sheets fit, stay phone-width and centred, and do not clip', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = noteTo(found);
+    const probe = `(() => {
+      const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null;
+      const r = d.getBoundingClientRect(); const body = d.querySelector('.sheet-body');
+      const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+      const kids = [...d.querySelectorAll('.sheet-body *')].filter((e) => e.offsetParent !== null);
+      const btn = d.querySelector('[data-passwords]');
+      return { left: r.left, right: r.right, w: r.width, vw: innerWidth, title: d.querySelector('h2').textContent,
+        out: kids.some((e) => { const q = e.getBoundingClientRect(); return q.width > 0 && (q.left < r.left - 0.5 || q.right > r.right + 0.5); }),
+        hscroll: body.scrollWidth > body.clientWidth + 0.5, btnLines: btn ? lines(btn) : 0, btnH: btn ? btn.getBoundingClientRect().height : 0,
+        keyCut: [...d.querySelectorAll('.mfa-key')].some((e) => e.scrollWidth > e.clientWidth + 0.5),
+        input: (() => { const i = d.querySelector('input[name=code]'); return i ? { mode: i.inputMode, ac: i.autocomplete } : null; })() };
+    })()`;
+    for (const [w, h] of MFA_SIZES) {
+      const at = `${w}x${h}`;
+      await browser.viewport(w, h, true);
+      await browser.open('settings', seed(), 'window.__mfaOn = false;');
+      // turning it on
+      await browser.eval("document.querySelector('[data-mfa-row]').click()"); await wait(900);
+      await browser.eval("document.querySelector('dialog.sheet[open] details').open = true"); await wait(200);
+      let r = await browser.eval(probe);
+      if (!r || r.title !== 'Two-step sign-in') { note(`the turn-on sheet did not open: ${JSON.stringify(r)}`, at); continue; }
+      if (r.out || r.hscroll) note('the turn-on sheet clips or scrolls sideways', at);
+      if (r.btnLines !== 1 || r.btnH < 44) note(`Add to Passwords wraps or is small (${r.btnLines} lines, ${r.btnH}px)`, at);
+      if (r.keyCut) note('the setup key is cut off', at);
+      if (!r.input || r.input.mode !== 'numeric' || r.input.ac !== 'one-time-code') note('the code box lacks numeric / one-time-code', at);
+      if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note(`the sheet is not phone-width and centred (${Math.round(r.w)} wide, left ${Math.round(r.left)})`, at);
+      if (shots) await browser.screenshot(`${shots}/mfa-enroll-${w}x${h}.png`);
+      // the sign-in code sheet
+      await browser.eval("document.querySelectorAll('dialog.sheet').forEach((d) => d.remove())");
+      await browser.eval("import('/js/mfa-ui.js').then((m) => { m.promptSignInCode({ code: 'auth/multi-factor-auth-required' }).catch(() => {}); })"); await wait(900);
+      r = await browser.eval(probe);
+      if (!r || r.title !== 'Enter your code') { note(`the sign-in code sheet did not open: ${JSON.stringify(r)}`, at); continue; }
+      if (r.out || r.hscroll) note('the sign-in code sheet clips or scrolls sideways', at);
+      if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note('the code sheet is not phone-width and centred', at);
+      if (shots) await browser.screenshot(`${shots}/mfa-code-${w}x${h}.png`);
+    }
+    await browser.dropInit();
+    assert(found.size === 0, report(found));
+  });
+}
+
 if (standalone) {
   test('layout: mission celebrations wait until the card is scrolled into view, and play inside it', async () => {
     if (skipReason()) return;
