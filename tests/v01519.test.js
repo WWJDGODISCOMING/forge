@@ -119,5 +119,5 @@ test('quick-log sheet: Start workout unlocks audio inside the tap, before any ti
   const click = code.slice(code.indexOf('b.onclick'), code.indexOf('});', code.indexOf('b.onclick')));
   const at = click.indexOf('unlockAudio()');
   assert(at > -1, 'unlockAudio runs in the click handler');
-  for (const later of ['setTimeout', 'import(', 'await', '.then(']) assert(click.indexOf(later) > at, `unlockAudio comes before ${later}`);
+  for (const later of ['setTimeout', 'import(', 'await', '.then(']) assert(click.indexOf(later) === -1 || click.indexOf(later) > at, `unlockAudio comes before ${later}`);
 });
