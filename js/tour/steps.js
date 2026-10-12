@@ -56,12 +56,12 @@ export const TOUR_STEPS = [
     body: 'The number is how many muscle groups are fresh, and the map is right under it. Green muscles are ready to train, red ones need rest. Tap a muscle for details. Your progress photos live on the Body tab.',
   },
   {
-    id: 'progress', route: 'weight', target: '.tabbar a[href="#/weight"]',
+    id: 'progress', route: 'score', target: '.tabbar a[href="#/score"]',
     title: 'Progress',
-    body: 'Here you’ll find your Forge Score, weekly report, trends, weight chart, past workouts, personal records, progress photos, and the badges and XP you earn.',
+    body: 'Here you’ll find your Forge Score, weekly report, trends, past workouts, personal records, your doctor summary, and the badges and XP you earn. Your weight chart and progress photos live on the Body tab.',
   },
   {
-    id: 'settings', route: 'weight', target: '[data-avatar]',
+    id: 'settings', route: 'score', target: '[data-avatar]',
     title: 'Settings and profile',
     body: 'Tap your circle at the top right of any tab to change your profile and targets, your locations and equipment, your units (lb or kg) and the coach audio. You can play this tour again from the bottom of Settings.',
   },

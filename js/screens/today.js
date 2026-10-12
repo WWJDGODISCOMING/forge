@@ -285,7 +285,7 @@ export function renderToday(el) {
 
       <div class="slot" data-o="7">
       <div class="card weight-card">
-        <div class="row between center card-head"><p class="label">Weight</p><a class="card-link" href="#/weight">See chart${icon('chev', { size: 14 })}</a></div>
+        <div class="row between center card-head"><p class="label">Weight</p><a class="card-link" href="#/body">See chart${icon('chev', { size: 14 })}</a></div>
         <div class="row between center weight-main">
           <div class="weight-text">
             <p class="small muted" data-weight-when>${reading ? esc(readingLabel(reading, todayKey())) : ''}</p>

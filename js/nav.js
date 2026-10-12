@@ -2,13 +2,13 @@
 // deep it sits (tab root = 0), which way a screen change should animate, where "Back" goes, and
 // per-tab scroll memory.
 
-export const TAB_ORDER = ['today', 'train', 'food', 'body', 'weight'];
+export const TAB_ORDER = ['today', 'train', 'food', 'body', 'score'];
 
 // Which tab lights up for each screen. Settings and its children have no tab: they light whichever tab opened Settings.
 export const TAB_FOR = {
   session: 'train', play: 'train', summary: 'train', timer: 'train', library: 'train',
-  history: 'weight', awards: 'weight', score: 'weight',
-  metric: 'body', photos: 'body', progress: 'weight', trends: 'weight', weekly: 'weight',
+  history: 'score', awards: 'score', score: 'score',
+  metric: 'body', photos: 'body', progress: 'score', trends: 'score', weekly: 'score',
   coach: 'today', program: 'today', food: 'food',
 };
 
@@ -39,7 +39,8 @@ export function noteNavigation(fromParts, toParts) {
 export const tabOf = (route) => (SETTINGS_SCREENS.has(route) ? settingsOrigin : TAB_FOR[route] || route);
 
 /** Old bookmarks, notification links and the removed Settings tab: hash route -> where it lives now (null = unchanged). */
-const OLD_ROUTES = { home: 'today', log: 'food', foods: 'food', diary: 'food' };
+// The Progress tab is #/score; the weight chart and weigh-ins now live on Body (v0.15.21).
+const OLD_ROUTES = { home: 'today', log: 'food', foods: 'food', diary: 'food', weight: 'body' };
 export function redirectRoute(parts) {
   const route = parts[0] || 'today';
   if (Object.hasOwn(OLD_ROUTES, route)) return [OLD_ROUTES[route], ...parts.slice(1)];
@@ -47,7 +48,7 @@ export function redirectRoute(parts) {
 }
 
 // Screens that live at the root of a tab (the Progress tab has four siblings behind its segmented control).
-const ROOTS = new Set(['progress', 'today', 'train', 'food', 'body', 'weight', 'score', 'trends', 'weekly']);
+const ROOTS = new Set(['progress', 'today', 'train', 'food', 'body', 'score', 'trends', 'weekly']);
 // Screens pushed on top of another one, one level deeper than their parent.
 const DEPTH_2 = new Set(['play', 'summary']);
 
@@ -84,9 +85,9 @@ export function backTarget(parts) {
 }
 
 const LABELS = {
-  today: 'Today', train: 'Train', food: 'Food', body: 'Body', weight: 'Progress', settings: 'Settings',
+  today: 'Today', train: 'Train', food: 'Food', body: 'Body', settings: 'Settings',
   withings: 'Withings', session: 'Workout', coach: 'Coach', program: 'Program', history: 'History', awards: 'Awards',
-  score: 'Progress', trends: 'Progress', weekly: 'Progress', metric: 'Body', photos: 'Photos',
+  score: 'Progress', trends: 'Progress', weekly: 'Progress', progress: 'Progress', metric: 'Body', photos: 'Photos',
 };
 /** Title of the screen "Back" goes to, e.g. "Settings" (iOS shows the parent's title on the back button). */
 export function backLabel(parts) {
@@ -96,7 +97,7 @@ export function backLabel(parts) {
 }
 
 /** Large-title screens that should not show the title of their own sub-page (Progress shows one header). */
-export const TITLE_FOR = {weight: 'Progress', trends: 'Progress', score: 'Progress', weekly: 'Progress' };
+export const TITLE_FOR = { trends: 'Progress', score: 'Progress', weekly: 'Progress' };
 
 /** Per-tab scroll memory: tab roots restore where you left them; detail screens always start at the top. */
 export function createScrollMemory() {

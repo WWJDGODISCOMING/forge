@@ -129,7 +129,6 @@ const routes = {
   timer: () => import('./screens/timer.js').then((m) => m.renderTimer(main)),
   history: () => import('./screens/history.js').then((m) => m.renderHistory(main)),
   library: () => import('./screens/library.js').then((m) => m.renderLibrary(main)),
-  weight: () => import('./screens/weight.js').then((m) => m.renderWeight(main)),
   awards: () => import('./screens/awards.js').then((m) => m.renderAwards(main)),
   settings: () => import('./screens/settings.js').then((m) => m.renderSettings(main)),
   locations: () => import('./screens/locations.js').then((m) => m.renderLocations(main)),
@@ -422,7 +421,7 @@ subscribe((patch) => {
 });
 
 // ---------- pull to refresh (Today, Progress, Body) ----------
-const PULL_ROUTES = new Set(['today', 'weight', 'history', 'awards', 'score', 'body']);
+const PULL_ROUTES = new Set(['today', 'history', 'awards', 'score', 'body']);
 let pullRoute = null;
 let lastPullSync = 0;
 async function refreshData() {

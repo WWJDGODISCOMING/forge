@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.15.21 — Food, Body and Progress card order (2026-10-12)
+
+Issue #63, part 4 of the approved IA. Moves existing cards only; no new features. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Food:** day nav, then the big **Log food** button, then today's totals, "Why these numbers?", meals (Add / Copy yesterday), My foods. Text search stays inside the Log food sheet; Snap-a-meal (#83) is only a code comment for now.
+- **Body:** the **weight hero** (latest, trend, range chips, chart, Log weight) is first, then Goal path, Body programs, Body composition, Measures, the accent **Progress photos** card, and the Recovery map link row (the map stays on Train). Insights stay on Body, and the weigh-in list is at the bottom.
+- **Progress** is now Score · Week · Trends (the Progress tab opens `#/score`). Every part ends with rows for Awards, History & PRs, Doctor summary and Ask Coach.
+- **Moved:** weight chart, Log weight and weigh-in list: Progress → Body. Progress photos row: Progress → Body (accent card). Trends card: Body → Progress. History, Awards, Ask Coach rows: Progress → Weight → every Progress part. Doctor summary: Settings only → also a row on Progress. Fresh-muscle and days-since tiles: Body → the Recovery map row.
+- **Links:** `#/weight` now opens Body. `#/photos`, `#/trends`, `#/score`, `#/weekly`, `#/awards` and `#/report` still open their screens. The tour's Progress step points at the new tab.
+
+### What's new
+
+- Your weight chart now lives on Body, with your progress photos in a bright card.
+- Progress is Score, Week and Trends, with Awards, History and your doctor summary underneath.
+
 ## 0.15.20 — Today and Train card order (2026-10-12)
 
 Issue #63, part 3 of the approved IA. Moves existing cards only; no new features. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
