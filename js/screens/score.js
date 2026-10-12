@@ -3,7 +3,7 @@
 import { state } from '../state.js';
 import { restoreAnchor } from '../ui/anchor.js';
 import { esc, $, $$ } from '../ui.js';
-import { progressTabs } from './progress.js';
+import { progressTabs, progressRowsHtml } from './progress.js';
 import { currentScore } from '../health/today.js';
 import { isNative } from '../native/bridge.js';
 import { ringSvg, animateScoreRings, scoreColor, round } from '../health/ui.js';
@@ -138,6 +138,7 @@ export function renderScore(el) {
       </details>
       </div>
       </div>
+      ${progressRowsHtml()}
       <p class="disclaimer">General fitness information, not medical advice.</p>
     </section>`;
 

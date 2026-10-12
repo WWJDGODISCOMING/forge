@@ -1,8 +1,10 @@
-// Progress tab: Weight | Trends | Score | Week. Four segments fit at phone width; History and Awards are
-// rows at the bottom of Weight. Each part keeps its own route so links still work.
-let last = 'weight';
+// Progress tab: Score | Week | Trends. The weight chart and weigh-ins moved to Body (v0.15.21). Awards, History, the
+// Doctor summary and Ask Coach are rows under each part (progressRowsHtml). Each part keeps its own route so links still work.
+import { icon } from '../ui/icons.js';
 
-const TABS = [['weight', 'Weight'], ['trends', 'Trends'], ['score', 'Score'], ['weekly', 'Week']];
+let last = 'score';
+
+const TABS = [['score', 'Score'], ['weekly', 'Week'], ['trends', 'Trends']];
 
 export function progressTabs(active) {
   last = active;
@@ -11,5 +13,14 @@ export function progressTabs(active) {
       ${TABS.map(([k, l]) => `<a role="tab" href="#/${k}" class="${active === k ? 'on' : ''}" aria-selected="${active === k}">${l}</a>`).join('')}
     </div>`;
 }
+
+const row = (href, ic, title, sub) => `<a class="g-row" href="${href}"><span class="g-ic">${icon(ic)}</span><span class="g-text"><span>${title}</span><small>${sub}</small></span><span class="chev">${icon('chev')}</span></a>`;
+/** Entry rows shown at the bottom of every Progress part: awards, history, doctor summary, Ask Coach. */
+export const progressRowsHtml = () => `<div class="group" data-progress-rows>
+      ${row('#/awards', 'trophy', 'Awards', 'Levels, badges and missions')}
+      ${row('#/history', 'list', 'History &amp; PRs', 'Workouts and cardio')}
+      ${row('#/report', 'heart', 'Doctor summary', 'A report to share with your doctor')}
+      ${row('#/coach', 'help', 'Ask Coach', 'Answers from your own data')}
+    </div>`;
 
 export const lastProgressRoute = () => last;
