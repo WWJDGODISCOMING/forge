@@ -105,7 +105,7 @@ export function goalPathSvg(path, series, today, goalKg, units, { width = chartW
     proj = `<polygon class="gp-band" points="${x0},${y0} ${x(path.earlyDay).toFixed(1)},${g} ${slow}"/>
       <line class="gp-proj" x1="${x0}" y1="${y0}" x2="${x(path.etaDay).toFixed(1)}" y2="${g}"/>
       <line class="gp-goal" x1="${L}" x2="${width - R}" y1="${g}" y2="${g}"/>
-      <text x="${L + 4}" y="${(Number(g) - 4).toFixed(1)}" class="axis" text-anchor="start">Goal ${esc(formatWeight(goalKg, units, 0))}</text>`;
+      <text x="${L + 4}" y="${Math.max(T + 9, Math.min(height - B - 4, Number(g) - 4)).toFixed(1)}" class="axis" text-anchor="start">Goal ${esc(formatWeight(goalKg, units, 0))}</text>`;
   }
   const disp = (kg) => weightToDisplay(kg, units).toFixed(0);
   return `<svg viewBox="0 0 ${width} ${height}" class="chart goalpath" role="img" aria-label="Weight trend and projection to your goal">
