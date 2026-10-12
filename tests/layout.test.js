@@ -485,7 +485,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
-      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'play' || route === 'settings';
+      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'score' || route === 'play' || route === 'settings';
       if (!cols && route !== 'body' && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
       if (w === 390 && !inset) base = new Set(m.wrap);
       const fresh = m.wrap.filter((x) => !base.has(x));
@@ -816,6 +816,8 @@ if (standalone) {
       await browser.viewport(466, 678, true);
       await browser.open(route, seed());
       await browser.eval(noAnchoring);
+      // The seeded Trends page fits at 626x890 with nothing to scroll; pad it with extra cards, like a longer history would,, so the card it follows can stay put.
+      if (route === 'trends') await browser.eval("(() => { for (let i = 0; i < 8; i++) { const d = document.createElement('div'); d.className = 'card'; d.style.height = '240px'; document.querySelector('#main section').append(d); } })()");
       // scroll about 45% down (25% on Score, whose wide page is much shorter, so the card has to stay reachable); on Today, to a card that lands in the right column when wide
       const picked = await browser.eval(`(async () => {
         const bar = document.querySelector('.navbar'); const inset = bar ? bar.getBoundingClientRect().bottom : 0;
