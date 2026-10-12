@@ -60,12 +60,12 @@ test('quick-log sheet: Start workout becomes Resume workout while one is in prog
   eq(quickLogRows({ active: true }).length, 6);
 });
 
-test('quick-log: the + is a 56pt lime circle labelled "Quick log", wired in the app shell', () => {
+test('quick-log: the + is a 44pt lime circle in the title row labelled "Quick log", wired in the app shell', () => {
   const css = src('css/quicklog.css');
-  assert(/\.ql-fab \{[^}]*width: 56px; height: 56px;[^}]*border-radius: 50%/.test(css), '56pt circle');
+  assert(/\.ql-fab \{[^}]*width: 44px; height: 44px;[^}]*border-radius: 50%/.test(css), '44pt circle');
   assert(/background: var\(--accent\)/.test(css), 'lime accent');
-  assert(/safe-bottom/.test(css) && /safe-right/.test(css), 'inside the safe area');
-  assert(/body\.ql-room main \{ padding-bottom/.test(css), 'room for the last card');
+  assert(!/position: fixed/.test(css.split('.ql-fab.on')[0]), 'no floating corner position');
+  assert(/placeQuickLog\(acts\)/.test(src('js/app.js')), 'placed in the title row');
   assert(/aria-label', 'Quick log'/.test(src('js/ui/quicklog.js')), 'VoiceOver label');
   assert(src('index.html').includes('css/quicklog.css'), 'stylesheet linked');
   assert(/noteNavigation\(from, to\)/.test(src('js/app.js')) && /mountQuickLog\(\)/.test(src('js/app.js')));

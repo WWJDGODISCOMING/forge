@@ -1,4 +1,4 @@
-// The floating quick-log + (bottom-right, above the tab bar, tab roots only) and its sheet. Rules live in js/quicklog.js.
+// The quick-log + (in the large-title row beside the avatar, tab roots only) and its sheet. Rules live in js/quicklog.js.
 import { quickLogVisible, quickLogRows } from '../quicklog.js';
 import { icon } from './icons.js';
 import { openSheetCount, onSheetsChange } from './sheets.js';
@@ -34,8 +34,12 @@ function refresh() {
   fab.classList.toggle('on', show);
   fab.tabIndex = show ? 0 : -1;
   fab.setAttribute('aria-hidden', show ? 'false' : 'true');
-  // Room for the last card to scroll clear of the +: depends only on the screen, so opening a sheet or the keyboard doesn't reflow.
-  document.body.classList.toggle('ql-room', quickLogVisible({ parts: inputs.parts, navHidden: inputs.navHidden }));
+  if (!fab.isConnected) document.body.appendChild(fab); // a re-render dropped it with the old title row; parked (display: none) until the next root
+}
+
+/** Put the + in a tab root's large-title actions, just left of the avatar. Call before the avatar is added. */
+export function placeQuickLog(acts) {
+  if (fab) acts.appendChild(fab);
 }
 
 /** Tell the + where the app is: call on every route change (busy = true while a screen is changing) and after each render. */

@@ -10,7 +10,7 @@ import { viewTransition, animateCounters, resetCounters, reducedMotion } from '.
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
-import { mountQuickLog, syncQuickLog } from './ui/quicklog.js';
+import { mountQuickLog, syncQuickLog, placeQuickLog } from './ui/quicklog.js';
 import { setupTextSize } from './ui/textsize.js';
 import { setupResizeAnchor } from './ui/anchor.js';
 import { enhanceSegs } from './ui/controls.js';
@@ -194,6 +194,7 @@ function addAvatar(route) {
     acts.className = 'lt-actions';
     large.appendChild(acts);
   }
+  placeQuickLog(acts);
   acts.appendChild(a);
   // Make room for the avatar without wrapping or shrinking tap targets: first a smaller title and tighter gaps,
   // then the short button label ("+ Log" instead of "+ Log weight").

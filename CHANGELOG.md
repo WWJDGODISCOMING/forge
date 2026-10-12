@@ -4,14 +4,14 @@
 
 Issue #63, part 2 of the approved IA. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
 
-- **Quick-log +:** a 56pt lime circle, bottom-right above the tab bar, labelled "Quick log" for VoiceOver. It shows on tab roots only (Today, Train, Food, Body, Progress and its siblings). It is hidden in the player, on every pushed screen, while the keyboard is open, and while a sheet, dialog, tour or overlay is up. It hides at once for a push or pop and stays put when you switch tabs, so it never flashes. Tab roots get extra bottom padding so the last card scrolls clear of it.
+- **Quick-log +:** a 44pt lime circle in the large-title row, just left of the avatar (like the + in Health and Reminders), labelled "Quick log" for VoiceOver. It shows on tab roots only (Today, Train, Food, Body, Progress and its siblings). It is hidden in the player, on every pushed screen, while the keyboard is open, and while a sheet, dialog, tour or overlay is up. It hides at once for a push or pop and stays put when you switch tabs, so it never flashes. It lives in the title row so it never covers a card or a toast. The title shrinks to fit rather than wrapping.
 - **Quick-log sheet:** a bottom sheet (grabber, swipe or tap outside to close, Escape closes, focus stays inside) with six rows: Log food, Log weight, Start workout (**Resume workout** while one is in progress), Log cardio, Take progress photos, Ask Coach. Each opens the existing sheet or screen; no new flows. A light haptic on open and on pick in the iPhone app. On the wide inner screen the sheet is centered and capped at 440pt.
 - **Back from Settings links:** a Settings child opened from outside Settings (Readiness → Apple Health, Body → Connect Withings) now goes Back to where you came from, with that screen's name on the button. Opened from Settings, Back goes to Settings. A cold start on the link falls back to Settings. (`noteNavigation` in `js/nav.js`.)
 - **Tests:** + visibility rules, sheet rows and targets (including Resume), the Back rules, and a layout test for the + and sheet at 320×568, 390×844, 430×932 and the Duo sizes. The shared layout checker now also requires the last card to clear the +.
 
 ### What's new
 
-- A round + on every main screen opens Quick log for food, weight, workouts and more.
+- A round + by your picture on every main screen opens Quick log.
 - Back from a link into Settings now returns you to where you were.
 
 ## 0.15.18 — New tab bar: Today · Train · Food · Body · Progress (2026-10-11)
