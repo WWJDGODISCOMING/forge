@@ -236,7 +236,7 @@ function openTurnOff(user, sdk, onChange) {
 
 // ---------- Settings → Privacy & security row ----------
 export function mfaSettingsHtml() {
-  return `<button type="button" class="g-row" data-mfa-row><span class="g-ic">${icon('key')}</span><span class="g-text"><span>Two‑step sign‑in</span><small data-mfa-note>A code from an authenticator app, as well as your password.</small></span><span class="g-val" data-mfa-state>…</span><span class="chev">${icon('chev')}</span></button>`;
+  return `<button type="button" class="g-row" data-mfa-row><span class="g-ic">${icon('key')}</span><span class="g-text"><span>Two‑step sign‑in</span><small data-mfa-note>Your password plus a 6‑digit code.</small></span><span class="g-val" data-mfa-state>…</span><span class="chev">${icon('chev')}</span></button>`;
 }
 
 export function bindMfaSettings(el) {

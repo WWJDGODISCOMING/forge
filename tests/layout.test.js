@@ -1151,6 +1151,29 @@ if (standalone) {
       if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note('the code sheet is not phone-width and centred', at);
       if (shots) await browser.screenshot(`${shots}/mfa-code-${w}x${h}.png`);
     }
+    // Privacy & security notes: no single word alone on the last line, and the two-step note stays short
+    const noteProbe = `(() => [...document.querySelectorAll('[data-privacy] .g-text small')].filter((e) => e.offsetParent !== null).map((e) => {
+      const rg = document.createRange(); rg.selectNodeContents(e);
+      const rows = {}; [...rg.getClientRects()].filter((q) => q.width > 0).forEach((q) => { const k = Math.round((q.top + q.bottom) / 2 / 6); rows[k] = (rows[k] || 0) + q.width; });
+      const lines = Object.keys(rows).map(Number).sort((a, b) => a - b);
+      let lastWords = 99;
+      if (lines.length > 1) {
+        const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let nd; let words = 0;
+        while ((nd = w.nextNode())) { const t = nd.textContent; for (let i = 0; i < t.length; i++) { if (/\\s/.test(t[i])) continue; const a = document.createRange(); a.setStart(nd, i); a.setEnd(nd, i + 1); const q = a.getClientRects()[0]; if (q && Math.round((q.top + q.bottom) / 2 / 6) === lines[lines.length - 1] && (i === 0 || /\\s/.test(t[i - 1]))) words++; } }
+        lastWords = words;
+      }
+      return { text: e.textContent, n: lines.length, lastWords, mfa: e.hasAttribute('data-mfa-note') };
+    }))()`;
+    for (const [w, h] of [...MFA_SIZES, [932, 430]]) {
+      const at = `${w}x${h}`;
+      await browser.viewport(w, h, true);
+      await browser.open('settings', seed(), 'window.__mfaOn = false;');
+      const notes = await browser.eval(noteProbe);
+      for (const n of notes || []) {
+        if (n.lastWords < 2) note(`"${n.text}" leaves a single word alone on its last line`, at);
+        if (n.mfa && w === 320 && n.n > 2) note(`the two-step note takes ${n.n} lines`, at);
+      }
+    }
     await browser.dropInit();
     assert(found.size === 0, report(found));
   });

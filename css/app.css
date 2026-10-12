@@ -86,7 +86,7 @@ fieldset.card legend + * { clear: both; }
 .g-row .g-ic { flex: none; width: 30px; height: 30px; border-radius: 8px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-1); }
 .g-row .g-ic svg { width: 18px; height: 18px; }
 .g-row .g-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.g-row .g-text small { color: var(--text-2); font-size: calc(13px * var(--ts)); line-height: calc(18px * var(--ts)); }
+.g-row .g-text small { text-wrap: balance; color: var(--text-2); font-size: calc(13px * var(--ts)); line-height: calc(18px * var(--ts)); }
 .g-row .g-val { color: var(--text-2); font-size: calc(15px * var(--ts)); }
 .g-row .chev { color: var(--text-3); display: inline-flex; flex: none; }
 .g-row .chev svg { width: 18px; height: 18px; }
