@@ -4,7 +4,7 @@ import { loadExpiryInfo } from '../native/expiry.js';
 import { refreshRowHtml, openRefreshSheet } from '../native/refresh-ui.js';
 import { photoStatus, downloadAllPhotos } from '../ui/photos.js';
 import { patch, deleteAllUserData, clearLocalCache } from '../db.js';
-import { signOut, reauth, deleteAccount, authErrorMessage } from '../auth.js';
+import { signOut, deleteAccount, authErrorMessage } from '../auth.js';
 import { exportJSON, exportWeightsCSV, exportWorkoutsCSV, exportCardioCSV, exportBodyCSV, exportFoodCSV } from '../export.js';
 import { esc, $, $$, sheet, toast, confirmSheet } from '../ui.js';
 import { formatHeight, formatWeight } from '../units.js';
@@ -16,6 +16,7 @@ import { icon } from '../ui/icons.js';
 import { photoSettingsHtml, bindPhotoSettings } from '../photos/settings.js';
 import { missionSettings, setMissionSetting } from '../missions/store.js';
 import { privacySettingsHtml, bindPrivacySettings } from '../native/lock-ui.js';
+import { mfaSettingsHtml, bindMfaSettings, reauthWithMfa, wasCancelled } from '../mfa-ui.js';
 
 const SECTIONS = [['general', 'General'], ['connections', 'Connections'], ['data', 'Your data'], ['privacy', 'Privacy & photos'], ['account', 'Account']];
 
@@ -129,6 +130,7 @@ export function renderSettings(el) {
       ${photoSettingsHtml()}
 
       ${privacySettingsHtml()}
+      ${mfaSettingsHtml()}
 
       </div>
       <div class="stack set-pane${sel === 'account' ? ' on' : ''}" id="set-account" role="tabpanel" aria-labelledby="setnav-account">
@@ -259,6 +261,7 @@ export function renderSettings(el) {
 
   bindPhotoSettings(el);
   bindPrivacySettings(el);
+  bindMfaSettings(el);
   $('[data-delete]', el).onclick = () => openDeleteEverything();
   $('[data-tour-again]', el).onclick = () => import('../tour/tour.js').then((m) => m.startTour({ replay: true }));
 }
@@ -292,7 +295,7 @@ function openDeleteEverything() {
       let accountGone = false;
       const uid = state.user.uid;
       try {
-        await reauth(form.password.value);
+        await reauthWithMfa(form.password.value);
         await deleteAllUserData();
         await deleteAccount();
         accountGone = true;
@@ -303,7 +306,7 @@ function openDeleteEverything() {
           // The account and cloud data are gone; only the on-device wipe failed. Reloading still signs you out.
           console.error(ex);
         } else {
-          err.textContent = authErrorMessage(ex);
+          err.textContent = wasCancelled(ex) ? '' : authErrorMessage(ex);
           btn.disabled = false;
           btn.textContent = 'Delete my account and data';
           return;

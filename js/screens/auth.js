@@ -1,5 +1,6 @@
 import { signIn, signUp, resetPassword, authErrorMessage } from '../auth.js';
 import { esc, $, toast } from '../ui.js';
+import { MFA_REQUIRED } from '../mfa.js';
 import { APP_NAME } from '../../config.js';
 
 let mode = 'signin'; // 'signin' | 'signup' | 'reset'
@@ -55,7 +56,13 @@ export function renderAuth(el) {
     }
     btn.disabled = true;
     try {
-      if (mode === 'signin') await signIn(email, password);
+      if (mode === 'signin') {
+        try { await signIn(email, password); } catch (ex) {
+          if (!ex || ex.code !== MFA_REQUIRED) throw ex;
+          // Two-step sign-in is on: ask for the code (the app signs you in once it's right).
+          await (await import('../mfa-ui.js')).promptSignInCode(ex);
+        }
+      }
       else if (mode === 'signup') await signUp(email, password);
       else {
         await resetPassword(email);
@@ -64,7 +71,7 @@ export function renderAuth(el) {
         renderAuth(el);
       }
     } catch (ex) {
-      err.textContent = authErrorMessage(ex);
+      if (!ex || ex.code !== 'forge/cancelled') err.textContent = authErrorMessage(ex);
     } finally {
       btn.disabled = false;
     }

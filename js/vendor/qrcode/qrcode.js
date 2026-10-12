@@ -2296,5 +2296,5 @@ var qrcode = function() {
     return qrcode;
 }));
 
-// Forge: everything above is qrcode-generator 1.4.4 unchanged (MIT, see LICENSE.txt). Only this export was added so it loads as an ES module.
+// Forge: everything above is qrcode-generator 1.4.4 unchanged (MIT, see docs/licenses/qrcode-generator-MIT.txt). Only this export was added so it loads as an ES module.
 export default qrcode;
