@@ -123,3 +123,13 @@
 
 /* Log food dock macro line: each value stays with its unit; the line only breaks between macros. */
 .macro-line .nb { white-space: nowrap; }
+
+/* Today's compact Food row (v0.15.20): ring, numbers, Log food on one line. */
+.food-row-compact { display: flex; align-items: center; gap: var(--s-3); }
+.food-row-compact .food-card-ring { width: 56px; height: 56px; }
+.food-row-compact .food-card-text { flex: 1 1 0; min-width: 0; color: inherit; text-decoration: none; }
+.food-row-compact .food-card-kcal b { font-size: calc(24px * var(--ts)); }
+.food-row-compact .btn.small { flex: none; margin: 0; min-height: 44px; }
+.alert-slot:empty { display: none; }
+.alert-slot { display: flex; flex-direction: column; gap: var(--s-3); }
+.food-why { margin: 0; }

@@ -23,7 +23,7 @@ test('tour: 10–11 steps, each with a title and plain words; the real-element s
     assert(!s.target || s.route, `${s.id} has a target but no route`);
   }
   const ids = TOUR_STEPS.map((s) => s.id).join();
-  for (const id of ['rings', 'workout', 'food', 'weight', 'train', 'start', 'coach', 'body', 'progress', 'settings']) assert(ids.includes(id), `covers ${id}`);
+  for (const id of ['rings', 'workout', 'food', 'weight', 'train', 'start', 'coach', 'recovery', 'progress', 'settings']) assert(ids.includes(id), `covers ${id}`);
   assert(/reps in reserve/i.test(TOUR_STEPS.find((s) => s.id === 'start').body), 'RIR explained in one line');
   assert(/one Forge account/.test(TOUR_STEPS.find((s) => s.id === 'weight').body), 'says the scale links to one account and to log by hand');
 });

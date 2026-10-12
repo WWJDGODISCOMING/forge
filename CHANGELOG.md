@@ -1,5 +1,23 @@
 # Changelog
 
+## 0.15.20 — Today and Train card order (2026-10-12)
+
+Issue #63, part 3 of the approved IA. Moves existing cards only; no new features. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Today is a summary:** one alert slot, Readiness, Today's workout, Rings, Today's missions, a compact Food row, the Coach line, Weight, Weekly report **or** Forge Score, the top 2 insights, and the photo reminder on the weekly photo day. The order and the alert rules live in `js/home-order.js`.
+- **One alert at a time:** when several banners could show, only the most important one does: app expiring, a data problem, the install hint, a finished program, a new badge, then the tour offer. The others wait their turn (a badge isn't marked as seen until it is on screen).
+- **Weekly report or Score, never both:** the report on the days it is due, otherwise the Score.
+- **Food on Today is one row** (small ring, numbers, Log food) that opens the Food tab. The macro meters were already on Food; "Why these numbers?" moved there too.
+- **Train:** location chips, Resume, today's workout, then one **Recovery** card with the fresh-muscle number directly above the map (tap a muscle for details), then Program, Tools (Timer, Log cardio, Plates, Exercises) and History & PRs on its own row.
+- **Moved:** Recovery map and fresh-muscle number: Body → Train (Body keeps a tile and a "Recovery map" row that open Train). Program line (Today) → Program card on Train, and the body-program card stays on Body. Full Food card and macro tiles: Today → Food tab. History tool tile: Train tools → its own History & PRs row. Awards and missions history stay on Progress; today's missions stay on Today.
+- **Tour:** the "Body: what's recovered" step is now "Train: what's recovered" and points at the new card. Old links (`#/body`, `#/food`, `#/weight`, `#/program`, `#/history`) all still open real screens.
+- **Tests:** card order on Today and Train, the single alert slot, Weekly report XOR Score, and the tour targets.
+
+### What's new
+
+- Today is shorter: Food is one row, and you see one alert at a time.
+- The recovery map now sits on Train, right under your fresh-muscle count.
+
 ## 0.15.19 — Quick-log + button and Back from Settings links (2026-10-11)
 
 Issue #63, part 2 of the approved IA. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

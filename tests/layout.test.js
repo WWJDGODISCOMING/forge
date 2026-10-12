@@ -461,9 +461,9 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
       if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
       if (route === 'today') { // reading order (VoiceOver, Tab) must match the screen: DOM order = visual order on a phone, and the right column per card on two columns
         const shown = m.slots.filter((x) => x.t != null);
-        if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10,11,12') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
+        if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
-        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 2, 3, 7, 8, 9, 12].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
+        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5, 9].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
       if (route === 'settings') { // list left, selected section right; a phone keeps the whole page (list hidden, every section shown)
@@ -787,7 +787,7 @@ if (standalone) {
       // scroll about 45% down (25% on Score, whose wide page is much shorter, so the card has to stay reachable); on Today, to a card that lands in the right column when wide
       const picked = await browser.eval(`(async () => {
         const bar = document.querySelector('.navbar'); const inset = bar ? bar.getBoundingClientRect().bottom : 0;
-        let target = ${route === 'today' ? "document.querySelector('.slot[data-o=\"5\"]')" : 'null'};
+        let target = ${route === 'today' ? "document.querySelector('.slot[data-o=\"6\"]')" : 'null'};
         if (!target) window.scrollTo({ top: (document.documentElement.scrollHeight - innerHeight) * ${route === 'score' ? 0.25 : 0.45}, behavior: 'instant' });
         else window.scrollBy({ top: target.getBoundingClientRect().top - inset - 4, behavior: 'instant' });
         await new Promise((r) => setTimeout(r, 500));

@@ -12,32 +12,6 @@ import { startOffset, macroTilesHtml } from '../js/ui/rings.js';
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const idx = (s, needle) => { const i = s.indexOf(needle); assert(i >= 0, `missing ${needle}`); return i; };
 
-test('Today: order is Readiness, Coach line, rings, workout, Food, missions, weight, then the rest', () => {
-  const t = src('js/screens/today.js');
-  const body = t.slice(idx(t, 'el.innerHTML = `'));
-  const order = ['${readinessCard()}', '${coachLine()}', 'class="card rings-card"', '${workoutCard()}', '${foodCard(t)}', '${missionsCard()}', 'class="card weight-card"', '${programLine()}', '${scoreCard()}', '${weeklyCard()}', '${insightsBlock()}'];
-  // the DOM is in the phone's reading order (VoiceOver and Tab follow it); columns are built at runtime on wide screens
-  const at = order.map((n) => body.indexOf(n));
-  at.forEach((p, i) => assert(p >= 0, `missing ${order[i]}`));
-  for (let i = 1; i < at.length; i++) assert(at[i] > at[i - 1], `${order[i]} should come after ${order[i - 1]}`);
-  const slots = [...body.matchAll(/class="slot" data-o="(\d+)"/g)].map((m) => Number(m[1]));
-  eq(slots.join(','), '1,2,3,4,5,6,7,8,9,10,11,12', 'slots sit in the DOM in one-column order');
-  assert(!body.includes('Daily targets'), 'Daily targets is no longer its own card');
-  assert(body.split('data-coach-card').length === 1 && t.split('data-coach-card').length === 2, 'one Coach card only');
-});
-
-test('Today: targets are inside the Food card; Coach is a single line; "This week" sits next to Awards', () => {
-  const t = src('js/screens/today.js');
-  const food = t.slice(idx(t, 'function foodCard'), idx(t, 'function coachLine'));
-  assert(food.includes('macroTilesHtml(tot, t)') && food.includes('Why these numbers?') && src('js/ui/rings.js').includes('data-food-targets'), 'macro targets and the why live in the Food card');
-  assert(food.includes('data-tour="food"'), 'tour still spotlights the Food card');
-  const rings = t.slice(idx(t, 'class="card rings-card"'), idx(t, '${ringsHtml(rings)}'));
-  assert(rings.indexOf('href="#/weekly"') > 0 && rings.indexOf('href="#/weekly"') < rings.indexOf('href="#/awards"'), 'This week link before Awards');
-  assert(src('js/screens/today.js').includes("showReportCard(todayKey())"), 'the weekly report card itself stays Sun/Mon');
-  const css = src('css/food.css');
-  assert(/\.coach-line-text \{[^}]*text-wrap: balance/.test(css) && !/\.coach-line-text \{[^}]*nowrap/.test(css), 'Coach teaser may take two balanced lines, never cut off');
-});
-
 test('Today budget: the sections above the fold-and-a-half carry a fixed, small set of cards', () => {
   // Height can't be measured without a browser; keep the always-present card count small. The review bot measures ≤ 1,604 px at 390×844.
   const t = src('js/screens/today.js');
@@ -46,21 +20,6 @@ test('Today budget: the sections above the fold-and-a-half carry a fixed, small 
   assert(cards.length <= 4, `${cards.length} inline cards in the Today template`);
 });
 
-test('tour: 10–11 steps; Food, Coach and Body steps spotlight elements that exist on 390×844 screens', () => {
-  assert(TOUR_STEPS.length >= 10 && TOUR_STEPS.length <= 11, `${TOUR_STEPS.length} steps`);
-  const ids = TOUR_STEPS.map((s) => s.id);
-  for (const id of ['food', 'coach', 'body']) assert(ids.includes(id), id);
-  assert(new Set(ids).size === ids.length, 'unique step ids');
-  const screens = { food: src('index.html'), today: src('js/screens/today.js'), body: src('js/screens/body.js'), train: src('js/screens/train.js'), settings: src('js/screens/settings.js'), weight: src('js/screens/weight.js') };
-  const find = { food: 'href="#/food"', coach: 'data-coach-card', body: 'data-tour="body-recovery"' };
-  for (const [id, needle] of Object.entries(find)) {
-    const step = TOUR_STEPS.find((s) => s.id === id);
-    assert(step.target && step.route, `${id} has a target and a route`);
-    assert(screens[step.route].includes(needle), `${id}: ${needle} is on the ${step.route} screen`);
-  }
-  eq(TOUR_STEPS.find((s) => s.id === 'body').route, 'body');
-  assert(/photos/i.test(TOUR_STEPS.find((s) => s.id === 'body').body), 'Body step mentions photos');
-});
 
 test('tour offer: shown once to accounts that already existed, never again after Show me / Not now', () => {
   assert(tourOfferDue({ goal: 'lose' }), 'old account with no tour field');
@@ -88,14 +47,6 @@ test('Body Profile: fat mass comes from weight × fat_ratio_pct when the scale s
   eq(p.status, 'ok');
 });
 
-test('Body: new user gets a tappable "Start your first workout" tile, never a dash; Recovery sits first under the tiles', () => {
-  const b = src('js/screens/body.js');
-  assert(b.includes('Start your first workout') && b.includes('href="#/train"') && !b.includes("days == null ? '—'"), 'hero copy');
-  const t = b.slice(idx(b, 'el.innerHTML = `'));
-  assert(t.indexOf('data-tour="body-recovery"') < t.indexOf('data-photos-slot'), 'recovery first');
-  assert(b.includes('data-goto-recovery'), 'fresh tile jumps to recovery');
-  assert(t.indexOf('data-photos-slot') < t.indexOf('${compositionCard()}'), 'photos above composition');
-});
 
 test('Progress → Weight has a Progress photos row next to Awards and Coach', () => {
   const w = src('js/screens/weight.js');
