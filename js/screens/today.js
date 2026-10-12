@@ -4,7 +4,6 @@ import { weightToDisplay, weightUnit } from '../units.js';
 import { trendChange } from '../weight/smoothing.js';
 import { sparklineSVG } from '../weight/chart.js';
 import { weightSeries, currentTargets, latestWeighIn } from '../derived.js';
-import { FLOOR_SOURCE } from '../nutrition/targets.js';
 import { openLogWeight } from './weight.js';
 import { readingLabel } from '../weight/reading.js';
 import { activeWorkout, historyIndex, activeProgram } from '../workouts/plan.js';
@@ -16,18 +15,19 @@ import { playerRoute, previewPlan, startPlan } from './train.js';
 import { todayRings } from '../workouts/rings.js';
 import { weekOf } from '../workouts/awards.js';
 import { exerciseById } from '../workouts/library.js';
-import { ringsHtml, animateRings, snapshotRings, foodSummary, foodRingSvg, macroTilesHtml } from '../ui/rings.js';
+import { ringsHtml, animateRings, snapshotRings, foodSummary, foodRingSvg } from '../ui/rings.js';
 import { tourOfferDue } from '../tour/steps.js';
 import { currentReadiness, currentScore, readinessOverridden, overrideReadiness } from '../health/today.js';
 import { ringSvg, animateScoreRings, round } from '../health/ui.js';
 import { icon } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
 import { lastNativeRead } from '../native/autoread.js';
-import { programLine, completionCards, afterCompletionCards } from '../body-programs/ui.js';
+import { completionCards, afterCompletionCards } from '../body-programs/ui.js';
 import { missionsCard, afterMissionsRender, badgeCelebrationCards, afterBadgeCelebrations } from '../missions/ui.js';
 import { coachData } from '../coach/data.js';
 import { availableQuestions } from '../coach/answers.js';
 import { dayTotals } from '../food/core.js';
+import { pickAlert, topFlag, reportOrScore } from '../home-order.js';
 
 /** "Ask Coach: <first question that has an answer>", or just "Ask Coach". */
 function coachTeaser() {
@@ -49,30 +49,21 @@ function foodToday(t) {
   return { kcal: tot.kcal, protein_g: tot.protein_g, targetKcal: t.calories, targetProtein: t.proteinG };
 }
 
-/** The Food card, just under the workout: a calories ring with protein inside it, today's numbers, Log food and See meals. */
-function foodCard(t) {
+/** Food as one compact row (Food is a tab now): a small ring, today's numbers and Log food. Meals, macros and the "Why these numbers?" explainer live on the Food tab. */
+function foodRow(t) {
   const tot = dayTotals(state.food_logs, todayKey());
   const n = (v) => Math.round(v).toLocaleString('en-US');
   const sum = foodSummary(tot, t);
   const aria = `Food today: ${n(tot.kcal)} of ${n(t.calories)} kcal, ${n(tot.protein_g)} of ${n(t.proteinG)} g protein`;
-  return `<div class="card food-card" data-food-card data-tour="food">
-    <div class="food-card-top">
-      ${foodRingSvg(tot, t, aria)}
-      <div class="food-card-text">
-        <div class="row between center card-head"><p class="label">Food</p><a class="card-link" href="#/food">See meals${icon('chev', { size: 14 })}</a></div>
-        <p class="food-card-kcal"><b>${n(tot.kcal)}</b> <small>of ${n(t.calories)} kcal</small></p>
-        <p class="small ${sum.over ? 'over' : 'muted'}">${esc(sum.note)}</p>
-        <p class="small muted">${esc(sum.protein)}</p>
-        <button class="btn small" data-food-log>Log food</button>
-      </div>
-    </div>
-    ${macroTilesHtml(tot, t)}
-    <details class="food-why">
-      <summary>Why these numbers?</summary>
-      <ul class="reasons">${t.reasoning.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
-      <p class="small muted">Safe floor: ${n(t.floor)} kcal/day. ${esc(FLOOR_SOURCE)}</p>
-      <p class="small muted">Targets update automatically as your weight trend changes.</p>
-    </details></div>`;
+  return `<div class="card food-card food-row-compact" data-food-card data-tour="food">
+    ${foodRingSvg(tot, t, aria)}
+    <a class="food-card-text" href="#/food" aria-label="Food: ${n(tot.kcal)} of ${n(t.calories)} kcal. See meals">
+      <p class="label">Food</p>
+      <p class="food-card-kcal"><b>${n(tot.kcal)}</b> <small>of ${n(t.calories)} kcal</small></p>
+      <p class="small ${sum.over ? 'over' : 'muted'}"><span class="nb">${esc(sum.note)}</span> · <span class="nb">${esc(sum.protein)}</span></p>
+    </a>
+    <button class="btn small food-log-btn" data-food-log aria-label="Log food"><span class="fl-plus" aria-hidden="true">+</span><span class="fl-txt">Log food</span></button>
+  </div>`;
 }
 
 /** One line under Readiness: opens Coach. Kept to a single line so Today stays short. */
@@ -86,7 +77,7 @@ function tourOfferCard() {
   if (!tourOfferDue(state.profile)) return '';
   return `<div class="card stack tour-offer" data-tour-offer>
     <p class="label">New: Food and photos</p>
-    <p class="small">Log meals from Today, find your progress photos, and ask Coach. Want a one-minute look?</p>
+    <p class="small">Log meals on the Food tab, find your progress photos, and ask Coach. Want a one-minute look?</p>
     <div class="row gap"><button class="btn grow" data-tour-offer-show>Show me</button><button class="btn ghost grow" data-tour-offer-no>Not now</button></div></div>`;
 }
 
@@ -183,7 +174,7 @@ function insightsBlock() {
   const r = currentReadiness();
   // Readiness already says "short sleep" when it is amber or red for sleep: don't say it twice.
   const sleepShown = r.status === 'ok' && r.level !== 'green' && (r.parts || []).some((p) => p.key === 'sleep' && (p.dir === 'bad' || p.dir === 'low'));
-  const cards = topInsights(4).filter((c) => !(sleepShown && c.id === 'anomaly:sleep')).slice(0, 1);
+  const cards = topInsights(4).filter((c) => !(sleepShown && c.id === 'anomaly:sleep')).slice(0, 2);
   return cards.length ? `<div class="insights stack" data-insights>${compactInsightsHtml(cards)}</div>` : '';
 }
 
@@ -194,7 +185,7 @@ function greeting() {
 
 // Two columns (>= 840px): slot numbers on the left or right. The DOM stays in the phone's reading order and only
 // moves into columns while the wide query matches, so VoiceOver and Tab order follow the screen on every size.
-const LEFT_SLOTS = new Set(['1', '2', '3', '7', '8', '9', '12']);
+const LEFT_SLOTS = new Set(['1', '3', '5', '6', '9']); // readiness, rings, food, coach line, insights; the rest go right (Food is one short row now, so the coach line balances the columns)
 let wideQuery = null;
 let wideListener = null;
 function arrangeTodayCols(el) {
@@ -250,6 +241,20 @@ export function renderToday(el) {
   const rings = todayRings({ workouts: state.workouts, cardio: state.cardio || [], profile: state.profile, exerciseById, deload, food: foodToday(t) });
 
   const ringsBefore = snapshotRings($('.rings-card', el)); // a data refresh redraws Today: the arcs glide on from here
+  const flag = topFlag(t.flags);
+  // One banner at a time, most important first (see ALERT_PRIORITY); the losers wait for their turn.
+  const alert = pickAlert({
+    flags: () => (flag ? `<div class="notice ${flag.level}" data-alert="flags">${esc(flag.message)}</div>` : ''),
+    install: () => (installHint ? `
+      <div class="notice info" data-alert="install">
+        <b>Install this app first.</b> Tap the Share button, then <b>Add to Home Screen</b>, and open it from there.
+        iPhone can erase data from websites you don’t open for 7 days. Installed apps are protected.
+      </div>` : ''),
+    'program-done': () => completionCards(),
+    badge: () => badgeCelebrationCards(),
+    'tour-offer': () => tourOfferCard(),
+  });
+  const report = reportOrScore({ weekly: weeklyCard(), score: scoreCard() }); // never both
   el.innerHTML = `
     <section class="stack today-stack">
       <header class="today-head">
@@ -257,26 +262,12 @@ export function renderToday(el) {
         <h1>${greeting()}</h1>
       </header>
 
-      ${badgeCelebrationCards()}
-
-      ${completionCards()}
-
-      ${installHint ? `
-        <div class="notice info">
-          <b>Install this app first.</b> Tap the Share button, then <b>Add to Home Screen</b>, and open it from there.
-          iPhone can erase data from websites you don’t open for 7 days. Installed apps are protected.
-        </div>` : ''}
-
-      ${isNative() ? '<div data-app-refresh-slot></div>' : ''}
-
-      ${t.flags.map((f) => `<div class="notice ${f.level}">${esc(f.message)}</div>`).join('')}
-
-      ${tourOfferCard()}
+      <div class="alert-slot" data-alert-slot>${alert.html}</div>
 
       <div class="today-cols" data-today-cols>
       <div class="slot" data-o="1">${readinessCard()}</div>
 
-      <div class="slot" data-o="2">${coachLine()}</div>
+      <div class="slot" data-o="2">${workoutCard()}</div>
 
       <div class="slot" data-o="3">
       <div class="card rings-card">
@@ -286,11 +277,11 @@ export function renderToday(el) {
       </div>
       </div>
 
-      <div class="slot" data-o="4">${workoutCard()}</div>
+      <div class="slot" data-o="4">${missionsCard()}</div>
 
-      <div class="slot" data-o="5">${foodCard(t)}</div>
+      <div class="slot" data-o="5">${foodRow(t)}</div>
 
-      <div class="slot" data-o="6">${missionsCard()}</div>
+      <div class="slot" data-o="6">${coachLine()}</div>
 
       <div class="slot" data-o="7">
       <div class="card weight-card">
@@ -312,15 +303,11 @@ export function renderToday(el) {
       </div>
       </div>
 
-      <div class="slot" data-o="8">${programLine()}</div>
+      <div class="slot" data-o="8">${report.html}</div>
 
-      <div class="slot" data-o="9">${scoreCard()}</div>
+      <div class="slot" data-o="9">${insightsBlock()}</div>
 
-      <div class="slot" data-o="10">${weeklyCard()}</div>
-
-      <div class="slot" data-o="11"><div data-photo-reminder></div></div>
-
-      <div class="slot" data-o="12">${insightsBlock()}</div>
+      <div class="slot" data-o="10"><div data-photo-reminder></div></div>
       </div>
 
       <p class="disclaimer">General fitness information, not medical advice.</p>
@@ -351,7 +338,7 @@ export function renderToday(el) {
     overrideReadiness(false);
     renderToday(el);
   };
-  const refreshSlot = $('[data-app-refresh-slot]', el);
+  const refreshSlot = isNative() ? $('[data-alert-slot]', el) : null; // the app-expiry banner outranks every other alert, so it takes the slot when it arrives
   if (refreshSlot) loadExpiryInfo().then((info) => {
     if (!refreshSlot.isConnected || !info || !refreshDue(info.at)) return;
     refreshSlot.innerHTML = refreshBannerHtml(info.at, info.exact);

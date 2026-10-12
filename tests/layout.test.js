@@ -342,6 +342,37 @@ if (standalone) {
 }
 
 if (standalone) {
+  test('layout: Today Food row: text never runs under Log food at 320, 375, 390 and 890, text size 1 to 1.35', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    for (const [w, h] of [[320, 568], [375, 667], [390, 844], [890, 626]]) {
+      for (const ts of [1, 1.12, 1.35]) {
+        await browser.viewport(w, h, true);
+        await browser.open('today', seed({ over: true }));
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+        const m = await browser.eval(`(() => {
+          const row = document.querySelector('#main .food-row-compact'); if (!row) return null;
+          const box = row.querySelector('.food-card-text').getBoundingClientRect(), lb = row.querySelector('[data-food-log]').getBoundingClientRect(), rg = row.querySelector('.food-card-ring').getBoundingClientRect();
+          const lines = (e) => { const r = document.createRange(); r.selectNodeContents(e); const rs = [...r.getClientRects()].filter((q) => q.width > 0.5); return { n: rs.length ? (Math.max(...rs.map((q) => q.bottom)) - Math.min(...rs.map((q) => q.bottom)) > 8 ? 2 : 1) : 0, right: rs.reduce((a, q) => Math.max(a, q.right), 0) }; };
+          const ps = [...row.querySelectorAll('.food-card-text p')].map(lines);
+          return { kcal: lines(row.querySelector('.food-card-kcal')).n, nb: [...row.querySelectorAll('.nb')].map((e) => lines(e).n), right: Math.max(...ps.map((p) => p.right)), boxR: box.right, logL: lb.left, logW: lb.width, logH: lb.height, dy: Math.abs((rg.top + rg.bottom) / 2 - (lb.top + lb.bottom) / 2) };
+        })()`);
+        const at = `${w}x${h}${ts !== 1 ? ' ts' + ts : ''}`;
+        if (!m) { note('no Food row on Today', at); continue; }
+        if (ts === 1 && m.kcal !== 1) note('headline wraps at normal text size', at);
+        if (ts === 1 && m.nb.some((n) => n !== 1)) note('a note phrase wraps at normal text size', at);
+        if (m.right > m.boxR + 0.5) note('text runs past its box', at);
+        if (m.right > m.logL - 4) note('text runs under Log food', at);
+        if (m.dy > 8) note('ring and Log food are not on one row', at);
+        if (m.logW < 43.5 || m.logH < 43.5) note('Log food is under 44x44', at);
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' | ')}]`).join('\n        ')}`);
+  });
+
   test('layout: Log food dock: each macro value stays with its unit at 320 and 390, normal and large text', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
@@ -432,15 +463,16 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
           if (q.left < ${inset} - 0.5 || q.right > innerWidth - ${inset} + 0.5) out.push((e.className || e.tagName) + ' ' + Math.round(q.left) + '-' + Math.round(q.right));
         });
         const wrap = [];
-        const lineCount = (e) => { const g = document.createRange(); g.selectNodeContents(e); return new Set([...g.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top / 6))).size; };
+        const lineCount = (e) => { const g = document.createRange(); g.selectNodeContents(e); const k = [...g.getClientRects()].filter((x) => x.width > 0).map((x) => x.top); return k.length && Math.max(...k) - Math.min(...k) > 6 ? 2 : 1; }; /* a spread, not rounding buckets: an icon centred beside text differs by under a pixel and a bucket edge could split them */
         document.querySelectorAll('#main .weight-text .hero-num, #main .weight-text [data-weight-trend] .nw, #main .rings-card > .row a, #main .food-card-kcal b, #main [data-weight-why]').forEach((e) => {
           if (e.getBoundingClientRect().width < 1) return;
           if (lineCount(e) > 1) wrap.push('wraps: ' + (e.className || e.tagName) + ' "' + e.textContent.trim().slice(0, 24) + '"');
           if (e.scrollWidth > e.clientWidth + 1 && getComputedStyle(e).display !== 'inline') wrap.push('overflows: ' + (e.className || e.tagName));
         });
-        const kc = document.querySelector('#main .food-card-kcal'); if (kc && lineCount(kc) > 1) wrap.push('wraps: food headline');
+        const kc = document.querySelector('#main .food-card-kcal'); if (kc && (() => { const g = document.createRange(); g.selectNodeContents(kc); const k = [...g.getClientRects()].filter((x) => x.width > 0).map((x) => x.bottom); return k.length && Math.max(...k) - Math.min(...k) > 8; })()) wrap.push('wraps: food headline');
         const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
         const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
+        const fr = document.querySelector('#main .food-row-compact'); if (fr) { const rg = fr.querySelector('.food-card-ring'), lb = fr.querySelector('[data-food-log]'); if (rg && lb) { if (Math.abs(rg.getBoundingClientRect().top - lb.getBoundingClientRect().top) > 6 && Math.abs(rg.getBoundingClientRect().bottom - lb.getBoundingClientRect().bottom) > 6 && Math.abs((rg.getBoundingClientRect().top + rg.getBoundingClientRect().bottom) - (lb.getBoundingClientRect().top + lb.getBoundingClientRect().bottom)) > 12) wrap.push('wraps: Today food row'); if (lb.getBoundingClientRect().height < 43.5) wrap.push('small: Log food'); } }
         const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
         const done = document.querySelector('#main [data-done-label]'), dq = done && done.getBoundingClientRect();
         const ch = document.querySelector('#main svg.chart'), cq = ch && ch.getBoundingClientRect(), card = ch && ch.closest('.card'), cdq = card && card.getBoundingClientRect();
@@ -461,9 +493,9 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
       if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
       if (route === 'today') { // reading order (VoiceOver, Tab) must match the screen: DOM order = visual order on a phone, and the right column per card on two columns
         const shown = m.slots.filter((x) => x.t != null);
-        if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10,11,12') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
+        if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
-        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 2, 3, 7, 8, 9, 12].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
+        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5, 6, 9].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
       if (route === 'settings') { // list left, selected section right; a phone keeps the whole page (list hidden, every section shown)
@@ -787,7 +819,7 @@ if (standalone) {
       // scroll about 45% down (25% on Score, whose wide page is much shorter, so the card has to stay reachable); on Today, to a card that lands in the right column when wide
       const picked = await browser.eval(`(async () => {
         const bar = document.querySelector('.navbar'); const inset = bar ? bar.getBoundingClientRect().bottom : 0;
-        let target = ${route === 'today' ? "document.querySelector('.slot[data-o=\"5\"]')" : 'null'};
+        let target = ${route === 'today' ? "document.querySelector('.slot[data-o=\"6\"]')" : 'null'};
         if (!target) window.scrollTo({ top: (document.documentElement.scrollHeight - innerHeight) * ${route === 'score' ? 0.25 : 0.45}, behavior: 'instant' });
         else window.scrollBy({ top: target.getBoundingClientRect().top - inset - 4, behavior: 'instant' });
         await new Promise((r) => setTimeout(r, 500));

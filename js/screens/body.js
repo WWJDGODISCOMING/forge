@@ -1,25 +1,15 @@
-// Body tab: the recovery heatmap (front and back, red / amber / green from the recovery model), fresh-muscle
-// count and days since your last workout. Tap a muscle for its %, when you last trained it and its sets
-// this week. (Strength score and weekly set targets come later.)
+// Body tab: weight and body composition, goal path, measures, programs and your progress photos. The recovery heatmap
+// and the fresh-muscle count moved to Train (v0.15.20), next to the workout; the tile and a link here point there.
 import { myBodyMeasures } from '../derived.js';
 import { state, units as getUnits } from '../state.js';
-import { esc, $, $$, sheet, todayKey } from '../ui.js';
+import { $, todayKey } from '../ui.js';
 import { topInsights, dismissInsight, intel, currentGoalPath, currentEnergy, currentBodyProfile } from '../health/intel.js';
 import { insightCardsHtml, bindInsightCards, goalPathHtml, bodyProfileHtml } from '../health/cards.js';
 import { currentRecovery, historyIndex } from '../workouts/plan.js';
-import { exerciseById } from '../workouts/library.js';
-import { MUSCLE_LABELS, muscleStats, SHOW_MUSCLES as SHOW, freshCount } from '../workouts/recovery.js';
-import { bodyMap, musclesIn, regionLabel, recoveryColor } from '../ui/bodymap.js';
+import { freshCount } from '../workouts/recovery.js';
 import { BODY_METRICS, metricSeries, dailySeries, latestAndChange, fmtMetric, heightM, lastWeighInDay, compositionGap, staleCaption, daysBetween, OLD_READING_DAYS } from '../withings/body.js';
 import { icon, emptyState } from '../ui/icons.js';
 import { programsCard, bindProgramsCard } from '../body-programs/ui.js';
-
-const ago = (iso) => {
-  if (!iso) return 'Not trained yet';
-  const d = Math.floor((Date.now() - Date.parse(iso)) / 86400000);
-  return d <= 0 ? 'Today' : d === 1 ? 'Yesterday' : `${d} days ago`;
-};
-const status = (pct) => (pct < 50 ? 'Needs rest' : pct < 85 ? 'Recovering' : 'Ready');
 
 // The card's date: the reading's time, or its day when an older entry has no timestamp (never "Invalid Date").
 function bcDate(doc) {
@@ -84,73 +74,32 @@ export function renderBody(el) {
   const fresh = freshCount(rec);
   const last = historyIndex().done[0];
   const days = last ? Math.floor((Date.now() - Date.parse(last.finished_at || last.started_at)) / 86400000) : null;
-  const tired = [...SHOW].sort((a, b) => rec[a] - rec[b]).filter((m) => rec[m] < 85).slice(0, 4);
   el.innerHTML = `
     <section class="stack">
       <h1>Body</h1>
       <div class="body-hero">
-        <button type="button" class="bh-tile bh-tap" data-goto-recovery><b data-count>${fresh}</b><span>fresh muscles</span></button>
+        <a class="bh-tile bh-tap" href="#/train" data-goto-recovery><b data-count>${fresh}</b><span>fresh muscles</span></a>
         ${days == null ? '<a class="bh-tile bh-tap" href="#/train" data-no-workouts><b>0</b><span>Start your first workout</span></a>'
           : days === 0 ? '<div class="bh-tile"><b class="bh-word">Today</b><span>last workout</span></div>'
           : `<div class="bh-tile"><b data-count>${days}</b><span>${days === 1 ? 'day' : 'days'} since last workout</span></div>`}
       </div>
       <div class="body-cols">
       <div class="col col-a">
-      <div class="card" data-tour="body-recovery" id="body-recovery" tabindex="-1">
-        <div class="row between"><p class="label">Recovery</p><span class="small muted">Tap a muscle</span></div>
-        ${bodyMap(rec, { mode: 'recovery', tappable: true })}
-        <div class="bm-legend">
-          <span><i style="background:${recoveryColor(100)}"></i>Ready</span>
-          <span><i style="background:${recoveryColor(70)}"></i>Recovering</span>
-          <span><i style="background:${recoveryColor(20)}"></i>Needs rest</span>
-        </div>
-        ${tired.length ? `<p class="small muted">Least recovered: ${tired.map((m) => `${esc(MUSCLE_LABELS[m])} ${rec[m]}%`).join(' · ')}</p>` : '<p class="small muted">Everything is recovered. Good day to train anything.</p>'}
-        <p class="small muted">Based on your sets, effort and time since (big muscles ~72 h, small ~48 h).</p>
-      </div>
-      </div>
-      <div class="col col-b">
       <div data-photos-slot></div>
       ${insightCards()}
+      </div>
+      <div class="col col-b">
       ${compositionCard()}
       ${programsCard()}
       ${goalPathCard()}
       ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}) : ''}
       <a class="card row between center nav-card" href="#/trends"><div><p class="label">Trends</p><p class="small">See how every number is moving</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
+      <a class="card row between center nav-card" href="#/train" data-recovery-link><div><p class="label">Recovery map</p><p class="small">${fresh} fresh muscle groups · now on Train, next to your workout</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
       </div>
       </div>
     </section>`;
 
-  $('[data-goto-recovery]', el)?.addEventListener('click', () => {
-    const card = $('#body-recovery', el);
-    if (!card) return;
-    const calm = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-    card.scrollIntoView({ behavior: calm ? 'auto' : 'smooth', block: 'start' });
-    if (!calm) card.animate([{ boxShadow: '0 0 0 0 var(--accent)' }, { boxShadow: '0 0 0 3px var(--accent)' }, { boxShadow: '0 0 0 0 var(--accent)' }], { duration: 900 });
-  });
   bindInsightCards(el, dismissInsight);
   bindProgramsCard(el);
   import('../photos/cards.js').then((m) => m.mountBodyPhotosCard($('[data-photos-slot]', el)));
-  const open = (region) => {
-    const [side, slug] = region.split(':');
-    const ms = musclesIn(side, slug);
-    if (!ms.length) return;
-    const stats = muscleStats(state.workouts, exerciseById);
-    sheet(regionLabel(slug), (body) => {
-      body.innerHTML = `<div class="stack">${ms.map((m) => `
-        <div class="bm-detail">
-          <div class="row between"><b>${esc(MUSCLE_LABELS[m])}</b><span class="bm-pill" style="--c:${recoveryColor(rec[m])}">${rec[m]}% · ${status(rec[m])}</span></div>
-          <div class="rec-bar"><i style="width:${rec[m]}%;background:${recoveryColor(rec[m])}"></i></div>
-          <p class="small muted">Last trained: ${ago(stats[m].last)} · Sets this week: ${Math.round(stats[m].weekSets * 10) / 10}</p>
-        </div>`).join('')}</div>`;
-    });
-  };
-  $$('[data-region]', el).forEach((g) => {
-    g.addEventListener('click', () => open(g.dataset.region));
-    g.addEventListener('keydown', (e) => {
-      if (e.key === 'Enter' || e.key === ' ') {
-        e.preventDefault();
-        open(g.dataset.region);
-      }
-    });
-  });
 }

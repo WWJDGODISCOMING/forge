@@ -271,8 +271,8 @@ test('celebrate: Today shows the card, the card has art with shine, +100 XP and 
   assert(/IntersectionObserver/.test(ui) && /setTimeout\(\(\) => card\.isConnected/.test(ui), 'saves only after the card has been on screen');
   assert(/remember\(id\);\n\s*\};/.test(ui) && /data-badge-awards[\s\S]*remember\(id\)/.test(ui), 'dismiss and See awards remember it too');
   const today = readFileSync(new URL('../js/screens/today.js', import.meta.url), 'utf8');
-  assert(today.includes('${badgeCelebrationCards()}') && today.includes('afterBadgeCelebrations(el)'), 'wired into Today');
-  const card = today.indexOf('${badgeCelebrationCards()}');
+  assert(today.includes('badge: () => badgeCelebrationCards()') && today.includes('afterBadgeCelebrations(el)'), 'wired into Today, through the single alert slot');
+  const card = today.indexOf('${alert.html}');
   assert(card > today.indexOf('${greeting()}') && card < today.indexOf('${readinessCard()}'), 'right under the greeting, above Readiness');
   assert(card < today.indexOf('${workoutCard()}'), 'above the workout card, so it is on screen without scrolling');
   const store = readFileSync(new URL('../js/missions/store.js', import.meta.url), 'utf8');

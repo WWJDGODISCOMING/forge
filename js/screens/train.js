@@ -20,6 +20,7 @@ import { openExercisePicker } from './picker.js';
 import { patch } from '../db.js';
 import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
+import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
 import { hapticsOn } from '../ui/haptic.js';
 import {
@@ -132,6 +133,8 @@ export function renderTrain(el) {
 
       </div>
       <div class="col col-b">
+      ${recoveryCardHtml(rec)}
+
       <div class="card">
         <div class="row between center">
           <p class="label">Program</p>
@@ -141,18 +144,17 @@ export function renderTrain(el) {
         <p class="small muted">Week ${d.week} of ${d.cycle}${d.deload ? ' — deload week' : ` · deload in week ${d.cycle}`}</p>
       </div>
 
-      <a class="card row between center nav-card" href="#/body">
-        <div><p class="label">Recovery</p><p>${['chest', 'lats', 'quads', 'hamstrings', 'glutes', 'front_delts'].filter((m) => rec[m] >= 85).length} of 6 major muscles fresh</p></div>
-        <span class="chev" aria-hidden="true">${icon('chev')}</span>
-      </a>
-
       <div class="tools">
         <a class="tool" href="#/timer"><span class="t-ic" aria-hidden="true">${icon('timer')}</span>Timer</a>
         <button class="tool" data-cardio><span class="t-ic" aria-hidden="true">${icon('bike')}</span>Log cardio</button>
         <button class="tool" data-plates><span class="t-ic" aria-hidden="true">${icon('dumbbell')}</span>Plates</button>
         <a class="tool" href="#/library"><span class="t-ic" aria-hidden="true">${icon('book')}</span>Exercises</a>
-        <a class="tool" href="#/history"><span class="t-ic" aria-hidden="true">${icon('chart')}</span>History</a>
       </div>
+
+      <a class="card row between center nav-card" href="#/history" data-train-history>
+        <div><p class="label">History &amp; PRs</p><p class="small">Past workouts and personal records</p></div>
+        <span class="chev" aria-hidden="true">${icon('chev')}</span>
+      </a>
       </div>
       </div>
     </section>`;
@@ -165,6 +167,7 @@ export function renderTrain(el) {
       setActiveLocation(r.value);
     })
   );
+  bindRecoveryCard(el, rec);
   if (plan) wirePreview(el, plan);
   const start = $('[data-start]', el);
   if (start)

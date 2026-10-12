@@ -51,14 +51,14 @@ export const TOUR_STEPS = [
     body: 'When you tap Start workout you’ll see one exercise at a time. Tap Done set after each set. Pause when you need a break, Swap if a move doesn’t suit you, and How to shows a demo. “RIR” means reps in reserve: how many more reps you could have done.',
   },
   {
-    id: 'body', route: 'body', target: '[data-tour="body-recovery"]',
-    title: 'Body: what’s recovered',
-    body: 'Green muscles are ready to train, red ones need rest. Tap a muscle for details. Your Progress photos card is just below, and you can also reach it from Progress.',
+    id: 'recovery', route: 'train', target: '[data-tour="train-recovery"]',
+    title: 'Train: what’s recovered',
+    body: 'The number is how many muscle groups are fresh, and the map is right under it. Green muscles are ready to train, red ones need rest. Tap a muscle for details. Your progress photos live on the Body tab.',
   },
   {
     id: 'progress', route: 'weight', target: '.tabbar a[href="#/weight"]',
     title: 'Progress',
-    body: 'Here you’ll find your weight chart, your past workouts, your personal records, your progress photos, and the badges and XP you earn.',
+    body: 'Here you’ll find your Forge Score, weekly report, trends, weight chart, past workouts, personal records, progress photos, and the badges and XP you earn.',
   },
   {
     id: 'settings', route: 'weight', target: '[data-avatar]',

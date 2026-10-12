@@ -54,7 +54,7 @@ test('Body tiles: tappable ones get a chevron, "Today" for same-day workouts', (
   assert(b.includes('<b class="bh-word">Today</b><span>last workout</span>') && !b.includes('(today)'));
   const pc = src('css/player.css');
   assert(pc.includes('grid-template-columns: repeat(2, minmax(0, 1fr))') && /\.bh-word \{ font-size: clamp\(28px, 10\.5vw, 40px\)/.test(pc), 'equal tiles; the word scales to fit');
-  assert(/bh-tile bh-tap" data-goto-recovery/.test(b) && /bh-tile bh-tap" href="#\/train"/.test(b));
+  assert(/bh-tile bh-tap" href="#\/train" data-goto-recovery/.test(b) && /bh-tile bh-tap" href="#\/train"/.test(b));
   assert(/\.bh-tap::after \{[^}]*--text-3/.test(src('css/app.css')) && src('css/app.css').includes('.bh-tap:active'));
 });
 

@@ -69,8 +69,8 @@ test('nav bar: stronger glass, learn-more disclosure, scroll padding', () => {
 
 test('Today: header links, Start beside the title, one insight, 12 px gaps', () => {
   const t = src('js/screens/today.js');
-  for (const label of ['See meals', 'See plan', 'See chart']) assert(t.includes("card-link") && t.includes(label + "${icon"), label);
-  assert(t.includes('class="stack today-stack"') && t.includes('.slice(0, 1)'));
+  for (const label of ['See plan', 'See chart']) assert(t.includes("card-link") && t.includes(label + "${icon"), label);
+  assert(t.includes('class="stack today-stack"') && t.includes('.slice(0, 2)'));
   assert(/\.today-stack \{ gap: var\(--s-3\)/.test(src('css/app.css')));
   assert(t.includes('data-food-log') && t.includes('data-start') && t.includes('data-log'), 'the daily buttons are still there');
 });

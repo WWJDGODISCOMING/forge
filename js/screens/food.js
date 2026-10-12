@@ -5,6 +5,7 @@ import { state, units } from '../state.js';
 import { put, patch, softDelete, newRecord } from '../db.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { currentTargets } from '../derived.js';
+import { FLOOR_SOURCE } from '../nutrition/targets.js';
 import { icon, emptyState } from '../ui/icons.js';
 import { MEAL_LABEL, MEALS, cleanFood, copyMealFields, dayBefore, dayTotals, groupByMeal, progress, stepServings } from '../food/core.js';
 import { createFlow } from '../food/flow.js';
@@ -79,6 +80,12 @@ export function renderFood(el) {
           ${meter('Fat', tot.fat_g, t && t.fatG, 'g')}
         </div>
       </div>
+      ${t && t.reasoning ? `<details class="food-why" data-food-why>
+        <summary>Why these numbers?</summary>
+        <ul class="reasons">${t.reasoning.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
+        <p class="small muted">Safe floor: ${Math.round(t.floor).toLocaleString('en-US')} kcal/day. ${esc(FLOOR_SOURCE)}</p>
+        <p class="small muted">Targets update automatically as your weight trend changes.</p>
+      </details>` : ''}
       <button class="btn bigbtn" data-log-food>${icon('plus')}Log food</button>
       ${anything ? '' : emptyState({ icon: 'food', title: isToday ? 'Nothing logged yet today' : 'Nothing logged this day', text: 'Tap Log food. If you don’t know the numbers, “Quick add” takes just calories.' })}
       ${anything || !yGroups.some((y) => y.entries.length) ? '' : '<button class="btn ghost" data-copy-day>Copy yesterday</button>'}
