@@ -90,7 +90,7 @@ test('Back from a Settings child: opened from a screen outside Settings returns 
   noteNavigation(p('#/metric/weight_kg'), p('#/withings'));
   eq(backTarget(p('#/withings')), '#/metric/weight_kg', 'keeps the whole link');
   eq(backLabel(p('#/withings')), 'Body');
-  noteNavigation(p('#/weight'), p('#/apple'));
+  noteNavigation(p('#/score'), p('#/apple'));
   eq(backLabel(p('#/apple')), 'Progress');
 });
 

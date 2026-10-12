@@ -13,7 +13,7 @@ Issue #63, part 4 of the approved IA. Moves existing cards only; no new features
 ### What's new
 
 - Your weight chart now lives on Body, with your progress photos in a bright card.
-- Progress is Score, Week and Trends, with Awards, History and your doctor summary underneath.
+- Progress is now Score, Week and Trends, plus your doctor summary.
 
 ## 0.15.20 — Today and Train card order (2026-10-12)
 

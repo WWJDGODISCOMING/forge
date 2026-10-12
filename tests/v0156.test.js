@@ -49,12 +49,11 @@ test('tap targets: RIR row, Progress switcher, timer presets in one equal row', 
   assert(t.includes('class="seg small"') && !t.includes('seg wrap') && t.includes('short: \'Boxing\'') && t.includes('aria-label="${esc(p.name)}"'));
 });
 
-test('Body tiles: tappable ones get a chevron, "Today" for same-day workouts', () => {
+test('Body: the recovery row opens Train and shows the fresh-muscle count', () => {
   const b = src('js/screens/body.js');
-  assert(b.includes('<b class="bh-word">Today</b><span>last workout</span>') && !b.includes('(today)'));
+  assert(/data-recovery-link/.test(b) && b.includes('href="#/train"') && b.includes('fresh muscle groups'));
   const pc = src('css/player.css');
   assert(pc.includes('grid-template-columns: repeat(2, minmax(0, 1fr))') && /\.bh-word \{ font-size: clamp\(28px, 10\.5vw, 40px\)/.test(pc), 'equal tiles; the word scales to fit');
-  assert(/bh-tile bh-tap" href="#\/train" data-goto-recovery/.test(b) && /bh-tile bh-tap" href="#\/train"/.test(b));
   assert(/\.bh-tap::after \{[^}]*--text-3/.test(src('css/app.css')) && src('css/app.css').includes('.bh-tap:active'));
 });
 

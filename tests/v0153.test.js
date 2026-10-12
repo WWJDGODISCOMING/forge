@@ -48,11 +48,12 @@ test('Body Profile: fat mass comes from weight × fat_ratio_pct when the scale s
 });
 
 
-test('Progress → Weight has a Progress photos row next to Awards and Coach', () => {
-  const w = src('js/screens/weight.js');
-  const group = w.slice(idx(w, '<div class="group">'), idx(w, 'Ask Coach'));
-  assert(group.includes('href="#/photos"') && group.includes('href="#/awards"'), 'photos row in the same group');
-  assert(group.indexOf('href="#/photos"') < group.indexOf('href="#/history"'), 'photos first');
+test('Body has the Progress photos card, and Progress has Awards and Coach rows', () => {
+  const b = src('js/screens/body.js');
+  assert(b.includes('data-photos-slot'), 'photos card on Body');
+  const r = src('js/screens/progress.js');
+  assert(r.includes('href="#/awards"') || r.includes("'#/awards'"), 'Awards row');
+  assert(r.includes("'#/coach'"), 'Coach row');
 });
 
 test('photos: native copy never says Safari; the web keeps it', () => {
@@ -102,10 +103,11 @@ test('Photos: the "can’t save" line has no stray spaces and names the right pl
   assert(!app.includes('browser') && !app.includes('  ') && !app.includes(' .'), 'native wording');
 });
 
-test('Progress photos row sits above the goal card, and the Progress tour step mentions photos', () => {
-  const w = src('js/screens/weight.js');
-  assert(idx(w, 'data-photos-row') < idx(w, '${goalPathCard()}'), 'row above goal card');
-  assert(TOUR_STEPS.find((s) => s.id === 'progress').body.includes('progress photos'), 'tour text');
+test('Progress photos card sits after Measures on Body, and the Progress tour step points at the new tab', () => {
+  const b = src('js/screens/body.js');
+  assert(idx(b, '${goalPathCard()}') < idx(b, 'data-photos-slot'), 'photos after goal path');
+  const step = TOUR_STEPS.find((x) => x.id === 'progress');
+  assert(step.target.includes('#/score'), 'tour target');
 });
 
 test('rings: a refresh starts from where the arcs were; the first draw starts empty', () => {
