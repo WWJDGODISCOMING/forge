@@ -95,7 +95,7 @@ test('old links: removed or renamed routes redirect; current ones are left alone
   eq(j(redirectRoute(['foods', 'x'])), j(['food', 'x']));
   for (const r of ['settings', 'food', 'today', 'progress', 'locations']) eq(redirectRoute([r]), null, r);
   eq(redirectRoute([]), null);
-  eq(JSON.stringify(redirectRoute(['weight'])), JSON.stringify(['body']), 'the old Weight screen is now on Body');
+  eq(JSON.stringify(redirectRoute(['weight'])), JSON.stringify(['body', 'weight']), 'the old Weight screen is now the weight hero on Body');
   eq(redirectRoute(['toString']), null, 'no prototype lookups');
 });
 

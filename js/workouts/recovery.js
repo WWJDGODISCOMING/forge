@@ -100,3 +100,10 @@ export function muscleStats(workouts, exerciseById, now = Date.now()) {
   }
   return out;
 }
+
+/** "18 fresh · last workout 2 days ago"; a new user with no finished workout sees "No workouts yet". */
+export function recoverySubtitle(fresh, last, now = Date.now()) {
+  if (!last) return 'No workouts yet';
+  const days = Math.max(0, Math.floor((now - Date.parse(last.finished_at || last.started_at)) / 86400000));
+  return `<span data-count>${fresh}</span> fresh · last workout ${days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`}`;
+}

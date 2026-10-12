@@ -5,8 +5,8 @@ import { state, units as getUnits } from '../state.js';
 import { $, todayKey } from '../ui.js';
 import { topInsights, dismissInsight, intel, currentGoalPath, currentEnergy, currentBodyProfile } from '../health/intel.js';
 import { insightCardsHtml, bindInsightCards, goalPathHtml, bodyProfileHtml } from '../health/cards.js';
-import { currentRecovery } from '../workouts/plan.js';
-import { freshCount } from '../workouts/recovery.js';
+import { currentRecovery, historyIndex } from '../workouts/plan.js';
+import { freshCount, recoverySubtitle } from '../workouts/recovery.js';
 import { BODY_METRICS, metricSeries, dailySeries, latestAndChange, fmtMetric, heightM, lastWeighInDay, compositionGap, staleCaption, daysBetween, OLD_READING_DAYS } from '../withings/body.js';
 import { icon, emptyState } from '../ui/icons.js';
 import { programsCard, bindProgramsCard } from '../body-programs/ui.js';
@@ -73,6 +73,7 @@ export function goalPathCard() {
 export function renderBody(el) {
   const rec = currentRecovery();
   const fresh = freshCount(rec);
+  const last = historyIndex().done[0];
   // Order (v0.15.21): weight hero, goal path, programs, composition, measures, insights, Progress photos (accent), Recovery link, weigh-ins.
   el.innerHTML = `
     <section class="stack">
@@ -88,7 +89,7 @@ export function renderBody(el) {
       ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}) : ''}
       <div data-photos-slot></div>
       ${insightCards()}
-      <a class="card row between center nav-card" href="#/train" data-recovery-link><div><p class="label">Recovery map</p><p class="small"><span data-count>${fresh}</span> fresh muscle groups · on Train, next to your workout</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
+      <a class="card row between center nav-card" href="#/train/recovery" data-recovery-link><div><p class="label">Recovery map</p><p class="small">${recoverySubtitle(fresh, last)}</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
       </div>
       </div>
       ${weighInsHtml()}

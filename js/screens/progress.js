@@ -17,10 +17,10 @@ export function progressTabs(active) {
 const row = (href, ic, title, sub) => `<a class="g-row" href="${href}"><span class="g-ic">${icon(ic)}</span><span class="g-text"><span>${title}</span><small>${sub}</small></span><span class="chev">${icon('chev')}</span></a>`;
 /** Entry rows shown at the bottom of every Progress part: awards, history, doctor summary, Ask Coach. */
 export const progressRowsHtml = () => `<div class="group" data-progress-rows>
-      ${row('#/awards', 'trophy', 'Awards', 'Levels, badges and missions')}
+      ${row('#/awards', 'trophy', 'Awards', 'Badges and missions')}
       ${row('#/history', 'list', 'History &amp; PRs', 'Workouts and cardio')}
-      ${row('#/report', 'heart', 'Doctor summary', 'A report to share with your doctor')}
-      ${row('#/coach', 'help', 'Ask Coach', 'Answers from your own data')}
+      ${row('#/report', 'heart', 'Doctor summary', 'Share with your doctor')}
+      ${row('#/coach', 'help', 'Ask Coach', 'From your own data')}
     </div>`;
 
 export const lastProgressRoute = () => last;

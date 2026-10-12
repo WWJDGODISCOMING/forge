@@ -96,7 +96,7 @@ export function renderFood(el) {
           <div class="row between center food-meal-head">
             <h2>${g.label}</h2>
             <span class="row gap center"><span class="small muted">${g.entries.length ? `${g.totals.kcal.toLocaleString('en-US')} kcal` : ''}</span>
-              ${canCopy ? `<button class="btn ghost small-btn" data-copy="${g.meal}">Copy yesterday</button>` : ''}
+              ${canCopy ? `<button class="btn ghost small-btn" data-copy="${g.meal}" aria-label="Copy yesterday’s ${g.label.toLowerCase()}">Yesterday</button>` : ''}
               <button class="btn ghost small-btn" data-add-meal="${g.meal}" aria-label="Add to ${g.label.toLowerCase()}">Add</button></span>
           </div>
           ${g.entries.length ? `<ul class="list">${g.entries.map((e) => `

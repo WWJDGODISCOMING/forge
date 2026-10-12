@@ -79,7 +79,7 @@ test('Train: location chips, Resume, preview, Recovery (fresh stat + map in one 
 
 test('Body: the recovery map moved to Train, and Body points there so nothing is orphaned', () => {
   const b = src('js/screens/body.js');
-  assert(!b.includes('bodyMap(') && b.includes('data-recovery-link') && b.includes('href="#/train"'), 'link to Train');
+  assert(!b.includes('bodyMap(') && b.includes('data-recovery-link') && b.includes('href="#/train/recovery"'), 'link to the Recovery card on Train');
 });
 
 test('Food: the "Why these numbers?" explainer moved here from Today', () => {

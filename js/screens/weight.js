@@ -15,7 +15,7 @@ import { goalProjection } from '../health/goalpath.js';
 const SOURCE_LABELS = { manual: 'Manual', withings: 'Withings', withings_csv: 'Withings (export)', apple_shortcut: 'Apple Health (Shortcut)', apple_health: 'Apple Health' };
 let range = 90;
 let showAll = false;
-const HISTORY_LIMIT = 20;
+const HISTORY_LIMIT = 5;
 
 export { timeOf, readingLabel };
 
@@ -108,7 +108,7 @@ export function weighInsHtml() {
             <button class="icon-btn" data-del="${esc(w.id)}" data-src="${esc(w.source || '')}" aria-label="Delete this weigh-in">${icon('trash')}</button>
           </li>`).join('')}
       </ul>
-      ${!showAll && entries.length > HISTORY_LIMIT ? `<button class="btn ghost" data-all>Show all ${entries.length}</button>` : ''}
+      ${!showAll && entries.length > HISTORY_LIMIT ? `<button class="btn ghost" data-all>Show all ${entries.length} weigh-ins</button>` : ''}
       <p class="small muted">Trend = 10%-per-day smoothed average, so single weigh-ins (water, salt) don’t swing it much.</p></div>`;
 }
 

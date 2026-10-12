@@ -99,7 +99,7 @@ export function metricPoints(docs, key, { height = null, weights = [] } = {}) {
 
 /** What the empty Metric screen offers. Weight can be logged by hand, so that comes first and Withings is secondary. */
 export function metricEmptyChoice(key, withingsConnected) {
-  if (key === 'weight_kg') return { primary: { href: '#/body', label: 'Log weight' }, secondary: withingsConnected ? null : { href: '#/withings', label: 'Connect Withings' } };
+  if (key === 'weight_kg') return { primary: { href: '#/body/log', label: 'Log weight' }, secondary: withingsConnected ? null : { href: '#/withings', label: 'Connect Withings' } };
   return withingsConnected
     ? { primary: { href: '#/withings/check', label: 'Open data check' }, secondary: null }
     : { primary: { href: '#/withings', label: 'Connect Withings' }, secondary: null };

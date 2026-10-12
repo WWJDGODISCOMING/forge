@@ -30,20 +30,36 @@ const isChild = (route) => SETTINGS_SCREENS.has(route) && route !== 'settings';
 /** Call for every route change (from = null on a cold start): remembers where a Settings child should go Back to. */
 export function noteNavigation(fromParts, toParts) {
   const to = (toParts && toParts[0]) || 'today';
+  const fromRoute = fromParts && fromParts.length ? fromParts[0] || 'today' : null;
+  if (PROGRESS_ROWS.has(to)) {
+    if (PROGRESS_PARTS.has(fromRoute)) progressFrom = fromRoute;
+    else if (!PROGRESS_ROWS.has(fromRoute)) progressFrom = null; // row to row keeps the earlier answer
+  }
   if (!isChild(to)) return;
   const from = fromParts && fromParts.length ? fromParts[0] || 'today' : null;
   if (from === null || from === 'settings') childReturn = null;
   else if (!SETTINGS_SCREENS.has(from)) childReturn = `#/${fromParts.join('/')}`; // child to child keeps the earlier answer
 }
 
-export const tabOf = (route) => (SETTINGS_SCREENS.has(route) ? settingsOrigin : TAB_FOR[route] || route);
+// Awards, History and Coach are rows under each Progress part (Score, Week, Trends). Opened from one, Back returns to that part and the
+// Progress tab stays lit; Coach opened from anywhere else (Today) stays on Today. null = not opened from a Progress part.
+const PROGRESS_PARTS = new Set(['score', 'weekly', 'trends']);
+const PROGRESS_ROWS = new Set(['awards', 'history', 'coach']);
+let progressFrom = null;
+export const getProgressFrom = () => progressFrom;
+
+export const tabOf = (route) => {
+  if (SETTINGS_SCREENS.has(route)) return settingsOrigin;
+  if (route === 'coach' && progressFrom) return 'score';
+  return TAB_FOR[route] || route;
+};
 
 /** Old bookmarks, notification links and the removed Settings tab: hash route -> where it lives now (null = unchanged). */
 // The Progress tab is #/score; the weight chart and weigh-ins now live on Body (v0.15.21).
-const OLD_ROUTES = { home: 'today', log: 'food', foods: 'food', diary: 'food', weight: 'body' };
+const OLD_ROUTES = { home: 'today', log: 'food', foods: 'food', diary: 'food', weight: ['body', 'weight'] };
 export function redirectRoute(parts) {
   const route = parts[0] || 'today';
-  if (Object.hasOwn(OLD_ROUTES, route)) return [OLD_ROUTES[route], ...parts.slice(1)];
+  if (Object.hasOwn(OLD_ROUTES, route)) return [].concat(OLD_ROUTES[route], parts.slice(1));
   return null;
 }
 
@@ -81,6 +97,7 @@ export function backTarget(parts) {
   if (route === 'summary') return '#/train';
   if (route === 'settings') return `#/${settingsOrigin}`;
   if (SETTINGS_SCREENS.has(route)) return childReturn || '#/settings';
+  if (PROGRESS_ROWS.has(route) && progressFrom) return `#/${progressFrom}`;
   return `#/${tabOf(route)}`;
 }
 

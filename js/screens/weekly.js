@@ -116,7 +116,7 @@ export function renderWeekly(el) {
     <button class="btn bigbtn" data-share>${icon('share')}Share</button>
     </div>
     </div>` : `
-    <div class="card" data-empty>${emptyState({ icon: 'calendar', title: 'Nothing logged this week', text: 'Log a weigh-in or a workout and this report fills in. Use the arrows above to see an earlier week.', action: { href: '#/body', label: 'Log a weigh-in' } })}</div>`;
+    <div class="card" data-empty>${emptyState({ icon: 'calendar', title: 'Nothing logged this week', text: 'Log a weigh-in or a workout and this report fills in. Use the arrows above to see an earlier week.', action: { href: '#/body/log', label: 'Log a weigh-in' } })}</div>`;
 
   el.innerHTML = `
     <section class="stack">

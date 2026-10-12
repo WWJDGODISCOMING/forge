@@ -454,6 +454,21 @@ let swipePop = null; // set while an edge swipe is finishing: the screen already
 
 function afterRoute(parts) {
   const route = parts[0] || 'today';
+  const link = parts[1];
+  // Links that mean "my weight", "log a weight" or "the recovery map" open the thing itself, not wherever the tab was left.
+  if (route === 'body' && (link === 'weight' || link === 'log')) {
+    window.scrollTo(0, 0);
+    if (link === 'log') {
+      history.replaceState(null, '', '#/body'); // so a later redraw or Back doesn't reopen the sheet
+      import('./screens/weight.js').then((m) => m.openLogWeight());
+    }
+    return;
+  }
+  if (route === 'train' && link === 'recovery') {
+    const card = main.querySelector('[data-recovery-card]');
+    if (card) card.scrollIntoView({ block: 'start', behavior: 'instant' }); // html scroll-padding-top keeps it under the title bar
+    return;
+  }
   window.scrollTo(0, scrollMemory.restore(route)); // tab roots remember where you were; detail screens start at the top
 }
 

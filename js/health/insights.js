@@ -198,13 +198,13 @@ const hours = (min) => `${Math.floor(min / 60)} h ${String(Math.round(min % 60))
 
 /** Wording for each anomaly kind. */
 const ANOMALY_COPY = {
-  water: (d, u) => ({ title: 'Likely water', body: `Today’s weight is ${Math.abs(d.pct).toFixed(1)}% ${d.pct > 0 ? 'above' : 'below'} your trend, and your water reading moved the same way. Likely water. Your trend hasn’t changed.`, why: 'Water and salt swing your weight by a kilo or more in a day.', todo: 'Nothing to change. Weigh in again tomorrow morning.', href: '#/body' }),
+  water: (d, u) => ({ title: 'Likely water', body: `Today’s weight is ${Math.abs(d.pct).toFixed(1)}% ${d.pct > 0 ? 'above' : 'below'} your trend, and your water reading moved the same way. Likely water. Your trend hasn’t changed.`, why: 'Water and salt swing your weight by a kilo or more in a day.', todo: 'Nothing to change. Weigh in again tomorrow morning.', href: '#/body/weight' }),
   fatnoise: (d) => ({ title: 'Body fat reading jumped', body: `Body fat moved ${Math.abs(d.jump).toFixed(1)} points in a day. Bioimpedance noise (hydration, time of day). Trend unchanged.`, why: 'The scale estimates fat from a tiny electric current, so a drink or a workout can shift it.', todo: 'Look at the weekly trend, not one reading.', href: hrefFor('fat_ratio_pct') }),
   hrv: (d) => ({ title: 'HRV is lower than usual', body: `Your 7-day HRV is ${Math.round(d.dropPct)}% below your 4-week normal.`, why: 'A lower HRV often goes with stress, short sleep or a hard training week.', todo: 'Protect your sleep and keep the next workout easy.', href: hrefFor('hrv_sdnn_ms') }),
   rhr: (d) => ({ title: 'Resting heart rate is up', body: `Your resting heart rate has been about ${Math.round(d.up)} bpm above your usual for ${d.nights} days.`, why: 'Stress, short sleep, heat or a hard week can raise it for a few days.', todo: 'Take it easy, drink water and sleep well.', href: hrefFor('rhr_bpm'), note: MEDICAL }),
   temp: (d) => ({ title: 'Wrist temperature is up', body: `Your wrist temperature has been ${d.delta.toFixed(1)} °C above your usual for ${d.nights} nights.`, why: 'Late nights, a warm room, alcohol or feeling run down can all raise it.', todo: 'Rest up, drink water and see how you feel.', href: '#/apple', note: MEDICAL }),
   sleep: (d) => ({ title: 'Short sleep three nights running', body: `You slept about ${hours(d.avgMin)} a night.`, why: 'Short sleep slows recovery and makes training feel harder.', todo: 'Try getting into bed 30 minutes earlier tonight.', href: hrefFor('sleep_min') }),
-  weighin: (d) => ({ title: 'Time for a weigh-in', body: `It has been ${d.gapDays} days since your last one.`, why: 'Your trend needs a few weigh-ins a week to stay accurate.', todo: 'Step on the scale tomorrow morning, before eating.', href: '#/body' }),
+  weighin: (d) => ({ title: 'Time for a weigh-in', body: `It has been ${d.gapDays} days since your last one.`, why: 'Your trend needs a few weigh-ins a week to stay accurate.', todo: 'Step on the scale tomorrow morning, before eating.', href: '#/body/weight' }),
 };
 
 /** Candidate cards from trends (allTrends() output) and anomalies (detectAnomalies() output). */
