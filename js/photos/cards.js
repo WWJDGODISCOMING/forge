@@ -30,7 +30,7 @@ export async function mountBodyPhotosCard(host) {
   const latest = sessions[0];
   const nextCheckin = checkinText(daysToCheckin(todayKey(), getRemindDow()));
   const shown = POSES.filter((p) => latest.poses[p.key]);
-  host.innerHTML = `<a class="card stack nav-card" href="#/photos" data-photos-card>
+  host.innerHTML = `<a class="card stack nav-card pp-promo" href="#/photos" data-photos-card>
     <div class="row between center"><p class="label">Progress photos</p><span class="small muted">Last set ${esc(formatDay(latest.day))}</span></div>
     <div class="pp-thumbs">${shown.map((p) => `<span class="pp-thumb"><img src="${photoUrl(latest.poses[p.key])}" alt=""><span>${p.label}</span></span>`).join('')}</div>
     <div class="row between center"><span class="small muted">${nextCheckin}</span><span class="small link">${sessions.length} ${sessions.length === 1 ? 'set' : 'sets'} · see all${icon('chev')}</span></div>

@@ -5,11 +5,12 @@ import { state, units as getUnits } from '../state.js';
 import { $, todayKey } from '../ui.js';
 import { topInsights, dismissInsight, intel, currentGoalPath, currentEnergy, currentBodyProfile } from '../health/intel.js';
 import { insightCardsHtml, bindInsightCards, goalPathHtml, bodyProfileHtml } from '../health/cards.js';
-import { currentRecovery, historyIndex } from '../workouts/plan.js';
+import { currentRecovery } from '../workouts/plan.js';
 import { freshCount } from '../workouts/recovery.js';
 import { BODY_METRICS, metricSeries, dailySeries, latestAndChange, fmtMetric, heightM, lastWeighInDay, compositionGap, staleCaption, daysBetween, OLD_READING_DAYS } from '../withings/body.js';
 import { icon, emptyState } from '../ui/icons.js';
 import { programsCard, bindProgramsCard } from '../body-programs/ui.js';
+import { weightHeroHtml, weighInsHtml, bindWeight } from './weight.js';
 
 // The card's date: the reading's time, or its day when an older entry has no timestamp (never "Invalid Date").
 function bcDate(doc) {
@@ -72,34 +73,29 @@ export function goalPathCard() {
 export function renderBody(el) {
   const rec = currentRecovery();
   const fresh = freshCount(rec);
-  const last = historyIndex().done[0];
-  const days = last ? Math.floor((Date.now() - Date.parse(last.finished_at || last.started_at)) / 86400000) : null;
+  // Order (v0.15.21): weight hero, goal path, programs, composition, measures, insights, Progress photos (accent), Recovery link, weigh-ins.
   el.innerHTML = `
     <section class="stack">
       <h1>Body</h1>
-      <div class="body-hero">
-        <a class="bh-tile bh-tap" href="#/train" data-goto-recovery><b data-count>${fresh}</b><span>fresh muscles</span></a>
-        ${days == null ? '<a class="bh-tile bh-tap" href="#/train" data-no-workouts><b>0</b><span>Start your first workout</span></a>'
-          : days === 0 ? '<div class="bh-tile"><b class="bh-word">Today</b><span>last workout</span></div>'
-          : `<div class="bh-tile"><b data-count>${days}</b><span>${days === 1 ? 'day' : 'days'} since last workout</span></div>`}
-      </div>
+      ${weightHeroHtml()}
       <div class="body-cols">
       <div class="col col-a">
-      <div data-photos-slot></div>
-      ${insightCards()}
+      ${goalPathCard()}
+      ${programsCard()}
+      ${compositionCard()}
       </div>
       <div class="col col-b">
-      ${compositionCard()}
-      ${programsCard()}
-      ${goalPathCard()}
       ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}) : ''}
-      <a class="card row between center nav-card" href="#/trends"><div><p class="label">Trends</p><p class="small">See how every number is moving</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
-      <a class="card row between center nav-card" href="#/train" data-recovery-link><div><p class="label">Recovery map</p><p class="small">${fresh} fresh muscle groups · now on Train, next to your workout</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
+      <div data-photos-slot></div>
+      ${insightCards()}
+      <a class="card row between center nav-card" href="#/train" data-recovery-link><div><p class="label">Recovery map</p><p class="small"><span data-count>${fresh}</span> fresh muscle groups · on Train, next to your workout</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
       </div>
       </div>
+      ${weighInsHtml()}
     </section>`;
 
   bindInsightCards(el, dismissInsight);
   bindProgramsCard(el);
+  bindWeight(el, () => renderBody(el));
   import('../photos/cards.js').then((m) => m.mountBodyPhotosCard($('[data-photos-slot]', el)));
 }

@@ -8,9 +8,7 @@ import { weightChartSVG } from '../weight/chart.js';
 import { timeOf, readingLabel } from '../weight/reading.js';
 import { weightSeries, mySuspects, latestWeighIn } from '../derived.js';
 import { SCALE_SOURCES } from '../withings/review.js';
-import { progressTabs } from './progress.js';
 import { icon, emptyState } from '../ui/icons.js';
-import { goalPathCard } from './body.js';
 import { currentGoalPath } from '../health/intel.js';
 import { goalProjection } from '../health/goalpath.js';
 
@@ -54,55 +52,55 @@ export function openLogWeight() {
   });
 }
 
-export function renderWeight(el) {
-  const u = getUnits();
+/** Data the weight hero and the weigh-in list share. */
+function weightModel() {
   const series = weightSeries();
-  const goalKg = state.profile && state.profile.targetWeightKg;
-  const projection = goalKg ? goalProjection(currentGoalPath()) : null; // the dotted line: same date as the Goal path card
-  const change7 = trendChange(series, 7);
-  const rate = weeklyRate(series);
-  const latest = series.length ? series[series.length - 1] : null;
-  const reading = latestWeighIn();
-  const entries = [...state.weights].sort((a, b) => (a.measured_at < b.measured_at ? 1 : -1));
-  // Days whose trend point is a scale reading (earliest Withings weigh-in): typed-in entries those days are shown but not used.
   const sus = mySuspects();
   const asking = (w) => w.review || sus.has(w.id);
   const trendDays = new Map();
   for (const w of [...state.weights].filter((x) => SCALE_SOURCES.has(x.source) && !asking(x)).sort((a, b) => (a.measured_at < b.measured_at ? -1 : 1))) {
     if (!trendDays.has(w.day)) trendDays.set(w.day, w.id);
   }
+  return { series, asking, trendDays };
+}
 
-  el.innerHTML = `
-    <section class="stack">
-      ${progressTabs('weight')}
-      <h1>Weight</h1>
-      ${latest ? `
-      <div class="card">
-        <div class="stats stats-2">
-          <div><span>${reading ? esc(reading.day === todayKey() ? 'Today' : readingLabel(reading, todayKey())) : 'Latest'}</span><b data-count>${formatWeight(reading ? reading.kg : latest.kg, u)}</b></div>
-          <div><span>Trend</span><b data-count>${formatWeight(latest.trend, u)}</b></div>
-          <div><span>7 days</span><b data-count>${change7 == null ? '—' : `${change7 > 0 ? '+' : ''}${weightToDisplay(change7, u).toFixed(1)}`}</b></div>
-          <div><span>Per week</span><b data-count>${rate == null ? '—' : `${rate > 0 ? '+' : ''}${weightToDisplay(rate, u).toFixed(2)}`}</b></div>
-        </div>
-        <div class="seg small" role="radiogroup" aria-label="Range">
-          ${[[30, '30d'], [90, '90d'], [365, '1y'], [0, 'All']].map(([d, l]) =>
-            `<label><input type="radio" name="range" value="${d}" ${range === d ? 'checked' : ''}><span>${l}</span></label>`).join('')}
-        </div>
-        ${weightChartSVG(series, { units: u, goalKg, projection, rangeDays: range || null })}
-        <p class="small muted legend"><span class="key dot"></span>weigh-ins <span class="key line"></span>trend ${goalKg ? '<span class="key dash"></span>goal' : ''}</p>
+/** Weight hero for the Body tab: latest reading, trend, range chips, chart and the Log weight button. */
+export function weightHeroHtml() {
+  const u = getUnits();
+  const { series } = weightModel();
+  const goalKg = state.profile && state.profile.targetWeightKg;
+  const projection = goalKg ? goalProjection(currentGoalPath()) : null; // the dotted line: same date as the Goal path card
+  const change7 = trendChange(series, 7);
+  const rate = weeklyRate(series);
+  const latest = series.length ? series[series.length - 1] : null;
+  const reading = latestWeighIn();
+  if (!latest) {
+    return `<div class="card" data-weight-hero>${emptyState({ icon: 'scale', title: 'No weigh-ins yet', text: 'Log your first weight and your trend starts here.', action: { attr: 'data-log-empty', label: 'Log weight' } })}</div>`;
+  }
+  return `<div class="card" data-weight-hero>
+      <div class="stats stats-2">
+        <div><span>${reading ? esc(reading.day === todayKey() ? 'Today' : readingLabel(reading, todayKey())) : 'Latest'}</span><b data-count>${formatWeight(reading ? reading.kg : latest.kg, u)}</b></div>
+        <div><span>Trend</span><b data-count>${formatWeight(latest.trend, u)}</b></div>
+        <div><span>7 days</span><b data-count>${change7 == null ? '—' : `${change7 > 0 ? '+' : ''}${weightToDisplay(change7, u).toFixed(1)}`}</b></div>
+        <div><span>Per week</span><b data-count>${rate == null ? '—' : `${rate > 0 ? '+' : ''}${weightToDisplay(rate, u).toFixed(2)}`}</b></div>
       </div>
+      <div class="seg small" role="radiogroup" aria-label="Range">
+        ${[[30, '30d'], [90, '90d'], [365, '1y'], [0, 'All']].map(([d, l]) =>
+          `<label><input type="radio" name="range" value="${d}" ${range === d ? 'checked' : ''}><span>${l}</span></label>`).join('')}
+      </div>
+      ${weightChartSVG(series, { units: u, goalKg, projection, rangeDays: range || null })}
+      <p class="small muted legend"><span class="key dot"></span>weigh-ins <span class="key line"></span>trend ${goalKg ? '<span class="key dash"></span>goal' : ''}</p>
       <button class="btn bigbtn" data-log type="button">${icon('plus')}Log weight</button>
-      <div class="group"><a class="g-row" href="#/photos" data-photos-row><span class="g-ic">${icon('camera')}</span><span class="g-text"><span>Progress photos</span><small>Weekly photos, compare, time-lapse</small></span><span class="chev">${icon('chev')}</span></a></div>
-      ${goalPathCard()}
-      <div class="group">
-        <a class="g-row" href="#/history"><span class="g-ic">${icon('list')}</span><span class="g-text"><span>History</span><small>Workouts and cardio</small></span><span class="chev">${icon('chev')}</span></a>
-        <a class="g-row" href="#/awards"><span class="g-ic">${icon('trophy')}</span><span class="g-text"><span>Awards</span><small>Levels and badges</small></span><span class="chev">${icon('chev')}</span></a>
-        <a class="g-row" href="#/coach"><span class="g-ic">${icon('help')}</span><span class="g-text"><span>Ask Coach</span><small>Answers from your own data</small></span><span class="chev">${icon('chev')}</span></a>
-      </div>` : `<div class="card">${emptyState({ icon: 'scale', title: 'No weigh-ins yet', text: 'Log your first weight and your trend starts here.', action: { attr: 'data-log-empty', label: 'Log weight' } })}</div>
-      <div class="group"><a class="g-row" href="#/photos" data-photos-row><span class="g-ic">${icon('camera')}</span><span class="g-text"><span>Progress photos</span><small>Weekly photos, compare, time-lapse</small></span><span class="chev">${icon('chev')}</span></a></div>`}
+    </div>`;
+}
 
-      ${entries.length ? `
-      <h2>Weigh-ins</h2>
+/** Weigh-in list (newest first) with delete buttons; sits at the bottom of Body. */
+export function weighInsHtml() {
+  const u = getUnits();
+  const { asking, trendDays } = weightModel();
+  const entries = [...state.weights].sort((a, b) => (a.measured_at < b.measured_at ? 1 : -1));
+  if (!entries.length) return '';
+  return `<div data-weigh-ins><h2>Weigh-ins</h2>
       <ul class="list">
         ${(showAll ? entries : entries.slice(0, HISTORY_LIMIT)).map((w) => `
           <li>
@@ -110,20 +108,22 @@ export function renderWeight(el) {
             <button class="icon-btn" data-del="${esc(w.id)}" data-src="${esc(w.source || '')}" aria-label="Delete this weigh-in">${icon('trash')}</button>
           </li>`).join('')}
       </ul>
-      ${!showAll && entries.length > HISTORY_LIMIT ? `<button class="btn ghost" data-all>Show all ${entries.length}</button>` : ''}` : ''}
-      <p class="small muted">Trend = 10%-per-day smoothed average, so single weigh-ins (water, salt) don’t swing it much.</p>
-    </section>`;
+      ${!showAll && entries.length > HISTORY_LIMIT ? `<button class="btn ghost" data-all>Show all ${entries.length}</button>` : ''}
+      <p class="small muted">Trend = 10%-per-day smoothed average, so single weigh-ins (water, salt) don’t swing it much.</p></div>`;
+}
 
+/** Wire the hero and list; `rerender` redraws the host screen (range chips and Show all change what is drawn). */
+export function bindWeight(el, rerender) {
   const logBtn = $('[data-log]', el);
   if (logBtn) logBtn.onclick = openLogWeight;
   const logEmpty = $('[data-log-empty]', el);
   if (logEmpty) logEmpty.onclick = openLogWeight;
   const all = $('[data-all]', el);
-  if (all) all.onclick = () => { showAll = true; renderWeight(el); };
+  if (all) all.onclick = () => { showAll = true; rerender(); };
   $$('input[name=range]', el).forEach((r) =>
     r.addEventListener('change', () => {
       range = Number(r.value);
-      renderWeight(el);
+      rerender();
     })
   );
   $$('[data-del]', el).forEach((b) =>
