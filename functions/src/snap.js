@@ -5,7 +5,7 @@ import { P } from './paths.js';
 import { log } from './log.js';
 
 export const XAI_URL = 'https://api.x.ai/v1/chat/completions';
-export const MODEL = 'grok-4'; // xAI redirects this slug to grok-4.3 (a reasoning model) since May 15, 2026
+export const MODEL = 'grok-4.3'; // explicit current vision model (a reasoning model), not the 'grok-4' alias; see docs.x.ai/docs/models
 export const MAX_TOKENS = 4000; // reasoning tokens share this budget, so it is generous
 export const RATE_PER_HOUR = 20;
 export const MAX_IMAGE_BYTES = 1500000; // the app sends a ~1024 px JPEG (about 150 KB); this is a hard stop
@@ -119,9 +119,21 @@ export async function snapMeal({ db, uid, data, apiKey, fetch, now = Date.now() 
       }),
       signal: typeof AbortSignal !== 'undefined' && AbortSignal.timeout ? AbortSignal.timeout(TIMEOUT_MS) : undefined,
     });
-  } catch { throw new SnapError('down'); }
+  } catch (e) {
+    const name = e && /^[A-Za-z]{1,40}$/.test(e.name) ? e.name : 'Error';
+    log('snap_meal_error', { reason: name, ms: Date.now() - started });
+    throw new SnapError(name === 'TimeoutError' ? 'busy' : 'down');
+  }
   if (res.status === 429) throw new SnapError('busy');
-  if (!res.ok) throw new SnapError('down');
+  if (!res.ok) {
+    // log.js only keeps short codes, so the error text goes out on its own line. It is xAI's reply, never our request,
+    // and any long base64-looking run is cut in case it echoes the photo.
+    let text = '';
+    try { text = await res.text(); } catch { /* no body */ }
+    const body = String(text || '').replace(/[A-Za-z0-9+/=]{100,}/g, '[cut]').slice(0, 300);
+    console.error(JSON.stringify({ event: 'snap_meal_error', status: res.status, body, ms: Date.now() - started }));
+    throw new SnapError('down');
+  }
   let body;
   try { body = await res.json(); } catch { throw new SnapError('down'); }
   const text = body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.content;
