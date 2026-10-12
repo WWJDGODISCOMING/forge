@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.15.24 — Body wide column balance (2026-10-12)
+
+Issue #63, part 5c. CSS and a markup wrapper only; nothing moves between screens and nothing is new. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Body on the wide screen:** the long right column is split. Programs, body composition and measures stay on the right; the Progress photos card, insights and the Recovery link now sit under the Goal path on the left, above the weigh-ins. The two sides end much closer together.
+- **Phones and the upright inner screen:** unchanged, same card order.
+- **Today, Train, Progress:** not changed in this part; not checked in a rendered view.
+
+### What's new
+
+- On the unfolded Duo sideways, Body is laid out more evenly, photos under your chart.
+
 ## 0.15.23 — Wide-screen polish (2026-10-12)
 
 Issue #63, part 5b. CSS only; nothing moves and nothing is new. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

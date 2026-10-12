@@ -655,17 +655,20 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
    Food: left = diary (day nav, Log food, meals, My foods), right = totals + "Why these numbers?" (sticky when tall), disclaimer across the bottom.
    The DOM stays in the phone reading order (a, b, c); grid placement puts c under a without CSS order. */
 @media (min-width: 840px) {
-  .body-cols, .food-cols { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); grid-template-rows: auto 1fr; column-gap: 32px; row-gap: var(--s-3); align-items: start; }
+  .body-cols, .food-cols { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); grid-template-rows: auto auto 1fr; column-gap: 32px; row-gap: var(--s-3); align-items: start; }
   .body-cols > .col, .food-cols > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
   .body-cols > .col-a, .food-cols > .col-a { grid-column: 1; grid-row: 1; }
   .body-cols > .col-b, .food-cols > .col-b { grid-column: 2; grid-row: 1 / span 2; }
   .body-cols > .col-c, .food-cols > .col-c { grid-column: 1; grid-row: 2; }
+  .body-cols > .col-b { grid-row: 1 / span 3; }
+  .body-cols > .col-d { grid-column: 1; grid-row: 2; }
+  .body-cols > .col-c { grid-row: 3; }
   .food-cols > .food-foot { grid-column: 1 / -1; grid-row: 3; margin: var(--s-2) 0 0; }
   .food-cols > .col-a { grid-row: 1; }
 }
 @media (min-width: 840px) { .food-cols > .col-b { position: sticky; top: calc(var(--safe-top) + 52px); max-height: calc(100vh - var(--safe-top) - 52px - 96px); overflow-y: auto; overscroll-behavior: contain; } } /* v0.15.23: sticks at every wide height (Duo landscape is 626 and 430 tall); if the totals are taller than the screen they scroll inside */
 /* v0.15.23: the right column on Body is much longer than the left, so it runs a little tighter to end closer to it */
-@media (min-width: 840px) { .body-cols > .col-b { gap: var(--s-2); } .body-cols > .col-b > .card { padding-top: var(--s-3); padding-bottom: var(--s-3); gap: var(--s-2); } }
+@media (min-width: 840px) { .body-cols > .col-b, .body-cols > .col-d { gap: var(--s-2); } .body-cols > .col-b > .card, .body-cols > .col-d > .card { padding-top: var(--s-3); padding-bottom: var(--s-3); gap: var(--s-2); } }
 
 .slot { display: contents; }
 

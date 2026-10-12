@@ -87,6 +87,8 @@ export function renderBody(el) {
       ${programsCard()}
       ${compositionCard()}
       ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}) : ''}
+      </div>
+      <div class="col col-d">
       <div data-photos-slot></div>
       ${insightCards()}
       <a class="card row between center nav-card" href="#/train/recovery" data-recovery-link><div><p class="label">Recovery map</p><p class="small">${recoverySubtitle(fresh, last)}</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
