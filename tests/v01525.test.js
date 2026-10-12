@@ -225,10 +225,11 @@ test('lock: a pass for Passwords is honoured once on the way back; any other tri
   await Promise.resolve();
   eq(r.asked.length, before + 1);
   const x = mk(); await x.lock.enable(); x.lock.passFor(120000);
+  const xb = x.asked.length;
   x.lock.away(); x.tick(121000); x.lock.back(); // came back too late
+  assert(x.lock.state !== 'unlocked', 'an expired pass does not unlock');
   await Promise.resolve();
-  eq(x.lock.state === 'unlocked' || x.lock.state === 'locked', true);
-  assert(x.asked.length >= 2, 'an expired pass still locks');
+  eq(x.asked.length, xb + 1); // an expired pass still locks and asks once
   const y = mk(); await y.lock.enable(); y.lock.away(); y.tick(1000); y.lock.back(); // no pass at all
   await Promise.resolve();
   assert(y.asked.length >= 2, 'without a pass it locks as before');

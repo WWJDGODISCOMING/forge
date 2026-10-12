@@ -1117,6 +1117,19 @@ if (standalone) {
       if (!r.input || r.input.mode !== 'numeric' || r.input.ac !== 'one-time-code') note('the code box lacks numeric / one-time-code', at);
       if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note(`the sheet is not phone-width and centred (${Math.round(r.w)} wide, left ${Math.round(r.left)})`, at);
       if (shots) await browser.screenshot(`${shots}/mfa-enroll-${w}x${h}.png`);
+      // turning it on with the stub code: when the sheet closes, focus returns to the row and its ring must not be clipped by the group
+      if (w === 320 || w === 390) {
+        await browser.eval("(() => { const i = document.querySelector('dialog.sheet[open] input[name=code]'); i.focus(); i.value = '123456'; i.dispatchEvent(new Event('input', { bubbles: true })); })()"); await wait(1200);
+        const ring = await browser.eval(`(() => {
+          const row = document.querySelector('[data-mfa-row]'); const g = row && row.closest('.group'); if (!g) return null;
+          row.focus({ focusVisible: true });
+          const cs = getComputedStyle(row); const off = parseFloat(cs.outlineOffset) || 0; const ow = parseFloat(cs.outlineWidth) || 0;
+          const q = row.getBoundingClientRect(); const gr = g.getBoundingClientRect(); const e = Math.max(0, off) + (ow > 0 ? ow : 0);
+          return { off, inside: q.left - e >= gr.left - 0.5 && q.right + e <= gr.right + 0.5 && q.top - e >= gr.top - 0.5 && q.bottom + e <= gr.bottom + 0.5 || off <= 0 };
+        })()`);
+        if (!ring) note('no Privacy & security group around the two-step row', at);
+        else if (!ring.inside) note(`the focus ring on the two-step row sits outside its group (offset ${ring.off}px)`, at);
+      }
       // the sign-in code sheet
       await browser.eval("document.querySelectorAll('dialog.sheet').forEach((d) => d.remove())");
       await browser.eval("import('/js/mfa-ui.js').then((m) => { m.promptSignInCode({ code: 'auth/multi-factor-auth-required' }).catch(() => {}); })"); await wait(900);

@@ -15,7 +15,7 @@ export function privacySettingsHtml(store = localStorage, extraRows = '') {
       <p class="sec-title">Privacy &amp; security</p>
       <div class="group" data-privacy>
         ${supported ? `
-        <label class="g-row sw"><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Face ID lock</span><small>Hides Forge in the app switcher too.</small></span><input type="checkbox" switch name="applock" ${s.enabled ? 'checked' : ''}></label>
+        <label class="g-row sw"><span class="g-ic">${icon('lock')}</span><span class="g-text"><span>Face ID lock</span><small>Hidden in the app switcher.</small></span><input type="checkbox" switch name="applock" ${s.enabled ? 'checked' : ''}></label>
         <div class="g-row col static" data-lock-timeout ${s.enabled ? '' : 'hidden'}><span>Lock after leaving</span>
           <div class="seg" role="radiogroup" aria-label="Lock after leaving the app">
             ${TIMEOUTS.map((t) => `<label><input type="radio" name="locktime" value="${t.ms}" ${s.timeout === t.ms ? 'checked' : ''}><span>${esc(t.label)}</span></label>`).join('')}
