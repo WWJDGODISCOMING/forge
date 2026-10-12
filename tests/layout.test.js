@@ -1085,7 +1085,7 @@ if (standalone) {
 
 // v0.15.19: the quick-log + and its sheet fit at every size, and the + shows on tab roots only.
 if (standalone) {
-  test('layout: quick-log +: 56pt, inside the safe area, clear of the tab bar; the sheet has six one-line rows and is centered', async () => {
+  test('layout: quick-log +: 44pt, in the title row, not covered; the sheet has six one-line rows and is centered', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -1096,15 +1096,19 @@ if (standalone) {
       await browser.viewport(w, h, true);
       await browser.open('today', seed());
       await wait(300);
-      const fab = await browser.eval(`(() => { const f = document.getElementById('quicklog'), n = document.getElementById('nav'); if (!f) return null;
-        const r = f.getBoundingClientRect(), t = n.getBoundingClientRect();
-        return { on: f.classList.contains('on'), label: f.getAttribute('aria-label'), w: r.width, h: r.height, right: window.innerWidth - r.right, bottom: r.bottom, navTop: t.top, vw: window.innerWidth }; })()`);
+      const fab = await browser.eval(`(() => { const f = document.getElementById('quicklog'); if (!f) return null;
+        const r = f.getBoundingClientRect(), row = f.closest('.large-title'), rr = row && row.getBoundingClientRect();
+        const top = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+        return { on: f.classList.contains('on'), label: f.getAttribute('aria-label'), w: r.width, h: r.height, right: window.innerWidth - r.right,
+          inRow: !!row && r.left >= rr.left - 0.5 && r.right <= rr.right + 0.5 && r.top >= rr.top - 0.5 && r.bottom <= rr.bottom + 0.5,
+          hit: top === f || f.contains(top) }; })()`);
       if (!fab) { note('no #quicklog button', at); continue; }
       if (!fab.on) note('+ is not showing on Today', at);
       if (fab.label !== 'Quick log') note(`label is "${fab.label}"`, at);
-      if (fab.w < 55.5 || fab.h < 55.5) note(`+ is ${fab.w}x${fab.h}, wanted 56x56`, at);
-      if (fab.right < 12) note(`+ is ${fab.right}px from the right edge`, at);
-      if (fab.bottom > fab.navTop - 4) note(`+ bottom ${Math.round(fab.bottom)} is not clear of the tab bar top ${Math.round(fab.navTop)}`, at);
+      if (fab.w < 43.5 || fab.h < 43.5) note(`+ is ${fab.w}x${fab.h}, wanted at least 44x44`, at);
+      if (fab.right < 8) note(`+ is ${fab.right}px from the right edge`, at);
+      if (!fab.inRow) note('+ is not inside the large-title row', at);
+      if (!fab.hit) note('+ is covered by something else at its center', at);
       // roots only: Settings is a pushed screen, the player is full screen
       for (const route of ['settings', 'play']) {
         await browser.open(route, seed({ active: route === 'play' }));

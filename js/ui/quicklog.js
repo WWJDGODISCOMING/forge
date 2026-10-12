@@ -39,7 +39,8 @@ function refresh() {
 
 /** Put the + in a tab root's large-title actions, just left of the avatar. Call before the avatar is added. */
 export function placeQuickLog(acts) {
-  if (fab) acts.appendChild(fab);
+  // Progress already has its own "+ Log weight" up there (and the sheet's Log weight is the same thing): one entry point, not two crowded buttons.
+  if (fab && !acts.querySelector('[data-log]')) acts.appendChild(fab);
 }
 
 /** Tell the + where the app is: call on every route change (busy = true while a screen is changing) and after each render. */

@@ -102,9 +102,7 @@ export function detect(opts = {}) {
       if (b > bottom) { bottom = b; worst = e; }
     }
     const top = nav.getBoundingClientRect().top;
-    const fab = document.getElementById('quicklog');
-    const fabTop = fab && fab.classList.contains('on') ? fab.getBoundingClientRect().top : top;
-    if (worst && bottom > Math.min(top, fabTop) + 1) problems.push(`content runs under the tab bar (${Math.round(bottom)}>${Math.round(top)}): ${label(worst)} (scrollY ${Math.round(window.scrollY)} of ${document.documentElement.scrollHeight})`);
+    if (worst && bottom > top + 1) problems.push(`content runs under the tab bar (${Math.round(bottom)}>${Math.round(top)}): ${label(worst)} (scrollY ${Math.round(window.scrollY)} of ${document.documentElement.scrollHeight})`);
     window.scrollTo({ top: 0, behavior: 'instant' });
   }
   return problems;
