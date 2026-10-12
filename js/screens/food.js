@@ -67,6 +67,8 @@ export function renderFood(el) {
       <h1>Food</h1>
       ${state.foodError ? `<div class="card" data-food-error><p class="label">Food isn’t switched on yet</p>
         <p class="small muted">The database said no (${esc(state.foodError)}). Food needs the new security rules published: run <code>firebase deploy --only firestore:rules</code> (DEPLOY.md, “If an update changes firestore.rules”). Nothing else in the app is affected.</p></div>` : ''}
+      <div class="food-cols">
+      <div class="col col-a">
       <div class="row between center week-nav">
         <button class="btn ghost" data-prev aria-label="Previous day">${icon('back')}</button>
         <div style="text-align:center"><b>${isToday ? 'Today' : formatDay(day, { weekday: 'short', month: 'short', day: 'numeric' })}</b></div>
@@ -74,6 +76,8 @@ export function renderFood(el) {
       </div>
       <!-- Primary action. Text search lives inside the Log food sheet; Snap-a-meal (#83) will sit beside search there, not as a button here. -->
       <button class="btn bigbtn" data-log-food>${icon('plus')}Log food</button>
+      </div>
+      <div class="col col-b">
       <div class="card stack" data-food-totals>
         ${meter('Calories', tot.kcal, t && t.calories, 'kcal', { big: true })}
         ${meter('Protein', tot.protein_g, t && t.proteinG, 'g', { big: true })}
@@ -88,6 +92,8 @@ export function renderFood(el) {
         <p class="small muted">Safe floor: ${Math.round(t.floor).toLocaleString('en-US')} kcal/day. ${esc(FLOOR_SOURCE)}</p>
         <p class="small muted">Targets update automatically as your weight trend changes.</p>
       </details>` : ''}
+      </div>
+      <div class="col col-c">
       ${anything ? '' : emptyState({ icon: 'food', title: isToday ? 'Nothing logged yet today' : 'Nothing logged this day', text: 'Tap Log food. If you don’t know the numbers, “Quick add” takes just calories.' })}
       ${anything || !yGroups.some((y) => y.entries.length) ? '' : '<button class="btn ghost" data-copy-day>Copy yesterday</button>'}
       ${anything ? groups.map((g) => {
@@ -106,7 +112,9 @@ export function renderFood(el) {
         </div>`;
       }).join('') : ''}
       <div class="group"><button class="g-row" data-my-foods><span class="g-ic">${icon('list')}</span><span class="g-text"><span>My foods</span><small>${state.foods.length ? `${state.foods.length} saved` : 'Save the things you eat often'}</small></span><span class="chev" aria-hidden="true">${icon('chev')}</span></button></div>
-      <p class="disclaimer">General fitness information, not medical advice.</p>
+      </div>
+      <p class="disclaimer food-foot">General fitness information, not medical advice.</p>
+      </div>
     </section>`;
 
   $('[data-prev]', el).onclick = () => { viewDay = dayBefore(day); renderFood(el); };
