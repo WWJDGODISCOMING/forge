@@ -32,7 +32,7 @@ export function renderReport(el) {
           <button class="btn ghost grow" data-share>${icon('share')}Share text</button></div>`}
       </div>
       ${empty
-        ? `<div class="card" data-empty>${emptyState({ icon: 'heart', title: 'Nothing to summarise yet', text: `There is no data in the last ${range === 365 ? 'year' : `${range} days`}. Weigh in, train, or connect Apple Health or your scale and this fills in.`, action: { href: '#/weight', label: 'Log a weigh-in' } })}</div>`
+        ? `<div class="card" data-empty>${emptyState({ icon: 'heart', title: 'Nothing to summarise yet', text: `There is no data in the last ${range === 365 ? 'year' : `${range} days`}. Weigh in, train, or connect Apple Health or your scale and this fills in.`, action: { href: '#/body/log', label: 'Log a weigh-in' } })}</div>`
         : `<div class="rp-page stack">${reportHtml(s, u, today)}</div>`}
     </section>`;
 

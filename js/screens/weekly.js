@@ -4,7 +4,7 @@ import { esc, $, toast, formatDay } from '../ui.js';
 import { weightToDisplay, weightUnit } from '../units.js';
 import { fmtDelta } from '../health/delta.js';
 import { reportText } from '../health/weektext.js';
-import { progressTabs } from './progress.js';
+import { progressTabs, progressRowsHtml } from './progress.js';
 import { reportFor, currentReportWeek } from '../health/intel.js';
 import { shiftWeek } from '../health/weekly.js';
 import { ringSvg, round } from '../health/ui.js';
@@ -116,7 +116,7 @@ export function renderWeekly(el) {
     <button class="btn bigbtn" data-share>${icon('share')}Share</button>
     </div>
     </div>` : `
-    <div class="card" data-empty>${emptyState({ icon: 'calendar', title: 'Nothing logged this week', text: 'Log a weigh-in or a workout and this report fills in. Use the arrows above to see an earlier week.', action: { href: '#/weight', label: 'Log a weigh-in' } })}</div>`;
+    <div class="card" data-empty>${emptyState({ icon: 'calendar', title: 'Nothing logged this week', text: 'Log a weigh-in or a workout and this report fills in. Use the arrows above to see an earlier week.', action: { href: '#/body/log', label: 'Log a weigh-in' } })}</div>`;
 
   el.innerHTML = `
     <section class="stack">
@@ -128,6 +128,7 @@ export function renderWeekly(el) {
         <button class="btn ghost" data-next aria-label="Next week" ${isCurrent ? 'disabled' : ''}>${icon('chev')}</button>
       </div>
       ${body}
+      ${progressRowsHtml()}
       <p class="disclaimer">General fitness information, not medical advice.</p>
     </section>`;
 

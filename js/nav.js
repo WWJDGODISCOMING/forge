@@ -2,13 +2,13 @@
 // deep it sits (tab root = 0), which way a screen change should animate, where "Back" goes, and
 // per-tab scroll memory.
 
-export const TAB_ORDER = ['today', 'train', 'food', 'body', 'weight'];
+export const TAB_ORDER = ['today', 'train', 'food', 'body', 'score'];
 
 // Which tab lights up for each screen. Settings and its children have no tab: they light whichever tab opened Settings.
 export const TAB_FOR = {
   session: 'train', play: 'train', summary: 'train', timer: 'train', library: 'train',
-  history: 'weight', awards: 'weight', score: 'weight',
-  metric: 'body', photos: 'body', progress: 'weight', trends: 'weight', weekly: 'weight',
+  history: 'score', awards: 'score', score: 'score',
+  metric: 'body', photos: 'body', progress: 'score', trends: 'score', weekly: 'score',
   coach: 'today', program: 'today', food: 'food',
 };
 
@@ -30,24 +30,41 @@ const isChild = (route) => SETTINGS_SCREENS.has(route) && route !== 'settings';
 /** Call for every route change (from = null on a cold start): remembers where a Settings child should go Back to. */
 export function noteNavigation(fromParts, toParts) {
   const to = (toParts && toParts[0]) || 'today';
+  const fromRoute = fromParts && fromParts.length ? fromParts[0] || 'today' : null;
+  if (PROGRESS_ROWS.has(to)) {
+    if (PROGRESS_PARTS.has(fromRoute)) progressFrom = fromRoute;
+    else if (!PROGRESS_ROWS.has(fromRoute)) progressFrom = null; // row to row keeps the earlier answer
+  }
   if (!isChild(to)) return;
   const from = fromParts && fromParts.length ? fromParts[0] || 'today' : null;
   if (from === null || from === 'settings') childReturn = null;
   else if (!SETTINGS_SCREENS.has(from)) childReturn = `#/${fromParts.join('/')}`; // child to child keeps the earlier answer
 }
 
-export const tabOf = (route) => (SETTINGS_SCREENS.has(route) ? settingsOrigin : TAB_FOR[route] || route);
+// Awards, History and Coach are rows under each Progress part (Score, Week, Trends). Opened from one, Back returns to that part and the
+// Progress tab stays lit; Coach opened from anywhere else (Today) stays on Today. null = not opened from a Progress part.
+const PROGRESS_PARTS = new Set(['score', 'weekly', 'trends']);
+const PROGRESS_ROWS = new Set(['awards', 'history', 'coach']);
+let progressFrom = null;
+export const getProgressFrom = () => progressFrom;
+
+export const tabOf = (route) => {
+  if (SETTINGS_SCREENS.has(route)) return settingsOrigin;
+  if (route === 'coach' && progressFrom) return 'score';
+  return TAB_FOR[route] || route;
+};
 
 /** Old bookmarks, notification links and the removed Settings tab: hash route -> where it lives now (null = unchanged). */
-const OLD_ROUTES = { home: 'today', log: 'food', foods: 'food', diary: 'food' };
+// The Progress tab is #/score; the weight chart and weigh-ins now live on Body (v0.15.21).
+const OLD_ROUTES = { home: 'today', log: 'food', foods: 'food', diary: 'food', weight: ['body', 'weight'] };
 export function redirectRoute(parts) {
   const route = parts[0] || 'today';
-  if (Object.hasOwn(OLD_ROUTES, route)) return [OLD_ROUTES[route], ...parts.slice(1)];
+  if (Object.hasOwn(OLD_ROUTES, route)) return [].concat(OLD_ROUTES[route], parts.slice(1));
   return null;
 }
 
 // Screens that live at the root of a tab (the Progress tab has four siblings behind its segmented control).
-const ROOTS = new Set(['progress', 'today', 'train', 'food', 'body', 'weight', 'score', 'trends', 'weekly']);
+const ROOTS = new Set(['progress', 'today', 'train', 'food', 'body', 'score', 'trends', 'weekly']);
 // Screens pushed on top of another one, one level deeper than their parent.
 const DEPTH_2 = new Set(['play', 'summary']);
 
@@ -80,13 +97,14 @@ export function backTarget(parts) {
   if (route === 'summary') return '#/train';
   if (route === 'settings') return `#/${settingsOrigin}`;
   if (SETTINGS_SCREENS.has(route)) return childReturn || '#/settings';
+  if (PROGRESS_ROWS.has(route) && progressFrom) return `#/${progressFrom}`;
   return `#/${tabOf(route)}`;
 }
 
 const LABELS = {
-  today: 'Today', train: 'Train', food: 'Food', body: 'Body', weight: 'Progress', settings: 'Settings',
+  today: 'Today', train: 'Train', food: 'Food', body: 'Body', settings: 'Settings',
   withings: 'Withings', session: 'Workout', coach: 'Coach', program: 'Program', history: 'History', awards: 'Awards',
-  score: 'Progress', trends: 'Progress', weekly: 'Progress', metric: 'Body', photos: 'Photos',
+  score: 'Progress', trends: 'Progress', weekly: 'Progress', progress: 'Progress', metric: 'Body', photos: 'Photos',
 };
 /** Title of the screen "Back" goes to, e.g. "Settings" (iOS shows the parent's title on the back button). */
 export function backLabel(parts) {
@@ -96,7 +114,7 @@ export function backLabel(parts) {
 }
 
 /** Large-title screens that should not show the title of their own sub-page (Progress shows one header). */
-export const TITLE_FOR = {weight: 'Progress', trends: 'Progress', score: 'Progress', weekly: 'Progress' };
+export const TITLE_FOR = { trends: 'Progress', score: 'Progress', weekly: 'Progress' };
 
 /** Per-tab scroll memory: tab roots restore where you left them; detail screens always start at the top. */
 export function createScrollMemory() {

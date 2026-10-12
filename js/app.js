@@ -129,7 +129,6 @@ const routes = {
   timer: () => import('./screens/timer.js').then((m) => m.renderTimer(main)),
   history: () => import('./screens/history.js').then((m) => m.renderHistory(main)),
   library: () => import('./screens/library.js').then((m) => m.renderLibrary(main)),
-  weight: () => import('./screens/weight.js').then((m) => m.renderWeight(main)),
   awards: () => import('./screens/awards.js').then((m) => m.renderAwards(main)),
   settings: () => import('./screens/settings.js').then((m) => m.renderSettings(main)),
   locations: () => import('./screens/locations.js').then((m) => m.renderLocations(main)),
@@ -422,7 +421,7 @@ subscribe((patch) => {
 });
 
 // ---------- pull to refresh (Today, Progress, Body) ----------
-const PULL_ROUTES = new Set(['today', 'weight', 'history', 'awards', 'score', 'body']);
+const PULL_ROUTES = new Set(['today', 'history', 'awards', 'score', 'body']);
 let pullRoute = null;
 let lastPullSync = 0;
 async function refreshData() {
@@ -453,8 +452,50 @@ let prevParts = routeParts();
 let snapshot = null; // { route, html, scroll } of the parent screen, for the swipe-back parallax
 let swipePop = null; // set while an edge swipe is finishing: the screen already slid away, so don't animate again
 
+// Train draws the recovery card a beat after the route changes, so start at the top (Body's scroll must not carry
+// over) and jump to the card the moment it exists, giving up after 1.5 s.
+let recoveryWatch = null;
+function scrollToRecovery() {
+  if (recoveryWatch) recoveryWatch();
+  window.scrollTo(0, 0);
+  let done = false;
+  let mo = null;
+  const stop = () => {
+    done = true;
+    if (mo) mo.disconnect();
+    clearTimeout(timer);
+    if (recoveryWatch === stop) recoveryWatch = null;
+  };
+  const tryScroll = () => {
+    if (done) return;
+    const card = main.querySelector('[data-recovery-card]');
+    if (!card) return;
+    card.scrollIntoView({ block: 'start', behavior: 'instant' }); // html scroll-padding-top keeps it under the title bar
+    stop();
+  };
+  const timer = setTimeout(stop, 1500);
+  recoveryWatch = stop;
+  mo = new MutationObserver(tryScroll);
+  mo.observe(main, { childList: true, subtree: true });
+  tryScroll();
+}
+
 function afterRoute(parts) {
   const route = parts[0] || 'today';
+  const link = parts[1];
+  // Links that mean "my weight", "log a weight" or "the recovery map" open the thing itself, not wherever the tab was left.
+  if (route === 'body' && (link === 'weight' || link === 'log')) {
+    window.scrollTo(0, 0);
+    if (link === 'log') {
+      history.replaceState(null, '', '#/body'); // so a later redraw or Back doesn't reopen the sheet
+      import('./screens/weight.js').then((m) => m.openLogWeight());
+    }
+    return;
+  }
+  if (route === 'train' && link === 'recovery') {
+    scrollToRecovery();
+    return;
+  }
   window.scrollTo(0, scrollMemory.restore(route)); // tab roots remember where you were; detail screens start at the top
 }
 
@@ -581,6 +622,7 @@ async function boot() {
   document.title = APP_NAME;
   setupServiceWorker();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if (routeParts()[0] === 'train' && routeParts()[1] === 'recovery') scrollToRecovery(); // cold load of the deep link
   if (!configured) {
     render();
     return;

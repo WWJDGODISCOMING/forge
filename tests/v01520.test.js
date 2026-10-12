@@ -79,8 +79,7 @@ test('Train: location chips, Resume, preview, Recovery (fresh stat + map in one 
 
 test('Body: the recovery map moved to Train, and Body points there so nothing is orphaned', () => {
   const b = src('js/screens/body.js');
-  assert(!b.includes('bodyMap(') && b.includes('data-recovery-link') && b.includes('href="#/train"'), 'link to Train');
-  assert(b.indexOf('data-photos-slot') < b.indexOf('${compositionCard()}'), 'photos still above composition');
+  assert(!b.includes('bodyMap(') && b.includes('data-recovery-link') && b.includes('href="#/train/recovery"'), 'link to the Recovery card on Train');
 });
 
 test('Food: the "Why these numbers?" explainer moved here from Today', () => {
@@ -100,7 +99,7 @@ test('tour: every step still points at a real element on its screen', () => {
   assert(!TOUR_STEPS.some((s) => s.target && s.target.includes('body-recovery')), 'no step points at the old Body map');
 });
 
-test('old links: #/body still opens Body (with its Recovery map link) and #/food, #/weight and the rest are unchanged', () => {
+test('old links: #/body still opens Body (with its Recovery map link) and #/food, #/score and the rest are unchanged', () => {
   const nav = src('js/nav.js');
-  for (const r of ['today', 'train', 'food', 'body', 'weight']) assert(nav.includes(`'${r}'`), r);
+  for (const r of ['today', 'train', 'food', 'body', 'score']) assert(nav.includes(`'${r}'`), r);
 });

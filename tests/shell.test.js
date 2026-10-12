@@ -9,7 +9,7 @@ import { parseCountText, formatCount } from '../js/ui/motion.js';
 const p = (hash) => hash.replace(/^#\/?/, '').split('/');
 
 test('route depth: tab roots are 0, detail screens 1, deeper screens 2', () => {
-  for (const r of ['today', 'train', 'food', 'body', 'weight', 'score', 'trends', 'weekly', 'progress']) eq(routeDepth([r]), 0, r);
+  for (const r of ['today', 'train', 'food', 'body', 'score', 'trends', 'weekly', 'progress']) eq(routeDepth([r]), 0, r);
   for (const r of ['settings', 'session', 'library', 'timer', 'metric', 'history', 'awards']) eq(routeDepth([r]), 1, r);
   for (const r of ['locations', 'report', 'profile', 'withings', 'apple']) eq(routeDepth([r]), 2, `${r} sits on Settings`);
   eq(routeDepth(p('#/play')), 2);
@@ -28,15 +28,15 @@ test('transition kind: deeper = push, shallower = pop, tab to tab = crossfade', 
   eq(transitionKind(p('#/today'), p('#/settings')), 'push', 'Settings pushes from the avatar');
   eq(transitionKind(p('#/settings'), p('#/today')), 'pop');
   eq(transitionKind(p('#/today'), p('#/food')), 'tab');
-  eq(transitionKind(p('#/weight'), p('#/trends')), 'tab', 'Progress siblings crossfade');
-  eq(transitionKind(p('#/weight'), p('#/history')), 'push', 'History is a row under Weight');
+  eq(transitionKind(p('#/score'), p('#/trends')), 'tab', 'Progress siblings crossfade');
+  eq(transitionKind(p('#/score'), p('#/history')), 'push', 'History is a row under Progress');
   eq(transitionKind(p('#/withings'), p('#/withings/check')), 'push');
   eq(transitionKind(p('#/withings/check'), p('#/withings')), 'pop');
 });
 
 test('back target: roots have none; detail screens go to their parent', () => {
   eq(backTarget(p('#/today')), null);
-  eq(backTarget(p('#/weight')), null);
+  eq(backTarget(p('#/score')), null);
   eq(backTarget(p('#/locations')), '#/settings');
   eq(backTarget(p('#/withings')), '#/settings');
   eq(backTarget(p('#/withings/check')), '#/withings');
@@ -44,10 +44,10 @@ test('back target: roots have none; detail screens go to their parent', () => {
   eq(backTarget(p('#/timer')), '#/train');
   eq(backTarget(p('#/metric/weight_kg')), '#/body');
   eq(tabOf('metric'), 'body');
-  eq(tabOf('awards'), 'weight');
-  eq(tabOf('trends'), 'weight');
-  eq(tabOf('weekly'), 'weight');
-  eq(backTarget(p('#/history')), '#/weight');
+  eq(tabOf('awards'), 'score');
+  eq(tabOf('trends'), 'score');
+  eq(tabOf('weekly'), 'score');
+  eq(backTarget(p('#/history')), '#/score');
   eq(backLabel(p('#/awards')), 'Progress');
   eq(backTarget(p('#/trends')), null);
   eq(backTarget(p('#/weekly')), null);
@@ -58,11 +58,11 @@ test('back target: roots have none; detail screens go to their parent', () => {
 });
 
 test('tab bar: Today, Train, Food, Body, Progress; no Settings tab', () => {
-  eq(JSON.stringify(TAB_ORDER), JSON.stringify(['today', 'train', 'food', 'body', 'weight']));
+  eq(JSON.stringify(TAB_ORDER), JSON.stringify(['today', 'train', 'food', 'body', 'score']));
   eq(Object.values(TAB_FOR).filter((t) => !TAB_ORDER.includes(t)).length, 0, 'every screen lights a real tab');
   const tabs = {
-    food: 'food', coach: 'today', program: 'today', history: 'weight', awards: 'weight', score: 'weight', trends: 'weight',
-    weekly: 'weight', progress: 'weight', metric: 'body', photos: 'body', session: 'train', library: 'train',
+    food: 'food', coach: 'today', program: 'today', history: 'score', awards: 'score', score: 'score', trends: 'score',
+    weekly: 'score', progress: 'score', metric: 'body', photos: 'body', session: 'train', library: 'train',
   };
   for (const [r, t] of Object.entries(tabs)) eq(tabOf(r), t, r);
 });
@@ -70,18 +70,18 @@ test('tab bar: Today, Train, Food, Body, Progress; no Settings tab', () => {
 test('settings has no tab: it and its children light the tab you came from, Back returns there', () => {
   setSettingsOrigin('today');
   eq(tabOf('settings'), 'today', 'fallback is Today');
-  for (const from of ['today', 'train', 'food', 'body', 'weight']) {
+  for (const from of ['today', 'train', 'food', 'body', 'score']) {
     noteRoute(from);
     for (const r of ['settings', 'locations', 'report', 'profile', 'withings', 'apple']) eq(tabOf(r), from, `${r} from ${from}`);
     eq(backTarget(['settings']), `#/${from}`);
-    eq(backLabel(['settings']), { today: 'Today', train: 'Train', food: 'Food', body: 'Body', weight: 'Progress' }[from]);
+    eq(backLabel(['settings']), { today: 'Today', train: 'Train', food: 'Food', body: 'Body', score: 'Progress' }[from]);
     eq(backTarget(['locations']), '#/settings');
     eq(backTarget(['withings', 'check']), '#/withings');
   }
   noteRoute('settings'); noteRoute('locations');
-  eq(tabOf('settings'), 'weight', 'opening Settings children does not forget the origin');
+  eq(tabOf('settings'), 'score', 'opening Settings children does not forget the origin');
   noteRoute('score');
-  eq(tabOf('settings'), 'weight', 'Score is a Progress screen');
+  eq(tabOf('settings'), 'score', 'Score is a Progress screen');
   noteRoute('food');
   eq(tabOf('settings'), 'food');
   setSettingsOrigin('nonsense');
@@ -93,8 +93,9 @@ test('old links: removed or renamed routes redirect; current ones are left alone
   eq(j(redirectRoute(['home'])), j(['today']));
   eq(j(redirectRoute(['log'])), j(['food']));
   eq(j(redirectRoute(['foods', 'x'])), j(['food', 'x']));
-  for (const r of ['weight', 'settings', 'food', 'today', 'progress', 'locations']) eq(redirectRoute([r]), null, r);
+  for (const r of ['settings', 'food', 'today', 'progress', 'locations']) eq(redirectRoute([r]), null, r);
   eq(redirectRoute([]), null);
+  eq(JSON.stringify(redirectRoute(['weight'])), JSON.stringify(['body', 'weight']), 'the old Weight screen is now the weight hero on Body');
   eq(redirectRoute(['toString']), null, 'no prototype lookups');
 });
 

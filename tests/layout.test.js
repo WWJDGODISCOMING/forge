@@ -12,7 +12,7 @@ const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
 const shortLand0 = (w, h) => w >= 600 && h <= 500;
 const SAFE_BOTTOM = 21; // the home indicator in landscape
 const WIDE = [[466, 678], [678, 466], [844, 390], [874, 402], [932, 430], [626, 890], [890, 626]]; // 844x390, 874x402 and 932x430 are current iPhones sideways
-const ROUTES = ['play', 'today', 'train', 'body', 'weight', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
+const ROUTES = ['play', 'today', 'train', 'body', 'score', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
 const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || process.env['LAYOUT_' + k.toUpperCase()];
 const only = arg('routes') ? arg('routes').split(',') : null;
 const shots = arg('shots');
@@ -58,7 +58,7 @@ for (const route of standalone ? ROUTES : []) {
   });
 }
 
-for (const route of standalone ? ['today', 'train', 'body', 'weight', 'settings'] : []) {
+for (const route of standalone ? ['today', 'train', 'body', 'score', 'settings'] : []) {
   test(`layout: ${route}: the nav bar collapses once the large title scrolls under it, and not before`, async () => {
     if (skipReason()) return;
     browser = browser || await launch();
@@ -78,7 +78,7 @@ if (standalone) {
     browser = browser || await launch();
     for (const w of [320, 375]) { // Log weight lives in the Weight content now; the title row holds only the + and the avatar
       await browser.viewport(w, 667, true);
-      await browser.open('weight', seed());
+      await browser.open('body', seed());
       const got = await browser.eval("(() => { const b = document.querySelector('main [data-log]'); const kids = [...document.querySelectorAll('#main .large-title .lt-actions > *')].map((e) => e.id || (e.matches('[data-avatar]') ? 'avatar' : e.tagName)); return { label: b ? b.innerText.trim() : null, inTitle: !!document.querySelector('.large-title [data-log]'), kids }; })()");
       assert(got.label === 'Log weight' && !got.inTitle, `weight button ${JSON.stringify(got)} at ${w}`);
       assert(got.kids.join() === 'quicklog,avatar', `Progress title row holds ${got.kids} at ${w}`);
@@ -101,12 +101,12 @@ if (standalone) {
     const fresh = {};
     for (const [w, h] of sizes) { // what a fresh render gives at each size
       await browser.viewport(w, h, true);
-      await browser.open('weight', seed());
+      await browser.open('body', seed());
       await wait(300);
       fresh[w] = await read();
     }
     await browser.viewport(890, 626, true);
-    await browser.open('weight', seed());
+    await browser.open('body', seed());
     for (const [w, h] of [...sizes.slice(1), sizes[0], sizes[2], sizes[0]]) { // same page, no re-render
       await browser.viewport(w, h, true);
       await wait(300);
@@ -440,7 +440,7 @@ const NATIVE_SHELL = `
 `;
 
 // Wide canvas (item 28/30): two columns on Today and Train from 840 px (each column >= 340px), every other screen stays the 560px column, the tab bar is full width on every tab, and nothing sits inside the side insets.
-for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'food', 'settings'] : []) {
+for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'food', 'settings'] : []) {
   if (only && !only.includes(route)) continue;
   test(`layout: ${route}: wide canvas has the right columns, a full-width tab bar, and respects left/right insets`, async () => {
     if (skipReason()) return;
@@ -485,8 +485,8 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
-      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'play' || route === 'settings';
-      if (!cols && route !== 'weight' && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
+      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'score' || route === 'play' || route === 'settings';
+      if (!cols && route !== 'body' && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
       if (w === 390 && !inset) base = new Set(m.wrap);
       const fresh = m.wrap.filter((x) => !base.has(x));
       if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
@@ -525,7 +525,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
       }
       if (route === 'play' && shortLand0(w, h) && m.scrollH > m.vh + 1) bad.push(`${at}: the player scrolls (${m.scrollH} > ${m.vh}), Done set, steppers and target should fit`);
       if (route === 'play' && m.doneBox && (m.doneBox.t < 0 || m.doneBox.b > m.vh + 0.5)) bad.push(`${at}: Done set is not in view (${Math.round(m.doneBox.t)}-${Math.round(m.doneBox.b)} of ${m.vh})`);
-      if (route === 'weight' && m.chart) { // charts take the card's width, keep their proportions, and keep phone-size axis text
+      if (route === 'body' && m.chart) { // charts take the card's width, keep their proportions, and keep phone-size axis text
         if (w >= 840 && m.main.r - m.main.l <= 560 + 1) bad.push(`${at}: Progress did not widen (${Math.round(m.main.r - m.main.l)}px)`);
         if (m.chart.w < m.card.w - 40) bad.push(`${at}: chart ${Math.round(m.chart.w)}px is not the card's full width (${Math.round(m.card.w)})`);
         if (Math.abs(m.chart.ar - m.chart.vb) > 0.02) bad.push(`${at}: chart aspect ${m.chart.ar.toFixed(2)} differs from its drawing ${m.chart.vb.toFixed(2)}`);
@@ -552,7 +552,7 @@ if (standalone) {
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     await browser.viewport(890, 626, true);
-    await browser.open('weight', seed({}));
+    await browser.open('body', seed({}));
     const probe = () => browser.eval(`(() => {
       const ch = document.querySelector('#main svg.chart'), q = ch.getBoundingClientRect(), ax = ch.querySelector('.axis');
       const pick = document.querySelector('#main .seg.small').getBoundingClientRect();
@@ -580,7 +580,7 @@ if (standalone) {
     const bad = [];
     for (const [w, h] of [[390, 844], [678, 466], [890, 626]]) {
       const segs = [];
-      for (const route of ['weight', 'trends', 'score', 'weekly']) {
+      for (const route of ['trends', 'score', 'weekly']) {
         await browser.viewport(w, h, true);
         await browser.open(route, seed({}));
         await wait(300);
@@ -600,7 +600,7 @@ if (standalone) {
         })()`);
         segs.push(m.seg);
         if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
-        if (route !== 'weight' && w >= 840 && m.cards > 561) bad.push(`${at}: a card is ${Math.round(m.cards)}px wide`);
+        if (route !== 'body' && w >= 840 && m.cards > 561) bad.push(`${at}: a card is ${Math.round(m.cards)}px wide`);
         if (route === 'score' || route === 'weekly') {
           if (!m.a || !m.b) { bad.push(`${at}: no columns found`); continue; }
           if (!m.dom) bad.push(`${at}: left column is after the right in the DOM`);
@@ -816,6 +816,8 @@ if (standalone) {
       await browser.viewport(466, 678, true);
       await browser.open(route, seed());
       await browser.eval(noAnchoring);
+      // The seeded Trends page fits at 626x890 with nothing to scroll; pad it with extra cards, like a longer history would,, so the card it follows can stay put.
+      if (route === 'trends') await browser.eval("(() => { for (let i = 0; i < 8; i++) { const d = document.createElement('div'); d.className = 'card'; d.style.height = '240px'; document.querySelector('#main section').append(d); } })()");
       // scroll about 45% down (25% on Score, whose wide page is much shorter, so the card has to stay reachable); on Today, to a card that lands in the right column when wide
       const picked = await browser.eval(`(async () => {
         const bar = document.querySelector('.navbar'); const inset = bar ? bar.getBoundingClientRect().bottom : 0;
@@ -1173,7 +1175,7 @@ if (standalone) {
 }
 
 // v0.15.19 round 2: the + on every root at rest, the title row on one line, and toasts clear of the + and the tab bar.
-const ROOTS = ['today', 'train', 'food', 'body', 'weight'];
+const ROOTS = ['today', 'train', 'food', 'body', 'score'];
 const SIX = [[320, 568], [390, 844], [430, 932], [466, 678], [626, 890], [890, 626]];
 if (standalone) {
   test('layout: quick-log + at rest: on all 5 roots, it is the top hit at its center and nothing in main sits under it', async () => {
@@ -1230,6 +1232,62 @@ if (standalone) {
     }
     assert(bad.length === 0, bad.join('; '));
   });
+}
+
+if (standalone) {
+test('layout: the Recovery row puts the recovery card under the title bar (tap and cold load, 390x844 and 890x626)', async () => {
+  if (skipReason()) return;
+  browser = browser || await launch();
+  const top = "(() => { const c = document.querySelector('[data-recovery-card]'); return c ? Math.round(c.getBoundingClientRect().top) : null; })()";
+  for (const [w, h] of [[390, 844], [890, 626]]) {
+    await browser.viewport(w, h, true);
+    await browser.open('body', seed());
+    await browser.eval("document.querySelector('[data-recovery-link]').scrollIntoView()");
+    await new Promise((r) => setTimeout(r, 150));
+    await browser.eval("document.querySelector('[data-recovery-link]').click()");
+    await new Promise((r) => setTimeout(r, 1000));
+    const tapped = await browser.eval(top);
+    assert(tapped !== null && tapped >= 40 && tapped <= 200, `Recovery card top after tapping the row at ${w}x${h}: ${tapped}`);
+    await browser.open('train/recovery', seed());
+    await new Promise((r) => setTimeout(r, 600));
+    const cold = await browser.eval(top);
+    assert(cold !== null && cold >= 40 && cold <= 200, `Recovery card top on a cold load at ${w}x${h}: ${cold}`);
+  }
+});
+
+test('layout: at 320 the weigh-in meta and the Recovery subtitle keep each dot-separated part on one line, and no line starts with a dot', async () => {
+  if (skipReason()) return;
+  browser = browser || await launch();
+  await browser.viewport(320, 568, true);
+  const data = seed();
+  data.weights.forEach((w, i) => { w.source = i % 2 ? 'withings' : 'manual'; });
+  await browser.open('body', data);
+  const r = await browser.eval(`(() => {
+    const bad = [];
+    const check = (el, label) => {
+      for (const part of el.querySelectorAll('.nw')) {
+        const rg = document.createRange(); rg.selectNodeContents(part);
+        if (new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 4))).size > 1) bad.push(label + ' part wraps: ' + part.textContent);
+      }
+      // every dot is a leading ::before on its part; the part that starts a line must have it clipped away, so no line starts or ends with a dot
+      const inner = el.querySelector('.dots-in'); if (!inner) { bad.push(label + ' has no .dots-in'); return; }
+      const outer = el.getBoundingClientRect(), parts = [...inner.children];
+      let lineTop = null;
+      for (const part of parts) {
+        const q = part.getBoundingClientRect(), dotW = parseFloat(getComputedStyle(part, '::before').width) || 0;
+        const startsLine = lineTop === null || q.top - lineTop > 4;
+        lineTop = startsLine ? q.top : lineTop;
+        if (startsLine && q.left + dotW > outer.left + 1) bad.push(label + ' a line starts with a visible dot: ' + part.textContent);
+        if (!startsLine && q.left + dotW <= outer.left + 1) bad.push(label + ' dot hidden mid-line: ' + part.textContent);
+      }
+    };
+    document.querySelectorAll('[data-weigh-ins] li small').forEach((s) => check(s, 'weigh-in'));
+    const rec = document.querySelector('[data-recovery-link] .small'); if (rec) check(rec, 'recovery');
+    return { bad, rows: document.querySelectorAll('[data-weigh-ins] li small').length, rec: !!rec };
+  })()`);
+  assert(r.rows > 0 && r.rec, `Body rendered weigh-ins and the Recovery row: ${JSON.stringify(r)}`);
+  assert(r.bad.length === 0, `wrap problems at 320: ${r.bad.join('; ')}`);
+});
 }
 
 test('layout: close the browser', async () => {

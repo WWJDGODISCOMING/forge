@@ -100,3 +100,13 @@ export function muscleStats(workouts, exerciseById, now = Date.now()) {
   }
   return out;
 }
+
+/** "18 fresh · last workout 2 days ago"; a new user with no finished workout sees "No workouts yet". */
+export function recoverySubtitle(fresh, last, now = Date.now()) {
+  if (!last) return 'No workouts yet';
+  // Local calendar days, not 24-hour periods: Sunday 6:30 PM is "yesterday" on Monday morning.
+  const dayNum = (t) => { const d = new Date(t); return Math.round(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86400000); };
+  const days = Math.max(0, dayNum(now) - dayNum(Date.parse(last.finished_at || last.started_at)));
+  const when = days === 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`;
+  return `<span class="dots"><span class="dots-in"><span class="nw"><span data-count>${fresh}</span> fresh</span><span class="nw">last workout ${when}</span></span></span>`;
+}

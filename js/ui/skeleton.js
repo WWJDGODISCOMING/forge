@@ -12,7 +12,7 @@ const SHAPES = {
 };
 const KIND = { today: 'today', train: 'train', weight: 'progress', trends: 'progress', weekly: 'progress', history: 'list', awards: 'list', score: 'progress', body: 'body', metric: 'body', withings: 'list', settings: 'list', report: 'list', photos: 'list', food: 'list' };
 
-const WIDE = new Set(['today', 'train', 'body', 'weight', 'trends', 'weekly', 'score', 'play', 'settings']); // routes that go two-column or full-width on a wide canvas; the skeleton must claim the same width so the page doesn't jump when the screen draws
+const WIDE = new Set(['today', 'train', 'body', 'trends', 'weekly', 'score', 'play', 'settings']); // routes that go two-column or full-width on a wide canvas; the skeleton must claim the same width so the page doesn't jump when the screen draws
 
 export const skeletonKind = (route) => KIND[route] || 'today';
 

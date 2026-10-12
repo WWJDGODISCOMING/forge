@@ -72,6 +72,8 @@ export function renderFood(el) {
         <div style="text-align:center"><b>${isToday ? 'Today' : formatDay(day, { weekday: 'short', month: 'short', day: 'numeric' })}</b></div>
         <button class="btn ghost" data-next aria-label="Next day" ${isToday ? 'disabled' : ''}>${icon('chev')}</button>
       </div>
+      <!-- Primary action. Text search lives inside the Log food sheet; Snap-a-meal (#83) will sit beside search there, not as a button here. -->
+      <button class="btn bigbtn" data-log-food>${icon('plus')}Log food</button>
       <div class="card stack" data-food-totals>
         ${meter('Calories', tot.kcal, t && t.calories, 'kcal', { big: true })}
         ${meter('Protein', tot.protein_g, t && t.proteinG, 'g', { big: true })}
@@ -86,7 +88,6 @@ export function renderFood(el) {
         <p class="small muted">Safe floor: ${Math.round(t.floor).toLocaleString('en-US')} kcal/day. ${esc(FLOOR_SOURCE)}</p>
         <p class="small muted">Targets update automatically as your weight trend changes.</p>
       </details>` : ''}
-      <button class="btn bigbtn" data-log-food>${icon('plus')}Log food</button>
       ${anything ? '' : emptyState({ icon: 'food', title: isToday ? 'Nothing logged yet today' : 'Nothing logged this day', text: 'Tap Log food. If you don’t know the numbers, “Quick add” takes just calories.' })}
       ${anything || !yGroups.some((y) => y.entries.length) ? '' : '<button class="btn ghost" data-copy-day>Copy yesterday</button>'}
       ${anything ? groups.map((g) => {
@@ -95,7 +96,7 @@ export function renderFood(el) {
           <div class="row between center food-meal-head">
             <h2>${g.label}</h2>
             <span class="row gap center"><span class="small muted">${g.entries.length ? `${g.totals.kcal.toLocaleString('en-US')} kcal` : ''}</span>
-              ${canCopy ? `<button class="btn ghost small-btn" data-copy="${g.meal}">Copy yesterday</button>` : ''}
+              ${canCopy ? `<button class="btn ghost small-btn" data-copy="${g.meal}" aria-label="Copy yesterday’s ${g.label.toLowerCase()}">Yesterday</button>` : ''}
               <button class="btn ghost small-btn" data-add-meal="${g.meal}" aria-label="Add to ${g.label.toLowerCase()}">Add</button></span>
           </div>
           ${g.entries.length ? `<ul class="list">${g.entries.map((e) => `
