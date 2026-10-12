@@ -70,6 +70,29 @@ Your app's address is public, so anyone who finds it could otherwise make an acc
 
 If anyone (including you) tries "Create an account" now, the app says new accounts are turned off. Signing in still works.
 
+## 7b. Two-step sign-in: one-time switch (optional, do it once on your Mac)
+
+Settings → Privacy & security → **Two-step sign-in** asks for a 6-digit authenticator code (Apple Passwords works) as well as your password. Until you flip this switch on your Firebase project, the row shows Off, and tapping it says two-step sign-in isn't switched on for Forge yet. Signing in is never affected.
+
+Use your own signed-in Google account. Nothing secret goes in the repo.
+
+1. **Upgrade to Identity Platform** (needed for authenticator codes; it is free at this size, the free tier is 50,000 monthly active users). Firebase console → **Build → Authentication** → **Settings** → **Upgrade**, and accept. If you don't see Upgrade, it's already done. Your accounts and passwords carry over unchanged.
+2. In Terminal on your Mac, sign in to Google Cloud once (skip if `gcloud auth list` already shows you): `gcloud auth login`
+3. Paste this whole command and press Return. It turns on authenticator codes and tolerates a code that is one 30-second step early or late:
+
+```sh
+curl -X PATCH "https://identitytoolkit.googleapis.com/admin/v2/projects/forge-web-f2351/config?updateMask=mfa" \
+  -H "Authorization: Bearer $(gcloud auth print-access-token)" \
+  -H "X-Goog-User-Project: forge-web-f2351" \
+  -H "Content-Type: application/json" \
+  -d '{"mfa":{"state":"ENABLED","providerConfigs":[{"state":"ENABLED","totpProviderConfig":{"adjacentIntervals":5}}]}}'
+```
+
+4. It prints a block of JSON that includes `"state": "ENABLED"`. If it prints an error instead, copy it to the review bot.
+5. In Forge: **Settings → Privacy & security → Two-step sign-in → Add to Passwords**, then type the code it shows.
+
+If you ever lose the code, sign-in is blocked for that account until a second factor is removed in the Firebase console (Authentication → Users → the account → remove the second factor). Turn it on for your own account first, check it works, then tell Hannah how to turn on hers.
+
 ## 8. Check it works
 
 1. Finish onboarding. The top-right pill should say **Synced**.

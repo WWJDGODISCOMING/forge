@@ -1,10 +1,25 @@
 # Changelog
 
+## 0.15.25 — Two-step sign-in (2026-10-12)
+
+Issue #79, part 2. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes. Needs a one-time switch on the Firebase project first (SETUP.md, section 7b); until then the row shows Off, and turning it on explains the switch is missing; sign-in is untouched.
+
+- **Settings → Privacy & security → Two-step sign-in** (On or Off). Turning it on: password if Firebase asks, **Add to Passwords** (opens the `otpauth://` link so Apple Passwords can save the code), or a QR code and the setup key (grouped in 4s, with Copy) for another device, then the 6-digit code.
+- **Sign-in** asks for the code when it's on (`auth/multi-factor-auth-required`), with plain inline messages for a wrong or expired code and as many tries as you need. Delete everything asks for the code too.
+- **Turn off** asks for your password again and confirms in plain words.
+- **QR code:** drawn on the phone with the MIT-licensed qrcode-generator 1.4.4 (`js/vendor/qrcode/`, licence in `docs/licenses/`). No CDN, no new network calls. The setup key is never logged or saved.
+- **Face ID lock (carry-over from 0.15.12):** if the lock dialog is ever closed while Forge is locked, it comes straight back; after unlocking over an open sheet, focus returns to the sheet's input.
+- **CHANGELOG:** the 0.15.24 Body note now says the columns "end closer together".
+
+### What's new
+
+- Two-step sign-in: add a 6-digit code to protect your account. See Settings.
+
 ## 0.15.24 — Body wide column balance (2026-10-12)
 
 Issue #63, part 5c. CSS and a markup wrapper only; nothing moves between screens and nothing is new. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
 
-- **Body on the wide screen:** the goal path and weight sit on the left with the Progress photos card and insights under them. Programs, body composition and measures sit on the right with the Recovery link and weigh-ins under them. Each side stacks on its own (no empty gap under the goal path), and the two sides end within about 40 px of each other on Duo landscape.
+- **Body on the wide screen:** the goal path and weight sit on the left with the Progress photos card and insights under them. Programs, body composition and measures sit on the right with the Recovery link and weigh-ins under them. Each side stacks on its own (no empty gap under the goal path), and the two sides end closer together on Duo landscape.
 - **Phones and the upright inner screen:** unchanged, same card order.
 - **Today, Train, Progress:** not changed in this part; not checked in a rendered view.
 

@@ -1072,6 +1072,113 @@ if (standalone) {
   });
 }
 
+// Two-step sign-in sheets: 320/375/390 phones, the Duo folded-upright and unfolded sizes, and the wide sideways screen.
+const MFA_SIZES = [[320, 568], [375, 667], [390, 844], [466, 678], [626, 890], [890, 626]];
+if (standalone) {
+  test('layout: two-step sign-in sheets fit, stay phone-width and centred, and do not clip', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = noteTo(found);
+    const probe = `(() => {
+      const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null;
+      const r = d.getBoundingClientRect(); const body = d.querySelector('.sheet-body');
+      const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+      const kids = [...d.querySelectorAll('.sheet-body *')].filter((e) => e.offsetParent !== null);
+      const btn = d.querySelector('[data-passwords]');
+      return { left: r.left, right: r.right, w: r.width, vw: innerWidth, title: d.querySelector('h2').textContent,
+        out: kids.some((e) => { const q = e.getBoundingClientRect(); return q.width > 0 && (q.left < r.left - 0.5 || q.right > r.right + 0.5); }),
+        hscroll: body.scrollWidth > body.clientWidth + 0.5, btnLines: btn ? lines(btn) : 0, btnH: btn ? btn.getBoundingClientRect().height : 0,
+        keyCut: [...d.querySelectorAll('.mfa-key')].some((e) => e.scrollWidth > e.clientWidth + 0.5),
+        splitGroups: [...d.querySelectorAll('.mfa-g')].filter((e) => lines(e) > 1).length,
+        keyRows: new Set([...d.querySelectorAll('.mfa-g')].map((e) => Math.round(e.getBoundingClientRect().top / 4))).size,
+        keyPerRow: (() => { const t = {}; d.querySelectorAll('.mfa-g').forEach((e) => { const k = Math.round(e.getBoundingClientRect().top / 4); t[k] = (t[k] || 0) + 1; }); return Object.values(t); })(),
+        h2Lines: lines(d.querySelector('h2')),
+        hyphenEnds: (() => { let n = 0; const w = document.createTreeWalker(d, NodeFilter.SHOW_TEXT); let nd; while ((nd = w.nextNode())) { const t = nd.textContent; for (let i = 0; i < t.length - 1; i++) { if (t[i] !== '-' || t[i + 1] === ' ') continue; const a = document.createRange(); a.setStart(nd, i); a.setEnd(nd, i + 1); const b = document.createRange(); b.setStart(nd, i + 1); b.setEnd(nd, i + 2); const ra = a.getClientRects()[0]; const rb = b.getClientRects()[0]; if (ra && rb && rb.top > ra.bottom - 2) n++; } } return n; })(),
+        input: (() => { const i = d.querySelector('input[name=code]'); return i ? { mode: i.inputMode, ac: i.autocomplete } : null; })() };
+    })()`;
+    for (const [w, h] of MFA_SIZES) {
+      const at = `${w}x${h}`;
+      await browser.viewport(w, h, true);
+      await browser.open('settings', seed(), 'window.__mfaOn = false;');
+      // turning it on
+      await browser.eval("document.querySelector('[data-mfa-row]').click()"); await wait(900);
+      await browser.eval("document.querySelector('dialog.sheet[open] details').open = true"); await wait(200);
+      let r = await browser.eval(probe);
+      if (!r || r.title !== 'Two‑step sign‑in') { note(`the turn-on sheet did not open: ${JSON.stringify(r)}`, at); continue; }
+      if (r.out || r.hscroll) note('the turn-on sheet clips or scrolls sideways', at);
+      if (r.btnLines !== 1 || r.btnH < 44) note(`Add to Passwords wraps or is small (${r.btnLines} lines, ${r.btnH}px)`, at);
+      if (r.keyCut) note('the setup key is cut off', at);
+      if (r.splitGroups) note(`${r.splitGroups} setup-key group(s) split across two lines`, at);
+      if (r.keyRows !== 2 || r.keyPerRow.some((n) => n !== 4)) note(`the setup key is not two even rows of 4 groups (${JSON.stringify(r.keyPerRow)})`, at);
+      if (r.h2Lines > 1) note(`the sheet title wraps to ${r.h2Lines} lines`, at);
+      if (r.hyphenEnds) note('a line of text ends in a hyphen', at);
+      if (!r.input || r.input.mode !== 'numeric' || r.input.ac !== 'one-time-code') note('the code box lacks numeric / one-time-code', at);
+      if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note(`the sheet is not phone-width and centred (${Math.round(r.w)} wide, left ${Math.round(r.left)})`, at);
+      if (shots) await browser.screenshot(`${shots}/mfa-enroll-${w}x${h}.png`);
+      // turning it on with the stub code: when the sheet closes, focus returns to the row and its ring must not be clipped by the group
+      if (w === 320 || w === 390) {
+        await browser.eval("(() => { const i = document.querySelector('dialog.sheet[open] input[name=code]'); i.focus(); i.value = '123456'; i.dispatchEvent(new Event('input', { bubbles: true })); })()"); await wait(1200);
+        const ring = await browser.eval(`(() => {
+          const row = document.querySelector('[data-mfa-row]'); const g = row && row.closest('.group'); if (!g) return null;
+          row.focus({ focusVisible: true });
+          const cs = getComputedStyle(row); const off = parseFloat(cs.outlineOffset) || 0; const ow = parseFloat(cs.outlineWidth) || 0;
+          const q = row.getBoundingClientRect(); const gr = g.getBoundingClientRect(); const e = Math.max(0, off) + (ow > 0 ? ow : 0);
+          return { off, inside: q.left - e >= gr.left - 0.5 && q.right + e <= gr.right + 0.5 && q.top - e >= gr.top - 0.5 && q.bottom + e <= gr.bottom + 0.5 || off <= 0 };
+        })()`);
+        if (!ring) note('no Privacy & security group around the two-step row', at);
+        else if (!ring.inside) note(`the focus ring on the two-step row sits outside its group (offset ${ring.off}px)`, at);
+      }
+      // the sign-in code sheet
+      await browser.eval("document.querySelectorAll('dialog.sheet').forEach((d) => d.remove())");
+      await browser.eval("import('/js/mfa-ui.js').then((m) => { m.promptSignInCode({ code: 'auth/multi-factor-auth-required' }).catch(() => {}); })"); await wait(900);
+      r = await browser.eval(probe);
+      if (!r || r.title !== 'Enter your code') { note(`the sign-in code sheet did not open: ${JSON.stringify(r)}`, at); continue; }
+      if (r.out || r.hscroll) note('the sign-in code sheet clips or scrolls sideways', at);
+      if (r.h2Lines > 1) note(`the code sheet title wraps to ${r.h2Lines} lines`, at);
+      if (r.hyphenEnds) note('a line of text ends in a hyphen (code sheet)', at);
+      // turn-off sheet
+      await browser.eval("document.querySelectorAll('dialog.sheet').forEach((d) => d.remove())");
+      await browser.open('settings', seed(), 'window.__mfaOn = true;');
+      await browser.eval("document.querySelector('[data-mfa-row]').click()"); await wait(700);
+      const off = await browser.eval(probe);
+      if (!off || off.title !== 'Two‑step sign‑in') note(`the turn-off sheet did not open: ${JSON.stringify(off)}`, at);
+      else {
+        if (off.h2Lines > 1) note(`the turn-off sheet title wraps to ${off.h2Lines} lines`, at);
+        if (off.hyphenEnds) note('a line of text ends in a hyphen (turn-off sheet)', at);
+      }
+      if (r.w > 561 || Math.abs((r.left + r.right) / 2 - r.vw / 2) > 1) note('the code sheet is not phone-width and centred', at);
+      if (shots) await browser.screenshot(`${shots}/mfa-code-${w}x${h}.png`);
+    }
+    // Privacy & security notes: no single word alone on the last line, and the two-step note stays short
+    const noteProbe = `(() => [...document.querySelectorAll('[data-privacy] .g-text small')].filter((e) => e.offsetParent !== null).map((e) => {
+      const rg = document.createRange(); rg.selectNodeContents(e);
+      const rows = {}; [...rg.getClientRects()].filter((q) => q.width > 0).forEach((q) => { const k = Math.round((q.top + q.bottom) / 2 / 6); rows[k] = (rows[k] || 0) + q.width; });
+      const lines = Object.keys(rows).map(Number).sort((a, b) => a - b);
+      let lastWords = 99;
+      if (lines.length > 1) {
+        const w = document.createTreeWalker(e, NodeFilter.SHOW_TEXT); let nd; let words = 0;
+        while ((nd = w.nextNode())) { const t = nd.textContent; for (let i = 0; i < t.length; i++) { if (/\\s/.test(t[i])) continue; const a = document.createRange(); a.setStart(nd, i); a.setEnd(nd, i + 1); const q = a.getClientRects()[0]; if (q && Math.round((q.top + q.bottom) / 2 / 6) === lines[lines.length - 1] && (i === 0 || /\\s/.test(t[i - 1]))) words++; } }
+        lastWords = words;
+      }
+      return { text: e.textContent, n: lines.length, lastWords, mfa: e.hasAttribute('data-mfa-note') };
+    }))()`;
+    for (const [w, h] of [...MFA_SIZES, [932, 430]]) {
+      const at = `${w}x${h}`;
+      await browser.viewport(w, h, true);
+      await browser.open('settings', seed(), 'window.__mfaOn = false;');
+      const notes = await browser.eval(noteProbe);
+      for (const n of notes || []) {
+        if (n.lastWords < 2) note(`"${n.text}" leaves a single word alone on its last line`, at);
+        if (n.mfa && w === 320 && n.n > 2) note(`the two-step note takes ${n.n} lines`, at);
+      }
+    }
+    await browser.dropInit();
+    assert(found.size === 0, report(found));
+  });
+}
+
 if (standalone) {
   test('layout: mission celebrations wait until the card is scrolled into view, and play inside it', async () => {
     if (skipReason()) return;

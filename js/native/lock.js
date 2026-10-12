@@ -100,6 +100,7 @@ export function createLock({ device, view, store, session, now = Date.now } = {}
   let state = 'off';
   let hiddenAt = null;
   let authing = false;
+  let passUntil = null;
   let waiters = [];
   const settings = () => readSettings(store);
   const set = (s) => {
@@ -157,12 +158,17 @@ export function createLock({ device, view, store, session, now = Date.now } = {}
       if (state === 'shield' && hiddenAt == null) hiddenAt = now();
     },
 
+    /** Forge is about to hand over to another app that asks for Face ID itself (Passwords): the next return within `ms` doesn't ask again. Used once. */
+    passFor(ms) { if (settings().enabled && state === 'unlocked') passUntil = now() + ms; },
+
     /** Back in front. */
     back() {
       if (authing || !settings().enabled) return;
       if (state === 'shield') {
         // No background in between (it was only inactive): drop the shield, no Face ID.
-        if (hiddenAt != null && shouldLock(settings(), hiddenAt, now())) { set('locked'); api.unlock(); } else { hiddenAt = null; set('unlocked'); }
+        const passed = hiddenAt != null && passUntil != null && now() <= passUntil; // a trip we agreed to (say, to Passwords): once
+        if (hiddenAt != null) passUntil = null;
+        if (!passed && hiddenAt != null && shouldLock(settings(), hiddenAt, now())) { set('locked'); api.unlock(); } else { hiddenAt = null; set('unlocked'); }
       } else if (state === 'locked') api.unlock();
     },
 
@@ -206,6 +212,7 @@ const root = () => document.documentElement;
 /** Draws the lock on the page: classes on <html> (css/lock.css) and the markup of #lock in index.html. */
 export function pageView() {
   const el = () => document.getElementById('lock');
+  let prevFocus = null; // what had focus (say, a sheet's input) when the lock came up, so unlocking can give it back
   const inertBehind = (on) => {
     for (const c of document.body.children) {
       if (c.id === 'lock' || /^(SCRIPT|NOSCRIPT)$/.test(c.tagName)) continue;
@@ -214,6 +221,8 @@ export function pageView() {
   };
   return {
     show(mode) {
+      const ae = document.activeElement;
+      if (!prevFocus && ae && ae !== document.body && !(el() && el().contains(ae))) prevFocus = ae;
       root().classList.toggle('app-locked', mode === 'locked');
       root().classList.toggle('app-shield', mode === 'shield');
       inertBehind(true);
@@ -234,6 +243,9 @@ export function pageView() {
       const e = el();
       if (e && e.open) e.close();
       if (e) e.setAttribute('aria-hidden', 'true');
+      const f = prevFocus;
+      prevFocus = null;
+      if (f && f.isConnected && f.focus) { try { f.focus({ preventScroll: true }); } catch { /* gone */ } }
     },
     error(msg) {
       const e = el() && el().querySelector('[data-lock-error]');
@@ -257,6 +269,10 @@ export function setupLock() {
   if (btn) btn.addEventListener('click', () => current.unlock());
   const dlg = document.getElementById('lock');
   if (dlg) dlg.addEventListener('cancel', (ev) => ev.preventDefault()); // Escape can't dismiss the lock
+  // A second Escape with no user activation can still close a modal dialog: put the lock straight back while it's meant to be up.
+  if (dlg) dlg.addEventListener('close', () => {
+    if (root().classList.contains('app-locked') && !dlg.open) { try { dlg.showModal(); } catch { /* not connected */ } }
+  });
   current.start();
   const App = plugin('App');
   if (App && App.addListener) {

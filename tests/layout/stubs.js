@@ -10,6 +10,13 @@ export const onAuthStateChanged = (a, cb) => { setTimeout(() => cb(user), 0); re
 export const createUserWithEmailAndPassword = async () => ({}), signInWithEmailAndPassword = async () => ({});
 export const sendPasswordResetEmail = async () => {}, signOut = async () => {}, reauthenticateWithCredential = async () => {}, deleteUser = async () => {};
 export const EmailAuthProvider = { credential: () => ({}) };
+// Two-step sign-in (TOTP) stand-ins; synthetic key. window.__mfaOn says whether the account has an authenticator.
+export const multiFactor = () => ({
+  enrolledFactors: window.__mfaOn ? [{ factorId: 'totp', uid: 'f1' }] : [],
+  getSession: async () => ({}), enroll: async () => { window.__mfaOn = true; }, unenroll: async () => { window.__mfaOn = false; },
+});
+export const TotpMultiFactorGenerator = { generateSecret: async () => ({ secretKey: 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP' }), assertionForEnrollment: () => ({}), assertionForSignIn: () => ({}) };
+export const getMultiFactorResolver = () => ({ hints: [{ factorId: 'totp', uid: 'f1' }], resolveSignIn: async () => ({}) });
 `;
 
 const firestore = `
