@@ -432,7 +432,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
           if (q.left < ${inset} - 0.5 || q.right > innerWidth - ${inset} + 0.5) out.push((e.className || e.tagName) + ' ' + Math.round(q.left) + '-' + Math.round(q.right));
         });
         const wrap = [];
-        const lineCount = (e) => { const g = document.createRange(); g.selectNodeContents(e); return new Set([...g.getClientRects()].filter((x) => x.width > 0).map((x) => Math.round(x.top / 6))).size; };
+        const lineCount = (e) => { const g = document.createRange(); g.selectNodeContents(e); const k = [...g.getClientRects()].filter((x) => x.width > 0).map((x) => x.top); return k.length && Math.max(...k) - Math.min(...k) > 6 ? 2 : 1; }; /* a spread, not rounding buckets: an icon centred beside text differs by under a pixel and a bucket edge could split them */
         document.querySelectorAll('#main .weight-text .hero-num, #main .weight-text [data-weight-trend] .nw, #main .rings-card > .row a, #main .food-card-kcal b, #main [data-weight-why]').forEach((e) => {
           if (e.getBoundingClientRect().width < 1) return;
           if (lineCount(e) > 1) wrap.push('wraps: ' + (e.className || e.tagName) + ' "' + e.textContent.trim().slice(0, 24) + '"');
@@ -464,7 +464,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'weight', 'f
         const shown = m.slots.filter((x) => x.t != null);
         if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
-        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5, 9].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
+        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5, 6, 9].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
       if (route === 'settings') { // list left, selected section right; a phone keeps the whole page (list hidden, every section shown)

@@ -185,7 +185,7 @@ function greeting() {
 
 // Two columns (>= 840px): slot numbers on the left or right. The DOM stays in the phone's reading order and only
 // moves into columns while the wide query matches, so VoiceOver and Tab order follow the screen on every size.
-const LEFT_SLOTS = new Set(['1', '3', '5', '9']); // readiness, rings, food, insights; the rest go right
+const LEFT_SLOTS = new Set(['1', '3', '5', '6', '9']); // readiness, rings, food, coach line, insights; the rest go right (Food is one short row now, so the coach line balances the columns)
 let wideQuery = null;
 let wideListener = null;
 function arrangeTodayCols(el) {
