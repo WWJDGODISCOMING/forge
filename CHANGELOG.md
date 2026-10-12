@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.15.22 — Food and Body on the wide screen (2026-10-12)
+
+Issue #63, part 5a of the approved IA. CSS and markup wrappers only; nothing moves between screens and nothing is new. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
+
+- **Food at 840px and up:** the diary (day nav, Log food, meals, My foods) on the left; today's totals and "Why these numbers?" on the right, following you down a tall page. The disclaimer runs across the bottom.
+- **Body at 840px and up:** weight hero and Goal path on the left with the weigh-in list under them; programs, composition, measures, Progress photos, insights and the Recovery link on the right.
+- **Today, Train and Progress** were checked after the part 3 and 4 reorders: the alert slot and Progress tab control already span both columns and the columns are balanced, so they are unchanged.
+- **Phones and the upright inner screen:** unchanged. One column, same order as 0.15.21.
+- **Tests:** a standalone layout test for Food and Body at 890x626 and 932x430 (two columns, no horizontal overflow) and at 626x890, 466x678, 390x844 and 320x568 (one column, same order).
+
+### What's new
+
+- Food and Body use the whole screen when you turn the unfolded Duo sideways.
+
 ## 0.15.21 — Food, Body and Progress card order (2026-10-12)
 
 Issue #63, part 4 of the approved IA. Moves existing cards only; no new features. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.

@@ -631,7 +631,7 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 
 /* ---------- Wide canvas (iPhone Duo inner screen, landscape): Today and Train go two-column once each column gets ~340px; every other screen stays the 560px column until its own layout lands ---------- */
 @media (min-width: 840px) {
-  main:has(.today-cols, .train-cols, .body-cols, .pl-cols, .progress-seg, .skel-wide) { max-width: 1000px; padding-left: max(28px, var(--safe-left)); padding-right: max(28px, var(--safe-right)); }
+  main:has(.today-cols, .train-cols, .body-cols, .food-cols, .pl-cols, .progress-seg, .skel-wide) { max-width: 1000px; padding-left: max(28px, var(--safe-left)); padding-right: max(28px, var(--safe-right)); }
   .today-cols, .train-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; align-items: start; }
   .today-cols > .col, .train-cols > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
   .today-cols .weight-card .spark { width: 72px; }
@@ -641,7 +641,7 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   .train-cols .tool { flex-direction: row; align-items: center; min-height: 56px; padding: var(--s-2) var(--s-4); white-space: nowrap; }
   .pv-txt b { white-space: normal; overflow: visible; text-overflow: clip; } /* the preview column is narrower than a phone: names wrap instead of cutting */
 }
-@media (max-width: 839.98px) { .today-cols, .train-cols, .body-cols, .pl-cols, .pg-cols, .today-cols > .col, .train-cols > .col, .body-cols > .col, .pg-cols > .col, .pl-col { display: contents; } }
+@media (max-width: 839.98px) { .today-cols, .train-cols, .body-cols, .food-cols, .pl-cols, .pg-cols, .today-cols > .col, .train-cols > .col, .body-cols > .col, .food-cols > .col, .pg-cols > .col, .pl-col { display: contents; } }
 
 /* Score and Week: two columns of cards (left column first in the DOM, no CSS order). Trends: one card whose rows flow down two columns. All sit under the same full-width tab control. */
 @media (min-width: 840px) {
@@ -651,17 +651,24 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   .trend-list .g-row[data-col2]::before { display: none; } /* each column reads as its own list: no separator above its first row */
 }
 
-/* Body: the Recovery map beside the rest (composition, insights, programs). The left column follows you down the page. */
+/* Body (v0.15.22): left = weight hero + goal path, with the weigh-in list under it; right = programs, composition, measures, photos, insights, Recovery link.
+   Food: left = diary (day nav, Log food, meals, My foods), right = totals + "Why these numbers?" (sticky when tall), disclaimer across the bottom.
+   The DOM stays in the phone reading order (a, b, c); grid placement puts c under a without CSS order. */
 @media (min-width: 840px) {
-  .body-cols { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); column-gap: 32px; align-items: start; }
-  .body-cols > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .body-cols, .food-cols { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); grid-template-rows: auto 1fr; column-gap: 32px; row-gap: var(--s-3); align-items: start; }
+  .body-cols > .col, .food-cols > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
+  .body-cols > .col-a, .food-cols > .col-a { grid-column: 1; grid-row: 1; }
+  .body-cols > .col-b, .food-cols > .col-b { grid-column: 2; grid-row: 1 / span 2; }
+  .body-cols > .col-c, .food-cols > .col-c { grid-column: 1; grid-row: 2; }
+  .food-cols > .food-foot { grid-column: 1 / -1; grid-row: 3; margin: var(--s-2) 0 0; }
+  .food-cols > .col-a { grid-row: 1; }
 }
-@media (min-width: 840px) and (min-height: 760px) { .body-cols > .col-a { position: sticky; top: calc(var(--safe-top) + 52px); } }
+@media (min-width: 840px) and (min-height: 760px) { .food-cols > .col-b { position: sticky; top: calc(var(--safe-top) + 52px); } }
 
 .slot { display: contents; }
 
 /* Weight on a wide canvas: the four numbers sit in one row so the range picker and the whole chart fit above the tab bar */
-@media (min-width: 840px) { .stats.stats-2 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 840px) { .stats.stats-2 { grid-template-columns: repeat(4, minmax(0, 1fr)); } .body-cols .stats.stats-2 b { font-size: calc(17px * var(--ts)); } } /* the hero is one column wide now: slightly smaller numbers so "190.5 lb" never clips */
 
 /* ---------- v0.15.15: Settings sidebar on a wide canvas (section list left, one section on the right); a phone still gets the whole page ---------- */
 .set-nav { display: none; }
@@ -683,6 +690,7 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   main:has(.pl-cols, [data-play]) { max-width: none; padding-top: calc(var(--safe-top) + 8px); }
 }
 html { overflow-anchor: auto; }
+[data-weigh-ins] li > div { min-width: 6.5em; } /* the weight never gets squeezed when the list sits in a narrow column */
 [data-weigh-ins] { max-width: 560px; } /* a readable column on wide screens, not a 1000px strip */
 .nw{white-space:nowrap}
 .dots{display:block;overflow:hidden}

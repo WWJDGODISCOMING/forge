@@ -485,7 +485,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
-      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'score' || route === 'play' || route === 'settings';
+      const cols = route === 'today' || route === 'train' || route === 'body' || route === 'food' || route === 'score' || route === 'play' || route === 'settings';
       if (!cols && route !== 'body' && m.main.r - m.main.l > 560 + 1) bad.push(`${at}: ${route} stretched to ${Math.round(m.main.r - m.main.l)}px, should stay a 560px column`);
       if (w === 390 && !inset) base = new Set(m.wrap);
       const fresh = m.wrap.filter((x) => !base.has(x));
@@ -1288,6 +1288,39 @@ test('layout: at 320 the weigh-in meta and the Recovery subtitle keep each dot-s
   assert(r.rows > 0 && r.rec, `Body rendered weigh-ins and the Recovery row: ${JSON.stringify(r)}`);
   assert(r.bad.length === 0, `wrap problems at 320: ${r.bad.join('; ')}`);
 });
+}
+
+// v0.15.22: Food and Body are two columns at 890x626 (and 932x430), one column with the phone reading order everywhere narrower.
+if (standalone) {
+  test('layout: Food and Body split into two columns at >= 840 wide, and stay one column in the same order below it', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    const probe = `(() => {
+      const cols = document.querySelector('.food-cols, .body-cols');
+      const kids = cols ? [...cols.querySelectorAll(':scope > .col')] : [];
+      const lefts = kids.map((k) => Math.round(k.getBoundingClientRect().left));
+      const items = [...(cols ? cols.querySelectorAll('.col > *') : [])].map((e) => e.textContent.trim().slice(0, 12));
+      return { n: kids.length, lefts, order: items.join('|'), over: document.documentElement.scrollWidth - innerWidth, display: cols ? getComputedStyle(cols).display : '' };
+    })()`;
+    for (const route of ['food', 'body']) {
+      const orders = [];
+      for (const [w, h] of [[890, 626], [932, 430], [626, 890], [466, 678], [390, 844], [320, 568]]) {
+        await browser.viewport(w, h, true);
+        await browser.open(route, seed());
+        const r = await browser.eval(probe);
+        if (r.over > 1) bad.push(`${route} ${w}x${h}: overflows by ${r.over}px`);
+        if (w >= 840) {
+          if (r.n < 3 || new Set(r.lefts).size < 2) bad.push(`${route} ${w}x${h}: expected two columns, got lefts ${r.lefts}`);
+        } else {
+          if (r.display !== 'contents') bad.push(`${route} ${w}x${h}: expected one column, wrapper display is ${r.display}`);
+          orders.push(r.order);
+        }
+      }
+      if (new Set(orders).size > 1) bad.push(`${route}: card order differs between phone sizes`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
 }
 
 test('layout: close the browser', async () => {

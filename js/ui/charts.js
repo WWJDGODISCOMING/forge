@@ -18,7 +18,7 @@ function setScale(svg, w) {
 }
 
 /** Viewbox width for a chart: the phone's width, or a wider one on a wide canvas so the plot grows sideways instead of taller. */
-export function chartWidth(base = 340, wide = 760) {
+export function chartWidth(base = 340, wide = 360) {
   return typeof matchMedia === 'function' && matchMedia('(min-width: 840px)').matches ? wide : base;
 }
 
