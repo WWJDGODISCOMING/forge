@@ -4,7 +4,7 @@
 
 Issue #63, part 5c. CSS and a markup wrapper only; nothing moves between screens and nothing is new. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes.
 
-- **Body on the wide screen:** the long right column is split. Programs, body composition and measures stay on the right; the Progress photos card, insights and the Recovery link now sit under the Goal path on the left, above the weigh-ins. The two sides end much closer together.
+- **Body on the wide screen:** the goal path and weight sit on the left with the Progress photos card and insights under them. Programs, body composition and measures sit on the right with the Recovery link and weigh-ins under them. The two sides end within about 40 px of each other on Duo landscape.
 - **Phones and the upright inner screen:** unchanged, same card order.
 - **Today, Train, Progress:** not changed in this part; not checked in a rendered view.
 

@@ -660,9 +660,9 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   .body-cols > .col-a, .food-cols > .col-a { grid-column: 1; grid-row: 1; }
   .body-cols > .col-b, .food-cols > .col-b { grid-column: 2; grid-row: 1 / span 2; }
   .body-cols > .col-c, .food-cols > .col-c { grid-column: 1; grid-row: 2; }
-  .body-cols > .col-b { grid-row: 1 / span 3; }
+  .body-cols > .col-b { grid-row: 1; }
   .body-cols > .col-d { grid-column: 1; grid-row: 2; }
-  .body-cols > .col-c { grid-row: 3; }
+  .body-cols > .col-c { grid-column: 2; grid-row: 2; }
   .food-cols > .food-foot { grid-column: 1 / -1; grid-row: 3; margin: var(--s-2) 0 0; }
   .food-cols > .col-a { grid-row: 1; }
 }
