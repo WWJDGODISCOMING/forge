@@ -14,7 +14,7 @@ const inOrder = (s, needles, what) => {
 
 test('Food: day nav, Log food, totals, why, meals, My foods, disclaimer', () => {
   const f = src('js/screens/food.js');
-  const body = f.slice(at(f, 'el.innerHTML = `'));
+  const body = f.slice(at(f, 'el.innerHTML = `'), at(f, 'export function openLogFood'));
   inOrder(body, ['<h1>Food</h1>', 'data-prev', 'data-log-food>', 'data-food-totals', 'data-food-why', 'class="food-meal"', 'data-my-foods', 'class="disclaimer"'], 'Food');
   assert(f.includes('Snap-a-meal') && !body.includes('data-snap'), 'Snap-a-meal is a comment only');
 });

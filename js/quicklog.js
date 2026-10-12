@@ -16,6 +16,7 @@ export function quickLogVisible({ parts = [], navHidden = false, busy = false, k
 export function quickLogRows({ active = false, playerRoute = '#/play' } = {}) {
   return [
     { id: 'food', label: 'Log food', icon: 'food', run: 'logFood' },
+    { id: 'snap', label: 'Snap a meal', icon: 'camera', run: 'snapMeal' },
     { id: 'weight', label: 'Log weight', icon: 'scale', run: 'logWeight' },
     active
       ? { id: 'workout', label: 'Resume workout', icon: 'play', go: playerRoute }

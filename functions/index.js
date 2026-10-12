@@ -6,6 +6,7 @@
 //   firebase functions:secrets:set WITHINGS_CLIENT_SECRET
 //   firebase functions:secrets:set WITHINGS_WEBHOOK_KEY
 //   firebase functions:secrets:set USDA_API_KEY   (food search; a free api.data.gov key)
+//   firebase functions:secrets:set XAI_API_KEY    (Snap a meal; already set)
 // Plain config (asked for at deploy, saved in functions/.env.<project>): WITHINGS_CLIENT_ID.
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -30,6 +31,7 @@ import { P } from './src/paths.js';
 import { handleIngest, importDays, createToken, revokeToken, deleteAppleData, BadPayload, MAX_BODY_BYTES } from './src/health.js';
 import { log } from './src/log.js';
 import { searchFoods, FoodSearchError } from './src/usda.js';
+import { snapMeal, SnapError } from './src/snap.js';
 
 initializeApp();
 const REGION = 'us-east1';
@@ -38,6 +40,7 @@ setGlobalOptions({ region: REGION, maxInstances: 2, memory: '256MiB' });
 const CLIENT_SECRET = defineSecret('WITHINGS_CLIENT_SECRET');
 const WEBHOOK_KEY = defineSecret('WITHINGS_WEBHOOK_KEY');
 const USDA_KEY = defineSecret('USDA_API_KEY');
+const XAI_KEY = defineSecret('XAI_API_KEY');
 const CLIENT_ID = defineString('WITHINGS_CLIENT_ID', { description: 'Client ID of your Withings developer app (not secret)' });
 const APP_URL = defineString('FORGE_APP_URL', { default: 'https://wwjdgodiscoming.github.io/forge/' });
 
@@ -215,6 +218,25 @@ export const foodSearch = onCall({ secrets: [USDA_KEY], timeoutSeconds: 20 }, as
       if (e.code === 'limited') throw new HttpsError('resource-exhausted', 'That’s a lot of searches. Try again in a little while.');
       if (e.code === 'busy') throw new HttpsError('unavailable', 'Food search is busy. Try again in a minute.');
       throw new HttpsError('unavailable', 'Food search isn’t available right now.');
+    }
+    throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
+  }
+});
+
+// ---------- Snap a meal (xAI vision). The photo is read from the request, sent to xAI and dropped: never stored or logged ----------
+export const snapMealPhoto = onCall({ secrets: [XAI_KEY], timeoutSeconds: 60, memory: '512MiB' }, async (req) => {
+  const uid = needUid(req);
+  try {
+    return await snapMeal({ db: db(), uid, data: req.data, apiKey: XAI_KEY.value().trim(), fetch: globalThis.fetch });
+  } catch (e) {
+    if (e instanceof SnapError) {
+      if (e.code === 'invalid') throw new HttpsError('invalid-argument', 'That photo couldn’t be read. Try another one.');
+      if (e.code === 'toolarge') throw new HttpsError('invalid-argument', 'That photo is too big. Try another one.');
+      if (e.code === 'limited') throw new HttpsError('resource-exhausted', 'That’s a lot of photos for now. Try again in a little while, or search for the food.');
+      if (e.code === 'busy') throw new HttpsError('unavailable', 'Photo estimates are busy. Try again in a minute.');
+      if (e.code === 'nofood') throw new HttpsError('failed-precondition', 'I couldn’t spot any food in that photo. Try again closer, or search for it.');
+      if (e.code === 'garbled') throw new HttpsError('unavailable', 'That estimate got cut off. Try again.');
+      throw new HttpsError('unavailable', 'Photo estimates aren’t available right now.');
     }
     throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
   }

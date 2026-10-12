@@ -13,6 +13,7 @@ export const P = {
   shortcut: (uid) => `users/${uid}/private/shortcut`,
   shortcutTok: (hash) => `shortcut_tokens/${hash}`,
   foodSearch: (uid) => `users/${uid}/private/food_search`,
+  snapMeal: (uid) => `users/${uid}/private/snap_meal`,
   apple: (uid) => `users/${uid}/integrations/apple`,
   state: (s) => `oauth_states/${s}`,
   wuser: (withingsUserId) => `withings_users/${withingsUserId}`,

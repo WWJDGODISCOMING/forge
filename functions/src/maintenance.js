@@ -15,6 +15,7 @@ import { backfillTaskId, enqueueOnce } from './tasks.js';
 import { log } from './log.js';
 import { deleteAppleData } from './health.js';
 import { deleteFoodSearchData } from './usda.js';
+import { deleteSnapData } from './snap.js';
 
 export async function maintainUser({ db, api, enqueue, uid, webhookUrl, now = () => Date.now() }) {
   const out = { uid, ok: true };
@@ -126,6 +127,7 @@ export async function disconnect({ db, api, uid, webhookUrl, deleteData = false,
   if (deleteApple) {
     deleted += (await deleteAppleData({ db, uid })).deleted;
     await deleteFoodSearchData({ db, uid, now: now() }); // the food-search counter lives in private/, which the app can't delete (kept while its hour is open)
+    await deleteSnapData({ db, uid, now: now() });
   }
   return { revoked, deleted };
 }

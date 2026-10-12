@@ -74,7 +74,7 @@ export function renderFood(el) {
         <div style="text-align:center"><b>${isToday ? 'Today' : formatDay(day, { weekday: 'short', month: 'short', day: 'numeric' })}</b></div>
         <button class="btn ghost" data-next aria-label="Next day" ${isToday ? 'disabled' : ''}>${icon('chev')}</button>
       </div>
-      <!-- Primary action. Text search lives inside the Log food sheet; Snap-a-meal (#83) will sit beside search there, not as a button here. -->
+      <!-- Primary action. Text search lives inside the Log food sheet; Snap-a-meal (the camera button beside search) lives there too, not as a button here. -->
       <button class="btn bigbtn" data-log-food>${icon('plus')}Log food</button>
       </div>
       <div class="col col-b">
@@ -156,8 +156,11 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
   sheet('Log food', (body, close) => {
     body.innerHTML = `
       <div class="stack food-log">
-        <label class="field">
-          <input type="search" name="q" placeholder="Search foods" autocomplete="off" autocapitalize="off" enterkeyhint="search" aria-label="Search foods"></label>
+        <div class="food-search-row">
+          <label class="field">
+            <input type="search" name="q" placeholder="Search foods" autocomplete="off" autocapitalize="off" enterkeyhint="search" aria-label="Search foods"></label>
+          <label class="icon-btn snap-btn" data-snap-btn title="Take photo of your meal" aria-label="Take photo of your meal">${icon('camera', { size: 22 })}<input type="file" accept="image/*" data-snap-file hidden></label>
+        </div>
         <div class="food-scroll">
           <ul class="list food-results" data-results></ul>
           <section class="food-online" data-online hidden aria-label="USDA results">
@@ -340,6 +343,12 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       paintPortion(true);
       paintDock();
     });
+    $('[data-snap-file]', body).onchange = (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      close();
+      setTimeout(() => import('./snap.js').then((m) => m.openSnapMeal({ file, day, meal: flow.f.meal })), 0);
+    };
     $('[name=q]', body).addEventListener('input', (e) => { flow.search(e.target.value); paintResults(); onlineSearch.query(e.target.value); });
     $('[data-minus]', dock).onclick = () => { flow.f.servings = stepServings(flow.f.servings, -1); paintDock(); };
     $('[data-plus]', dock).onclick = () => { flow.f.servings = stepServings(flow.f.servings, 1); paintDock(); };
