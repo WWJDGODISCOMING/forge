@@ -49,11 +49,15 @@ test('swap with a USDA match keeps the photo weight and resets the stepper', () 
   eq(swapped.kind, 'usda');
   eq(swapped.food_id, 'usda:171477');
   eq(swapped.qty, 1);
-  eq(swapped.kcal, 231); // 165 kcal per 100 g × 140 g
-  near(swapped.protein_g, 43.4, 1e-9);
-  assert(/140 g/.test(swapped.portion), swapped.portion);
+  eq(swapped.kcal, 462); // 165 kcal per 100 g × (2 × 140 g)
+  assert(/280 g/.test(swapped.portion), swapped.portion);
+  const one = swapRow(rows[0], CHICKEN);
+  eq(one.kcal, 231); // 165 kcal per 100 g × 140 g
+  near(one.protein_g, 43.4, 1e-9);
+  assert(/140 g/.test(one.portion), one.portion);
   const noWeight = swapRow({ ...rows[0], grams: 0 }, CHICKEN);
   eq(noWeight.kcal, 165, 'no weight guess: one serving');
+  eq(swapRow({ ...rows[0], grams: 0, qty: 2 }, CHICKEN).kcal, 330, 'no weight guess: qty carries over as servings');
 });
 
 test('mealFields: one entry per food with the meal, day and servings; empty rows skipped', () => {

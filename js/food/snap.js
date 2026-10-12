@@ -41,12 +41,13 @@ export const removeRow = (rows, id) => rows.filter((r) => r.id !== id);
 export const isUnsure = (r) => r.kind === 'photo' && r.confidence < LOW_CONFIDENCE;
 
 /**
- * Swap a row for a USDA match (an item from usdaItem). The USDA numbers are used for the same weight the
- * photo estimate had (if it had one), else for one serving. The portion stepper starts again at 1.
+ * Swap a row for a USDA match (an item from usdaItem). The USDA numbers are used for the weight the row has
+ * now (grams × portion steps, if the photo had a weight), else for that many servings. The portion stepper starts again at 1.
  */
 export function swapRow(r, usda) {
-  const g = r.grams > 0 && r.grams <= MAX_GRAMS ? r.grams : 0;
-  const it = g ? portionItem(usda, { mode: 'weight', unit: 'g', grams: g }) : portionItem(usda, { mode: 'servings', servings: 1 });
+  const q = num(r.qty) > 0 ? r.qty : 1;
+  const g = r.grams > 0 ? Math.min(MAX_GRAMS, Math.round(r.grams * q * 10) / 10) : 0; // the portion the user dialled in
+  const it = g ? portionItem(usda, { mode: 'weight', unit: 'g', grams: g }) : portionItem(usda, { mode: 'servings', servings: q });
   return {
     id: r.id, kind: 'usda', name: usda.name, brand: usda.brand || '', portion: it.portion, grams: g, kcal: it.kcal, protein_g: it.protein_g,
     carbs_g: it.carbs_g, fat_g: it.fat_g, confidence: 1, qty: 1, food_id: usda.food_id,
@@ -99,6 +100,6 @@ export async function prepareImage(file, deps = {}) {
 export async function estimateMeal(b64, call) {
   const res = await call('snapMealPhoto', { image: b64, mime: 'image/jpeg' }, { timeout: 65000 });
   const rows = snapRows(res && res.foods);
-  if (!rows.length) throw new Error('I couldn’t spot any food in that photo. Try again closer, or search for it.');
+  if (!rows.length) throw Object.assign(new Error('I couldn’t spot any food in that photo. Try again closer, or search for it.'), { code: 'failed-precondition' });
   return rows;
 }

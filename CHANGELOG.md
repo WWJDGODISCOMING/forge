@@ -10,6 +10,7 @@ Issue #83. **Touches Cloud Functions** (new `snapMealPhoto`); no `firestore.rule
 - **Log meal** adds one entry per food to the meal you pick (chosen by time of day), so they edit and copy like any other entry.
 - **Offline or an error:** a plain sentence, **Try another photo**, or **Search for the food instead**. Nothing is lost.
 - **Server:** `snapMealPhoto` (signed-in only, 20 photos an hour per person, 1.5 MB cap, JPEG or PNG only) sends the photo to xAI vision and returns foods with portion, calories, protein, carbs, fat and a confidence score. The photo is shrunk to 1024 px on the phone first, is **never stored or logged** on the server, and the app doesn't keep it either. Only the counter (hour start and count) is stored, and Delete everything clears it.
+- **Review round 1:** Swap opens its search once and keeps your portion (grams × steps, or servings), clearing the swap field shows a hint instead of "USDA is down", rows are left-aligned with one control line, the footer is compact (Retake moved up, four meal chips fit at 320 and large text), error headings name the real cause, and the model gets a 4000-token budget (model is `grok-4`, which xAI now routes to `grok-4.3`). A reply cut off or not valid JSON is "That estimate got cut off. Try again." (`garbled`); "no food" is only a valid empty list. Log meal is disabled when nothing has calories.
 
 ### What's new
 

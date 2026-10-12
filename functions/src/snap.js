@@ -5,13 +5,14 @@ import { P } from './paths.js';
 import { log } from './log.js';
 
 export const XAI_URL = 'https://api.x.ai/v1/chat/completions';
-export const MODEL = 'grok-4';
+export const MODEL = 'grok-4'; // xAI redirects this slug to grok-4.3 (a reasoning model) since May 15, 2026
+export const MAX_TOKENS = 4000; // reasoning tokens share this budget, so it is generous
 export const RATE_PER_HOUR = 20;
 export const MAX_IMAGE_BYTES = 1500000; // the app sends a ~1024 px JPEG (about 150 KB); this is a hard stop
 export const TIMEOUT_MS = 45000;
 export const MAX_FOODS = 12;
 
-/** Carries a short code the wiring maps to an HttpsError: 'invalid' | 'toolarge' | 'limited' | 'busy' | 'down' | 'nofood'. */
+/** Carries a short code the wiring maps to an HttpsError: 'invalid' | 'toolarge' | 'limited' | 'busy' | 'down' | 'garbled' | 'nofood'. */
 export class SnapError extends Error {
   constructor(code) { super(code); this.code = code; }
 }
@@ -64,6 +65,15 @@ export function parseFoods(text) {
   return out;
 }
 
+/** True when the reply holds a JSON object with a foods list (an empty list is a valid "no food"). */
+export function replyParses(text) {
+  try {
+    const m = /\{[\s\S]*\}/.exec(String(text || ''));
+    const obj = m ? JSON.parse(m[0]) : null;
+    return !!obj && Array.isArray(obj.foods);
+  } catch { return false; }
+}
+
 /** Counts this photo for the user: 20 an hour (a window that starts at the first photo). */
 export async function meterSnap({ db, uid, now }) {
   const ref = db.doc(P.snapMeal(uid));
@@ -101,7 +111,7 @@ export async function snapMeal({ db, uid, data, apiKey, fetch, now = Date.now() 
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${apiKey}` },
       body: JSON.stringify({
-        model: MODEL, temperature: 0.2, max_tokens: 1200, response_format: { type: 'json_object' },
+        model: MODEL, temperature: 0.2, max_tokens: MAX_TOKENS, response_format: { type: 'json_object' },
         messages: [{ role: 'user', content: [
           { type: 'text', text: PROMPT },
           { type: 'image_url', image_url: { url: `data:${mime};base64,${b64}`, detail: 'high' } },
@@ -115,6 +125,9 @@ export async function snapMeal({ db, uid, data, apiKey, fetch, now = Date.now() 
   let body;
   try { body = await res.json(); } catch { throw new SnapError('down'); }
   const text = body && body.choices && body.choices[0] && body.choices[0].message && body.choices[0].message.content;
+  const choice = body && body.choices && body.choices[0];
+  if (choice && choice.finish_reason === 'length') throw new SnapError('garbled'); // cut off mid-reply: not "no food"
+  if (!replyParses(text)) throw new SnapError('garbled');
   const foods = parseFoods(text);
   log('snap_meal', { count: foods.length, ms: Date.now() - started });
   if (!foods.length) throw new SnapError('nofood');

@@ -73,7 +73,8 @@ test('a stubbed model that fails: busy, down, garbage, no food', async () => {
   assert.equal(await code(run({ image: IMG }, { fetch: model('', 429) })), 'busy');
   assert.equal(await code(run({ image: IMG }, { fetch: model('', 500) })), 'down');
   assert.equal(await code(run({ image: IMG }, { fetch: async () => { throw new Error('network'); } })), 'down');
-  assert.equal(await code(run({ image: IMG }, { fetch: model('I cannot help') })), 'nofood');
+  assert.equal(await code(run({ image: IMG }, { fetch: model('I cannot help') })), 'garbled');
+  assert.equal(await code(run({ image: IMG }, { fetch: model('{"foods":[{"name":"Ri') })), 'garbled');
   assert.equal(await code(run({ image: IMG }, { fetch: model('{"foods":[]}') })), 'nofood');
   assert.equal(await code(run({ image: IMG }, { fetch: async () => ({ ok: true, status: 200, json: async () => { throw new Error('bad'); } }) })), 'down');
 });
@@ -95,4 +96,13 @@ test('rate limit: 20 an hour per person, then a fresh hour; deleting keeps an op
   assert.equal((await meterSnap({ db, uid: 'u1', now: NOW + 3600001 })).limited, false);
   await deleteSnapData({ db, uid: 'u1', now: NOW + 3 * 3600000 });
   assert.equal((await db.doc('users/u1/private/snap_meal').get()).exists, false);
+});
+
+test('a reply cut off at the token limit is garbled, not no-food; the budget is generous', async () => {
+  const cut = (content) => async () => ({ ok: true, status: 200, json: async () => ({ choices: [{ finish_reason: 'length', message: { content } }] }) });
+  assert.equal(await code(run({ image: IMG }, { fetch: cut('{"foods":[]}') })), 'garbled');
+  assert.equal(await code(run({ image: IMG }, { fetch: cut('') })), 'garbled');
+  const fetch = model(JSON.stringify(REPLY));
+  await run({ image: IMG }, { fetch });
+  assert.ok(JSON.parse(fetch.calls[0].init.body).max_tokens >= 4000);
 });
