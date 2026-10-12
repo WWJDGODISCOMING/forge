@@ -452,6 +452,34 @@ let prevParts = routeParts();
 let snapshot = null; // { route, html, scroll } of the parent screen, for the swipe-back parallax
 let swipePop = null; // set while an edge swipe is finishing: the screen already slid away, so don't animate again
 
+// Train draws the recovery card a beat after the route changes, so start at the top (Body's scroll must not carry
+// over) and jump to the card the moment it exists, giving up after 1.5 s.
+let recoveryWatch = null;
+function scrollToRecovery() {
+  if (recoveryWatch) recoveryWatch();
+  window.scrollTo(0, 0);
+  let done = false;
+  let mo = null;
+  const stop = () => {
+    done = true;
+    if (mo) mo.disconnect();
+    clearTimeout(timer);
+    if (recoveryWatch === stop) recoveryWatch = null;
+  };
+  const tryScroll = () => {
+    if (done) return;
+    const card = main.querySelector('[data-recovery-card]');
+    if (!card) return;
+    card.scrollIntoView({ block: 'start', behavior: 'instant' }); // html scroll-padding-top keeps it under the title bar
+    stop();
+  };
+  const timer = setTimeout(stop, 1500);
+  recoveryWatch = stop;
+  mo = new MutationObserver(tryScroll);
+  mo.observe(main, { childList: true, subtree: true });
+  tryScroll();
+}
+
 function afterRoute(parts) {
   const route = parts[0] || 'today';
   const link = parts[1];
@@ -465,8 +493,7 @@ function afterRoute(parts) {
     return;
   }
   if (route === 'train' && link === 'recovery') {
-    const card = main.querySelector('[data-recovery-card]');
-    if (card) card.scrollIntoView({ block: 'start', behavior: 'instant' }); // html scroll-padding-top keeps it under the title bar
+    scrollToRecovery();
     return;
   }
   window.scrollTo(0, scrollMemory.restore(route)); // tab roots remember where you were; detail screens start at the top
@@ -595,6 +622,7 @@ async function boot() {
   document.title = APP_NAME;
   setupServiceWorker();
   if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+  if (routeParts()[0] === 'train' && routeParts()[1] === 'recovery') scrollToRecovery(); // cold load of the deep link
   if (!configured) {
     render();
     return;
