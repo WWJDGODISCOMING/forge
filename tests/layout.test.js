@@ -1083,6 +1083,58 @@ if (standalone) {
   });
 }
 
+// v0.15.19: the quick-log + and its sheet fit at every size, and the + shows on tab roots only.
+if (standalone) {
+  test('layout: quick-log +: 56pt, inside the safe area, clear of the tab bar; the sheet has six one-line rows and is centered', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    for (const [w, h] of [[320, 568], [390, 844], [430, 932], [466, 678], [626, 890], [890, 626]]) {
+      const at = `${w}x${h}`;
+      await browser.viewport(w, h, true);
+      await browser.open('today', seed());
+      await wait(300);
+      const fab = await browser.eval(`(() => { const f = document.getElementById('quicklog'), n = document.getElementById('nav'); if (!f) return null;
+        const r = f.getBoundingClientRect(), t = n.getBoundingClientRect();
+        return { on: f.classList.contains('on'), label: f.getAttribute('aria-label'), w: r.width, h: r.height, right: window.innerWidth - r.right, bottom: r.bottom, navTop: t.top, vw: window.innerWidth }; })()`);
+      if (!fab) { note('no #quicklog button', at); continue; }
+      if (!fab.on) note('+ is not showing on Today', at);
+      if (fab.label !== 'Quick log') note(`label is "${fab.label}"`, at);
+      if (fab.w < 55.5 || fab.h < 55.5) note(`+ is ${fab.w}x${fab.h}, wanted 56x56`, at);
+      if (fab.right < 12) note(`+ is ${fab.right}px from the right edge`, at);
+      if (fab.bottom > fab.navTop - 4) note(`+ bottom ${Math.round(fab.bottom)} is not clear of the tab bar top ${Math.round(fab.navTop)}`, at);
+      // roots only: Settings is a pushed screen, the player is full screen
+      for (const route of ['settings', 'play']) {
+        await browser.open(route, seed({ active: route === 'play' }));
+        await wait(200);
+        if (await browser.eval("document.getElementById('quicklog').classList.contains('on')")) note(`+ shows on ${route}`, at);
+      }
+      await browser.open('today', seed());
+      await wait(300);
+      await browser.eval("document.getElementById('quicklog').click()");
+      await wait(500);
+      const s = await browser.eval(`(() => { const d = document.querySelector('dialog.sheet[open]'); if (!d) return null;
+        const r = d.getBoundingClientRect(), rows = [...d.querySelectorAll('.ql-row')];
+        return { left: r.left, right: window.innerWidth - r.right, width: r.width, top: r.top, vw: window.innerWidth,
+          fabHidden: !document.getElementById('quicklog').classList.contains('on'),
+          rows: rows.map((b) => { const sp = b.querySelector('span'), rg = document.createRange(); rg.selectNodeContents(sp);
+            return { t: sp.textContent, h: b.getBoundingClientRect().height, lines: new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 6))).size, clip: sp.scrollWidth > sp.clientWidth + 1 }; }) }; })()`);
+      if (!s) { note('the sheet did not open', at); continue; }
+      if (s.rows.length !== 6) note(`sheet has ${s.rows.length} rows`, at);
+      for (const r of s.rows) if (r.lines !== 1 || r.clip || r.h < 44) note(`row "${r.t}": ${r.lines} lines, clipped ${r.clip}, ${r.h}px tall`, at);
+      if (Math.abs(s.left - s.right) > 1.5) note(`sheet not centered (${s.left} vs ${s.right})`, at);
+      if (s.width > 640.5 || (w >= 560 && h > 500 && s.width > 440.5)) note(`sheet is ${s.width}px wide`, at);
+      if (s.top < 0) note('sheet runs off the top', at);
+      if (!s.fabHidden) note('+ still showing under the sheet', at);
+      await browser.eval("document.querySelector('dialog.sheet[open]').dispatchEvent(new Event('cancel', { cancelable: true }))");
+      await wait(500);
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([m, at]) => `${m}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;
