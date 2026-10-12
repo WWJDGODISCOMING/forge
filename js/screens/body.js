@@ -75,6 +75,7 @@ export function renderBody(el) {
   const fresh = freshCount(rec);
   const last = historyIndex().done[0];
   // Order (v0.15.21): weight hero, goal path, programs, composition, measures, insights, Progress photos (accent), Recovery link, weigh-ins.
+  // Wide (v0.15.24): col-a/col-b on top; below, col-d (photos, insights) on the left and col-c (Recovery link, weigh-ins) on the right.
   el.innerHTML = `
     <section class="stack">
       <h1>Body</h1>
@@ -87,11 +88,13 @@ export function renderBody(el) {
       ${programsCard()}
       ${compositionCard()}
       ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}) : ''}
+      </div>
+      <div class="col col-d">
       <div data-photos-slot></div>
       ${insightCards()}
-      <a class="card row between center nav-card" href="#/train/recovery" data-recovery-link><div><p class="label">Recovery map</p><p class="small">${recoverySubtitle(fresh, last)}</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
       </div>
       <div class="col col-c">
+      <a class="card row between center nav-card" href="#/train/recovery" data-recovery-link><div><p class="label">Recovery map</p><p class="small">${recoverySubtitle(fresh, last)}</p></div><span class="chev" aria-hidden="true">${icon('chev')}</span></a>
       ${weighInsHtml()}
       </div>
       </div>
