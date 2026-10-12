@@ -51,7 +51,7 @@
 .pillar .mini b { position: absolute; inset: 0; display: grid; place-items: center; font-size: calc(16px * var(--ts)); font-weight: 800; }
 .pillar span { display: flex; flex-direction: column; min-width: 0; }
 .pillar span strong { font-size: calc(16px * var(--ts)); }
-.pillar span small { color: var(--muted); font-size: calc(13px * var(--ts)); }
+.pillar span small { color: var(--muted); font-size: calc(13px * var(--ts)); white-space: nowrap; }
 .pillar[aria-expanded="true"] { background: var(--surface-2); }
 .mover { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center; min-height: 56px; }
 .mover .arrow { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: calc(20px * var(--ts)); background: var(--surface-2); }
@@ -65,7 +65,7 @@
 .comp-list .bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
 .comp-list .row { justify-content: space-between; gap: 10px; }
 .comp-list small { color: var(--muted); }
-@media (max-width: 340px) { .pillar-grid { grid-template-columns: 1fr; } }
+@media (max-width: 430px) { .pillar-grid { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: reduce) { .sc-arc { transition: none; } }
 
 /* ---------- Settings → Apple Health ---------- */

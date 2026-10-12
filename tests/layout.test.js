@@ -307,6 +307,11 @@ if (!standalone) {
     const results = await Promise.all(runs);
     const bad = results.filter((r) => r.status !== 0);
     assert(!bad.length, '\n' + bad.map((r) => r.out.split('\n').filter((l) => !l.includes('✓')).join('\n')).join('\n'));
+    // The Duo resize/rotation/fold blocks only exist when the file runs as its own process (these shards). Fail loudly if they stop running.
+    const ran = results.map((r) => r.out).join('\n');
+    const count = (ran.match(/✓ layout:/g) || []).length;
+    assert(count >= 30, `only ${count} layout tests ran in the shards (expected 30+); the Duo blocks may have been skipped`);
+    assert(/✓ layout: [^\n]*(fold|resize)/i.test(ran), 'the fold/resize harness test did not run in the shards');
   });
 }
 
@@ -1427,6 +1432,25 @@ if (standalone) {
       if (new Set(orders).size > 1) bad.push(`${route}: card order differs between phone sizes`);
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
+if (standalone) {
+  test('layout: Score pillar captions ("Not tracked") stay on one line at 320 to 430', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    for (const [w, h] of [[320, 568], [375, 667], [390, 844], [430, 932]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('score', seed());
+      const bad = await browser.eval(`(() => {
+        const grid = document.querySelector('.pillar-grid'); if (!grid) return 'no pillar grid';
+        const first = grid.querySelector('.pillar');
+        const off = first.cloneNode(true); off.classList.add('off'); off.querySelector('small').textContent = 'Not tracked'; grid.appendChild(off); // an untracked pillar, whatever the fixture has
+        return [...grid.querySelectorAll('.pillar.off small')].map((el) => { const lh = parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.3;
+          return el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().height > lh * 1.5 ? el.textContent + ' h=' + el.getBoundingClientRect().height : null; }).filter(Boolean).join(', ');
+      })()`);
+      assert(!bad, `${w}px: ${bad}`);
+    }
   });
 }
 

@@ -40,7 +40,7 @@ function tile(p) {
   const v = p.tracked && p.score != null ? p.score : null;
   return `<button class="pillar${p.tracked ? '' : ' off'}" data-pillar="${p.key}" aria-expanded="${open === p.key}" ${p.tracked ? '' : 'disabled'}>
     <span class="mini">${ringSvg(v, { size: 56, stroke: 7 })}<b>${v == null ? '—' : round(v)}</b></span>
-    <span><strong>${esc(p.label)}</strong><small>${p.tracked ? `${pct(p.effective)} of score` : 'Not tracked yet'}</small></span>
+    <span><strong>${esc(p.label)}</strong><small>${p.tracked ? `${pct(p.effective)} of score` : 'Not tracked'}</small></span>
   </button>`;
 }
 
