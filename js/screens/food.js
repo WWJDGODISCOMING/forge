@@ -113,7 +113,7 @@ export function renderFood(el) {
       }).join('') : ''}
       <div class="group"><button class="g-row" data-my-foods><span class="g-ic">${icon('list')}</span><span class="g-text"><span>My foods</span><small>${state.foods.length ? `${state.foods.length} saved` : 'Save the things you eat often'}</small></span><span class="chev" aria-hidden="true">${icon('chev')}</span></button></div>
       </div>
-      <p class="disclaimer food-foot">General fitness information, not medical advice.</p>
+      <div class="food-foot"><p class="disclaimer">General fitness information, not medical advice.</p></div>
       </div>
     </section>`;
 

@@ -656,7 +656,6 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
    The DOM stays in the phone reading order (a, b, c); grid placement puts c under a without CSS order. */
 @media (min-width: 840px) {
   .body-cols, .food-cols { display: grid; grid-template-columns: minmax(0, 6fr) minmax(0, 5fr); grid-template-rows: auto 1fr; column-gap: 32px; row-gap: var(--s-3); align-items: start; }
-  .body-cols { grid-template-columns: minmax(0, 5fr) minmax(0, 6fr); }
   .body-cols > .col, .food-cols > .col { display: flex; flex-direction: column; gap: var(--s-3); min-width: 0; }
   .body-cols > .col-a, .food-cols > .col-a { grid-column: 1; grid-row: 1; }
   .body-cols > .col-b, .food-cols > .col-b { grid-column: 2; grid-row: 1 / span 2; }
@@ -669,7 +668,7 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 .slot { display: contents; }
 
 /* Weight on a wide canvas: the four numbers sit in one row so the range picker and the whole chart fit above the tab bar */
-@media (min-width: 840px) { .stats.stats-2 { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+@media (min-width: 840px) { .stats.stats-2 { grid-template-columns: repeat(4, minmax(0, 1fr)); } .body-cols .stats.stats-2 b { font-size: calc(17px * var(--ts)); } } /* the hero is one column wide now: slightly smaller numbers so "190.5 lb" never clips */
 
 /* ---------- v0.15.15: Settings sidebar on a wide canvas (section list left, one section on the right); a phone still gets the whole page ---------- */
 .set-nav { display: none; }
@@ -691,6 +690,7 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
   main:has(.pl-cols, [data-play]) { max-width: none; padding-top: calc(var(--safe-top) + 8px); }
 }
 html { overflow-anchor: auto; }
+[data-weigh-ins] li > div { min-width: 6.5em; } /* the weight never gets squeezed when the list sits in a narrow column */
 [data-weigh-ins] { max-width: 560px; } /* a readable column on wide screens, not a 1000px strip */
 .nw{white-space:nowrap}
 .dots{display:block;overflow:hidden}
