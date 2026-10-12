@@ -198,10 +198,19 @@ function addAvatar(route) {
   acts.appendChild(a);
   // Make room for the avatar without wrapping or shrinking tap targets: first a smaller title and tighter gaps,
   // then the short button label ("+ Log" instead of "+ Log weight").
+  // The title (nowrap) must also fit beside the actions on one line: a wrapped or overrunning h1 counts as not fitting.
+  const fits = () => {
+    const h1 = large.querySelector('h1');
+    if (acts.getBoundingClientRect().right > large.getBoundingClientRect().right + 0.5) return false;
+    if (!h1) return true;
+    const lh = parseFloat(getComputedStyle(h1).lineHeight) || 0;
+    return h1.scrollWidth <= h1.clientWidth + 0.5 && (!lh || h1.getBoundingClientRect().height <= lh * 1.5)
+      && (h1.getBoundingClientRect().right <= acts.getBoundingClientRect().left + 0.5 || h1.getBoundingClientRect().top >= acts.getBoundingClientRect().bottom - 0.5);
+  };
   const fit = () => {
-    large.classList.remove('snug', 'tight');
-    for (const step of ['snug', 'tight']) {
-      if (acts.getBoundingClientRect().right <= large.getBoundingClientRect().right + 0.5) break;
+    large.classList.remove('snug', 'tight', 'stacked');
+    for (const step of ['snug', 'tight', 'stacked']) {
+      if (fits()) break;
       large.classList.add(step);
     }
   };

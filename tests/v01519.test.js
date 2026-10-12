@@ -12,6 +12,14 @@ test('quick-log +: shows on every tab root and its Progress siblings', () => {
   eq(quickLogVisible({ parts: [] }), true, 'empty hash is Today');
 });
 
+test('quick-log +: on all 5 roots in the same spot; Progress keeps Log weight in its content, not its title row', () => {
+  const q = src('js/ui/quicklog.js'), w = src('js/screens/weight.js');
+  assert(!/data-log/.test(q), 'placeQuickLog no longer skips Progress');
+  assert(!/<h1>Weight<\/h1>\s*<button/.test(w) && !/hide-xs/.test(w), 'no "+ Log weight" pill beside the Weight title');
+  assert(/class="btn bigbtn" data-log[^>]*>[^<]*(<svg[\s\S]*?<\/svg>|\$\{icon\('plus'\)\})Log weight/.test(w), 'full-width Log weight button in the content');
+  assert(/data-log-empty/.test(w), 'empty-state button kept');
+});
+
 test('quick-log +: hidden in the player, on pushed screens, and on Settings and its children', () => {
   for (const h of ['#/play', '#/session', '#/summary/abc', '#/settings', '#/locations', '#/withings', '#/withings/check', '#/apple', '#/report', '#/profile',
     '#/library', '#/timer', '#/history', '#/awards', '#/metric/weight_kg', '#/photos', '#/coach', '#/program']) {

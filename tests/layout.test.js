@@ -76,11 +76,12 @@ if (standalone) {
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
-    for (const [w, label] of [[320, '+ Log'], [375, '+ Log weight']]) {
+    for (const w of [320, 375]) { // Log weight lives in the Weight content now; the title row holds only the + and the avatar
       await browser.viewport(w, 667, true);
       await browser.open('weight', seed());
-      const got = await browser.eval("(document.querySelector('[data-log]') || {}).innerText");
-      assert(got === label, `weight button reads "${got}" at ${w}, wanted "${label}"`);
+      const got = await browser.eval("(() => { const b = document.querySelector('main [data-log]'); const kids = [...document.querySelectorAll('#main .large-title .lt-actions > *')].map((e) => e.id || (e.matches('[data-avatar]') ? 'avatar' : e.tagName)); return { label: b ? b.innerText.trim() : null, inTitle: !!document.querySelector('.large-title [data-log]'), kids }; })()");
+      assert(got.label === 'Log weight' && !got.inTitle, `weight button ${JSON.stringify(got)} at ${w}`);
+      assert(got.kids.join() === 'quicklog,avatar', `Progress title row holds ${got.kids} at ${w}`);
     }
     for (const long of [false, true]) {
       await browser.viewport(320, 568, true);
@@ -95,7 +96,7 @@ if (standalone) {
     if (skipReason()) return;
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
-    const read = () => browser.eval(`(() => { const l = document.querySelector('#main .large-title'), a = l.querySelector('.lt-actions'), t = l.querySelector('h1, .lt-title') || l.firstElementChild; return { actionsRight: a.getBoundingClientRect().right, titleRight: l.getBoundingClientRect().right, snug: l.classList.contains('snug'), tight: l.classList.contains('tight'), label: (document.querySelector('[data-log]') || {}).innerText, fs: parseFloat(getComputedStyle(t).fontSize) }; })()`);
+    const read = () => browser.eval(`(() => { const l = document.querySelector('#main .large-title'), a = l.querySelector('.lt-actions'), t = l.querySelector('h1, .lt-title') || l.firstElementChild; return { actionsRight: a.getBoundingClientRect().right, titleRight: l.getBoundingClientRect().right, snug: l.classList.contains('snug'), tight: l.classList.contains('tight'), label: '', fs: parseFloat(getComputedStyle(t).fontSize) }; })()`);
     const sizes = [[890, 626], [320, 568], [390, 844]];
     const fresh = {};
     for (const [w, h] of sizes) { // what a fresh render gives at each size
@@ -113,7 +114,7 @@ if (standalone) {
       assert(r.actionsRight <= r.titleRight + 0.5, `actions run past the title row at ${w}: ${JSON.stringify(r)}`);
       assert(r.snug === f.snug && r.tight === f.tight && r.label === f.label && r.fs === f.fs, `resized page differs from a fresh render at ${w}: ${JSON.stringify(r)} vs ${JSON.stringify(f)}`);
     }
-    assert(fresh[890].label === '+ Log weight' && !fresh[890].snug && fresh[390].label === '+ Log weight', 'full label expected at 390 and 890');
+    assert(!fresh[890].snug, 'no shrinking needed at 890');
   });
 }
 
@@ -1136,6 +1137,66 @@ if (standalone) {
       await wait(500);
     }
     assert(found.size === 0, `\n        ${[...found].map(([m, at]) => `${m}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
+// v0.15.19 round 2: the + on every root at rest, the title row on one line, and toasts clear of the + and the tab bar.
+const ROOTS = ['today', 'train', 'food', 'body', 'weight'];
+const SIX = [[320, 568], [390, 844], [430, 932], [466, 678], [626, 890], [890, 626]];
+if (standalone) {
+  test('layout: quick-log + at rest: on all 5 roots, it is the top hit at its center and nothing in main sits under it', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    for (const [w, h] of SIX) for (const route of ROOTS) {
+      await browser.viewport(w, h, true);
+      await browser.open(route, seed());
+      await new Promise((r) => setTimeout(r, 300));
+      const r = await browser.eval(`(() => { const f = document.getElementById('quicklog'); if (!f || !f.classList.contains('on')) return { missing: true };
+        const b = f.getBoundingClientRect(); const hits = document.elementsFromPoint(b.left + b.width / 2, b.top + b.height / 2);
+        return { first: hits[0] === f || f.contains(hits[0]), mainAbove: hits.slice(0, hits.indexOf(f) < 0 ? hits.length : hits.indexOf(f)).some((e) => e.closest('main') && !f.contains(e)) }; })()`);
+      if (r.missing || !r.first || r.mainAbove) bad.push(`${route} ${w}x${h} ${JSON.stringify(r)}`);
+    }
+    assert(bad.length === 0, bad.join('; '));
+  });
+
+  test('layout: title row stays one line at 320 and 375 on every root, with the longest greeting; + and avatar are 44pt and on screen', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    for (const w of [320, 375]) for (const route of ROOTS) {
+      await browser.viewport(w, 667, true);
+      await browser.open(route, seed(), 'Date.prototype.getHours = function () { return 14; };'); // "Good afternoon"
+      await new Promise((r) => setTimeout(r, 300));
+      const r = await browser.eval(`(() => { const l = document.querySelector('#main .large-title'); if (!l) return { none: true };
+        const h1 = l.querySelector('h1'), a = document.querySelector('#main .avatar-btn'), f = document.getElementById('quicklog');
+        const hr = h1.getBoundingClientRect(), fr = f.getBoundingClientRect(), ar = a.getBoundingClientRect(), lh = parseFloat(getComputedStyle(h1).lineHeight);
+        return { oneLine: hr.height <= lh * 1.5 && h1.scrollWidth <= h1.clientWidth + 0.5, fs: parseFloat(getComputedStyle(h1).fontSize), text: h1.textContent,
+          sizes: [fr.width, fr.height, ar.width, ar.height], onScreen: fr.left >= 0 && ar.right <= innerWidth + 0.5 && (hr.right <= fr.left + 0.5 || hr.top >= fr.bottom - 0.5), noOverlap: fr.right <= ar.left + 0.5 }; })()`);
+      if (r.none || !r.oneLine || r.fs < 24 || r.sizes.some((n) => n < 43.5) || !r.onScreen || !r.noOverlap) bad.push(`${route} ${w} ${JSON.stringify(r)}`);
+    }
+    assert(bad.length === 0, bad.join('; '));
+  });
+
+  test('layout: a toast, plain or with Undo, never overlaps the + or the tab bar (320x568, 390x844)', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    for (const [w, h] of [[320, 568], [390, 844]]) for (const undo of [false, true]) {
+      await browser.viewport(w, h, true);
+      await browser.open('today', seed());
+      await new Promise((r) => setTimeout(r, 300));
+      const r = await browser.eval(`import('/js/ui.js').then(async (m) => {
+        m.toast('Deleted Chicken breast, 6 oz and some more words to run long', 20000, ${undo ? "{ action: { label: 'Undo', onClick() {} } }" : '{}'});
+        await new Promise((r) => setTimeout(r, 500));
+        const t = document.querySelector('.toast').getBoundingClientRect(), f = document.getElementById('quicklog').getBoundingClientRect();
+        const tb = (document.querySelector('.tabbar') || document.querySelector('nav')).getBoundingClientRect();
+        const hit = (a, b) => a.left < b.right && a.right > b.left && a.top < b.bottom && a.bottom > b.top;
+        return { plus: hit(t, f), tabs: hit(t, tb), inside: t.left >= 0 && t.right <= innerWidth };
+      })`);
+      if (r.plus || r.tabs || !r.inside) bad.push(`${w}x${h} undo=${undo} ${JSON.stringify(r)}`);
+    }
+    assert(bad.length === 0, bad.join('; '));
   });
 }
 
