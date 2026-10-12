@@ -104,7 +104,7 @@ export function weighInsHtml() {
       <ul class="list">
         ${(showAll ? entries : entries.slice(0, HISTORY_LIMIT)).map((w) => `
           <li>
-            <div><b>${formatWeight(w.kg, u)}</b><small class="muted">${formatDay(w.day, { weekday: 'short', month: 'short', day: 'numeric' })}${timeOf(w)} · ${esc(SOURCE_LABELS[w.source] || w.source)}${asking(w) ? ' · <a href="#/withings">is this you?</a>' : ''}${!asking(w) && trendDays.has(w.day) && trendDays.get(w.day) !== w.id ? ' · not in trend (earlier scale reading used)' : ''}</small></div>
+            <div><b>${formatWeight(w.kg, u)}</b><small class="muted"><span class="nw">${formatDay(w.day, { weekday: 'short', month: 'short', day: 'numeric' })}${timeOf(w)}</span> · <span class="nw">${esc(SOURCE_LABELS[w.source] || w.source)}</span>${asking(w) ? ' · <span class="nw"><a href="#/withings">is this you?</a></span>' : ''}${!asking(w) && trendDays.has(w.day) && trendDays.get(w.day) !== w.id ? ' · <span class="nw">not in trend (earlier scale reading used)</span>' : ''}</small></div>
             <button class="icon-btn" data-del="${esc(w.id)}" data-src="${esc(w.source || '')}" aria-label="Delete this weigh-in">${icon('trash')}</button>
           </li>`).join('')}
       </ul>

@@ -684,3 +684,4 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 }
 html { overflow-anchor: auto; }
 [data-weigh-ins] { max-width: 560px; } /* a readable column on wide screens, not a 1000px strip */
+.nw{white-space:nowrap}

@@ -79,6 +79,10 @@ test('Body: the Recovery row opens #/train/recovery and says how long since the 
   eq(s(1), '18 fresh · last workout yesterday');
   eq(s(0), '18 fresh · last workout today');
   eq(recoverySubtitle(18, undefined, now), 'No workouts yet');
+  const at = (last, nowD) => recoverySubtitle(18, { finished_at: new Date(last).toISOString() }, new Date(nowD).getTime()).replace(/<[^>]+>/g, '');
+  eq(at(new Date(2026, 9, 11, 18, 30), new Date(2026, 9, 12, 8, 0)), '18 fresh · last workout yesterday'); // Sun 6:30 PM → Mon 8 AM
+  eq(at(new Date(2026, 9, 10, 21, 0), new Date(2026, 9, 12, 8, 0)), '18 fresh · last workout 2 days ago'); // Sat 9 PM → Mon 8 AM
+  eq(at(new Date(2026, 9, 11, 23, 30), new Date(2026, 9, 12, 0, 15)), '18 fresh · last workout yesterday');
   assert(src('js/screens/body.js').includes('href="#/train/recovery"'));
   const app = src('js/app.js');
   assert(app.includes("link === 'recovery'") && app.includes('[data-recovery-card]') && app.includes('scrollIntoView'), 'Train scrolls to the card');
