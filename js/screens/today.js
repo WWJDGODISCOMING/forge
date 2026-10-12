@@ -60,9 +60,9 @@ function foodRow(t) {
     <a class="food-card-text" href="#/food" aria-label="Food: ${n(tot.kcal)} of ${n(t.calories)} kcal. See meals">
       <p class="label">Food</p>
       <p class="food-card-kcal"><b>${n(tot.kcal)}</b> <small>of ${n(t.calories)} kcal</small></p>
-      <p class="small ${sum.over ? 'over' : 'muted'}">${esc(sum.note)} · ${esc(sum.protein)}</p>
+      <p class="small ${sum.over ? 'over' : 'muted'}"><span class="nb">${esc(sum.note)}</span> · <span class="nb">${esc(sum.protein)}</span></p>
     </a>
-    <button class="btn small" data-food-log>Log food</button>
+    <button class="btn small food-log-btn" data-food-log aria-label="Log food"><span class="fl-plus" aria-hidden="true">+</span><span class="fl-txt">Log food</span></button>
   </div>`;
 }
 
