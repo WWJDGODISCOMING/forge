@@ -75,10 +75,7 @@ export function renderWeight(el) {
   el.innerHTML = `
     <section class="stack">
       ${progressTabs('weight')}
-      <div class="row between center">
-        <h1>Weight</h1>
-        <button class="btn small" data-log aria-label="Log weight"><span>+ Log<span class="hide-xs"> weight</span></span></button>
-      </div>
+      <h1>Weight</h1>
       ${latest ? `
       <div class="card">
         <div class="stats stats-2">
@@ -94,6 +91,7 @@ export function renderWeight(el) {
         ${weightChartSVG(series, { units: u, goalKg, projection, rangeDays: range || null })}
         <p class="small muted legend"><span class="key dot"></span>weigh-ins <span class="key line"></span>trend ${goalKg ? '<span class="key dash"></span>goal' : ''}</p>
       </div>
+      <button class="btn bigbtn" data-log type="button">${icon('plus')}Log weight</button>
       <div class="group"><a class="g-row" href="#/photos" data-photos-row><span class="g-ic">${icon('camera')}</span><span class="g-text"><span>Progress photos</span><small>Weekly photos, compare, time-lapse</small></span><span class="chev">${icon('chev')}</span></a></div>
       ${goalPathCard()}
       <div class="group">
@@ -116,7 +114,8 @@ export function renderWeight(el) {
       <p class="small muted">Trend = 10%-per-day smoothed average, so single weigh-ins (water, salt) don’t swing it much.</p>
     </section>`;
 
-  $('[data-log]', el).onclick = openLogWeight;
+  const logBtn = $('[data-log]', el);
+  if (logBtn) logBtn.onclick = openLogWeight;
   const logEmpty = $('[data-log-empty]', el);
   if (logEmpty) logEmpty.onclick = openLogWeight;
   const all = $('[data-all]', el);

@@ -65,7 +65,7 @@ export function detect(opts = {}) {
   });
 
   // 2b. Controls must not sit on top of each other (a stepper whose + runs into its neighbour, for example).
-  const hit = [...document.querySelectorAll('a[href], button, select, summary')].filter((e) => vis(e) && !e.closest('svg, #nav, #navbar') && !e.matches('.insight-x') && !allowed(e));
+  const hit = [...document.querySelectorAll('a[href], button, select, summary')].filter((e) => vis(e) && !e.closest('svg, #nav, #navbar, #quicklog') && !e.matches('.insight-x') && !allowed(e));
   const boxes = hit.map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.bottom > 0 && r.top < window.innerHeight * 3);
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length; j++) {

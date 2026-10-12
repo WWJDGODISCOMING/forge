@@ -24,6 +24,9 @@ const useSwitch = () => hapticsOn() && supportsSwitch && !NATIVE;
 /** A native tap where the app can; true if it did. */
 const nativeTap = (kind = 'light') => NATIVE && hapticsOn() && nativeHaptic(kind);
 
+/** A light tap in the iPhone app only (quick-log open and pick); the web has no equivalent. */
+export const lightTap = () => nativeTap('light');
+
 /** The invisible control to put inside a <label class="haptic-btn">. Listen for `change` on it. */
 export function hapticInput(attrs = '') {
   return `<input type="checkbox" ${useSwitch() ? 'switch' : ''} class="haptic-input" ${attrs}>`;

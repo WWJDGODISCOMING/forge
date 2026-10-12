@@ -6,8 +6,14 @@ const open = new Set();
 /** Track a sheet's close function. Returns a function that forgets it again. */
 export function registerSheet(close) {
   open.add(close);
-  return () => open.delete(close);
+  changed();
+  return () => { open.delete(close); changed(); };
 }
+
+const listeners = new Set();
+const changed = () => listeners.forEach((fn) => fn());
+/** Call fn whenever a sheet opens or closes (the quick-log + hides while one is up). */
+export const onSheetsChange = (fn) => { listeners.add(fn); };
 
 /** Close every open sheet (each close() is idempotent, so a sheet already closing is fine). Returns how many were open. */
 export function closeAllSheets() {

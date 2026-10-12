@@ -22,6 +22,20 @@ export function noteRoute(route) {
   if (!SETTINGS_SCREENS.has(route)) settingsOrigin = tabOf(route);
 }
 
+// Where Back goes from a Settings child that was opened from outside Settings (Readiness -> Apple Health, Body ->
+// Connect Withings). null = it was opened from Settings, or on a cold start: Back goes to Settings.
+let childReturn = null;
+export const getChildReturn = () => childReturn;
+const isChild = (route) => SETTINGS_SCREENS.has(route) && route !== 'settings';
+/** Call for every route change (from = null on a cold start): remembers where a Settings child should go Back to. */
+export function noteNavigation(fromParts, toParts) {
+  const to = (toParts && toParts[0]) || 'today';
+  if (!isChild(to)) return;
+  const from = fromParts && fromParts.length ? fromParts[0] || 'today' : null;
+  if (from === null || from === 'settings') childReturn = null;
+  else if (!SETTINGS_SCREENS.has(from)) childReturn = `#/${fromParts.join('/')}`; // child to child keeps the earlier answer
+}
+
 export const tabOf = (route) => (SETTINGS_SCREENS.has(route) ? settingsOrigin : TAB_FOR[route] || route);
 
 /** Old bookmarks, notification links and the removed Settings tab: hash route -> where it lives now (null = unchanged). */
@@ -65,19 +79,20 @@ export function backTarget(parts) {
   if (route === 'play') return '#/session';
   if (route === 'summary') return '#/train';
   if (route === 'settings') return `#/${settingsOrigin}`;
-  if (SETTINGS_SCREENS.has(route)) return '#/settings';
+  if (SETTINGS_SCREENS.has(route)) return childReturn || '#/settings';
   return `#/${tabOf(route)}`;
 }
 
 const LABELS = {
   today: 'Today', train: 'Train', food: 'Food', body: 'Body', weight: 'Progress', settings: 'Settings',
-  withings: 'Withings', session: 'Workout',
+  withings: 'Withings', session: 'Workout', coach: 'Coach', program: 'Program', history: 'History', awards: 'Awards',
+  score: 'Progress', trends: 'Progress', weekly: 'Progress', metric: 'Body', photos: 'Photos',
 };
 /** Title of the screen "Back" goes to, e.g. "Settings" (iOS shows the parent's title on the back button). */
 export function backLabel(parts) {
   const target = backTarget(parts);
   if (!target) return null;
-  return LABELS[target.replace(/^#\/?/, '')] || 'Back';
+  return LABELS[target.replace(/^#\/?/, '').split('/')[0]] || 'Back';
 }
 
 /** Large-title screens that should not show the title of their own sub-page (Progress shows one header). */
