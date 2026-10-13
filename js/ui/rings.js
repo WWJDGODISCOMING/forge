@@ -9,11 +9,13 @@ const COLORS = { training: 'var(--ember)', sets: 'var(--accent-text)', recovery:
 const NO_BURST = new Set(['recovery', 'calories', 'protein']);
 // Canvas confetti can't read CSS variables, so the burst keeps plain colours.
 const BURST = { training: '#FF6A2B', sets: '#C6FF3D', recovery: '#3AD0FF' };
-const SIZE = 132;
-// Three rings are chunky; five (with the two food rings) get thinner so they fit the same circle.
-const strokeFor = (n) => (n > 3 ? 9 : 13);
-const gapFor = (n) => (n > 3 ? 2 : 3);
-const radius = (i, n) => SIZE / 2 - strokeFor(n) / 2 - i * (strokeFor(n) + gapFor(n));
+// v0.16.0 hero: one 240 px cluster of three rings (Training outside, Recovery, Food inside). Weekly sets and
+// Protein keep their legend rows and numbers, they just aren't drawn as rings any more.
+const SIZE = 240;
+const STROKE = 20;
+const GAP = 7;
+const CLUSTER = ['training', 'recovery', 'calories'];
+const radius = (i) => SIZE / 2 - STROKE / 2 - 2 - i * (STROKE + GAP);
 
 /** How much of a second lap an over-target ring shows (0..1); 0 when not over. */
 export const overLap = (value) => (value > 1 ? Math.min(1, value - 1) : 0);
@@ -56,26 +58,32 @@ export function foodRingSvg(tot, t, aria) {
 }
 
 export function ringsHtml(rings) {
-  const arcs = rings.map((r, i) => {
-    const R = radius(i, rings.length);
-    const sw = strokeFor(rings.length);
+  const drawn = CLUSTER.map((k) => rings.find((r) => r.key === k)).filter(Boolean);
+  const defs = drawn.map((r) => {
+    const col = r.over ? 'var(--warn)' : COLORS[r.key];
+    return `<linearGradient id="rg-${r.key}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb, ${col} 62%, #fff)"/><stop offset="1" style="stop-color:${col}"/></linearGradient>`;
+  }).join('');
+  const arcs = drawn.map((r, i) => {
+    const R = radius(i);
     const C = 2 * Math.PI * R;
     const v = Math.max(0, Math.min(1, r.value || 0));
     // Over target: the lap turns warn and the overflow is drawn as a darker second lap on top.
     const col = r.over ? 'var(--warn)' : COLORS[r.key];
     const over = r.over ? overLap(r.value) : 0;
     const lap = over ? `<circle class="ring-arc ring-over" data-ring="${r.key}-over" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}"
-        stroke-dasharray="${C.toFixed(1)}" style="stroke-width:${sw}px;stroke:var(--warn-deep);--c:${C.toFixed(1)};--off:${(C * (1 - over)).toFixed(1)}"/>` : '';
-    return `<circle class="ring-track" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}" style="stroke-width:${sw}px;stroke:${col}"/>
+        stroke-dasharray="${C.toFixed(1)}" style="stroke:var(--warn-deep);--c:${C.toFixed(1)};--off:${(C * (1 - over)).toFixed(1)}"/>` : '';
+    return `<circle class="ring-track" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}" style="stroke:${col}"/>
       <circle class="ring-arc${v >= 1 && !NO_BURST.has(r.key) ? ' ring-closed' : ''}" data-ring="${r.key}" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}"
-        stroke-dasharray="${C.toFixed(1)}" style="stroke-width:${sw}px;color:${col};stroke:${col};--c:${C.toFixed(1)};--off:${(C * (1 - v)).toFixed(1)}"/>${lap}`;
+        stroke-dasharray="${C.toFixed(1)}" style="color:${col};stroke:url(#rg-${r.key});--c:${C.toFixed(1)};--off:${(C * (1 - v)).toFixed(1)}"/>${lap}`;
   }).join('');
+  const t = rings.find((r) => r.key === 'training');
+  const hub = t ? `<div class="rings-hub" aria-hidden="true"><b>${t.done}<i>/${t.goal}</i></b><small>training days</small></div>` : '';
   const legend = rings.map((r) => `
     <li style="--rc:${r.over ? 'var(--warn)' : COLORS[r.key]}"><span class="ring-dot" aria-hidden="true"></span>
       <span><b>${esc(r.label)}${r.value >= 1 && r.key !== 'calories' ? ` <span class="ring-done">${icon('check', { size: 14 })}</span>` : ''}</b>${(r.lines || [r.text]).map((l) => `<small class="muted">${esc(l)}</small>`).join("")}${r.over && r.extra ? `<small class="warn">${esc(r.extra)}</small>` : ''}</span></li>`).join('');
   const aria = rings.map((r) => `${r.label}: ${r.text}${r.extra ? `, ${r.extra}` : ''}`).join('; ');
   return `<div class="rings" role="img" aria-label="${esc(aria)}">
-    <svg class="rings-svg" viewBox="0 0 ${SIZE} ${SIZE}" width="${SIZE}" height="${SIZE}" aria-hidden="true"><g transform="rotate(-90 ${SIZE / 2} ${SIZE / 2})">${arcs}</g></svg>
+    <div class="rings-hero"><svg class="rings-svg" viewBox="0 0 ${SIZE} ${SIZE}" width="${SIZE}" height="${SIZE}" aria-hidden="true"><defs>${defs}</defs><g transform="rotate(-90 ${SIZE / 2} ${SIZE / 2})">${arcs}</g></svg>${hub}</div>
     <ul class="rings-legend">${legend}</ul></div>`;
 }
 

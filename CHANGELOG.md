@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.0 — Today hero rings (2026-10-13)
+
+Issue #58, first slice (item 6, Today only). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- The Today rings card is now a 240 px hero: three concentric rings (Training outside, Recovery, Food inside) with gradient strokes, a soft glow, and this week's training days in the middle in a big tabular number. The legend sits under it and still lists Weekly sets and Protein.
+- Same numbers and wiring as before; the draw-in still skips under reduced motion.
+
+### What's new
+
+- Today's rings are now one big three-ring dial with your training days in the middle.
+
 ## 0.15.27 — Score pillar copy (2026-10-12)
 
 Issue #64. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
