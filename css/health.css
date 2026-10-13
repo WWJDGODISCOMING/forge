@@ -75,7 +75,11 @@
   .pillar .mini { width: 40px; height: 40px; }
   .pillar .mini b { font-size: calc(13px * var(--ts)); }
 }
-@media (prefers-reduced-motion: reduce) { .sc-arc { transition: none; } }
+/* Score draw-in: the big ring leads, then the five pillar rings fill in order, 60 ms apart. Only the fill moves (dash offset), so no layout work. */
+.score-hero .sc-arc { transition-duration: 1.2s; transition-timing-function: cubic-bezier(.22, 1, .36, 1); }
+.pillar .sc-arc { transition-duration: .8s; transition-timing-function: cubic-bezier(.22, 1, .36, 1); transition-delay: calc(240ms + var(--i, 0) * 60ms); }
+.pillar:nth-child(1) { --i: 0 } .pillar:nth-child(2) { --i: 1 } .pillar:nth-child(3) { --i: 2 } .pillar:nth-child(4) { --i: 3 } .pillar:nth-child(5) { --i: 4 }
+@media (prefers-reduced-motion: reduce) { .sc-arc, .pillar .sc-arc, .score-hero .sc-arc { transition: none; transition-delay: 0s; } }
 
 /* ---------- Settings → Apple Health ---------- */
 .apple-status { display: grid; gap: 4px; }
