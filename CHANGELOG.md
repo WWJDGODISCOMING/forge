@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.1 — Score ring draw-in (2026-10-13)
+
+Issue #58, second slice (item 6, Score only). CSS only. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- On Progress → Score the big ring now eases in with a longer, softer curve, and the five pillar rings fill in order, 60 ms apart, after it. Same numbers; skipped under reduced motion.
+
+### What's new
+
+- The Score screen's rings now fill in one after another.
+
 ## 0.16.0 — Today hero rings (2026-10-13)
 
 Issue #58, first slice (item 6, Today only). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
