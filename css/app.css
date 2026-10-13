@@ -292,6 +292,9 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 /* ---------- weight ---------- */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
 .stats div { display: flex; flex-direction: column; }
+.stats-m span { white-space: nowrap; }
+.card .g-row.sw { padding-left: 0; padding-right: 0; min-height: 44px; }
+.card .g-row.sw .g-text > span { white-space: nowrap; }
 .stats span { font-size: calc(13px * var(--ts)); color: var(--text-2); }
 .stats b { font-size: calc(20px * var(--ts)); font-variant-numeric: tabular-nums; }
 /* --ck (set by ui/charts.js) cancels the scaling on a wide card, so axis text and the trend line stay phone size while the plot keeps its proportions */
@@ -311,15 +314,16 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   .chart-wait { --chart-wait: var(--t-med); }
   .chart-wait-push { --chart-wait: 300ms; }
   .chart .trend[pathLength] { stroke-dasharray: 1 2; animation: chart-draw 1s var(--ease-out) var(--chart-wait) both; }
-  .chart .area { animation: chart-fade .6s var(--ease-out) calc(var(--chart-wait) + .15s) both; }
+  .chart .area-clip { transform-box: fill-box; transform-origin: 0 0; animation: chart-reveal 1s var(--ease-out) var(--chart-wait) both; }
   /* On a range morph, dots, the previous-period line and bars fade in as the line arrives (end at their own opacity). */
-  .chart.chart-morph .dot, .chart.chart-morph .prev, .chart.chart-morph .bar { animation: chart-in .3s var(--ease-out) .12s backwards; }
+  .chart.chart-morph .dot, .chart.chart-morph .prev, .chart.chart-morph .bar, .chart.chart-morph .goal, .chart.chart-morph .goal-label, .chart.chart-morph .proj { animation: chart-in .3s var(--ease-out) .12s backwards; }
 }
 /* A range change morphs the existing line (see morphChart()) instead of drawing it in again. */
-.chart.chart-morph .trend[pathLength], .chart.chart-morph .area { animation: none; }
+.chart.chart-morph .trend[pathLength], .chart.chart-morph .area, .chart.chart-morph .area-clip { animation: none; }
 @keyframes chart-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes chart-in { from { opacity: 0; } }
-@keyframes chart-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes chart-reveal { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+.chart .dot.dense { opacity: .45; }
 .chart .goal { stroke: var(--ember); stroke-width: 1.5; stroke-dasharray: 6 5; }
 .chart .goal-label { fill: var(--ember); }
 .chart .proj { fill: none; stroke: var(--accent-text); stroke-width: 2; stroke-dasharray: 2 5; stroke-linecap: round; opacity: .7; }

@@ -3,6 +3,7 @@ import { weightToDisplay, weightUnit } from '../units.js';
 import { daysBetween, addDays } from './smoothing.js';
 import { formatDay } from '../ui.js';
 import { areaFill, chartWait } from '../ui/linechart.js';
+import { axisNeedsYear, dotStyle } from '../ui/chartmath.js';
 import { chartWidth } from '../ui/charts.js';
 
 export function weightChartSVG(series, { units, goalKg, projection, rangeDays, width = chartWidth(), height = 210 } = {}) {
@@ -43,7 +44,9 @@ export function weightChartSVG(series, { units, goalKg, projection, rangeDays, w
   }
 
   const trendPath = pts.map((p, i) => `${i ? 'L' : 'M'}${x(p.day).toFixed(1)},${y(p.trend).toFixed(1)}`).join(' ');
-  const dots = pts.map((p) => `<circle cx="${x(p.day).toFixed(1)}" cy="${y(p.kg).toFixed(1)}" r="2.6" class="dot"/>`).join('');
+  const ds = dotStyle(pts.length, 2.6);
+  const dots = pts.map((p) => `<circle cx="${x(p.day).toFixed(1)}" cy="${y(p.kg).toFixed(1)}" r="${ds.r}" class="dot${ds.dense ? ' dense' : ''}"/>`).join('');
+  const yr = axisNeedsYear(pts[0].day, endDay) ? { year: 'numeric', month: 'short', day: 'numeric' } : undefined;
 
   const offscale = Number.isFinite(goalKg) && !goalInView
     ? `<text x="${width - R}" y="${goalKg < min ? height - B - 4 : T + 10}" class="axis goal-label" text-anchor="end">Goal ${disp(goalKg).toFixed(0)} ${weightUnit(units)} ${goalKg < min ? '↓' : '↑'}</text>`
@@ -57,13 +60,13 @@ export function weightChartSVG(series, { units, goalKg, projection, rangeDays, w
     ? `<path d="M${x(last.day)},${y(last.trend)} L${x(projection.day)},${y(goalKg)}" class="proj"/>`
     : '';
 
-  const labels = `<text x="${L}" y="${height - 6}" class="axis">${formatDay(pts[0].day)}</text>
-    <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(endDay)}</text>`;
+  const labels = `<text x="${L}" y="${height - 6}" class="axis">${formatDay(pts[0].day, yr)}</text>
+    <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(endDay, yr)}</text>`;
 
   return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="Weight chart: dots are weigh-ins, line is your trend">
     ${ticks.join('')}${goal}${offscale}${proj}
     ${pts.length > 1 ? areaFill(trendPath, x(pts[0].day).toFixed(1), x(last.day).toFixed(1), (height - B).toFixed(1)) : ''}
-    <path d="${trendPath}" class="trend" pathLength="1"/>${dots}${labels}
+    ${dots}<path d="${trendPath}" class="trend" pathLength="1"/>${labels}
   </svg>`;
 }
 

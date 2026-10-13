@@ -5,6 +5,7 @@ import { tick } from '../ui/haptic.js';
 import { weightToDisplay, weightFromInput, weightUnit, formatWeight } from '../units.js';
 import { trendChange, weeklyRate, dayKey } from '../weight/smoothing.js';
 import { weightChartSVG } from '../weight/chart.js';
+import { grabChart, morphChart } from '../ui/linechart.js';
 import { timeOf, readingLabel } from '../weight/reading.js';
 import { weightSeries, mySuspects, latestWeighIn } from '../derived.js';
 import { SCALE_SOURCES } from '../withings/review.js';
@@ -122,8 +123,10 @@ export function bindWeight(el, rerender) {
   if (all) all.onclick = () => { showAll = true; rerender(); };
   $$('input[name=range]', el).forEach((r) =>
     r.addEventListener('change', () => {
+      const from = grabChart(el);
       range = Number(r.value);
       rerender();
+      if (from) morphChart($('svg.chart', el), from);
     })
   );
   $$('[data-del]', el).forEach((b) =>

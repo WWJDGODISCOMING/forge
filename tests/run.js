@@ -23,6 +23,7 @@ import './native.test.js';
 import './polish.test.js';
 import './scrubmath.test.js';
 import './pathmorph.test.js';
+import './chartmath.test.js';
 import './health.test.js';
 import './shell.test.js';
 import './restyle.test.js';
