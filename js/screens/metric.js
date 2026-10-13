@@ -112,7 +112,7 @@ export function renderMetric(el, key) {
         </div>
         ${shown.length ? lineChartSVG(shown.map((p) => ({ day: p.day, v: disp(p.v), t: fmt(p.v) })), { prev, bars, unit: unitOf(fmt), label: `${def.label} chart`, fromDay: from, toDay: end }) : '<p class="muted small">No readings in this range.</p>'}
         ${shown.length ? '<p class="small muted chart-readout" data-readout aria-live="polite">Touch the chart to read a day.</p>' : ''}
-        <p class="small muted legend"><span class="key dot"></span>readings <span class="key line"></span>7-day average ${prev.length ? '<span class="key dash"></span>previous period' : ''} ${bars.length ? '<span class="key bar"></span>training sets/week' : ''}</p>
+        <p class="small muted legend"><span class="nw"><span class="key dot"></span>readings</span> <span class="nw"><span class="key line"></span>7-day average</span> ${prev.length ? '<span class="nw"><span class="key dash prev-key"></span>previous period</span>' : ''} ${bars.length ? '<span class="nw"><span class="key bar"></span>training sets/week</span>' : ''}</p>
         ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Show training sets per week</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
         ${trendLine ? `<p data-trend-line>${esc(trendLine)}</p>` : ''}
         <p class="small muted">Last reading ${def === apple || key === 'vo2max' ? new Date(last.at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : new Date(last.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${daily.length.toLocaleString()} days with readings</p>

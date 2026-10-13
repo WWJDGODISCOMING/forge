@@ -5,7 +5,7 @@ import { daysBetween, addDays } from '../weight/smoothing.js';
 import { formatDay } from '../ui.js';
 import { tick } from './haptic.js';
 import { labelPlace, tickGate } from './scrubmath.js';
-import { parsePath, toPath, areaPath, morphPoints } from './pathmorph.js';
+import { parsePath, toPath, areaPath, prepareMorph, morphFrame } from './pathmorph.js';
 
 /** Rolling mean over the previous `n` days for each point (by calendar day, not by count). */
 export function rolling(points, n = 7) {
@@ -130,13 +130,14 @@ export function morphChart(svg, from, ms = 450) {
   const toLine = trend.getAttribute('d');
   const toArea = area && area.getAttribute('d');
   const baseY = toArea ? parsePath(toArea).slice(-2)[0][1] : 0;
+  const prep = prepareMorph(from.trend, toLine);
+  if (!prep) return;
   svg.classList.add('chart-morph'); // no draw-in on top of the morph
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / ms);
     if (t >= 1) { trend.setAttribute('d', toLine); if (area) area.setAttribute('d', toArea); return; }
-    const pts = morphPoints(from.trend, toLine, t);
-    if (!pts) { trend.setAttribute('d', toLine); return; }
+    const pts = morphFrame(prep, t);
     trend.setAttribute('d', toPath(pts));
     if (area && toArea) area.setAttribute('d', areaPath(pts, baseY));
     morphRaf = requestAnimationFrame(step);
