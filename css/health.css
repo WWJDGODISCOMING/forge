@@ -42,7 +42,7 @@
 .score-days span { flex: 1; border-radius: 4px 4px 2px 2px; background: var(--surface-2); min-height: 4px; position: relative; }
 .score-days span.has { background: var(--accent); opacity: .85; }
 .score-days span.today { opacity: 1; box-shadow: 0 0 8px var(--accent-glow); }
-.pillar-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px; }
+.pillar-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; container-type: inline-size; }
 .pillar { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; background: var(--surface); border: 0; border-radius: var(--radius); padding: 12px; min-height: 84px; color: inherit; text-align: left; font: inherit; cursor: pointer; width: 100%; }
 .pillar:active { background: var(--surface-2); }
 .pillar.off { opacity: .6; cursor: default; }
@@ -65,7 +65,16 @@
 .comp-list .bar i { display: block; height: 100%; border-radius: 4px; background: var(--accent); }
 .comp-list .row { justify-content: space-between; gap: 10px; }
 .comp-list small { color: var(--muted); }
-@media (max-width: 430px) { .pillar-grid { grid-template-columns: 1fr; } } /* auto-fit already stacks a narrow column; this keeps phones at one column */
+@media (max-width: 430px) { .pillar-grid { grid-template-columns: 1fr; } }
+/* Two-up tiles in a narrow column (Duo, landscape): name beside the ring, caption below it across the full tile width */
+@media (min-width: 431px) { @container (max-width: 470px) {
+  .pillar { grid-template-columns: 40px minmax(0, 1fr); gap: 4px 10px; min-height: 0; padding: 10px 12px; }
+  .pillar span { display: contents; }
+  .pillar span strong { grid-column: 2; grid-row: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pillar span small { grid-column: 1 / -1; grid-row: 2; }
+  .pillar .mini { width: 40px; height: 40px; }
+  .pillar .mini b { font-size: calc(13px * var(--ts)); }
+} }
 @media (prefers-reduced-motion: reduce) { .sc-arc { transition: none; } }
 
 /* ---------- Settings → Apple Health ---------- */
