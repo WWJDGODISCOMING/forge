@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.2 — Charts path draw-in (2026-10-13)
+
+Issue #58, third slice (item 6, Weight and trend line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- The trend line draws in over 0.6 s (`pathLength="1"` dash offset, same ease as the Score rings) and a soft accent-to-transparent gradient fades in under it. Each chart gets its own gradient id. Data, scales, units and tap/scrub are unchanged. Switching range or unit rebuilds the chart and replays the draw. Skipped under reduced motion.
+
+### What's new
+
+- Your weight and trend charts now draw in, with a soft glow of colour under the line.
+
 ## 0.16.1 — Score ring draw-in (2026-10-13)
 
 Issue #58, second slice (item 6, Score only). CSS only. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.

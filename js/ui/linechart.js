@@ -80,11 +80,22 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
     ${unit ? `<text x="${L - 6}" y="10" class="axis unit" text-anchor="end">${attr(unit)}</text>` : ''}
     ${ticks}${barScale}${barEls}
     ${prev.length > 1 ? `<path d="${path(rolling(prev))}" class="prev"/>` : ''}
-    <path d="${path(line)}" class="trend"/>${dots}
+    ${line.length > 1 ? areaFill(path(line), x(line[0].day).toFixed(1), x(line[line.length - 1].day).toFixed(1), (height - B).toFixed(1)) : ''}
+    <path d="${path(line)}" class="trend" pathLength="1"/>${dots}
     <g class="scrub" visibility="hidden"><line y1="${T}" y2="${height - B}" class="scrub-line"/><circle r="4.5" class="scrub-dot"/></g>
     <text x="${L}" y="${height - 6}" class="axis">${formatDay(start)}</text>
     <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(end)}</text>
   </svg>`;
+}
+
+/** Unique per chart instance, so two charts on one screen never share a gradient. */
+let gradSeq = 0;
+
+/** Soft accent → transparent fill under a line (`line` is an "M…L…" path), with its own gradient id. */
+export function areaFill(line, firstX, lastX, baseY) {
+  const id = `ar${++gradSeq}`;
+  return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="area-a" stop-opacity=".3"/><stop offset="1" class="area-a" stop-opacity="0"/></linearGradient></defs>
+    <path d="${line} L${lastX},${baseY} L${firstX},${baseY} Z" fill="url(#${id})" class="area"/>`;
 }
 
 /** Index of the point nearest to x (points sorted by x). Pure. */
