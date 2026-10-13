@@ -85,10 +85,10 @@ export function renderSettings(el) {
         <label class="g-row sw"><span class="g-text"><span>Haptic tick</span><small>${hapSupport === 'native' || hapSupport === 'switch' ? 'A light tap on tabs, controls and Done set.' : 'Not supported on this device.'}</small></span><input type="checkbox" switch name="haptics" ${hapOn ? 'checked' : ''}></label>
       </div>
       <p class="sec-foot">Coach audio mixes with your music and is silent when your ringer switch is off.</p>
-      <div class="stack" data-photos hidden>
-        <p class="small"><b>Demo photos</b> <span class="muted" data-photo-status></span></p>
+      ${isNative() ? '' : `<div class="stack" data-photos style="visibility:hidden"><!-- holds its room until the photo index loads, so the rows below don't jump -->
+        <p class="small"><b>Demo photos</b> <span class="muted" data-photo-status>· 000 of 000 saved for offline · ≈ 00.0 MB to download</span></p>
         <button class="btn ghost" data-photo-dl>Download demo photos</button>
-      </div>
+      </div>`}
 
       <p class="sec-title">Missions</p>
       <div class="group">
@@ -207,15 +207,17 @@ export function renderSettings(el) {
   const paintPhotos = async () => {
     const st = await photoStatus();
     const box = $('[data-photos]', el);
-    if (!box || !st.total || st.bundled) return; // in the iPhone app the photos are already inside the app
-    box.hidden = false;
+    if (!box) return;
+    if (!st.total || st.bundled) { box.hidden = true; return; } // in the iPhone app the photos are already inside the app
+    box.style.visibility = '';
     $('[data-photo-status]', el).textContent = `· ${st.saved} of ${st.total} saved for offline${st.saved >= st.total ? '' : ` · ≈ ${st.mb.toFixed(1)} MB to download`}`;
     const btn = $('[data-photo-dl]', el);
     btn.textContent = st.saved >= st.total ? 'All demo photos saved' : 'Download demo photos';
     btn.disabled = st.saved >= st.total;
   };
   paintPhotos();
-  $('[data-photo-dl]', el).onclick = async (e) => {
+  const dl = $('[data-photo-dl]', el);
+  if (dl) dl.onclick = async (e) => {
     const btn = e.currentTarget;
     btn.disabled = true;
     const st = await downloadAllPhotos((done, total) => (btn.textContent = `Saving… ${done} of ${total}`));
