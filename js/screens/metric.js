@@ -6,7 +6,7 @@ import { state, units as getUnits } from '../state.js';
 import { esc, $, $$, sheet, todayKey } from '../ui.js';
 import { addDays, daysBetween } from '../weight/smoothing.js';
 import { weightToDisplay } from '../units.js';
-import { lineChartSVG, bindScrub, unitOf } from '../ui/linechart.js';
+import { lineChartSVG, bindScrub, unitOf, grabChart, morphChart } from '../ui/linechart.js';
 import { metricDef, metricPoints, metricEmptyChoice, dailySeries, fmtMetric, heightM, periodAverage } from '../withings/body.js';
 import { trendMetric, trendsFor, notEnoughText } from '../health/trends.js';
 import { intel } from '../health/intel.js';
@@ -16,6 +16,7 @@ import { icon, emptyState } from '../ui/icons.js';
 import { vo2Series } from '../health/longevity.js';
 import { isNative } from '../native/bridge.js';
 let unbindScrub = () => {};
+let morphFrom = null; // the old range's paths, for one render
 
 let range = 90; // 7 / 28 / 90 / 365 days, or 0 for everything
 let explainers = null;
@@ -122,7 +123,8 @@ export function renderMetric(el, key) {
   $('[data-explain]', el).onclick = () => openExplainer(key);
   unbindScrub();
   unbindScrub = bindScrub($('svg.chart', el), $('[data-readout]', el));
-  $$('input[name=range]', el).forEach((r) => r.addEventListener('change', () => { range = Number(r.value); renderMetric(el, key); }));
+  if (morphFrom) { morphChart($('svg.chart', el), morphFrom); morphFrom = null; }
+  $$('input[name=range]', el).forEach((r) => r.addEventListener('change', () => { morphFrom = grabChart(el); range = Number(r.value); renderMetric(el, key); }));
   const sets = $('input[name=sets]', el);
   if (sets) sets.addEventListener('change', () => renderMetric(el, key));
 }

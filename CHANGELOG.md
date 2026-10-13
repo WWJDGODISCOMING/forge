@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.4 — Chart range morph (2026-10-13)
+
+Issue #58, fifth slice (item 6, scrubbable line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- Tapping 7d / 28d / 90d / 1y / All glides the trend line and its fill from the old range to the new one (about 450 ms, ease-out) instead of redrawing. Both lines are resampled onto the same x positions, so different point counts blend cleanly, and the last frame restores the exact new path, so values and scales are the same as before. Axes, dots and numbers switch at once. Skipped under reduced motion. Scrub, the pill and haptic ticks are rebound on each render, and the first-entry draw-in is unchanged. The maths is in `js/ui/pathmorph.js` with unit tests.
+
+### What's new
+
+- Switching a chart's range now animates the line.
+
 ## 0.16.3 — Chart scrub magnifier + haptic ticks (2026-10-13)
 
 Issue #58, fourth slice (item 6, scrubbable line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.

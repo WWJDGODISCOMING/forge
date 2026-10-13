@@ -5,6 +5,7 @@ import { daysBetween, addDays } from '../weight/smoothing.js';
 import { formatDay } from '../ui.js';
 import { tick } from './haptic.js';
 import { labelPlace, tickGate } from './scrubmath.js';
+import { parsePath, toPath, areaPath, morphPoints } from './pathmorph.js';
 
 /** Rolling mean over the previous `n` days for each point (by calendar day, not by count). */
 export function rolling(points, n = 7) {
@@ -105,6 +106,42 @@ export function areaFill(line, firstX, lastX, baseY) {
   const id = `ar${++gradSeq}`;
   return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="area-a" stop-opacity=".3"/><stop offset="1" class="area-a" stop-opacity="0"/></linearGradient></defs>
     <path d="${line} L${lastX},${baseY} L${firstX},${baseY} Z" fill="url(#${id})" class="area"/>`;
+}
+
+/** The chart's current trend and fill paths, to morph from after a re-render. Null when there's no chart. */
+export function grabChart(root) {
+  const svg = root && root.querySelector('svg.chart');
+  const trend = svg && svg.querySelector('.trend[pathLength]');
+  const area = svg && svg.querySelector('.area');
+  return trend ? { trend: trend.getAttribute('d'), area: area ? area.getAttribute('d') : null } : null;
+}
+
+let morphRaf = 0;
+
+/**
+ * Glide a freshly rendered chart's line and fill from the `from` paths (grabChart) to its own, ~450 ms ease-out.
+ * Only `d` changes; the final frame restores the exact rendered strings. No-op under reduced motion.
+ */
+export function morphChart(svg, from, ms = 450) {
+  cancelAnimationFrame(morphRaf);
+  const trend = svg && svg.querySelector('.trend[pathLength]');
+  if (!trend || !from || !from.trend || (typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches)) return;
+  const area = svg.querySelector('.area');
+  const toLine = trend.getAttribute('d');
+  const toArea = area && area.getAttribute('d');
+  const baseY = toArea ? parsePath(toArea).slice(-2)[0][1] : 0;
+  svg.classList.add('chart-morph'); // no draw-in on top of the morph
+  const t0 = performance.now();
+  const step = (now) => {
+    const t = Math.min(1, (now - t0) / ms);
+    if (t >= 1) { trend.setAttribute('d', toLine); if (area) area.setAttribute('d', toArea); return; }
+    const pts = morphPoints(from.trend, toLine, t);
+    if (!pts) { trend.setAttribute('d', toLine); return; }
+    trend.setAttribute('d', toPath(pts));
+    if (area && toArea) area.setAttribute('d', areaPath(pts, baseY));
+    morphRaf = requestAnimationFrame(step);
+  };
+  morphRaf = requestAnimationFrame(step);
 }
 
 /** Index of the point nearest to x (points sorted by x). Pure. */

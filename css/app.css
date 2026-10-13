@@ -313,6 +313,8 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   .chart .trend[pathLength] { stroke-dasharray: 1 2; animation: chart-draw 1s var(--ease-out) var(--chart-wait) both; }
   .chart .area { animation: chart-fade .6s var(--ease-out) calc(var(--chart-wait) + .15s) both; }
 }
+/* A range change morphs the existing line (see morphChart()) instead of drawing it in again. */
+.chart.chart-morph .trend[pathLength], .chart.chart-morph .area { animation: none; }
 @keyframes chart-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes chart-fade { from { opacity: 0; } to { opacity: 1; } }
 .chart .goal { stroke: var(--ember); stroke-width: 1.5; stroke-dasharray: 6 5; }
