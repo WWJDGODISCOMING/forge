@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.6 — Score pillar cascade (2026-10-13)
+
+Issue #58, seventh slice (item 6, Score). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- The five Score pillar rings fill in a calm cascade, 60 ms apart, once the grid is on screen: right behind the big ring if it's visible, or as soon as you scroll to it. Plays once per visit. Skipped under reduced motion.
+
+### What's new
+
+- Score pillars now fill in a smooth cascade.
+
 ## 0.16.5 — Charts finish (2026-10-13)
 
 Issue #58, sixth slice (item 6, line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
