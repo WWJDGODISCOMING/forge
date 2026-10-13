@@ -4,7 +4,7 @@
 
 Issue #58, third slice (item 6, Weight and trend line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
 
-- The trend line draws in over 0.6 s (`pathLength="1"` dash offset, same ease as the Score rings) and a soft accent-to-transparent gradient fades in under it. Each chart gets its own gradient id. Data, scales, units and tap/scrub are unchanged. Switching range or unit rebuilds the chart and replays the draw. Skipped under reduced motion.
+- The trend line draws in over 1 s (`pathLength="1"` dash offset, same `--ease-out` as the Score rings; when the chart mounts during a screen transition it starts after it, 280 ms for a tab or fade, 300 ms for a push or pop, so you see it once the screen lands; range and unit taps start at once) and a soft accent-to-transparent gradient fades in under it. Each chart gets its own gradient id. Data, scales, units and tap/scrub are unchanged. Switching range or unit rebuilds the chart and replays the draw. Skipped under reduced motion.
 
 ### What's new
 

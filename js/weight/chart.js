@@ -2,7 +2,7 @@
 import { weightToDisplay, weightUnit } from '../units.js';
 import { daysBetween, addDays } from './smoothing.js';
 import { formatDay } from '../ui.js';
-import { areaFill } from '../ui/linechart.js';
+import { areaFill, chartWait } from '../ui/linechart.js';
 import { chartWidth } from '../ui/charts.js';
 
 export function weightChartSVG(series, { units, goalKg, projection, rangeDays, width = chartWidth(), height = 210 } = {}) {
@@ -60,7 +60,7 @@ export function weightChartSVG(series, { units, goalKg, projection, rangeDays, w
   const labels = `<text x="${L}" y="${height - 6}" class="axis">${formatDay(pts[0].day)}</text>
     <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(endDay)}</text>`;
 
-  return `<svg viewBox="0 0 ${width} ${height}" class="chart" role="img" aria-label="Weight chart: dots are weigh-ins, line is your trend">
+  return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="Weight chart: dots are weigh-ins, line is your trend">
     ${ticks.join('')}${goal}${offscale}${proj}
     ${pts.length > 1 ? areaFill(trendPath, x(pts[0].day).toFixed(1), x(last.day).toFixed(1), (height - B).toFixed(1)) : ''}
     <path d="${trendPath}" class="trend" pathLength="1"/>${dots}${labels}

@@ -76,7 +76,7 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
   const dots = points.map((p) => `<circle cx="${x(p.day).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.4" class="dot"/>`).join('');
   const scrub = points.map((p) => [Number(x(p.day).toFixed(1)), Number(y(p.v).toFixed(1)), p.day, p.t != null ? String(p.t) : axisLabel(p.v, nt.decimals + 1)]);
   const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-  return `<svg viewBox="0 0 ${width} ${height}" class="chart" role="img" aria-label="${attr(label)}" data-scrub="${attr(JSON.stringify(scrub))}">
+  return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="${attr(label)}" data-scrub="${attr(JSON.stringify(scrub))}">
     ${unit ? `<text x="${L - 6}" y="10" class="axis unit" text-anchor="end">${attr(unit)}</text>` : ''}
     ${ticks}${barScale}${barEls}
     ${prev.length > 1 ? `<path d="${path(rolling(prev))}" class="prev"/>` : ''}
@@ -86,6 +86,12 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
     <text x="${L}" y="${height - 6}" class="axis">${formatDay(start)}</text>
     <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(end)}</text>
   </svg>`;
+}
+
+/** Class that holds the draw-in until the screen has landed. Set once at mount, so timing never changes mid-animation; range/unit taps have no view transition and start at once. */
+export function chartWait() {
+  const vt = typeof document !== 'undefined' ? document.documentElement?.dataset?.vt : '';
+  return vt ? (vt === 'push' || vt === 'pop' ? ' chart-wait-push' : ' chart-wait') : '';
 }
 
 /** Unique per chart instance, so two charts on one screen never share a gradient. */

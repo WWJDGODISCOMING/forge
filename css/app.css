@@ -301,10 +301,13 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .chart .dot { fill: var(--text-2); opacity: .7; }
 .chart .trend { fill: none; stroke: var(--accent-text); stroke-width: calc(3px * var(--ck, 1)); stroke-linecap: round; stroke-linejoin: round; }
 .chart .area-a { stop-color: var(--accent-text); }
-/* Draw-in: pathLength=1 makes the dash maths length-independent; only the line and its fill move. A re-render builds a fresh SVG, so it replays cleanly. */
+/* Draw-in (1 s, like the Score rings; held back while a screen transition runs, see chartWait()): pathLength=1 makes the dash maths length-independent; only the line and its fill move. A re-render builds a fresh SVG, so it replays cleanly. */
 @media (prefers-reduced-motion: no-preference) {
-  .chart .trend[pathLength] { stroke-dasharray: 1 2; animation: chart-draw .6s cubic-bezier(.22, 1, .36, 1) both; }
-  .chart .area { animation: chart-fade .5s ease-out .15s both; }
+  .chart { --chart-wait: 0ms; }
+  .chart-wait { --chart-wait: var(--t-med); }
+  .chart-wait-push { --chart-wait: 300ms; }
+  .chart .trend[pathLength] { stroke-dasharray: 1 2; animation: chart-draw 1s var(--ease-out) var(--chart-wait) both; }
+  .chart .area { animation: chart-fade .6s var(--ease-out) calc(var(--chart-wait) + .15s) both; }
 }
 @keyframes chart-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes chart-fade { from { opacity: 0; } to { opacity: 1; } }
