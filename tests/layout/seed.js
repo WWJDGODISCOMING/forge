@@ -3,10 +3,13 @@ import { HOME_PRESET, TRAVEL_PRESET } from '../../js/workouts/equipment.js';
 import { TOUR_OFFER } from '../../js/tour/steps.js';
 
 const DAY = 86400000;
+// The layout tests pin the clock (browser.open) so a screen looks the same on any weekday: one date with a planned workout, one without.
+export const WORKOUT_DAY = '2026-10-12T12:00:00';
+export const REST_DAY = '2026-10-13T12:00:00';
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** @param {{long?: boolean, empty?: boolean}} opt  long: long names + 4-digit calories; empty: a brand-new account */
-export function seed({ long = false, empty = false, active = false, over = false, now = Date.now() } = {}) {
+export function seed({ long = false, empty = false, active = false, over = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
   const rec = (id, extra = {}) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
   const profile = rec('main', {
     goal: 'lose_fat', sex: 'male', age: 37, heightCm: 180, weightKg: 88, targetWeightKg: 80, activity: 'light',

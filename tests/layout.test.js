@@ -6,7 +6,9 @@
 import { test, assert } from './harness.js';
 import { skipReason, launch } from './layout/browser.js';
 import { detect } from './layout/detect.js';
-import { seed } from './layout/seed.js';
+import { seed, WORKOUT_DAY, REST_DAY } from './layout/seed.js';
+const DAYS = [WORKOUT_DAY, REST_DAY]; // Today differs by day type, so its column checks run on a workout day and on a rest day
+const onDay = (at) => ({ now: new Date(at).getTime() });
 
 const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
 const shortLand0 = (w, h) => w >= 600 && h <= 500;
@@ -295,18 +297,23 @@ if (!standalone) {
     if (process.argv.includes('--no-layout')) { console.log('      (skipped: --no-layout)'); return; }
     const { spawn } = await import('node:child_process');
     // the screens are independent, so run them as parallel shards (each with its own Chromium) instead of one long serial run
-    const SHARDS = 3;
+    const SHARDS = 4; // shard 1 of 3 sat at ~6m50s against a 7m cap; four shards on the 4-core runner leave real headroom
     const runs = Array.from({ length: SHARDS }, (_, i) => new Promise((resolve) => {
       const p = spawn(process.execPath, [new URL(import.meta.url).pathname, `--shard=${i + 1}/${SHARDS}`], { stdio: ['ignore', 'pipe', 'pipe'] });
       let out = '';
       p.stdout.on('data', (d) => { out += d; });
       p.stderr.on('data', (d) => { out += d; });
-      const timer = setTimeout(() => { p.kill('SIGKILL'); out += `\nshard ${i + 1} timed out`; }, 420000);
+      const timer = setTimeout(() => { p.kill('SIGKILL'); out += `\nshard ${i + 1} timed out`; }, 540000);
       p.on('close', (status) => { clearTimeout(timer); resolve({ status, out }); });
     }));
     const results = await Promise.all(runs);
     const bad = results.filter((r) => r.status !== 0);
     assert(!bad.length, '\n' + bad.map((r) => r.out.split('\n').filter((l) => !l.includes('✓')).join('\n')).join('\n'));
+    // The Duo resize/rotation/fold blocks only exist when the file runs as its own process (these shards). Fail loudly if they stop running.
+    const ran = results.map((r) => r.out).join('\n');
+    const count = (ran.match(/✓ layout:/g) || []).length;
+    assert(count >= 30, `only ${count} layout tests ran in the shards (expected 30+); the Duo blocks may have been skipped`);
+    assert(/✓ layout: [^\n]*(fold|resize)/i.test(ran), 'the fold/resize harness test did not run in the shards');
   });
 }
 
@@ -448,11 +455,11 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const bad = [];
     let base = new Set(); // what already wraps on a 390 phone isn't a wide-layout problem
-    for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
+    for (const pin of (route === 'today' ? DAYS : [WORKOUT_DAY])) for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
       await browser.viewport(w, h, true);
-      await browser.open(route, seed({ active: route === 'play' }));
+      await browser.open(route, seed({ active: route === 'play', ...onDay(pin) }), '', { at: pin });
       if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px'); document.documentElement.style.setProperty('--safe-bottom', '${SAFE_BOTTOM}px')`); await wait(300); }
-      const at = `${w}x${h}${inset ? ' inset ' + inset : ''}`;
+      const at = `${route === 'today' ? pin.slice(5, 10) + ' ' : ''}${w}x${h}${inset ? ' inset ' + inset : ''}`;
       const m = await browser.eval(`(() => {
         const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
         const a = document.querySelector('#main .col-a, #main .pl-col-a, #main .set-nav'), b = document.querySelector('#main .col-b, #main .pl-col-b, #main .set-panes');
@@ -495,7 +502,8 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         const shown = m.slots.filter((x) => x.t != null);
         if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
-        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5, 6, 9].includes(x.o) ? 'a' : 'b')) bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
+        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5].includes(x.o) ? 'a' : 'b') && !([6, 9].includes(x.o) && x.col)) // 6 and 9 (coach line, insights) go on the shorter side
+          bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
       if (route === 'settings') { // list left, selected section right; a phone keeps the whole page (list hidden, every section shown)
@@ -696,12 +704,13 @@ if (standalone) {
       const end = (c) => (c ? Math.round(c.getBoundingClientRect().bottom + scrollY) : null);
       return { a: end(a), b: end(b), order: [...document.querySelectorAll('[data-today-cols] .slot')].map((s) => s.dataset.o).join(',') };
     })()`;
-    for (const [w, h] of [[890, 626], [932, 430]]) {
+    for (const at of DAYS) for (const [w, h] of [[890, 626], [932, 430], [844, 390], [874, 402]]) {
       await browser.viewport(w, h, true);
-      await browser.open('today', seed());
+      await browser.open('today', seed(onDay(at)), '', { at });
       const m = await browser.eval(measure);
-      if (m.a == null || m.b == null) bad.push(`${w}x${h}: no two columns`);
-      else if (Math.abs(m.a - m.b) > 120) bad.push(`${w}x${h}: columns end ${m.a}px and ${m.b}px down (${Math.abs(m.a - m.b)}px apart)`);
+      const where = `${at.slice(0, 10)} ${w}x${h}`;
+      if (m.a == null || m.b == null) bad.push(`${where}: no two columns`);
+      else if (Math.abs(m.a - m.b) > 120) bad.push(`${where}: columns end ${m.a}px and ${m.b}px down (${Math.abs(m.a - m.b)}px apart)`);
     }
     await browser.viewport(390, 844, true);
     await browser.open('today', seed());
@@ -1430,6 +1439,26 @@ if (standalone) {
   });
 }
 
+if (standalone) {
+  test('layout: Score pillar captions ("Not tracked") stay on one line at 320 to 430 and on Duo with large text', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    for (const [w, h, ts] of [[320, 568], [375, 667], [390, 844], [430, 932], [466, 700, 1.35], [626, 890, 1.35], [890, 626, 1.35], [390, 844, 1.35]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('score', seed());
+      const bad = await browser.eval(`(() => {
+        const grid = document.querySelector('.pillar-grid'); if (!grid) return 'no pillar grid';
+        ${ts ? `document.documentElement.style.setProperty('--ts', '${ts}');` : ''}
+        const first = grid.querySelector('.pillar');
+        const off = first.cloneNode(true); off.classList.add('off'); off.querySelector('small').textContent = 'Not tracked'; grid.appendChild(off); // an untracked pillar, whatever the fixture has
+        return [...grid.querySelectorAll('.pillar small')].map((el) => { const lh = parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.3;
+          return el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().height > lh * 1.5 ? el.textContent + ' h=' + el.getBoundingClientRect().height : null; }).filter(Boolean).join(', ');
+      })()`);
+      assert(!bad, `${w}px ts=${ts || 1}: ${bad}`);
+    }
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;
@@ -1437,9 +1466,9 @@ test('layout: close the browser', async () => {
 
 if (standalone) {
   const { runAll, tests } = await import('./harness.js');
-  const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/3 → every third test, starting at the second
+  const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/4 → every fourth test, starting at the second
   if (shard.length === 2) {
-    const keep = tests.filter((t, i) => i % shard[1] === shard[0] - 1 || t.name === 'layout: close the browser');
+    const only = arg('only'); const keep = tests.filter((t, i) => only ? (t.name.includes(only) || t.name === 'layout: close the browser') : i % shard[1] === shard[0] - 1 || t.name === 'layout: close the browser');
     tests.splice(0, tests.length, ...keep);
   }
   const { fail } = await runAll();

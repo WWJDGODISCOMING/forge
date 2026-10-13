@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.15.27 — Score pillar copy (2026-10-12)
+
+Issue #64. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- Untracked Score pillars say "Not tracked" and never wrap (one line, ellipsis as a last resort). New layout test at 320 to 430.
+- Layout tests in CI: the Duo resize, rotation and fold tests already run under `node tests/run.js` (it spawns `tests/layout.test.js` as three parallel shards, where they are enabled). A new guard fails the run if fewer than 30 layout tests ran or the fold test went missing, so they can't be skipped silently.
+
+### What's new
+
+- Score tiles that aren't tracked yet read "Not tracked" on one line.
+
 ## 0.15.26 — Snap a meal (2026-10-12)
 
 Issue #83. **Touches Cloud Functions** (new `snapMealPhoto`); no `firestore.rules`, `firebase.json` or `config.js` changes. Deploy with the phone **Deploy** button, choice `functions`. It uses the existing `XAI_API_KEY` secret, so there is no new secret and no new `.env` setting.
