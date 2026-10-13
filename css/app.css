@@ -453,13 +453,19 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 
 /* ---------- Today rings ---------- */
 .rings { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: var(--s-4); align-items: center; }
-.rings-svg { display: block; overflow: visible; filter: drop-shadow(0 0 14px color-mix(in srgb, var(--accent) 18%, transparent)); }
-.ring-track, .ring-arc { fill: none; stroke-width: 13; } /* thinner inline when five rings are drawn */
-.ring-track { opacity: 0.16; }
+.rings-svg { display: block; overflow: visible; width: min(240px, 100%); height: auto; aspect-ratio: 1; }
+.ring-track, .ring-arc { fill: none; stroke-width: 20; }
+.ring-track { opacity: 0.14; }
 .ring-arc { stroke-linecap: round; stroke-dashoffset: var(--off); transition: stroke-dashoffset 1s var(--ease-out); }
 .ring-arc.ring-over { transition-delay: 1s; } /* the second lap draws after the first closes */
 .rings-pre .ring-arc { stroke-dashoffset: var(--c); transition: none; }
-.ring-arc.ring-closed { filter: drop-shadow(0 0 6px currentColor); }
+.rings-hero { position: relative; width: min(240px, 100%); margin-inline: auto; }
+.rings-hub { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
+.rings-hub b { font-size: calc(44px * var(--ts)); line-height: 1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rings-hub b i { font-style: normal; font-size: calc(22px * var(--ts)); font-weight: 600; color: var(--muted); }
+.rings-hub small { margin-top: 4px; font-size: calc(12px * var(--ts)); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
+.ring-arc { filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 35%, transparent)); }
+.ring-arc.ring-closed { filter: drop-shadow(0 0 7px color-mix(in srgb, currentColor 55%, transparent)); }
 .rings-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
 .rings-legend li { display: grid; grid-template-columns: 10px 1fr; gap: var(--s-2); align-items: start; }
 .rings-legend li > span:last-child { display: flex; flex-direction: column; min-width: 0; }
@@ -467,7 +473,6 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .ring-done { color: var(--rc); display: inline-flex; vertical-align: -2px; }
 .ring-done svg { width: 14px; height: 14px; }
 @media (prefers-reduced-motion: reduce) { .ring-arc, .ring-arc.ring-over { transition: none; transition-delay: 0s; } }
-@media (max-width: 340px) { .rings { grid-template-columns: 1fr; justify-items: center; } }
 
 /* ---------- Body composition (v0.4.0) ---------- */
 .bc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-2); margin-top: var(--s-2); }
@@ -622,9 +627,9 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 .g-row select { flex: 0 1 auto; min-width: 0; max-width: 42%; }
 .body-hero .bh-tile { padding: var(--s-3) var(--s-4); }
 /* Rings: the legend drops under the rings when it would be squeezed (large text, 320 px phones). */
-.rings { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--s-4); }
+.rings { display: flex; flex-direction: column; align-items: stretch; gap: var(--s-5, 20px); padding-block: var(--s-2); }
 .rings-svg { flex: none; }
-.rings-legend { flex: 1 1 calc(120px * var(--ts)); min-width: 0; }
+.rings-legend { min-width: 0; grid-template-columns: repeat(auto-fit, minmax(calc(130px * var(--ts)), 1fr)); gap: var(--s-3) var(--s-4); }
 .rings-card > .row { flex-wrap: wrap; row-gap: 0; }
 
 /* two-by-two stats (Weight: latest, trend, 7 days, per week) */
@@ -705,3 +710,6 @@ html { overflow-anchor: auto; }
 .dots{display:block;overflow:hidden}
 .dots-in{display:flex;flex-wrap:wrap;margin-left:-1em}
 .dots-in>*::before{content:"·";display:inline-block;width:1em;text-align:center}
+
+/* Two-column Today (Duo, iPad): the hero sits beside its legend so the left column stays no taller than before. */
+@media (min-width: 840px) { .rings { flex-direction: row; align-items: center; gap: var(--s-3); padding-block: 0; } .rings-legend { gap: var(--s-2); } .rings-hero { margin: 0; flex: none; width: 164px; } .rings-svg { width: 164px; } .rings-hub b { font-size: calc(30px * var(--ts)); } .rings-legend { flex: 1 1 0; grid-template-columns: 1fr; } }
