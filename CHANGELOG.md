@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.5 — Charts finish (2026-10-13)
+
+Issue #58, sixth slice (item 6, line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- The Body-tab Weight chips (30d / 90d / 1y / All) glide the line and fill like the metric charts do. The goal line, projection, goal label and dots fade in as the line arrives. Skipped under reduced motion.
+- On first draw-in the gradient fill is revealed left to right with the line (a per-chart clip) instead of showing ahead of it.
+- Charts spanning more than about 300 days, or two years, put the year on the x-axis ends ("Oct 13, 2025"). Short ranges stay "Oct 6".
+- The trend line is drawn over the reading dots. Past 120 points the dots shrink and fade so the line reads first.
+- Metric card: the sets switch sits flush with the card's content and reads "Show weekly training sets"; the third stat label is "vs prev 7d" and no stat label wraps.
+
+### What's new
+
+- Weight chart ranges glide, and long charts show years.
+
 ## 0.16.4 — Chart range morph (2026-10-13)
 
 Issue #58, fifth slice (item 6, scrubbable line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.

@@ -5,6 +5,7 @@ import { daysBetween, addDays } from '../weight/smoothing.js';
 import { formatDay } from '../ui.js';
 import { tick } from './haptic.js';
 import { labelPlace, tickGate } from './scrubmath.js';
+import { axisNeedsYear, dotStyle } from './chartmath.js';
 import { parsePath, toPath, areaPath, prepareMorph, morphFrame } from './pathmorph.js';
 
 /** Rolling mean over the previous `n` days for each point (by calendar day, not by count). */
@@ -76,7 +77,9 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
   const barScale = shownBars.length ? `<line x1="${L}" x2="${width - R}" y1="${(height - B - barH).toFixed(1)}" y2="${(height - B - barH).toFixed(1)}" class="bar-top"/><text x="${width - R}" y="${(height - B - barH - 3).toFixed(1)}" class="axis bar-label" text-anchor="end">${maxBar} ${barUnit}</text>` : '';
   const path = (ps) => ps.map((p, i) => `${i ? 'L' : 'M'}${x(p.day).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
   const line = rolling(points);
-  const dots = points.map((p) => `<circle cx="${x(p.day).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.4" class="dot"/>`).join('');
+  const ds = dotStyle(points.length, 2.4);
+  const dots = points.map((p) => `<circle cx="${x(p.day).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${ds.r}" class="dot${ds.dense ? ' dense' : ''}"/>`).join('');
+  const yr = axisNeedsYear(start, end) ? { year: 'numeric', month: 'short', day: 'numeric' } : undefined;
   const scrub = points.map((p) => [Number(x(p.day).toFixed(1)), Number(y(p.v).toFixed(1)), p.day, p.t != null ? String(p.t) : axisLabel(p.v, nt.decimals + 1)]);
   const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="${attr(label)}" data-scrub="${attr(JSON.stringify(scrub))}">
@@ -84,11 +87,11 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
     ${ticks}${barScale}${barEls}
     ${prev.length > 1 ? `<path d="${path(rolling(prev))}" class="prev"/>` : ''}
     ${line.length > 1 ? areaFill(path(line), x(line[0].day).toFixed(1), x(line[line.length - 1].day).toFixed(1), (height - B).toFixed(1)) : ''}
-    <path d="${path(line)}" class="trend" pathLength="1"/>${dots}
+    ${dots}<path d="${path(line)}" class="trend" pathLength="1"/>
     <g class="scrub" visibility="hidden"><line y1="${T}" y2="${height - B}" class="scrub-line"/><circle r="4.5" class="scrub-dot"/></g>
     <g class="scrub-pill" opacity="0" pointer-events="none"><rect rx="9" height="22"/><text y="15" text-anchor="middle"/></g>
-    <text x="${L}" y="${height - 6}" class="axis">${formatDay(start)}</text>
-    <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(end)}</text>
+    <text x="${L}" y="${height - 6}" class="axis">${formatDay(start, yr)}</text>
+    <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(end, yr)}</text>
   </svg>`;
 }
 
@@ -104,8 +107,10 @@ let gradSeq = 0;
 /** Soft accent → transparent fill under a line (`line` is an "M…L…" path), with its own gradient id. */
 export function areaFill(line, firstX, lastX, baseY) {
   const id = `ar${++gradSeq}`;
-  return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="area-a" stop-opacity=".3"/><stop offset="1" class="area-a" stop-opacity="0"/></linearGradient></defs>
-    <path d="${line} L${lastX},${baseY} L${firstX},${baseY} Z" fill="url(#${id})" class="area"/>`;
+  // The clip rect grows left → right with the draw-in (CSS), so the fill never shows ahead of the line.
+  return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="area-a" stop-opacity=".3"/><stop offset="1" class="area-a" stop-opacity="0"/></linearGradient>
+    <clipPath id="${id}c"><rect class="area-clip" x="${(Number(firstX) - 1).toFixed(1)}" y="0" width="${(Number(lastX) - Number(firstX) + 2).toFixed(1)}" height="${(Number(baseY) + 1).toFixed(1)}"/></clipPath></defs>
+    <path d="${line} L${lastX},${baseY} L${firstX},${baseY} Z" fill="url(#${id})" class="area" clip-path="url(#${id}c)"/>`;
 }
 
 /** The chart's current trend and fill paths, to morph from after a re-render. Null when there's no chart. */
@@ -133,6 +138,7 @@ export function morphChart(svg, from, ms = 450) {
   const prep = prepareMorph(from.trend, toLine);
   if (!prep) return;
   svg.classList.add('chart-morph'); // no draw-in on top of the morph
+  if (area) area.removeAttribute('clip-path'); // the morphing fill spans old → new extents
   const t0 = performance.now();
   const step = (now) => {
     const t = Math.min(1, (now - t0) / ms);

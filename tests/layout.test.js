@@ -432,6 +432,39 @@ if (standalone) {
   });
 }
 
+if (standalone) {
+  test('layout: #/metric/steps with sets on keeps stats, switch row and legend on one line, no overflow', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const found = new Map();
+    for (const [w, h] of [[320, 568], [390, 844], [466, 678], [626, 890], [890, 626]]) for (const ts of [1, 1.35]) {
+      await browser.viewport(w, h, true);
+      await browser.open('metric/steps', seed());
+      await browser.eval("(() => { const c = document.querySelector('input[name=sets]'); if (c && !c.checked) c.click(); })()");
+      await new Promise((r) => setTimeout(r, 300));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const r = await browser.eval(`(() => {
+        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+        const stats = [...document.querySelectorAll('.stats-m span')];
+        const tops = [...document.querySelectorAll('.stats-m b')].map((b) => Math.round(b.getBoundingClientRect().top));
+        const sw = document.querySelector('.g-row.sw .g-text > span');
+        const spread = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => (q.top + q.bottom) / 2); return Math.max(...c) - Math.min(...c); };
+        const groups = [...document.querySelectorAll('.legend .nw')];
+        return { none: !stats.length || !sw, wrapStat: stats.filter((e) => lines(e) > 1).map((e) => e.textContent), baseline: new Set(tops).size > 1, wrapSwitch: sw ? lines(sw) > 1 : false, wrapLegend: groups.filter((e) => spread(e) > 8).length, overflow: document.documentElement.scrollWidth > window.innerWidth + 1 };
+      })()`);
+      const at = `${w}${ts !== 1 ? 'T' : ''}`;
+      const add = (m) => found.set(m, [...(found.get(m) || []), at]);
+      if (r.none) { add('metric card missing stats or switch'); continue; }
+      if (r.wrapStat.length) add(`stat label wraps: ${r.wrapStat.join(', ')}`);
+      if (r.baseline) add('stat values are not on one baseline');
+      if (r.wrapSwitch) add('switch label wraps');
+      if (r.wrapLegend) add('a legend group wraps');
+      if (r.overflow) add('horizontal overflow');
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
 // A fake iPhone shell for the update tests: a native Capacitor with the App plugin, and app-install.json / whats-new.json served
 // from sessionStorage so a reload keeps them. The setup script is kept across the reload (open(..., { persist: true })).
 const NATIVE_SHELL = `
