@@ -312,8 +312,13 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   .chart-wait-push { --chart-wait: 300ms; }
   .chart .trend[pathLength] { stroke-dasharray: 1 2; animation: chart-draw 1s var(--ease-out) var(--chart-wait) both; }
   .chart .area { animation: chart-fade .6s var(--ease-out) calc(var(--chart-wait) + .15s) both; }
+  /* On a range morph, dots, the previous-period line and bars fade in as the line arrives (end at their own opacity). */
+  .chart.chart-morph .dot, .chart.chart-morph .prev, .chart.chart-morph .bar { animation: chart-in .3s var(--ease-out) .12s backwards; }
 }
+/* A range change morphs the existing line (see morphChart()) instead of drawing it in again. */
+.chart.chart-morph .trend[pathLength], .chart.chart-morph .area { animation: none; }
 @keyframes chart-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+@keyframes chart-in { from { opacity: 0; } }
 @keyframes chart-fade { from { opacity: 0; } to { opacity: 1; } }
 .chart .goal { stroke: var(--ember); stroke-width: 1.5; stroke-dasharray: 6 5; }
 .chart .goal-label { fill: var(--ember); }
@@ -323,6 +328,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .key.dot { width: 7px; height: 7px; border-radius: 50%; background: var(--text-2); }
 .key.line { width: 16px; height: 3px; border-radius: 2px; background: var(--accent-text); margin-left: 8px; }
 .key.dash { width: 16px; border-top: 2px dashed var(--ember); margin-left: 8px; }
+.key.dash.prev-key { border-top-color: var(--text-2); }
 
 /* Lists are inset-grouped: no outline, hairline separators inset from the left. */
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; background: var(--top-light), var(--surface-1); border-radius: var(--r-xl); overflow: hidden; }
@@ -497,6 +503,9 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .bc-tile small { font-size: calc(11px * var(--ts)); }
 .chart .prev { fill: none; stroke: var(--text-2); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .7; }
 .chart .bar { fill: var(--accent-text); opacity: .22; }
+.legend .nw { display: inline-flex; align-items: center; gap: 6px; }
+.legend .nw:not(:last-child) { margin-right: 8px; }
+.legend .nw .key { margin-left: 0; flex: none; }
 .legend .key.bar { display: inline-block; width: 10px; height: 8px; background: var(--accent-text); opacity: .35; border-radius: 2px; vertical-align: middle; }
 .explainer .label { margin-top: 6px; }
 /* Data check */

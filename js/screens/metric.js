@@ -6,7 +6,7 @@ import { state, units as getUnits } from '../state.js';
 import { esc, $, $$, sheet, todayKey } from '../ui.js';
 import { addDays, daysBetween } from '../weight/smoothing.js';
 import { weightToDisplay } from '../units.js';
-import { lineChartSVG, bindScrub, unitOf } from '../ui/linechart.js';
+import { lineChartSVG, bindScrub, unitOf, grabChart, morphChart } from '../ui/linechart.js';
 import { metricDef, metricPoints, metricEmptyChoice, dailySeries, fmtMetric, heightM, periodAverage } from '../withings/body.js';
 import { trendMetric, trendsFor, notEnoughText } from '../health/trends.js';
 import { intel } from '../health/intel.js';
@@ -16,6 +16,7 @@ import { icon, emptyState } from '../ui/icons.js';
 import { vo2Series } from '../health/longevity.js';
 import { isNative } from '../native/bridge.js';
 let unbindScrub = () => {};
+let morphFrom = null; // the old range's paths, for one render
 
 let range = 90; // 7 / 28 / 90 / 365 days, or 0 for everything
 let explainers = null;
@@ -111,7 +112,7 @@ export function renderMetric(el, key) {
         </div>
         ${shown.length ? lineChartSVG(shown.map((p) => ({ day: p.day, v: disp(p.v), t: fmt(p.v) })), { prev, bars, unit: unitOf(fmt), label: `${def.label} chart`, fromDay: from, toDay: end }) : '<p class="muted small">No readings in this range.</p>'}
         ${shown.length ? '<p class="small muted chart-readout" data-readout aria-live="polite">Touch the chart to read a day.</p>' : ''}
-        <p class="small muted legend"><span class="key dot"></span>readings <span class="key line"></span>7-day average ${prev.length ? '<span class="key dash"></span>previous period' : ''} ${bars.length ? '<span class="key bar"></span>training sets/week' : ''}</p>
+        <p class="small muted legend"><span class="nw"><span class="key dot"></span>readings</span> <span class="nw"><span class="key line"></span>7-day average</span> ${prev.length ? '<span class="nw"><span class="key dash prev-key"></span>previous period</span>' : ''} ${bars.length ? '<span class="nw"><span class="key bar"></span>training sets/week</span>' : ''}</p>
         ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Show training sets per week</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
         ${trendLine ? `<p data-trend-line>${esc(trendLine)}</p>` : ''}
         <p class="small muted">Last reading ${def === apple || key === 'vo2max' ? new Date(last.at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : new Date(last.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${daily.length.toLocaleString()} days with readings</p>
@@ -122,7 +123,8 @@ export function renderMetric(el, key) {
   $('[data-explain]', el).onclick = () => openExplainer(key);
   unbindScrub();
   unbindScrub = bindScrub($('svg.chart', el), $('[data-readout]', el));
-  $$('input[name=range]', el).forEach((r) => r.addEventListener('change', () => { range = Number(r.value); renderMetric(el, key); }));
+  if (morphFrom) { morphChart($('svg.chart', el), morphFrom); morphFrom = null; }
+  $$('input[name=range]', el).forEach((r) => r.addEventListener('change', () => { morphFrom = grabChart(el); range = Number(r.value); renderMetric(el, key); }));
   const sets = $('input[name=sets]', el);
   if (sets) sets.addEventListener('change', () => renderMetric(el, key));
 }
