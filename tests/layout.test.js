@@ -6,7 +6,9 @@
 import { test, assert } from './harness.js';
 import { skipReason, launch } from './layout/browser.js';
 import { detect } from './layout/detect.js';
-import { seed } from './layout/seed.js';
+import { seed, WORKOUT_DAY, REST_DAY } from './layout/seed.js';
+const DAYS = [WORKOUT_DAY, REST_DAY]; // Today differs by day type, so its column checks run on a workout day and on a rest day
+const onDay = (at) => ({ now: new Date(at).getTime() });
 
 const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
 const shortLand0 = (w, h) => w >= 600 && h <= 500;
@@ -453,11 +455,11 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const bad = [];
     let base = new Set(); // what already wraps on a 390 phone isn't a wide-layout problem
-    for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
+    for (const pin of (route === 'today' ? DAYS : [WORKOUT_DAY])) for (const [w, h] of [[390, 844], ...WIDE]) for (const inset of (w > h ? [0, 47] : [0])) { // side insets only exist in landscape
       await browser.viewport(w, h, true);
-      await browser.open(route, seed({ active: route === 'play' }));
+      await browser.open(route, seed({ active: route === 'play', ...onDay(pin) }), '', { at: pin });
       if (inset) { await browser.eval(`document.documentElement.style.setProperty('--safe-left', '${inset}px'); document.documentElement.style.setProperty('--safe-right', '${inset}px'); document.documentElement.style.setProperty('--safe-bottom', '${SAFE_BOTTOM}px')`); await wait(300); }
-      const at = `${w}x${h}${inset ? ' inset ' + inset : ''}`;
+      const at = `${route === 'today' ? pin.slice(5, 10) + ' ' : ''}${w}x${h}${inset ? ' inset ' + inset : ''}`;
       const m = await browser.eval(`(() => {
         const r = (e) => { if (!e) return null; const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom }; };
         const a = document.querySelector('#main .col-a, #main .pl-col-a, #main .set-nav'), b = document.querySelector('#main .col-b, #main .pl-col-b, #main .set-panes');
@@ -701,12 +703,13 @@ if (standalone) {
       const end = (c) => (c ? Math.round(c.getBoundingClientRect().bottom + scrollY) : null);
       return { a: end(a), b: end(b), order: [...document.querySelectorAll('[data-today-cols] .slot')].map((s) => s.dataset.o).join(',') };
     })()`;
-    for (const [w, h] of [[890, 626], [932, 430]]) {
+    for (const at of DAYS) for (const [w, h] of [[890, 626], [932, 430], [844, 390], [874, 402]]) {
       await browser.viewport(w, h, true);
-      await browser.open('today', seed());
+      await browser.open('today', seed(onDay(at)), '', { at });
       const m = await browser.eval(measure);
-      if (m.a == null || m.b == null) bad.push(`${w}x${h}: no two columns`);
-      else if (Math.abs(m.a - m.b) > 120) bad.push(`${w}x${h}: columns end ${m.a}px and ${m.b}px down (${Math.abs(m.a - m.b)}px apart)`);
+      const where = `${at.slice(0, 10)} ${w}x${h}`;
+      if (m.a == null || m.b == null) bad.push(`${where}: no two columns`);
+      else if (Math.abs(m.a - m.b) > 120) bad.push(`${where}: columns end ${m.a}px and ${m.b}px down (${Math.abs(m.a - m.b)}px apart)`);
     }
     await browser.viewport(390, 844, true);
     await browser.open('today', seed());
