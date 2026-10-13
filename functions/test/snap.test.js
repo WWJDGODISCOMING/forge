@@ -106,3 +106,28 @@ test('a reply cut off at the token limit is garbled, not no-food; the budget is 
   await run({ image: IMG }, { fetch });
   assert.ok(JSON.parse(fetch.calls[0].init.body).max_tokens >= 4000);
 });
+
+test('a non-ok reply logs status, a short body and ms (never the photo); a timeout is busy', async () => {
+  const lines = [];
+  const orig = console.error;
+  console.error = (l) => lines.push(String(l));
+  try {
+    const fetch = async () => ({ ok: false, status: 400, text: async () => 'bad model ' + 'x'.repeat(500) + IMG });
+    assert.equal(await code(run({ image: IMG }, { fetch })), 'down');
+  } finally { console.error = orig; }
+  assert.equal(lines.length, 1);
+  const o = JSON.parse(lines[0]);
+  assert.equal(o.event, 'snap_meal_error');
+  assert.equal(o.status, 400);
+  assert.ok(o.body.length <= 300 && o.body.startsWith('bad model'));
+  assert.ok(Number.isInteger(o.ms));
+  assert.ok(!lines[0].includes(IMG));
+  const timeout = async () => { const e = new Error('timed out'); e.name = 'TimeoutError'; throw e; };
+  assert.equal(await code(run({ image: IMG }, { fetch: timeout })), 'busy');
+});
+
+test('the request names the explicit grok-4.3 model', async () => {
+  const fetch = model(JSON.stringify(REPLY));
+  await run({ image: IMG }, { fetch });
+  assert.equal(JSON.parse(fetch.calls[0].init.body).model, 'grok-4.3');
+});
