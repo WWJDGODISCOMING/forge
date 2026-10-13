@@ -185,7 +185,8 @@ function greeting() {
 
 // Two columns (>= 840px): slot numbers on the left or right. The DOM stays in the phone's reading order and only
 // moves into columns while the wide query matches, so VoiceOver and Tab order follow the screen on every size.
-const LEFT_SLOTS = new Set(['1', '3', '5', '6', '9']); // readiness, rings, food, coach line, insights; the rest go right (Food is one short row now, so the coach line balances the columns)
+const LEFT_SLOTS = new Set(['1', '3', '5']); // readiness, rings, food; the rest go right
+const FLEX_SLOTS = ['6', '9']; // coach line, insights: they go on whichever side leaves the two columns closest in height (a rest day has no workout card, so the right column is shorter)
 let wideQuery = null;
 let wideListener = null;
 function arrangeTodayCols(el) {
@@ -202,7 +203,19 @@ function arrangeTodayCols(el) {
       const a = document.createElement('div'); a.className = 'col col-a';
       const b = document.createElement('div'); b.className = 'col col-b';
       host.replaceChildren(a, b);
-      for (const sl of slots) (LEFT_SLOTS.has(sl.dataset.o) ? a : b).append(sl);
+      const side = new Map(FLEX_SLOTS.map((o) => [o, 'a']));
+      const put = () => { for (const sl of slots) (LEFT_SLOTS.has(sl.dataset.o) || side.get(sl.dataset.o) === 'a' ? a : b).append(sl); };
+      put();
+      const gap = () => Math.abs(a.getBoundingClientRect().height - b.getBoundingClientRect().height);
+      let best = null;
+      for (let mask = 0; mask < 1 << FLEX_SLOTS.length; mask++) { // 2 slots: 4 tries, measured on the real layout
+        FLEX_SLOTS.forEach((o, i) => side.set(o, mask & (1 << i) ? 'b' : 'a'));
+        put();
+        const d = gap();
+        if (!best || d < best.d - 0.5) best = { d, mask };
+      }
+      FLEX_SLOTS.forEach((o, i) => side.set(o, best.mask & (1 << i) ? 'b' : 'a'));
+      put();
     } else {
       host.replaceChildren(...slots);
     }

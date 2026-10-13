@@ -7,6 +7,7 @@ import { tmpdir } from 'node:os';
 import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { STUBS } from './stubs.js';
+import { WORKOUT_DAY } from './seed.js';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const MIME = { '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp', '.jpg': 'image/jpeg' };
@@ -34,6 +35,13 @@ function serve() {
     });
     srv.listen(0, '127.0.0.1', () => resolve(srv));
   });
+}
+
+/** Pin "now" to a fixed instant (the clock still runs), so day-dependent screens look the same on any weekday. */
+function pinClock(iso) {
+  return `(() => { const R = Date, off = new R(${JSON.stringify(iso)}).getTime() - R.now();
+    class D extends R { constructor(...a) { if (a.length) super(...a); else super(R.now() + off); } static now() { return R.now() + off; } }
+    window.Date = D; })();`;
 }
 
 export async function launch() {
@@ -97,6 +105,7 @@ export async function launch() {
 
   let kept = null;
   const api = {
+    pinned: WORKOUT_DAY,
     base: `http://127.0.0.1:${port}`,
     send,
     errors,
@@ -110,7 +119,7 @@ export async function launch() {
       await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }, { name: 'prefers-reduced-motion', value: 'reduce' }] });
     },
     /** Open the app at a hash route with a seeded account. */
-    async open(route, seedData, init = '', { persist = false } = {}) {
+    async open(route, seedData, init = '', { persist = false, at = api.pinned } = {}) {
       await api.dropInit();
       await send('Page.navigate', { url: 'about:blank' });
       // persist: the setup script also runs after a page reload, and storage is only cleared on the first load (resume/update tests)
@@ -119,6 +128,7 @@ export async function launch() {
         try { if (!${persist} || sessionStorage.getItem('__booted') !== '${tok}') { localStorage.clear(); localStorage.setItem('forge.seen', '1'); sessionStorage.setItem('__booted', '${tok}'); } } catch (e) {}
         try { delete Navigator.prototype.serviceWorker; } catch (e) {}
         window.__cls = 0; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
+        ${at ? pinClock(at) : ''}
         ${init}`;
       const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: boot });
       await send('Page.navigate', { url: `${api.base}/index.html#/${route}` });
