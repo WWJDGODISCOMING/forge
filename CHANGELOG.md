@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.3 — Chart scrub magnifier + haptic ticks (2026-10-13)
+
+Issue #58, fourth slice (item 6, scrubbable line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- Touching a metric chart shows a floating pill with the day and value above the dot. It stays inside the chart's edges, drops below the dot when there's no room above, and lives inside the SVG so the card never reflows. It fades out in 150 ms on clear (no fade under reduced motion). The text line under the chart stays in step.
+- A `select` haptic tick fires each time the scrub lands on a different point, at most one per 35 ms. Web: no-op; Settings → Haptic tick turns it off. The maths is in `js/ui/scrubmath.js` with unit tests.
+
+### What's new
+
+- Slide a finger along a chart to see each day's value in a floating label.
+
 ## 0.16.2 — Charts path draw-in (2026-10-13)
 
 Issue #58, third slice (item 6, Weight and trend line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
