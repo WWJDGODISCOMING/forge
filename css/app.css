@@ -300,6 +300,10 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .chart .axis { fill: var(--text-2); font-size: calc(11px * var(--ts) * var(--ck, 1)); font-family: var(--font); }
 .chart .dot { fill: var(--text-2); opacity: .7; }
 .chart .trend { fill: none; stroke: var(--accent-text); stroke-width: calc(3px * var(--ck, 1)); stroke-linecap: round; stroke-linejoin: round; }
+.chart .scrub-pill rect { fill: var(--surface-3); stroke: var(--separator); stroke-width: 1; }
+.chart .scrub-pill text { fill: var(--text-1); font-size: calc(12px * var(--ts) * var(--ck, 1)); font-weight: 600; font-family: var(--font); font-variant-numeric: tabular-nums; }
+.chart .scrub-pill { transition: opacity .15s ease-out; }
+@media (prefers-reduced-motion: reduce) { .chart .scrub-pill { transition: none; } }
 .chart .area-a { stop-color: var(--accent-text); }
 /* Draw-in (1 s, like the Score rings; held back while a screen transition runs, see chartWait()): pathLength=1 makes the dash maths length-independent; only the line and its fill move. A re-render builds a fresh SVG, so it replays cleanly. */
 @media (prefers-reduced-motion: no-preference) {

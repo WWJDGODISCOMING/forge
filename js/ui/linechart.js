@@ -3,6 +3,8 @@
 // Same classes as the weight chart (grid, axis, dot, trend), so it themes the same. Pure markup.
 import { daysBetween, addDays } from '../weight/smoothing.js';
 import { formatDay } from '../ui.js';
+import { tick } from './haptic.js';
+import { labelPlace, tickGate } from './scrubmath.js';
 
 /** Rolling mean over the previous `n` days for each point (by calendar day, not by count). */
 export function rolling(points, n = 7) {
@@ -83,6 +85,7 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
     ${line.length > 1 ? areaFill(path(line), x(line[0].day).toFixed(1), x(line[line.length - 1].day).toFixed(1), (height - B).toFixed(1)) : ''}
     <path d="${path(line)}" class="trend" pathLength="1"/>${dots}
     <g class="scrub" visibility="hidden"><line y1="${T}" y2="${height - B}" class="scrub-line"/><circle r="4.5" class="scrub-dot"/></g>
+    <g class="scrub-pill" opacity="0" pointer-events="none"><rect rx="9" height="22"/><text y="15" text-anchor="middle"/></g>
     <text x="${L}" y="${height - 6}" class="axis">${formatDay(start)}</text>
     <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(end)}</text>
   </svg>`;
@@ -127,6 +130,21 @@ export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { weekda
   const ln = g && g.querySelector('line');
   const dot = g && g.querySelector('circle');
   const idle = readout ? readout.textContent : '';
+  const pill = svg.querySelector('.scrub-pill');
+  const pillBox = pill && pill.querySelector('rect');
+  const pillText = pill && pill.querySelector('text');
+  const gate = tickGate(35);
+  const vbW = svg.viewBox.baseVal.width;
+  // The floating label lives inside the SVG, so showing it never reflows the card.
+  const place = (px, py, label) => {
+    pillText.textContent = label;
+    const tw = pillText.getComputedTextLength ? pillText.getComputedTextLength() : 0;
+    const w = Math.min((tw || label.length * 6.5) + 18, vbW - 8);
+    const { x, y } = labelPlace({ px, py, w, h: 22, minX: 4, maxX: vbW - 4, minY: 2 });
+    pillBox.setAttribute('x', x.toFixed(1)); pillBox.setAttribute('y', y.toFixed(1)); pillBox.setAttribute('width', w.toFixed(1));
+    pillText.setAttribute('x', (x + w / 2).toFixed(1)); pillText.setAttribute('y', (y + 15).toFixed(1));
+    pill.setAttribute('opacity', '1');
+  };
   const show = (ev) => {
     const box = svg.getBoundingClientRect();
     const vb = svg.viewBox.baseVal;
@@ -135,9 +153,12 @@ export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { weekda
     if (i < 0) return;
     const [px, py, day, text] = pts[i];
     if (g) { g.setAttribute('visibility', 'visible'); ln.setAttribute('x1', px); ln.setAttribute('x2', px); dot.setAttribute('cx', px); dot.setAttribute('cy', py); }
-    if (readout) readout.textContent = `${dayText(day)} · ${text}`;
+    const label = `${dayText(day)} · ${text}`;
+    if (readout) readout.textContent = label;
+    if (pill) place(px, py, label);
+    if (gate(i, performance.now())) tick();
   };
-  const clear = () => { if (g) g.setAttribute('visibility', 'hidden'); if (readout) readout.textContent = idle; };
+  const clear = () => { if (g) g.setAttribute('visibility', 'hidden'); if (pill) pill.setAttribute('opacity', '0'); if (readout) readout.textContent = idle; };
   const down = (ev) => { svg.setPointerCapture && ev.pointerId != null && svg.setPointerCapture(ev.pointerId); show(ev); };
   const move = (ev) => { if (ev.buttons || ev.pointerType === 'touch' || ev.pointerType === 'mouse') show(ev); };
   let unbind = () => {};
