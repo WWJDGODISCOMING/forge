@@ -1440,20 +1440,21 @@ if (standalone) {
 }
 
 if (standalone) {
-  test('layout: Score pillar captions ("Not tracked") stay on one line at 320 to 430', async () => {
+  test('layout: Score pillar captions ("Not tracked") stay on one line at 320 to 430 and on Duo with large text', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
-    for (const [w, h] of [[320, 568], [375, 667], [390, 844], [430, 932]]) {
+    for (const [w, h, ts] of [[320, 568], [375, 667], [390, 844], [430, 932], [466, 700, 1.35], [626, 890, 1.35], [890, 626, 1.35], [390, 844, 1.35]]) {
       await browser.viewport(w, h, true);
       await browser.open('score', seed());
       const bad = await browser.eval(`(() => {
         const grid = document.querySelector('.pillar-grid'); if (!grid) return 'no pillar grid';
+        ${ts ? `document.documentElement.style.setProperty('--ts', '${ts}');` : ''}
         const first = grid.querySelector('.pillar');
         const off = first.cloneNode(true); off.classList.add('off'); off.querySelector('small').textContent = 'Not tracked'; grid.appendChild(off); // an untracked pillar, whatever the fixture has
-        return [...grid.querySelectorAll('.pillar.off small')].map((el) => { const lh = parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.3;
+        return [...grid.querySelectorAll('.pillar small')].map((el) => { const lh = parseFloat(getComputedStyle(el).lineHeight) || parseFloat(getComputedStyle(el).fontSize) * 1.3;
           return el.scrollWidth > el.clientWidth + 1 || el.getBoundingClientRect().height > lh * 1.5 ? el.textContent + ' h=' + el.getBoundingClientRect().height : null; }).filter(Boolean).join(', ');
       })()`);
-      assert(!bad, `${w}px: ${bad}`);
+      assert(!bad, `${w}px ts=${ts || 1}: ${bad}`);
     }
   });
 }
@@ -1467,7 +1468,7 @@ if (standalone) {
   const { runAll, tests } = await import('./harness.js');
   const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/4 → every fourth test, starting at the second
   if (shard.length === 2) {
-    const keep = tests.filter((t, i) => i % shard[1] === shard[0] - 1 || t.name === 'layout: close the browser');
+    const only = arg('only'); const keep = tests.filter((t, i) => only ? (t.name.includes(only) || t.name === 'layout: close the browser') : i % shard[1] === shard[0] - 1 || t.name === 'layout: close the browser');
     tests.splice(0, tests.length, ...keep);
   }
   const { fail } = await runAll();
