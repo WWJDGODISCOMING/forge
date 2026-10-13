@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.2 — Charts path draw-in (2026-10-13)
+
+Issue #58, third slice (item 6, Weight and trend line charts). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
+
+- The trend line draws in over 1 s (`pathLength="1"` dash offset, same `--ease-out` as the Score rings; when the chart mounts during a screen transition it starts after it, 280 ms for a tab or fade, 300 ms for a push or pop, so you see it once the screen lands; range and unit taps start at once) and a soft accent-to-transparent gradient fades in under it. Each chart gets its own gradient id. Data, scales, units and tap/scrub are unchanged. Switching range or unit rebuilds the chart and replays the draw. Skipped under reduced motion.
+- Settings: the web "Demo photos" block now holds its room while the photo list loads (it used to pop in and push Missions down, the first-render layout shift CI kept catching at 440 dark). It is left out entirely in the iPhone app, where the photos are bundled.
+
+### What's new
+
+- Your weight and trend charts now draw in, with a soft glow of colour under the line.
+
 ## 0.16.1 — Score ring draw-in (2026-10-13)
 
 Issue #58, second slice (item 6, Score only). CSS only. No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.

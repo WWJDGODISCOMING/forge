@@ -76,15 +76,32 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
   const dots = points.map((p) => `<circle cx="${x(p.day).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="2.4" class="dot"/>`).join('');
   const scrub = points.map((p) => [Number(x(p.day).toFixed(1)), Number(y(p.v).toFixed(1)), p.day, p.t != null ? String(p.t) : axisLabel(p.v, nt.decimals + 1)]);
   const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
-  return `<svg viewBox="0 0 ${width} ${height}" class="chart" role="img" aria-label="${attr(label)}" data-scrub="${attr(JSON.stringify(scrub))}">
+  return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="${attr(label)}" data-scrub="${attr(JSON.stringify(scrub))}">
     ${unit ? `<text x="${L - 6}" y="10" class="axis unit" text-anchor="end">${attr(unit)}</text>` : ''}
     ${ticks}${barScale}${barEls}
     ${prev.length > 1 ? `<path d="${path(rolling(prev))}" class="prev"/>` : ''}
-    <path d="${path(line)}" class="trend"/>${dots}
+    ${line.length > 1 ? areaFill(path(line), x(line[0].day).toFixed(1), x(line[line.length - 1].day).toFixed(1), (height - B).toFixed(1)) : ''}
+    <path d="${path(line)}" class="trend" pathLength="1"/>${dots}
     <g class="scrub" visibility="hidden"><line y1="${T}" y2="${height - B}" class="scrub-line"/><circle r="4.5" class="scrub-dot"/></g>
     <text x="${L}" y="${height - 6}" class="axis">${formatDay(start)}</text>
     <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(end)}</text>
   </svg>`;
+}
+
+/** Class that holds the draw-in until the screen has landed. Set once at mount, so timing never changes mid-animation; range/unit taps have no view transition and start at once. */
+export function chartWait() {
+  const vt = typeof document !== 'undefined' ? document.documentElement?.dataset?.vt : '';
+  return vt ? (vt === 'push' || vt === 'pop' ? ' chart-wait-push' : ' chart-wait') : '';
+}
+
+/** Unique per chart instance, so two charts on one screen never share a gradient. */
+let gradSeq = 0;
+
+/** Soft accent → transparent fill under a line (`line` is an "M…L…" path), with its own gradient id. */
+export function areaFill(line, firstX, lastX, baseY) {
+  const id = `ar${++gradSeq}`;
+  return `<defs><linearGradient id="${id}" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="area-a" stop-opacity=".3"/><stop offset="1" class="area-a" stop-opacity="0"/></linearGradient></defs>
+    <path d="${line} L${lastX},${baseY} L${firstX},${baseY} Z" fill="url(#${id})" class="area"/>`;
 }
 
 /** Index of the point nearest to x (points sorted by x). Pure. */
