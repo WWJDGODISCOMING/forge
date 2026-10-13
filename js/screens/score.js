@@ -6,7 +6,7 @@ import { esc, $, $$ } from '../ui.js';
 import { progressTabs, progressRowsHtml } from './progress.js';
 import { currentScore } from '../health/today.js';
 import { isNative } from '../native/bridge.js';
-import { ringSvg, animateScoreRings, scoreColor, round } from '../health/ui.js';
+import { ringSvg, animateScoreRings, revealPillars, scoreColor, round } from '../health/ui.js';
 import { PILLARS } from '../health/score.js';
 import { weeklyScores, longTerm } from '../health/longterm.js';
 import { longevityCards } from '../health/longevity.js';
@@ -143,6 +143,7 @@ export function renderScore(el) {
     </section>`;
 
   animateScoreRings(el);
+  revealPillars($('.pillar-grid', el));
   arrangeScoreCols(el);
   const toggle = (key) => {
     open = open === key ? null : key;
