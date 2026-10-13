@@ -503,6 +503,9 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .bc-tile small { font-size: calc(11px * var(--ts)); }
 .chart .prev { fill: none; stroke: var(--text-2); stroke-width: 1.5; stroke-dasharray: 4 4; opacity: .7; }
 .chart .bar { fill: var(--accent-text); opacity: .22; }
+.legend .nw { display: inline-flex; align-items: center; gap: 6px; }
+.legend .nw:not(:last-child) { margin-right: 8px; }
+.legend .nw .key { margin-left: 0; flex: none; }
 .legend .key.bar { display: inline-block; width: 10px; height: 8px; background: var(--accent-text); opacity: .35; border-radius: 2px; vertical-align: middle; }
 .explainer .label { margin-top: 6px; }
 /* Data check */
