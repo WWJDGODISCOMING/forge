@@ -37,7 +37,7 @@ export const pillarDelay = (i, entering = true) => (entering ? 240 : 0) + i * 60
 export function revealPillars(grid, { enterWindow = 500 } = {}) {
   if (!grid || reducedMotion() || typeof IntersectionObserver !== 'function') return;
   const t0 = performance.now();
-  [...grid.children].forEach((t) => t.style.setProperty("--d", "0ms"));
+  [...grid.children].forEach((t) => t.style.setProperty('--d', '0ms'));
   grid.classList.add('sc-hold');
   const io = new IntersectionObserver((entries) => {
     if (!entries.some((e) => e.isIntersecting)) return;
