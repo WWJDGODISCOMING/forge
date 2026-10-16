@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.11 — In-app icons v2 (2026-10-16)
+
+#58 slice 11. Icon paths only; no layout change.
+
+- The shared icon set now uses a true 2 px stroke. Camera, food, trophy, flame, star, heart, medal, person, scale, dumbbell, chart, calendar and play are redrawn to match the tab bar.
+- Filled versions are solid; the flame and camera keep a softer inner detail.
+
+### What's new
+
+- Icons across the app now match the new tab bar.
+
 ## 0.16.10 — Tab bar icons v2 (2026-10-16)
 
 #58 slice 10. Markup and CSS only; no layout change.
