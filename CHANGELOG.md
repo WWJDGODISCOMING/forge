@@ -5,7 +5,7 @@
 #58 slice 11. Icon paths only; no layout change.
 
 - The shared icon set now uses a true 2 px stroke. Camera, food, trophy, flame, star, heart, medal, person, scale, dumbbell, chart, calendar and play are redrawn to match the tab bar.
-- Filled versions are solid with a softer second tone.
+- Filled versions are solid; the flame and camera keep a softer inner detail.
 
 ### What's new
 

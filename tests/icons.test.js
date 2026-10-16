@@ -19,3 +19,16 @@ test('icons: unknown name is empty, filled twins differ from outline', () => {
     assert(f && f !== icon(n), `${n}: filled differs`);
   }
 });
+
+test('icons: solid trophy/heart/dumbbell, single-path flame outline, filled twins differ', () => {
+  const paths = icon('flame').split('<path').length - 1;
+  assert(paths === 1, `flame outline has one path, got ${paths}`);
+  for (const n of ['trophy', 'heart', 'dumbbell']) {
+    const f = icon(n, { filled: true });
+    assert(!f.includes('var(--bg)'), `${n}: no bg-colored detail`);
+    assert(!f.includes('opacity'), `${n}: no opacity`);
+  }
+  for (const n of ['trophy', 'flame', 'star', 'heart', 'check', 'camera', 'person', 'dumbbell', 'medal']) {
+    assert(icon(n, { filled: true }) !== icon(n), `${n}: filled differs`);
+  }
+});

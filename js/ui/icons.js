@@ -21,7 +21,7 @@ const P = {
   pin: '<path d="M12 21s6.5-5.7 6.5-11A6.5 6.5 0 005.5 10c0 5.3 6.5 11 6.5 11z"/><circle cx="12" cy="10" r="2.4"/>',
   trash: '<path d="M4.5 7h15M9.5 7V4.5h5V7M6.5 7l.8 12.2a1.5 1.5 0 001.5 1.3h6.4a1.5 1.5 0 001.5-1.3L17.5 7M10 11v6M14 11v6"/>',
   warn: '<path d="M12 4.2L2.8 19.5h18.4z"/><path d="M12 10v4.6M12 17.4v.2"/>',
-  flame: '<path d="M12 21c-3.9 0-6.5-2.7-6.5-6.2 0-3 2-4.6 3.2-6.6C9.6 6.6 10 5 10 3c3.7 1.6 5.5 4.6 5.7 7.2.9-.7 1.4-1.7 1.5-2.7 1.4 1.6 1.8 3.4 1.8 5.3 0 4.4-2.8 8.2-7 8.2z"/><path d="M12 18c-1.3 0-2.2-.9-2.2-2.1 0-1 .7-1.7 1.3-2.4.3.6.9 1 1.3 1.5.3-.2.5-.5.6-.9.4.5.6 1 .6 1.6 0 1.2-.8 2.3-1.6 2.3z"/>',
+  flame: '<path d="M12 21c-3.9 0-6.5-2.7-6.5-6.2 0-3 2-4.6 3.2-6.6C9.6 6.6 10 5 10 3c3.7 1.6 5.5 4.6 5.7 7.2.9-.7 1.4-1.7 1.5-2.7 1.4 1.6 1.8 3.4 1.8 5.3 0 4.4-2.8 8.2-7 8.2z"/>',
   trophy: '<path d="M7.5 4h9v5.5a4.5 4.5 0 01-9 0z"/><path d="M7.5 6H4.5c0 3 1.4 4.6 3.4 5M16.5 6h3c0 3-1.4 4.6-3.4 5M12 14v6.5M8 20.5h8"/>',
   swap: '<path d="M4 8h14l-3.5-3.5M20 16H6l3.5 3.5"/>',
   sliders: '<path d="M4 7h9M19 7h1M4 12h2M12 12h8M4 17h9M19 17h1"/><circle cx="16" cy="7" r="2.3"/><circle cx="9" cy="12" r="2.3"/><circle cx="16" cy="17" r="2.3"/>',
@@ -53,14 +53,14 @@ const P = {
 
 // Solid versions, for the active tab and filled trophies.
 const F = {
-  trophy: '<path d="M7.5 4h9v5.5a4.5 4.5 0 01-9 0z" fill="currentColor"/><path d="M7.5 6H4.5c0 3 1.4 4.6 3.4 5M16.5 6h3c0 3-1.4 4.6-3.4 5M12 14v6.5M8 20.5h8"/><path d="M10 6.5v3" stroke="var(--bg)" opacity=".45"/>',
+  trophy: '<path d="M7.5 4h9v5.5a4.5 4.5 0 01-9 0z" fill="currentColor"/><path d="M7.5 6H4.5c0 3 1.4 4.6 3.4 5M16.5 6h3c0 3-1.4 4.6-3.4 5M12 14v6.5M8 20.5h8"/>',
   flame: '<path d="M12 21c-3.9 0-6.5-2.7-6.5-6.2 0-3 2-4.6 3.2-6.6C9.6 6.6 10 5 10 3c3.7 1.6 5.5 4.6 5.7 7.2.9-.7 1.4-1.7 1.5-2.7 1.4 1.6 1.8 3.4 1.8 5.3 0 4.4-2.8 8.2-7 8.2z" fill="currentColor"/><path d="M12 18c-1.3 0-2.2-.9-2.2-2.1 0-1 .7-1.7 1.3-2.4.3.6.9 1 1.3 1.5.3-.2.5-.5.6-.9.4.5.6 1 .6 1.6 0 1.2-.8 2.3-1.6 2.3z" fill="var(--bg)" stroke="none" opacity=".45"/>',
   star: '<path d="M12 3.5l2.6 5.3 5.8.8-4.2 4.1 1 5.8-5.2-2.8-5.2 2.8 1-5.8-4.2-4.1 5.8-.8z" fill="currentColor"/>',
-  heart: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0112 7.6 4.3 4.3 0 0119.5 10c0 5.4-7.5 10-7.5 10z" fill="currentColor"/><path d="M7.5 10.2a2.2 2.2 0 011.6-2" stroke="var(--bg)" opacity=".45"/>',
+  heart: '<path d="M12 20s-7.5-4.6-7.5-10A4.3 4.3 0 0112 7.6 4.3 4.3 0 0119.5 10c0 5.4-7.5 10-7.5 10z" fill="currentColor"/>',
   check: '<circle cx="12" cy="12" r="9.5" fill="currentColor" stroke="none"/><path d="M7.8 12.4l3 3 5.4-6" stroke="var(--bg)"/>',
   camera: '<path d="M4 9a3 3 0 013-3h1.2l1.2-1.8a1 1 0 01.8-.4h3.6a1 1 0 01.8.4L16 6h1a3 3 0 013 3v8a3 3 0 01-3 3H7a3 3 0 01-3-3z" fill="currentColor"/><circle cx="12" cy="13" r="3.5" stroke="var(--bg)" opacity=".45"/>',
   person: '<circle cx="12" cy="7.5" r="3.5" fill="currentColor"/><path d="M5 20c.5-3.6 3.2-5.5 7-5.5s6.5 1.9 7 5.5z" fill="currentColor"/>',
-  dumbbell: '<rect x="5" y="6.5" width="3.5" height="11" rx="1.5" fill="currentColor"/><rect x="15.5" y="6.5" width="3.5" height="11" rx="1.5" fill="currentColor"/><path d="M8.5 12h7M2.8 10v4M21.2 10v4" opacity=".45"/>',
+  dumbbell: '<rect x="5" y="6.5" width="3.5" height="11" rx="1.5" fill="currentColor"/><rect x="15.5" y="6.5" width="3.5" height="11" rx="1.5" fill="currentColor"/><path d="M8.5 12h7M2.8 10v4M21.2 10v4"/>',
   medal: '<circle cx="12" cy="14.5" r="5.5" fill="currentColor"/><path d="M8.6 10L6.5 3.5h4L12 6.5l1.5-3h4L15.4 10" opacity=".45"/>',
 };
 
