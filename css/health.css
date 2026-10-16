@@ -44,7 +44,7 @@ svg.sc-hero { overflow: visible; }
 .score-days span.has { background: var(--accent); opacity: .85; }
 .score-days span.today { opacity: 1; box-shadow: 0 0 8px var(--accent-glow); }
 .pillar-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px }
-.pillar { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; background: var(--surface); border: 0; border-radius: var(--radius); padding: 12px; min-height: 84px; color: inherit; text-align: left; font: inherit; cursor: pointer; width: 100%; }
+.pillar { display: grid; grid-template-columns: 56px 1fr; gap: 10px; align-items: center; background: var(--surface); border: 0; border-radius: var(--radius); padding: 12px; min-height: 84px; color: inherit; text-align: left; font: inherit; cursor: pointer; width: 100%; box-shadow: var(--elev-raised); }
 .pillar:active { background: var(--surface-2); }
 .pillar.off { opacity: .6; cursor: default; }
 .pillar .pillar-ring { width: 56px; height: 56px; position: relative; color: var(--text-1); }
@@ -121,7 +121,7 @@ svg.sc-hero { overflow: visible; }
 
 /* Insight cards: borderless surface-1 cards; a small tinted dot says good / watch, never a coloured outline. */
 .insights { display: grid; gap: var(--s-3); }
-.insight { position: relative; background: var(--top-light), var(--surface-1); border-radius: var(--r-xl); box-shadow: var(--elev-1); }
+.insight { position: relative; background: var(--top-light), var(--surface-1); border-radius: var(--r-xl); box-shadow: var(--elev-raised); }
 .insight-main { display: grid; gap: 6px; padding: var(--s-4) 56px var(--s-4) 20px; color: inherit; text-decoration: none; min-height: 56px; border-radius: var(--r-xl); }
 .insight-main:active { background: var(--surface-2); }
 .insight-title { font-size: calc(17px * var(--ts)); line-height: calc(22px * var(--ts)); display: flex; align-items: center; gap: var(--s-2); }

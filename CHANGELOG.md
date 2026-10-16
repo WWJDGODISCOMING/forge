@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.8 — Card depth levels (2026-10-16)
+
+#58 slice 8. CSS only; no layout change.
+
+- New elevation tokens `--elev-base`, `--elev-raised` and `--elev-floating` in dark and light. `--elev-1/2` stay as aliases.
+- Cards, groups, insights, Score pillars and Body tiles use the raised level: a soft top highlight and a faint tight shadow.
+
+### What's new
+
+- Cards now lift gently off the page.
+
 ## 0.16.7 — Snap a meal: say why it failed (2026-10-16)
 
 Hotfix, issue #107. **Cloud Functions changed** (`snapMealPhoto`): needs the Deploy button, choice `functions`.
