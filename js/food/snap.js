@@ -96,6 +96,14 @@ export async function prepareImage(file, deps = {}) {
   return out;
 }
 
+/** The small grey bracket under a failure, e.g. "[503 · xAI 403: bad key]". Empty when the server gave no upstream note. */
+export function upstreamTag(err) {
+  const note = err && typeof err.upstream === 'string' ? err.upstream.trim().slice(0, 140) : '';
+  if (!note) return '';
+  const http = { unavailable: '503', 'resource-exhausted': '429', internal: '500' }[err.code];
+  return `[${http ? `${http} · ` : ''}${note}]`;
+}
+
 /** Ask the server. `call` is js/functions.js call (injected for tests). Resolves to rows; rejects with a friendly message. */
 export async function estimateMeal(b64, call) {
   const res = await call('snapMealPhoto', { image: b64, mime: 'image/jpeg' }, { timeout: 65000 });

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.7 — Snap a meal: say why it failed (2026-10-16)
+
+Hotfix, issue #107. **Cloud Functions changed** (`snapMealPhoto`): needs the Deploy button, choice `functions`.
+
+- When xAI answers with an error, the app now shows a small grey note under the message, like `[503 · xAI 403: <short reason>]`. The reason is xAI's own error text, cut to 120 characters; never the key or any headers.
+- A network failure shows `[503 · network]`, a timeout `[503 · timeout]`, and a missing XAI_API_KEY secret `[503 · no key]`.
+
+### What's new
+
+- Snap a meal now says why it couldn't estimate.
+
 ## 0.16.6 — Score pillar cascade (2026-10-16)
 
 Issue #58, seventh slice (item 6, Score). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.

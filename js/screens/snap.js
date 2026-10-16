@@ -7,7 +7,7 @@ import { icon } from '../ui/icons.js';
 import { MEALS, MEAL_LABEL, mealForHour } from '../food/core.js';
 import { servingsLabel } from '../food/portion.js';
 import { createOnlineSearch } from '../food/search.js';
-import { ESTIMATE_NOTE, estimateMeal, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
+import { ESTIMATE_NOTE, estimateMeal, upstreamTag, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
 
 /** A heading for the real cause, so a busy server never reads as a bad photo. */
 export function errorHeading(message = '', code = '') {
@@ -64,13 +64,14 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
         </div>`;
     };
 
-    const paintError = (message, code = '') => {
+    const paintError = (message, code = '', tag = '') => {
       const head = errorHeading(message, code);
       root.innerHTML = `
         <div class="snap-err" data-snap-error>
           ${thumb()}
           <b>${esc(head)}</b>
           <p class="small" role="alert">${esc(message)}</p>
+          ${tag ? `<small class="muted" data-snap-diag>${esc(tag)}</small>` : ''}
           <label class="btn bigbtn snap-take">${icon('camera')}Try another photo${photoInput()}</label>
           <button class="btn ghost" data-snap-search>Search for the food instead</button>
         </div>`;
@@ -168,7 +169,7 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
         paintResults();
       } catch (e) {
         if (!live) return;
-        paintError((e && e.message) || 'Something went wrong. Try again in a minute.', (e && e.code) || '');
+        paintError((e && e.message) || 'Something went wrong. Try again in a minute.', (e && e.code) || '', upstreamTag(e));
       }
     }
 

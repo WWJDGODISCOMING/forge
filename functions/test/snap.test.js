@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fakeDb } from './fake-db.js';
 import { setSink } from '../src/log.js';
-import { validateImage, parseFoods, snapMeal, meterSnap, deleteSnapData, SnapError, RATE_PER_HOUR, MAX_IMAGE_BYTES, MAX_FOODS } from '../src/snap.js';
+import { validateImage, parseFoods, upstreamNote, snapMeal, meterSnap, deleteSnapData, SnapError, RATE_PER_HOUR, MAX_IMAGE_BYTES, MAX_FOODS } from '../src/snap.js';
 
 const NOW = 1_800_000_000_000;
 const IMG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 7)]).toString('base64');
@@ -124,6 +124,54 @@ test('a non-ok reply logs status, a short body and ms (never the photo); a timeo
   assert.ok(!lines[0].includes(IMG));
   const timeout = async () => { const e = new Error('timed out'); e.name = 'TimeoutError'; throw e; };
   assert.equal(await code(run({ image: IMG }, { fetch: timeout })), 'busy');
+});
+
+const upstreamOf = async (p) => { try { await p; } catch (e) { return e instanceof SnapError ? `${e.code}|${e.upstream}` : `other:${e.message}`; } return null; };
+
+test('a non-ok xAI reply carries its status and a short message, never the key', async () => {
+  const body = JSON.stringify({
+    code: 'The caller does not have permission to execute the specified operation',
+    error: 'Your team c853730f-fe0f-4537-b8a2-0e6e33c8342d has either used all available credits or reached its monthly spending limit. ' + 'y'.repeat(300),
+  });
+  const fetch = async () => ({ ok: false, status: 403, text: async () => body });
+  const orig = console.error; console.error = () => {};
+  let out;
+  try { out = await upstreamOf(run({ image: IMG }, { fetch })); } finally { console.error = orig; }
+  assert.ok(out.startsWith('down|xAI 403: Your team'));
+  assert.ok(out.includes('used all available credits or reached its monthly spending limit'));
+  assert.ok(!/[0-9a-f]{8}-[0-9a-f]{4}-/i.test(out));
+  assert.ok(!out.includes('does not have permission'));
+  assert.ok(out.length <= 'down|xAI 403: '.length + 120);
+  assert.equal(upstreamNote(404, '{"code":"Some requested entity was not found","error":{"message":"Model nope not found"}}'), 'xAI 404: Model nope not found');
+  assert.equal(upstreamNote(403, '{"code":"generic only"}'), 'xAI 403: generic only');
+  assert.ok(!out.includes('KEY123'));
+  assert.equal(upstreamNote(500, '{"error":{"message":"boom"}}'), 'xAI 500: boom');
+  assert.equal(upstreamNote(502, ''), 'xAI 502');
+  assert.equal(upstreamNote(502, 'null'), 'xAI 502');
+  const html = [
+    [upstreamNote(502, '<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502 Bad Gateway</h1></center>\r\n<hr><center>cloudflare</center>\r\n</body>\r\n</html>'), 'xAI 502: 502 Bad Gateway'],
+    [upstreamNote(524, '<!DOCTYPE html>\n<head>\n<title>api.x.ai | 524: A timeout occurred</title><style>body{}</style></head><body>…</body></html>'), 'xAI 524: api.x.ai | 524: A timeout occurred'],
+    [upstreamNote(500, '<html><body><p>oops</p></body></html>'), 'xAI 500'],
+  ];
+  for (const [note, want] of html) { assert.equal(note, want); assert.ok(!/[<>]/.test(note)); }
+  assert.equal(upstreamNote(502, 'upstream connect error or disconnect/reset before headers'), 'xAI 502: upstream connect error or disconnect/reset before headers');
+});
+
+test('timeout and network errors are told apart', async () => {
+  const orig = console.error; console.error = () => {};
+  try {
+    const timeout = async () => { const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
+    assert.equal(await upstreamOf(run({ image: IMG }, { fetch: timeout })), 'busy|timeout');
+    assert.equal(await upstreamOf(run({ image: IMG }, { fetch: async () => { throw new Error('ECONNRESET'); } })), 'down|network');
+  } finally { console.error = orig; }
+});
+
+test('a missing secret says "no key" and never calls xAI', async () => {
+  const fetch = model(JSON.stringify(REPLY));
+  const err = await snapMeal({ db: fakeDb(), uid: 'u1', data: { image: IMG }, apiKey: '', fetch, now: NOW }).catch((e) => e);
+  assert.equal(err.code, 'nokey');
+  assert.equal(err.upstream, 'no key');
+  assert.equal(fetch.calls.length, 0);
 });
 
 test('the request names the explicit grok-4.3 model', async () => {
