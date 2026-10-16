@@ -4,7 +4,7 @@
 
 #58 slice 9. CSS only; no layout change.
 
-- New `--hero-glow` token in dark and light. A static radial bloom sits behind the Today rings (neutral) and the Score ring (accent).
+- New `--hero-glow` token in dark and light. A static radial bloom sits behind the Today rings (neutral, dark mode only) and the Score ring (accent).
 
 ### What's new
 

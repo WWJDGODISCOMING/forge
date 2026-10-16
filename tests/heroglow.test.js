@@ -10,6 +10,11 @@ test('hero glow: token defined in dark and light blocks', () => {
   assert(tokens.slice(light).includes('--hero-glow:'), 'light missing');
 });
 
+test('hero glow: Today glow is off in light mode', () => {
+  const css = read('app.css');
+  assert(/@media \(prefers-color-scheme: light\)\s*\{\s*\.rings-hero\s*\{\s*--hero-glow:\s*transparent;?\s*\}\s*\}/.test(css), 'light .rings-hero rule missing');
+});
+
 for (const [file, sel] of [['app.css', '.rings-hero::before'], ['health.css', '.score-hero::before']]) {
   test(`hero glow: ${sel} is static and uses the token`, () => {
     const css = read(file);
