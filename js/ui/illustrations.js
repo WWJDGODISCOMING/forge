@@ -28,9 +28,9 @@ const ART = {
     <path d="M53 22a10 10 0 0 1 14 0M47 15a19 19 0 0 1 26 0" stroke="${A}"/>`,
   // Weigh-in dots with a lime trend line
   weigh: `<path d="M24 14v66h72"/>
-    <circle cx="36" cy="40" r="3.5" fill="currentColor" fill-opacity=".2"/><circle cx="52" cy="56" r="3.5" fill="currentColor" fill-opacity=".2"/>
-    <circle cx="68" cy="48" r="3.5" fill="currentColor" fill-opacity=".2"/><circle cx="84" cy="64" r="3.5" fill="currentColor" fill-opacity=".2"/>
-    <path d="M32 36L88 66" stroke="${A}"/>`,
+    <circle cx="38" cy="30" r="3.5" fill="currentColor" fill-opacity=".2"/><circle cx="52" cy="54" r="3.5" fill="currentColor" fill-opacity=".2"/>
+    <circle cx="66" cy="45" r="3.5" fill="currentColor" fill-opacity=".2"/><circle cx="80" cy="69" r="3.5" fill="currentColor" fill-opacity=".2"/>
+    <path d="M30 34L90 66" stroke="${A}"/>`,
 };
 
 export function illustration(name) {
