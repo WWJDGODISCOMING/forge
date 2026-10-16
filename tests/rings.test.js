@@ -94,3 +94,9 @@ test('rings: a deload week lowers the weekly sets target and says so', () => {
   eq(r.per, Math.round(WEEKLY_SET_TARGET.intermediate * 0.5));
   eq(r.label, 'Sets · deload');
 });
+
+import { pillarDelay } from '../js/health/ui.js';
+test('pillar cascade: 60 ms steps, trails the ring on entry, immediate when scrolled to', () => {
+  eq(pillarDelay(0, true), 240); eq(pillarDelay(4, true), 480);
+  eq(pillarDelay(0, false), 0); eq(pillarDelay(3, false), 180);
+});

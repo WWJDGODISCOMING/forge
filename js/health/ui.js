@@ -27,4 +27,26 @@ export function animateScoreRings(root) {
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('sc-pre')));
 }
 
+/** Delay (ms) before pillar `i` fills. On entry it trails the big ring by 240 ms; scrolled into view later it starts at once. Steps are 60 ms. */
+export const pillarDelay = (i, entering = true) => (entering ? 240 : 0) + i * 60;
+
+/**
+ * Pillar rings under `grid` fill in a cascade once the grid is on screen, once per render. Rings stay empty until then.
+ * Reduced motion (or no IntersectionObserver) leaves them at their final values.
+ */
+export function revealPillars(grid, { enterWindow = 500 } = {}) {
+  if (!grid || reducedMotion() || typeof IntersectionObserver !== 'function') return;
+  const t0 = performance.now();
+  [...grid.children].forEach((t) => t.style.setProperty('--d', '0ms'));
+  grid.classList.add('sc-hold');
+  const io = new IntersectionObserver((entries) => {
+    if (!entries.some((e) => e.isIntersecting)) return;
+    io.disconnect();
+    const entering = performance.now() - t0 < enterWindow;
+    [...grid.children].forEach((t, i) => t.style.setProperty('--d', `${pillarDelay(i, entering)}ms`));
+    requestAnimationFrame(() => requestAnimationFrame(() => grid.classList.remove('sc-hold')));
+  }, { threshold: 0.2 });
+  io.observe(grid);
+}
+
 export const round = (x) => Math.round(x);

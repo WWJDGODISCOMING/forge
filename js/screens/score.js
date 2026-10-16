@@ -6,7 +6,7 @@ import { esc, $, $$ } from '../ui.js';
 import { progressTabs, progressRowsHtml } from './progress.js';
 import { currentScore } from '../health/today.js';
 import { isNative } from '../native/bridge.js';
-import { ringSvg, animateScoreRings, scoreColor, round } from '../health/ui.js';
+import { ringSvg, animateScoreRings, revealPillars, scoreColor, round } from '../health/ui.js';
 import { PILLARS } from '../health/score.js';
 import { weeklyScores, longTerm } from '../health/longterm.js';
 import { longevityCards } from '../health/longevity.js';
@@ -39,7 +39,7 @@ const pct = (w) => `${Math.round(w * 100)}%`;
 function tile(p) {
   const v = p.tracked && p.score != null ? p.score : null;
   return `<button class="pillar${p.tracked ? '' : ' off'}" data-pillar="${p.key}" aria-expanded="${open === p.key}" ${p.tracked ? '' : 'disabled'}>
-    <span class="mini">${ringSvg(v, { size: 56, stroke: 7 })}<b>${v == null ? '—' : round(v)}</b></span>
+    <span class="pillar-ring">${ringSvg(v, { size: 56, stroke: 7 })}<b>${v == null ? '—' : round(v)}</b></span>
     <span><strong>${esc(p.label)}</strong><small>${p.tracked ? `${pct(p.effective)} of score` : 'Not tracked'}</small></span>
   </button>`;
 }
@@ -143,6 +143,7 @@ export function renderScore(el) {
     </section>`;
 
   animateScoreRings(el);
+  revealPillars($('.pillar-grid', el));
   arrangeScoreCols(el);
   const toggle = (key) => {
     open = open === key ? null : key;
