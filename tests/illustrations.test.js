@@ -5,8 +5,8 @@ import { emptyState } from '../js/ui/icons.js';
 
 const rd = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
-test('illustrations: four names, decorative 120x96 svg, two colour sources', () => {
-  for (const n of ['photos', 'food', 'profile', 'scale']) {
+test('illustrations: five names, decorative 120x96 svg, two colour sources', () => {
+  for (const n of ['photos', 'food', 'profile', 'scale', 'weigh']) {
     const s = illustration(n);
     assert(s.startsWith('<svg'), `${n}: svg`);
     assert(s.includes('viewBox="0 0 120 96"'), `${n}: viewBox`);
@@ -33,4 +33,9 @@ test('illustrations: call sites pass the right art', () => {
   const c = rd('js/health/cards.js');
   assert(/art: 'profile', icon: 'person'/.test(c) && /art: 'scale', icon: 'scale'/.test(c), 'cards');
   assert(/art: 'scale'/.test(rd('js/screens/body.js')), 'body');
+  assert(/art: 'weigh'/.test(rd('js/screens/weight.js')), 'weight hero');
+});
+
+test('illustrations: empty-state titles balance their lines', () => {
+  assert(/\.empty-state h3 \{[^}]*text-wrap: balance/.test(rd('css/app.css')), 'text-wrap: balance');
 });

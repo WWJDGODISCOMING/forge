@@ -76,7 +76,7 @@ export function weightHeroHtml() {
   const latest = series.length ? series[series.length - 1] : null;
   const reading = latestWeighIn();
   if (!latest) {
-    return `<div class="card" data-weight-hero>${emptyState({ icon: 'scale', title: 'No weigh-ins yet', text: 'Log your first weight and your trend starts here.', action: { attr: 'data-log-empty', label: 'Log weight' } })}</div>`;
+    return `<div class="card" data-weight-hero>${emptyState({ art: 'weigh', icon: 'scale', title: 'No weigh-ins yet', text: 'Log your first weight and your trend starts here.', action: { attr: 'data-log-empty', label: 'Log weight' } })}</div>`;
   }
   return `<div class="card" data-weight-hero>
       <div class="stats stats-2">

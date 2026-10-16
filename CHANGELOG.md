@@ -2,9 +2,10 @@
 
 ## 0.16.12 — Illustrated empty states (2026-10-16)
 
-#58 slice 12. Four small drawings replace the round icon badge on a few empty screens.
+#58 slice 12. Five small drawings replace the round icon badge on a few empty screens.
 
-- Photos, Food, Body Profile and the scale prompts now show a spot illustration: a phone with a pose ghost, a plate with fork and knife, a figure beside a height ruler, and a smart scale.
+- Photos, Food, Body and the scale prompts now show a spot illustration: a figure posing on a phone, a plate with fork and knife, a figure beside a height ruler, a top-down smart scale, and weigh-in dots with a trend line.
+- Empty-state titles wrap in balanced lines, so no single word is left alone.
 - Line work follows the theme; the green accent uses the darker green in light mode so it stays readable.
 
 ### What's new
