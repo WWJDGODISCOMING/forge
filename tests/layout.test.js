@@ -1492,6 +1492,39 @@ if (standalone) {
   });
 }
 
+if (standalone) {
+  test('layout: Score pillar rings have a visible track, an unclipped glow, and settle on their final offsets', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    for (const dark of [false, true]) for (const [w, h, ts] of [[320, 568], [390, 844], [890, 626], [390, 844, 1.35]]) {
+      await browser.viewport(w, h, dark);
+      await browser.open('score', seed());
+      if (ts) await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`);
+      await browser.eval(`document.querySelector('.pillar-grid')?.scrollIntoView({ block: 'center' })`);
+      await new Promise((r) => setTimeout(r, 1400));
+      const r = await browser.eval(`(() => {
+        const grid = document.querySelector('.pillar-grid'); if (!grid) return { err: 'no pillar grid' };
+        const out = { issues: [], hold: grid.classList.contains('sc-hold') };
+        for (const t of grid.querySelectorAll('.pillar')) {
+          const ring = t.querySelector('.pillar-ring'); if (!ring) { out.issues.push('no .pillar-ring'); continue; }
+          const bg = getComputedStyle(ring).backgroundColor;
+          if (bg !== 'rgba(0, 0, 0, 0)' && bg !== 'transparent') out.issues.push('ring bg ' + bg);
+          if (getComputedStyle(ring.querySelector('.sc-track')).stroke === getComputedStyle(t).backgroundColor) out.issues.push('track matches tile');
+          const arc = ring.querySelector('.sc-arc');
+          if (parseFloat(getComputedStyle(arc).strokeDashoffset) !== parseFloat(arc.style.getPropertyValue('--off'))) out.issues.push('offset ' + getComputedStyle(arc).strokeDashoffset + ' vs ' + arc.style.getPropertyValue('--off'));
+        }
+        for (const s of document.querySelectorAll('svg.sc-hero')) if (getComputedStyle(s).overflow !== 'visible') out.issues.push('svg.sc-hero overflow ' + getComputedStyle(s).overflow);
+        return out;
+      })()`);
+      const at = `${dark ? 'dark' : 'light'} ${w}x${h} ts=${ts || 1}`;
+      if (r.err) bad.push(`${at}: ${r.err}`);
+      else { if (r.hold) bad.push(`${at}: pillar grid still sc-hold`); for (const i of r.issues) bad.push(`${at}: ${i}`); }
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;

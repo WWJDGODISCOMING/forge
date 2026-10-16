@@ -1,6 +1,6 @@
 # Changelog
 
-## 0.16.6 — Score pillar cascade (2026-10-13)
+## 0.16.6 — Score pillar cascade (2026-10-16)
 
 Issue #58, seventh slice (item 6, Score). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
 
@@ -9,6 +9,7 @@ Issue #58, seventh slice (item 6, Score). No Cloud Functions, `firestore.rules`,
 ### What's new
 
 - Score pillars now fill in a smooth cascade.
+- Cleaner Score rings with a visible track and a soft glow.
 
 ## 0.16.5 — Charts finish (2026-10-13)
 
