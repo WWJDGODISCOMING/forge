@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.9 — Hero glow (2026-10-16)
+
+#58 slice 9. CSS only; no layout change.
+
+- New `--hero-glow` token in dark and light. A static radial bloom sits behind the Today rings (neutral, dark mode only) and the Score ring (accent).
+
+### What's new
+
+- The Today and Score rings now sit in a soft glow.
+
 ## 0.16.8 — Card depth levels (2026-10-16)
 
 #58 slice 8. CSS only; no layout change.
