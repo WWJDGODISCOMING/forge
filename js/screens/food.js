@@ -94,7 +94,7 @@ export function renderFood(el) {
       </details>` : ''}
       </div>
       <div class="col col-c">
-      ${anything ? '' : emptyState({ icon: 'food', title: isToday ? 'Nothing logged yet today' : 'Nothing logged this day', text: 'Tap Log food. If you don’t know the numbers, “Quick add” takes just calories.' })}
+      ${anything ? '' : emptyState({ art: 'food', icon: 'food', title: isToday ? 'Nothing logged yet today' : 'Nothing logged this day', text: 'Tap Log food. If you don’t know the numbers, “Quick add” takes just calories.' })}
       ${anything || !yGroups.some((y) => y.entries.length) ? '' : '<button class="btn ghost" data-copy-day>Copy yesterday</button>'}
       ${anything ? groups.map((g) => {
         const canCopy = !g.entries.length && yGroups.find((y) => y.meal === g.meal).entries.length;

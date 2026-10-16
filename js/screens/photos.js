@@ -50,7 +50,7 @@ export async function renderPhotos(el, sub) {
         </div>
         ${sessions.length < 2 ? '<p class="small muted center-text">Take photos on two different days to compare them.</p>' : ''}
         ${sessions.map(sessionCard).join('')}`
-        : `<div class="card">${emptyState({ icon: 'camera', title: 'Track how you look, not just what you weigh', text: 'The scale can’t show everything. Take a few photos each week and watch the change. They stay on this phone.', action: ok ? { attr: 'data-take', label: 'Take first photos' } : null })}</div>`}
+        : `<div class="card">${emptyState({ art: 'photos', icon: 'camera', title: 'Track how you look, not just what you weigh', text: 'The scale can’t show everything. Take a few photos each week and watch the change. They stay on this phone.', action: ok ? { attr: 'data-take', label: 'Take first photos' } : null })}</div>`}
       <div class="card stack small">
         <p class="label">Privacy</p>
         <p>Photos stay on this iPhone only. They aren’t backed up by Forge. ${photoLossLine(isNative())}</p>
