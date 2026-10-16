@@ -24,10 +24,11 @@ export function upstreamNote(status, text) {
   try {
     const o = JSON.parse(String(text || ''));
     const e = o && o.error;
-    const m = e && typeof e === 'object' ? e.message || e.code : e;
-    msg = [typeof o.code === 'string' ? o.code : '', typeof m === 'string' ? m : ''].filter(Boolean).join(' ');
+    const specific = typeof e === 'string' ? e : e && typeof e === 'object' && typeof e.message === 'string' ? e.message : '';
+    const generic = typeof o.code === 'string' ? o.code : e && typeof e === 'object' && typeof e.code === 'string' ? e.code : '';
+    msg = specific || generic; // xAI's `code` is a long generic gRPC line; the specific reason comes first
   } catch { msg = String(text || ''); }
-  msg = clean(msg.replace(/[A-Za-z0-9+/=]{40,}/g, '[cut]'), 120);
+  msg = clean(msg.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '…').replace(/[A-Za-z0-9+/=]{40,}/g, '[cut]'), 120);
   return msg ? `xAI ${status}: ${msg}` : `xAI ${status}`;
 }
 
