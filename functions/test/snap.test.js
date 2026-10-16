@@ -147,6 +147,14 @@ test('a non-ok xAI reply carries its status and a short message, never the key',
   assert.ok(!out.includes('KEY123'));
   assert.equal(upstreamNote(500, '{"error":{"message":"boom"}}'), 'xAI 500: boom');
   assert.equal(upstreamNote(502, ''), 'xAI 502');
+  assert.equal(upstreamNote(502, 'null'), 'xAI 502');
+  const html = [
+    [upstreamNote(502, '<html>\r\n<head><title>502 Bad Gateway</title></head>\r\n<body>\r\n<center><h1>502 Bad Gateway</h1></center>\r\n<hr><center>cloudflare</center>\r\n</body>\r\n</html>'), 'xAI 502: 502 Bad Gateway'],
+    [upstreamNote(524, '<!DOCTYPE html>\n<head>\n<title>api.x.ai | 524: A timeout occurred</title><style>body{}</style></head><body>…</body></html>'), 'xAI 524: api.x.ai | 524: A timeout occurred'],
+    [upstreamNote(500, '<html><body><p>oops</p></body></html>'), 'xAI 500'],
+  ];
+  for (const [note, want] of html) { assert.equal(note, want); assert.ok(!/[<>]/.test(note)); }
+  assert.equal(upstreamNote(502, 'upstream connect error or disconnect/reset before headers'), 'xAI 502: upstream connect error or disconnect/reset before headers');
 });
 
 test('timeout and network errors are told apart', async () => {

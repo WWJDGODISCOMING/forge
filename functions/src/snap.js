@@ -23,11 +23,19 @@ export function upstreamNote(status, text) {
   let msg = '';
   try {
     const o = JSON.parse(String(text || ''));
-    const e = o && o.error;
-    const specific = typeof e === 'string' ? e : e && typeof e === 'object' && typeof e.message === 'string' ? e.message : '';
-    const generic = typeof o.code === 'string' ? o.code : e && typeof e === 'object' && typeof e.code === 'string' ? e.code : '';
-    msg = specific || generic; // xAI's `code` is a long generic gRPC line; the specific reason comes first
-  } catch { msg = String(text || ''); }
+    if (o && typeof o === 'object') {
+      const e = o.error;
+      const specific = typeof e === 'string' ? e : e && typeof e === 'object' && typeof e.message === 'string' ? e.message : '';
+      const generic = typeof o.code === 'string' ? o.code : e && typeof e === 'object' && typeof e.code === 'string' ? e.code : '';
+      msg = specific || generic; // xAI's `code` is a long generic gRPC line; the specific reason comes first
+    }
+  } catch {
+    msg = String(text || '');
+    if (/<(!doctype|html|head|body|title|h1)\b/i.test(msg)) { // an edge error page: keep just its title, never the tags
+      const t = /<title[^>]*>([\s\S]*?)<\/title>/i.exec(msg) || /<h1[^>]*>([\s\S]*?)<\/h1>/i.exec(msg);
+      msg = t ? t[1].replace(/<[^>]*>/g, ' ') : '';
+    }
+  }
   msg = clean(msg.replace(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/gi, '…').replace(/[A-Za-z0-9+/=]{40,}/g, '[cut]'), 120);
   return msg ? `xAI ${status}: ${msg}` : `xAI ${status}`;
 }
