@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.10 — Tab bar icons v2 (2026-10-16)
+
+#58 slice 10. Markup and CSS only; no layout change.
+
+- The five tab glyphs are redrawn as one family: a Today ring, a rounded dumbbell, a fork and knife, a person and bars. The stroke is a true 2 px.
+- Active tabs are genuinely filled and two-tone, with the same silhouette as the outline, so nothing shifts.
+
+### What's new
+
+- The tab bar has new custom icons, with filled two-tone ones for the tab you're on.
+
 ## 0.16.9 — Hero glow (2026-10-16)
 
 #58 slice 9. CSS only; no layout change.

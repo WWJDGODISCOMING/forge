@@ -112,7 +112,7 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
   min-height: 49px; color: var(--text-2); text-decoration: none; font-size: calc(10.5px * min(var(--ts), 1.15)); font-weight: 600; letter-spacing: .01em; white-space: nowrap; min-width: 0;
 }
 .tabbar svg { width: 26px; height: 26px; stroke-linecap: round; stroke-linejoin: round; }
-.tabbar .ic-off { fill: none; stroke: currentColor; stroke-width: 1.9; }
+.tabbar .ic-off { fill: none; stroke: currentColor; stroke-width: 1.85; }
 .tabbar .ic-on { display: none; fill: currentColor; stroke: none; }
 .tabbar a.active { color: var(--accent-text); }
 .tabbar a.active .ic-off { display: none; }
