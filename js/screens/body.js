@@ -23,7 +23,7 @@ function compositionCard() {
   const docs = myBodyMeasures();
   const w = state.integrations && state.integrations.withings;
   if (!docs.length) {
-    return `<div class="card">${emptyState({ icon: 'scale', title: w && w.connected ? 'Importing your history' : 'No body data yet', text: w && w.connected ? 'Your Withings history is on its way. This can take a few minutes.' : 'Connect your Withings scale to see fat, muscle, water and more here.', action: { href: '#/withings', label: w && w.connected ? 'See import progress' : 'Connect Withings' } })}</div>`;
+    return `<div class="card">${emptyState({ art: 'scale', icon: 'scale', title: w && w.connected ? 'Importing your history' : 'No body data yet', text: w && w.connected ? 'Your Withings history is on its way. This can take a few minutes.' : 'Connect your Withings scale to see fat, muscle, water and more here.', action: { href: '#/withings', label: w && w.connected ? 'See import progress' : 'Connect Withings' } })}</div>`;
   }
   const u = getUnits();
   const h = heightM(docs, state.profile);

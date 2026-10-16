@@ -2,6 +2,8 @@
 // decoration (aria-hidden); the button or link that holds one carries the label. Use currentColor, so
 // colour comes from the surrounding text. `filled` icons are for the active tab and trophies.
 
+import { illustration } from './illustrations.js';
+
 const P = {
   chev: '<path d="M9 5l7 7-7 7"/>',
   key: '<circle cx="8" cy="15.5" r="3.5"/><path d="M10.6 13L19 4.6M16 7.6l2.4 2.4M13.4 10.2l1.8 1.8"/>',
@@ -78,11 +80,13 @@ export function icon(name, { filled = false, size = 0, cls = '' } = {}) {
 export const ICON_NAMES = Object.keys(P);
 
 /** Empty state: icon, one-line title, a helpful sentence and one action ({href, label} or {attr, label}). */
-export function emptyState({ icon: name = 'info', title, text = '', action = null }) {
+export function emptyState({ icon: name = 'info', title, text = '', action = null, art = '' }) {
   const btn = action
     ? (action.href
       ? `<a class="btn primary" href="${action.href}">${action.label}</a>`
       : `<button class="btn primary" type="button" ${action.attr || ''}>${action.label}</button>`)
     : '';
-  return `<div class="empty-state"><span class="es-icon">${icon(name)}</span><h3>${title}</h3>${text ? `<p>${text}</p>` : ''}${btn}</div>`;
+  const drawn = art ? illustration(art) : '';
+  const top = drawn ? `<span class="es-art">${drawn}</span>` : `<span class="es-icon">${icon(name)}</span>`;
+  return `<div class="empty-state">${top}<h3>${title}</h3>${text ? `<p>${text}</p>` : ''}${btn}</div>`;
 }

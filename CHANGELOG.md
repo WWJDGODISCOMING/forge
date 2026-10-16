@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.12 — Illustrated empty states (2026-10-16)
+
+#58 slice 12. Four small drawings replace the round icon badge on a few empty screens.
+
+- Photos, Food, Body Profile and the scale prompts now show a spot illustration: a phone with a pose ghost, a plate with fork and knife, a figure beside a height ruler, and a smart scale.
+- Line work follows the theme; the green accent uses the darker green in light mode so it stays readable.
+
+### What's new
+
+- Empty screens now have friendly drawings instead of plain icons.
+
 ## 0.16.11 — In-app icons v2 (2026-10-16)
 
 #58 slice 11. Icon paths only; no layout change.

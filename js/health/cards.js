@@ -151,9 +151,9 @@ export function bodyProfileHtml(bp, { sex, age }) {
   const who = `${sex === 'male' ? 'men' : sex === 'female' ? 'women' : 'adults'}${age ? `, you are ${age}` : ''}`;
   let inner;
   if (bp.status === 'needs-height') {
-    inner = emptyState({ icon: 'person', title: 'Add your height', text: 'Body Profile needs your height to compare lean mass and body fat.', action: { href: '#/profile', label: 'Open profile' } });
+    inner = emptyState({ art: 'profile', icon: 'person', title: 'Add your height', text: 'Body Profile needs your height to compare lean mass and body fat.', action: { href: '#/profile', label: 'Open profile' } });
   } else if (bp.status === 'needs-comp') {
-    inner = emptyState({ icon: 'scale', title: 'Needs body fat from your scale', text: 'Body Profile needs your height plus fat mass or fat-free mass. Weigh in on a smart scale barefoot and it appears.', action: { href: '#/withings', label: 'Scale settings' } });
+    inner = emptyState({ art: 'scale', icon: 'scale', title: 'Needs body fat from your scale', text: 'Body Profile needs your height plus fat mass or fat-free mass. Weigh in on a smart scale barefoot and it appears.', action: { href: '#/withings', label: 'Scale settings' } });
   } else {
     const cells = [];
     for (let row = 3; row >= 0; row--) {
