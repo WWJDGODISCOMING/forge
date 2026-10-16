@@ -54,6 +54,7 @@ svg.sc-hero { overflow: visible; }
 .pillar span strong { font-size: calc(16px * var(--ts)); }
 .pillar span small { color: var(--muted); font-size: calc(13px * var(--ts)); white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pillar[aria-expanded="true"] { background: var(--surface-2); }
+.pillar[aria-expanded="true"] .sc-track, .pillar:active .sc-track { stroke: var(--surface-3); }
 .mover { display: grid; grid-template-columns: 40px 1fr; gap: 12px; align-items: center; min-height: 56px; }
 .mover .arrow { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; font-weight: 800; font-size: calc(20px * var(--ts)); background: var(--surface-2); }
 .mover .arrow.up { color: var(--good); }

@@ -5,6 +5,7 @@
 Issue #58, seventh slice (item 6, Score). No Cloud Functions, `firestore.rules`, `firebase.json` or `config.js` changes; no Deploy needed.
 
 - The five Score pillar rings fill in a calm cascade, 60 ms apart, once the grid is on screen: right behind the big ring if it's visible, or as soon as you scroll to it. Plays once per visit. Skipped under reduced motion.
+- The open or pressed pillar tile steps its ring track up a shade, so the full circle stays visible.
 
 ### What's new
 

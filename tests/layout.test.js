@@ -1518,6 +1518,13 @@ if (standalone) {
         return out;
       })()`);
       const at = `${dark ? 'dark' : 'light'} ${w}x${h} ts=${ts || 1}`;
+      if (!r.err && w !== 320) { // the tapped (open) tile is a surface-2 tile, so its track must step up
+        await browser.eval(`document.querySelectorAll('.pillar')[3]?.click()`);
+        await new Promise((r2) => setTimeout(r2, 300));
+        const open = await browser.eval(`(() => { const t = document.querySelector('.pillar[aria-expanded="true"]'); if (!t) return 'no open pillar';
+          const tr = t.querySelector('.sc-track'); return tr && getComputedStyle(tr).stroke === getComputedStyle(t).backgroundColor ? 'open track matches tile' : ''; })()`);
+        if (open) bad.push(`${at}: ${open}`);
+      }
       if (r.err) bad.push(`${at}: ${r.err}`);
       else { if (r.hold) bad.push(`${at}: pillar grid still sc-hold`); for (const i of r.issues) bad.push(`${at}: ${i}`); }
     }
