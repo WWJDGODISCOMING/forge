@@ -4,7 +4,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fakeDb } from './fake-db.js';
 import { setSink } from '../src/log.js';
-import { validateImage, parseFoods, snapMeal, meterSnap, deleteSnapData, SnapError, RATE_PER_HOUR, MAX_IMAGE_BYTES, MAX_FOODS } from '../src/snap.js';
+import { validateImage, parseFoods, upstreamNote, snapMeal, meterSnap, deleteSnapData, SnapError, RATE_PER_HOUR, MAX_IMAGE_BYTES, MAX_FOODS } from '../src/snap.js';
 
 const NOW = 1_800_000_000_000;
 const IMG = Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.alloc(40, 7)]).toString('base64');
@@ -124,6 +124,38 @@ test('a non-ok reply logs status, a short body and ms (never the photo); a timeo
   assert.ok(!lines[0].includes(IMG));
   const timeout = async () => { const e = new Error('timed out'); e.name = 'TimeoutError'; throw e; };
   assert.equal(await code(run({ image: IMG }, { fetch: timeout })), 'busy');
+});
+
+const upstreamOf = async (p) => { try { await p; } catch (e) { return e instanceof SnapError ? `${e.code}|${e.upstream}` : `other:${e.message}`; } return null; };
+
+test('a non-ok xAI reply carries its status and a short message, never the key', async () => {
+  const body = JSON.stringify({ code: 'permission', error: 'Team has no access to grok-4.3 ' + 'y'.repeat(300) });
+  const fetch = async () => ({ ok: false, status: 403, text: async () => body });
+  const orig = console.error; console.error = () => {};
+  let out;
+  try { out = await upstreamOf(run({ image: IMG }, { fetch })); } finally { console.error = orig; }
+  assert.ok(out.startsWith('down|xAI 403: permission Team has no access'));
+  assert.ok(out.length <= 'down|xAI 403: '.length + 120);
+  assert.ok(!out.includes('KEY123'));
+  assert.equal(upstreamNote(500, '{"error":{"message":"boom"}}'), 'xAI 500: boom');
+  assert.equal(upstreamNote(502, ''), 'xAI 502');
+});
+
+test('timeout and network errors are told apart', async () => {
+  const orig = console.error; console.error = () => {};
+  try {
+    const timeout = async () => { const e = new Error('t'); e.name = 'TimeoutError'; throw e; };
+    assert.equal(await upstreamOf(run({ image: IMG }, { fetch: timeout })), 'busy|timeout');
+    assert.equal(await upstreamOf(run({ image: IMG }, { fetch: async () => { throw new Error('ECONNRESET'); } })), 'down|network');
+  } finally { console.error = orig; }
+});
+
+test('a missing secret says "no key" and never calls xAI', async () => {
+  const fetch = model(JSON.stringify(REPLY));
+  const err = await snapMeal({ db: fakeDb(), uid: 'u1', data: { image: IMG }, apiKey: '', fetch, now: NOW }).catch((e) => e);
+  assert.equal(err.code, 'nokey');
+  assert.equal(err.upstream, 'no key');
+  assert.equal(fetch.calls.length, 0);
 });
 
 test('the request names the explicit grok-4.3 model', async () => {

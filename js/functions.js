@@ -23,7 +23,8 @@ export async function call(name, data = {}, { timeout = 70000 } = {}) {
     const res = await httpsCallable(f, name, { timeout })(data);
     return res.data;
   } catch (e) {
-    throw Object.assign(new Error(friendly(e)), { code: String((e && e.code) || '').replace('functions/', '') });
+    const upstream = e && e.details && typeof e.details.upstream === 'string' ? e.details.upstream : '';
+    throw Object.assign(new Error(friendly(e)), upstream ? { upstream } : null, { code: String((e && e.code) || '').replace('functions/', '') });
   }
 }
 

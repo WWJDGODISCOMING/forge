@@ -230,13 +230,14 @@ export const snapMealPhoto = onCall({ secrets: [XAI_KEY], timeoutSeconds: 60, me
     return await snapMeal({ db: db(), uid, data: req.data, apiKey: XAI_KEY.value().trim(), fetch: globalThis.fetch });
   } catch (e) {
     if (e instanceof SnapError) {
+      const details = e.upstream ? { upstream: e.upstream } : undefined; // short, key-free; shown in the app's grey bracket
       if (e.code === 'invalid') throw new HttpsError('invalid-argument', 'That photo couldn’t be read. Try another one.');
       if (e.code === 'toolarge') throw new HttpsError('invalid-argument', 'That photo is too big. Try another one.');
       if (e.code === 'limited') throw new HttpsError('resource-exhausted', 'That’s a lot of photos for now. Try again in a little while, or search for the food.');
-      if (e.code === 'busy') throw new HttpsError('unavailable', 'Photo estimates are busy. Try again in a minute.');
+      if (e.code === 'busy') throw new HttpsError('unavailable', 'Photo estimates are busy. Try again in a minute.', details);
       if (e.code === 'nofood') throw new HttpsError('failed-precondition', 'I couldn’t spot any food in that photo. Try again closer, or search for it.');
       if (e.code === 'garbled') throw new HttpsError('unavailable', 'That estimate got cut off. Try again.');
-      throw new HttpsError('unavailable', 'Photo estimates aren’t available right now.');
+      throw new HttpsError('unavailable', 'Photo estimates aren’t available right now.', details);
     }
     throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
   }

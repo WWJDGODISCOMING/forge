@@ -12,9 +12,23 @@ export const MAX_IMAGE_BYTES = 1500000; // the app sends a ~1024 px JPEG (about 
 export const TIMEOUT_MS = 45000;
 export const MAX_FOODS = 12;
 
-/** Carries a short code the wiring maps to an HttpsError: 'invalid' | 'toolarge' | 'limited' | 'busy' | 'down' | 'garbled' | 'nofood'. */
+/** Carries a short code the wiring maps to an HttpsError: 'invalid' | 'toolarge' | 'limited' | 'busy' | 'down' | 'garbled' | 'nofood' | 'nokey'.
+ *  `upstream` is a short, key-free note for the app's grey bracket: 'timeout' | 'no key' | 'network' | 'xAI 403: <msg>'. */
 export class SnapError extends Error {
-  constructor(code) { super(code); this.code = code; }
+  constructor(code, upstream = '') { super(code); this.code = code; if (upstream) this.upstream = upstream; }
+}
+
+/** xAI's own short reason from an error body ({"error":"..","code":".."} or {"error":{"message":..,"code":..}}), at most 120 chars. */
+export function upstreamNote(status, text) {
+  let msg = '';
+  try {
+    const o = JSON.parse(String(text || ''));
+    const e = o && o.error;
+    const m = e && typeof e === 'object' ? e.message || e.code : e;
+    msg = [typeof o.code === 'string' ? o.code : '', typeof m === 'string' ? m : ''].filter(Boolean).join(' ');
+  } catch { msg = String(text || ''); }
+  msg = clean(msg.replace(/[A-Za-z0-9+/=]{40,}/g, '[cut]'), 120);
+  return msg ? `xAI ${status}: ${msg}` : `xAI ${status}`;
 }
 
 const MAGIC = { 'image/jpeg': [0xff, 0xd8, 0xff], 'image/png': [0x89, 0x50, 0x4e, 0x47] };
@@ -103,6 +117,7 @@ export async function deleteSnapData({ db, uid, now = Date.now() }) {
 /** The whole job: check, count, ask the model, tidy. Returns { foods }. Throws SnapError. */
 export async function snapMeal({ db, uid, data, apiKey, fetch, now = Date.now() }) {
   const { b64, mime } = validateImage(data);
+  if (!apiKey) { log('snap_meal_error', { reason: 'nokey' }); throw new SnapError('nokey', 'no key'); }
   if ((await meterSnap({ db, uid, now })).limited) throw new SnapError('limited');
   const started = Date.now();
   let res;
@@ -122,9 +137,8 @@ export async function snapMeal({ db, uid, data, apiKey, fetch, now = Date.now() 
   } catch (e) {
     const name = e && /^[A-Za-z]{1,40}$/.test(e.name) ? e.name : 'Error';
     log('snap_meal_error', { reason: name, ms: Date.now() - started });
-    throw new SnapError(name === 'TimeoutError' ? 'busy' : 'down');
+    throw name === 'TimeoutError' || name === 'AbortError' ? new SnapError('busy', 'timeout') : new SnapError('down', 'network');
   }
-  if (res.status === 429) throw new SnapError('busy');
   if (!res.ok) {
     // log.js only keeps short codes, so the error text goes out on its own line. It is xAI's reply, never our request,
     // and any long base64-looking run is cut in case it echoes the photo.
@@ -132,7 +146,7 @@ export async function snapMeal({ db, uid, data, apiKey, fetch, now = Date.now() 
     try { text = await res.text(); } catch { /* no body */ }
     const body = String(text || '').replace(/[A-Za-z0-9+/=]{100,}/g, '[cut]').slice(0, 300);
     console.error(JSON.stringify({ event: 'snap_meal_error', status: res.status, body, ms: Date.now() - started }));
-    throw new SnapError('down');
+    throw new SnapError(res.status === 429 ? 'busy' : 'down', upstreamNote(res.status, text));
   }
   let body;
   try { body = await res.json(); } catch { throw new SnapError('down'); }
