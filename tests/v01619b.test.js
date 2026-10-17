@@ -5,7 +5,7 @@ import { EXERCISES } from '../js/workouts/exercises.js';
 import { LOCATION_PRESETS, YMCA_PRESET } from '../js/workouts/equipment.js';
 import { generateWorkout } from '../js/workouts/generator.js';
 import { MUSCLES } from '../js/workouts/recovery.js';
-import { FOCUS_MAX_ADDED, cleanFocus } from '../js/workouts/focus.js';
+import { FOCUS_MAX_ADDED, FOCUS_GROUPS, cleanFocus } from '../js/workouts/focus.js';
 import { QUESTIONS, MAX_QUESTIONS } from '../js/coach/answers.js';
 import { bindFocusChips } from '../js/ui/focus-chips.js';
 
@@ -53,6 +53,27 @@ test('focus repros keep the same lifts: Home Lower 45 (Glutes, Legs, Abs), YMCA 
   same({ programKey: 'smart', dayType: 'lower', location: HOME, profile: { ...base, sessionMin: 45 } }, ['glutes', 'legs', 'abs']);
   same({ programKey: 'smart', dayType: 'full_a', profile: { ...base, sessionMin: 60 } }, ['glutes', 'legs', 'abs']);
   same({ programKey: 'ppl', dayType: 'push', profile: { ...base, sessionMin: 45 } }, ['shoulders']);
+});
+
+test('focus sets never come from a lift that trains a chosen group; every tagged group nets at least +1', () => {
+  const cases = [
+    [45, 'ppl', 'push', HOME, ['chest', 'shoulders', 'arms']],
+    [45, 'smart', 'full_a', YMCA, ['glutes', 'legs', 'abs']],
+    [60, 'smart', 'full_a', YMCA, ['glutes', 'legs', 'abs']],
+  ];
+  for (const sessionMin of [30, 45, 60, 75]) for (const [pk, dt] of PROGRAMS) for (const [, location] of SPOTS) for (const focus of FOCI) cases.push([sessionMin, pk, dt, location, focus]);
+  for (const [sessionMin, pk, dt, location, focus] of cases) for (const experience of ['beginner', 'intermediate', 'advanced']) {
+    const at = `${sessionMin}min ${pk}/${dt} ${experience} ${focus}`;
+    const opts = { programKey: pk, dayType: dt, location, profile: { ...base, experience, sessionMin } };
+    const plain = gen(opts);
+    const f = gen({ ...opts, profile: { ...opts.profile, focus_muscles: focus } });
+    const sets = (w, ms) => w.exercises.filter((it) => it.primary.some((m) => ms.includes(m))).reduce((n, it) => n + it.target.sets, 0);
+    for (const k of focus) {
+      const ms = FOCUS_GROUPS[k].muscles;
+      assert(sets(f, ms) >= sets(plain, ms), `${k} never loses sets: ${at}`);
+      if (f.focus.includes(k)) assert(sets(f, ms) >= sets(plain, ms) + 1, `${k} tag has a net gain: ${at}`);
+    }
+  }
 });
 
 test('Coach: the spot question is ranked inside the top MAX_QUESTIONS slots', () => {

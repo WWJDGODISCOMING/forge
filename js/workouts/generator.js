@@ -3,7 +3,7 @@
 import { DAY_TYPES, PROGRAMS, smartDayTypes, DAY_MUSCLES } from './programs.js';
 import { expandEquipment, canDo } from './equipment.js';
 import { averageRecovery } from './recovery.js';
-import { activeFocus, focusLabel, FOCUS_GROUPS, FOCUS_MAX_ADDED, dayFocusBonus } from './focus.js';
+import { activeFocus, cleanFocus, focusLabel, FOCUS_GROUPS, FOCUS_MAX_ADDED, dayFocusBonus } from './focus.js';
 import { nextTarget, warmups, defaultSets } from './progression.js';
 
 const INJURY_WORDS = {
@@ -319,6 +319,8 @@ export function generateWorkout(opts) {
   if (!lighter) {
     let added = 0;
     const donors = new Set();
+    const chosen = new Set(cleanFocus(profile.focus_muscles).flatMap((k) => FOCUS_GROUPS[k].muscles));
+    const trainsFocus = (it) => it.primary.some((m) => chosen.has(m));
     const rank = { main: 0, secondary: 1, accessory: 2 };
     const cost = (it, sets) => minutesFor(exercises.find((e) => e.id === it.exercise_id), sets, it.role, it.target);
     for (const key of activeFocus(profile.focus_muscles, recovery)) {
@@ -334,7 +336,7 @@ export function generateWorkout(opts) {
         cand.target.sets += 1;
       } else {
         let donor = null;
-        for (const it of items) if (it !== cand && !it.focusKey && it.target.sets > 2 && (!donor || it.target.sets >= donor.target.sets)) donor = it;
+        for (const it of items) if (it !== cand && !it.focusKey && !trainsFocus(it) && it.target.sets > 2 && (!donor || it.target.sets >= donor.target.sets)) donor = it;
         if (!donor || total() + extra - (cost(donor, donor.target.sets) - cost(donor, donor.target.sets - 1)) > budget) continue;
         donor.target.sets -= 1;
         donors.add(donor);
