@@ -93,6 +93,18 @@ export function lighterLoad(w, loads, ex, unit) {
   return d;
 }
 
+/**
+ * ~5% lighter for the "tough twice" ease. Continuous loads snap to the exercise's step and never go below the bar
+ * or one step; owned loads use the next lighter one. Returns null when that is more than ~12% lighter (or nothing lighter).
+ */
+function easeDown(w, loads, ex, unit) {
+  const step = loadStep(ex, unit);
+  const e = loads ? snapDown(w * 0.95, loads, ex, unit) : floorTo(w * 0.95, step);
+  const min = loads ? 0 : Math.max(step, ex.load === 'barbell' ? barWeight(unit) : 0);
+  if (!(e >= min) || e <= 0 || e >= w || (w - e) / w > 0.12) return null;
+  return e;
+}
+
 /** Progression ignores deload sessions: they're deliberately light and would drag the next target down. */
 const working = (history) => history.filter((h) => h.sets && h.sets.length && !h.deload);
 
@@ -144,16 +156,45 @@ export function nextTarget(ex, history, { inventory = {}, unit = 'lb', role = 's
   const lastSets = last.sets.length;
   const allTop = minReps >= hi;
 
+  // Effort rating from the most recent session (reps in reserve). No rating → numbers only, as before,
+  // except that missed reps against a known plan still count as a tough session.
+  const rated = !ex.timed && last.rir != null;
+  const missedPlan = (h) => h.sets.some((s) => s.planReps != null && (s.reps || 0) < s.planReps);
+  const missedIn = (h) => h.sets.some((s) => (s.planReps != null ? (s.reps || 0) < s.planReps : (s.reps || 0) < lo));
+  const toughIn = (h) => (h.rir != null ? h.rir === 0 || missedIn(h) : missedPlan(h));
+  const keepSets = Math.max(sets, Math.min(5, lastSets));
+  const same = loaded ? 'same weight' : 'same reps';
+  if (!ex.timed && toughIn(last)) {
+    // Hit the wall: hold. A second tough session in a row at this weight eases the load about 5%.
+    const w0 = topWeight(last.sets);
+    const holdReps = Math.min(hi, Math.max(lo, minReps));
+    const prev0 = hist[1];
+    if (loaded && prev0 && toughIn(prev0) && topWeight(prev0.sets) === w0) {
+      const eased = easeDown(w0, loads, ex, unit);
+      if (eased != null) return { ...base, weight: eased, sets: keepSets, reps: holdReps, mode: 'ease', stalled: true, note: `Tough twice in a row: easing to ${fmt(eased)} ${unit}.` };
+      // The next lighter weight is a big drop: keep the weight and rebuild from the bottom of the range.
+      return { ...base, weight: w0, sets: keepSets, reps: lo, mode: 'hold', stalled: true, note: 'Tough twice in a row: same weight, aim for the bottom of the range.' };
+    }
+    return { ...base, weight: w0, sets: keepSets, reps: holdReps, mode: 'hold', note: missedIn(last) ? `Missed reps last time: ${same} again.` : `Went to failure last time: ${same} again.` };
+  }
+  if (rated && last.rir === 1) {
+    const w1 = topWeight(last.sets);
+    const up = minReps < hi;
+    return { ...base, weight: w1, sets: keepSets, reps: Math.min(hi, Math.max(lo, minReps + (up ? 1 : 0))), mode: 'reps', note: up ? `Close to the limit last time: ${loaded ? 'same weight, ' : ''}one more rep.` : `Close to the limit last time: ${same}.` };
+  }
+  const easy = rated && last.rir >= 3;
+
   // Timed holds and bodyweight / band work: progress reps (or seconds), then suggest the next chain step.
   if (!loaded) {
     if (allTop) {
-      const extended = ex.timed ? Math.min(maxReps + 5, hi + 30) : Math.min(minReps + 1, hi + 5);
+      const extended = ex.timed ? Math.min(maxReps + 5, hi + 30) : Math.min(minReps + (easy ? 2 : 1), hi + 5);
       return {
         ...base, weight: topWeight(last.sets), reps: extended, mode: chainNext ? 'chain' : 'reps',
         nextStepId: chainNext ? chainNext.id : undefined,
-        note: chainNext ? `You hit the top of the range. Ready to try ${chainNext.name}?` : 'Top of the range: keep adding reps or slow the lowering to 3 seconds.',
+        note: chainNext ? `You hit the top of the range. Ready to try ${chainNext.name}?` : easy ? 'Felt easy last time, +2 reps.' : 'Top of the range: keep adding reps or slow the lowering to 3 seconds.',
       };
     }
+    if (easy) return { ...base, weight: topWeight(last.sets), reps: Math.min(hi, minReps + 2), mode: 'reps', note: 'Felt easy last time, +2 reps.' };
     const step = ex.timed ? 5 : 1;
     return { ...base, weight: topWeight(last.sets), reps: Math.min(hi, minReps + step), mode: 'reps', note: ex.timed ? `Add ${step} seconds.` : 'Add a rep to your weakest set.' };
   }
@@ -170,13 +211,26 @@ export function nextTarget(ex, history, { inventory = {}, unit = 'lb', role = 's
     return { ...base, weight: w, reps: lo, mode: 'reset', stalled: true, note: 'Two tough sessions in a row: same weight, aim for the bottom of the range and build back up.' };
   }
 
+  if (easy && allTop) {
+    // Felt easy and every set hit the top: take two steps up when the total jump is small (≤15%) and within reach.
+    // Otherwise the normal single step below still says why.
+    const n1 = nextLoad(w, loads, ex, unit);
+    const n2 = n1 != null ? nextLoad(n1, loads, ex, unit) : null;
+    if (n2 != null && (n2 - w) / w <= 0.15 + 1e-9 && predictedReps(w, minReps, n2) >= lo) {
+      return { ...base, weight: n2, reps: lo, mode: 'weight', note: `Felt easy last time, +${fmt(n2 - w)} ${unit}.` };
+    }
+  }
+  if (easy && !allTop) {
+    return { ...base, weight: w, sets: keepSets, reps: Math.min(hi, Math.max(lo, minReps + 2)), mode: 'reps', stalled, note: 'Felt easy last time, +2 reps.' };
+  }
+
   if (allTop) {
     const n = nextLoad(w, loads, ex, unit);
     // Move up if it's a normal small step, or if your last session predicts you can hit the bottom
     // of the range at the next weight (estimated 1RM). Otherwise the jump is too big for now.
     const canJump = n != null && (n - w <= loadStep(ex, unit) + 1e-9 || predictedReps(w, minReps, n) >= lo);
     if (canJump) {
-      return { ...base, weight: n, reps: lo, mode: 'weight', note: `Weight up to ${fmt(n)} ${unit}.` };
+      return { ...base, weight: n, reps: lo, mode: 'weight', note: easy ? `Felt easy last time, +${fmt(n - w)} ${unit}.` : `Weight up to ${fmt(n)} ${unit}.` };
     }
     // Stuck at this weight (e.g. 5 lb → 30 lb): reps up to the top + 8, then one more set at a time
     // up to 5, then slower tempo. Each step keeps what you've already earned, so it never loops back.

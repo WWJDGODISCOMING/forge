@@ -2,6 +2,7 @@
 // Each session carries `deload` so progression and stall checks can skip deload weeks, while PRs,
 // charts and History still show them.
 import { toUnit, e1rm } from './progression.js';
+import { exerciseRir } from './effort.js';
 
 /** workouts: stored docs. unit: 'lb' | 'kg'. Only finished workouts count as history. */
 export function buildIndex(workouts, unit) {
@@ -19,10 +20,11 @@ export function buildIndex(workouts, unit) {
           weight: s.weight_kg == null ? null : Math.round(toUnit(s.weight_kg, unit) * 10) / 10,
           reps: s.reps,
           rir: s.rir,
+          planReps: s.plan_reps ?? null,
         }));
       if (!sets.length) continue;
       if (!sessions.has(ex.exercise_id)) sessions.set(ex.exercise_id, []);
-      sessions.get(ex.exercise_id).push({ date: w.started_at, workoutId: w.id, deload: !!w.deload, sets });
+      sessions.get(ex.exercise_id).push({ date: w.started_at, workoutId: w.id, deload: !!w.deload, rir: exerciseRir(ex), sets });
       if (!lastDone.has(ex.exercise_id)) lastDone.set(ex.exercise_id, t);
     }
   }
