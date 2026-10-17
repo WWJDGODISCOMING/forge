@@ -247,9 +247,14 @@ input[type=date] { -webkit-appearance: none; appearance: none; }
 }
 .chip input:checked + span { background: var(--accent-tint); color: var(--text-1); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 55%, transparent); }
 .focus-chips .chip span { padding-inline: 14px; }
-.focus-row { margin-top: var(--s-2); gap: var(--s-2); }
-.focus-row .link { min-width: 44px; justify-content: center; }
+.focus-row { margin-top: var(--s-2); width: 100%; min-height: 44px; display: grid; grid-template-columns: 1fr auto; column-gap: var(--s-2); align-items: center; text-align: left; background: none; border: 0; padding: 4px 0; font: inherit; color: inherit; cursor: pointer; }
+.focus-row .focus-val { grid-column: 1 / 3; font-size: calc(15px * var(--ts)); font-weight: 600; }
+.focus-row > .muted { grid-column: 1; grid-row: 1; }
+.focus-row .focus-val span { white-space: nowrap; }
+.focus-row .focus-go { grid-column: 2; grid-row: 1; color: var(--text-2); display: inline-flex; }
+.focus-row .focus-go svg { width: 18px; height: 18px; }
 .focus-note { margin-top: var(--s-2); }
+.focus-actions { margin-top: var(--s-4); }
 .pill-focus { white-space: nowrap; }
 .chip input:disabled + span { opacity: .45; }
 .chip input:focus-visible + span { outline: 2px solid var(--accent-text); }

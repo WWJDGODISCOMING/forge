@@ -20,7 +20,7 @@ export const FOCUS_NOTE = 'Focus areas build muscle there. Fat loss happens acro
 
 /** Valid, de-duplicated, capped list of group keys. */
 export function cleanFocus(list) {
-  return [...new Set(Array.isArray(list) ? list : [])].filter((k) => FOCUS_GROUPS[k]).slice(0, MAX_FOCUS);
+  return [...new Set(Array.isArray(list) ? list : [])].filter((k) => typeof k === 'string' && Object.hasOwn(FOCUS_GROUPS, k)).slice(0, MAX_FOCUS);
 }
 
 /** 'Shoulders' or 'Chest, Arms'. */

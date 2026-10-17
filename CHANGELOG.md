@@ -9,6 +9,7 @@
 - Focus areas: choose up to 3 muscles to prioritise, on Train or in your profile.
 - Focus muscles get an extra set in your workouts, never when they are tired or on a deload.
 - Coach answers "Can I lose fat from one spot?" plainly once you set a focus.
+- Review fixes: chip rules apply in onboarding and Edit profile; extra sets are added only if they fit the session and never remove a lift; the Program row keeps names on one line; Coach shows the spot question with a focus set.
 
 ## 0.16.18 — Add always in view (2026-10-17)
 

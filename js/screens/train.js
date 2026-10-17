@@ -145,10 +145,11 @@ export function renderTrain(el) {
         </div>
         <p><b>${esc(PROGRAMS[program.template]?.name || program.name)}</b></p>
         <p class="small muted">Week ${d.week} of ${d.cycle}${d.deload ? ' — deload week' : ` · deload in week ${d.cycle}`}</p>
-        <div class="row between center focus-row">
-          <p class="small"><span class="muted">Focus areas:</span> <b>${esc(focusLabel(state.profile.focus_muscles) || 'None')}</b></p>
-          <button class="link small" data-focus>Edit</button>
-        </div>
+        <button class="focus-row" data-focus aria-label="Focus areas: ${esc(focusLabel(state.profile.focus_muscles) || 'None')}. Edit">
+          <span class="muted small">Focus areas</span>
+          <b class="focus-val">${focusLabel(state.profile.focus_muscles).split(', ').filter(Boolean).map(esc).map((l) => `<span>${l}</span>`).join(', ') || 'None'}</b>
+          <span class="focus-go chev" aria-hidden="true">${icon('chev')}</span>
+        </button>
       </div>
 
       <div class="tools">
@@ -462,7 +463,7 @@ function exerciseMore(el, plan, i) {
 function openFocusPicker() {
   sheet('Focus areas', (body, close) => {
     body.innerHTML = `${focusChipsHtml(state.profile.focus_muscles)}
-      <div class="row gap"><button class="btn grow" data-ok>Done</button></div>`;
+      <div class="row gap focus-actions"><button class="btn grow" data-ok>Done</button></div>`;
     const read = bindFocusChips(body);
     $('[data-ok]', body).onclick = () => {
       const list = cleanFocus(read());

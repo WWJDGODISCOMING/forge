@@ -202,6 +202,7 @@ const stepTraining = {
     <label class="field"><span>Injuries or limits <small class="muted">optional</small></span>
       <textarea name="injuries" rows="2" placeholder="e.g. left shoulder, no overhead pressing">${esc(draft.injuries)}</textarea>
     </label>`,
+  mount(form) { bindFocusChips(form); },
   read(form) {
     draft.activity = form.activity.value || 'light';
     draft.trainingDays = Number(form.days.value) || 3;

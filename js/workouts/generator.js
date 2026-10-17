@@ -288,24 +288,6 @@ export function generateWorkout(opts) {
     items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning });
   }
 
-  // Focus areas: +1 set on one lift per active focus group (main first, then secondary, then accessory),
-  // at most FOCUS_MAX_ADDED in total, none on a deload or light day. Groups under ~60% recovered are skipped.
-  if (!lighter) {
-    let added = 0;
-    const rank = { main: 0, secondary: 1, accessory: 2 };
-    for (const key of activeFocus(profile.focus_muscles, recovery)) {
-      if (added >= FOCUS_MAX_ADDED) break;
-      const ms = FOCUS_GROUPS[key].muscles;
-      const cand = items
-        .filter((it) => !it.focusKey && it.primary.some((m) => ms.includes(m)) && it.target.sets < 6)
-        .sort((a, b) => rank[a.role] - rank[b.role])[0];
-      if (!cand) continue;
-      cand.target.sets += 1;
-      cand.focusKey = key;
-      added += 1;
-    }
-  }
-
   if (items.length < 4 && !injuryDropped) {
     notes.push('This location doesn’t have much for today’s focus. Try a different day, or add equipment in Settings → Locations.');
   }
@@ -331,6 +313,38 @@ export function generateWorkout(opts) {
   // …then drop lifts from the end, always keeping the first one.
   while (total() > budget && items.length > 1) items.pop();
 
+  // Focus areas: after the fit, +1 set on one lift per active focus group (main first, then secondary, then accessory),
+  // at most FOCUS_MAX_ADDED in total, none on a deload or light day. Groups under ~60% recovered are skipped.
+  // A set is added only if it fits the session, or by taking one set from the largest other lift above 2 sets. No lift is ever dropped.
+  if (!lighter) {
+    let added = 0;
+    const donors = new Set();
+    const rank = { main: 0, secondary: 1, accessory: 2 };
+    const cost = (it, sets) => minutesFor(exercises.find((e) => e.id === it.exercise_id), sets, it.role, it.target);
+    for (const key of activeFocus(profile.focus_muscles, recovery)) {
+      if (added >= FOCUS_MAX_ADDED) break;
+      const ms = FOCUS_GROUPS[key].muscles;
+      const first = (it) => it.primary.findIndex((m) => ms.includes(m));
+      const cand = items
+        .filter((it) => !it.focusKey && !donors.has(it) && first(it) >= 0 && it.target.sets < 6)
+        .sort((a, b) => rank[a.role] - rank[b.role] || first(a) - first(b))[0];
+      if (!cand) continue;
+      const extra = cost(cand, cand.target.sets + 1) - cost(cand, cand.target.sets);
+      if (total() + extra <= budget) {
+        cand.target.sets += 1;
+      } else {
+        let donor = null;
+        for (const it of items) if (it !== cand && !it.focusKey && it.target.sets > 2 && (!donor || it.target.sets >= donor.target.sets)) donor = it;
+        if (!donor || total() + extra - (cost(donor, donor.target.sets) - cost(donor, donor.target.sets - 1)) > budget) continue;
+        donor.target.sets -= 1;
+        donors.add(donor);
+        cand.target.sets += 1;
+      }
+      cand.focusKey = key;
+      added += 1;
+    }
+  }
+
   // Short sessions: pair accessories into supersets.
   if (sessionMin <= 45) {
     const acc = items.filter((it) => it.role === 'accessory' && !exercises.find((e) => e.id === it.exercise_id).timed);
@@ -342,6 +356,6 @@ export function generateWorkout(opts) {
   }
 
   const focus = [...new Set(items.filter((it) => it.focusKey).map((it) => it.focusKey))];
-  const readinessApplied =rLevel === 'amber' ? 'amber' : readinessDeload ? 'red' : null;
+  const readinessApplied = rLevel === 'amber' ? 'amber' : readinessDeload ? 'red' : null;
   return { dayType, label: day.label, focus, focusLabel: focusLabel(focus), deload, readinessDeload, readiness: readinessApplied, week, cycle, notes, exercises: items, est_minutes: Math.round(total() + warmMin), warm_min: warmMin };
 }

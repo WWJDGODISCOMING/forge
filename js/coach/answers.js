@@ -306,7 +306,7 @@ export const QUESTIONS = [
   { id: 'missions', label: 'How are my missions going?', answer: missionsAnswer, rank: (d) => (missionsOn(d) ? -1 : null) },
   { id: 'program', label: programLabel, answer: programAnswer, rank: (d) => (programRunning(d) ? -2 : null) },
   { id: 'longterm', label: 'How’s my long-term health?', answer: longtermAnswer },
-  { id: 'spot', label: 'Can I lose fat from one spot?', answer: spotAnswer },
+  { id: 'spot', label: 'Can I lose fat from one spot?', answer: spotAnswer, rank: () => 3.5 },
 ];
 
 /** The questions that have data behind them right now: [{ id, label, answer }], answers already worked out. */
