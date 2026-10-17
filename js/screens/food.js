@@ -403,7 +403,7 @@ function openEditEntry(e) {
     $('[data-plus]', body).onclick = () => { haptics.select(); servings = stepServings(servings, 1); paint(); };
     $$('[data-meal]', body).forEach((b) => { b.onclick = () => { haptics.select(); meal = b.dataset.meal; paint(); }; });
     $('[data-save]', body).onclick = () => { patch('food_logs', e.id, { servings, meal }); close(); };
-    $('[data-del]', body).onclick = () => { softDelete('food_logs', e.id); close(); toast('Removed'); };
+    $('[data-del]', body).onclick = () => { haptics.warning(); softDelete('food_logs', e.id); close(); toast('Removed'); };
     paint();
   });
 }

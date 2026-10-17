@@ -61,6 +61,7 @@ export function previewPlan() {
 
 /** Start a previewed plan (Train or Today): unlock audio on this tap, cache today's photos, go. */
 export function startPlan(plan) {
+  haptics.medium();
   unlockAudio(); // this tap unlocks sound + voice for the 3-2-1 GO on iPhone
   startWorkout(plan);
   cachePhotos(plan.exercises.map((it) => it.exercise_id)); // today's demo photos, for the gym's dead zones
@@ -171,7 +172,7 @@ export function renderTrain(el) {
   if (plan) wirePreview(el, plan);
   const start = $('[data-start]', el);
   if (start)
-    start.onclick = () => { haptics.medium(); startPlan(plan); };
+    start.onclick = () => startPlan(plan);
   const dl = $('[data-deload]', el);
   if (dl) dl.onclick = () => { startDeload(); toast('Deload week started'); };
   $('[data-program]', el).onclick = () => openProgramPicker();

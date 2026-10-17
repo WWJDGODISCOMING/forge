@@ -82,7 +82,7 @@ export function renderSettings(el) {
           </div>
         </div>
         <label class="g-row sw"><span class="g-text"><span>Sound effects</span><small>Power-up, PR and finish sounds.</small></span><input type="checkbox" switch name="sfx" ${sfxOn ? 'checked' : ''}></label>
-        <label class="g-row sw"><span class="g-text"><span>Haptic tick</span><small>${hapSupport === 'native' || hapSupport === 'switch' ? 'Taps on key actions, like logging food, finishing a set or a new PR.' : 'Not supported on this device.'}</small></span><input type="checkbox" switch name="haptics" ${hapOn ? 'checked' : ''}></label>
+        <label class="g-row sw"><span class="g-text"><span>Haptic tick</span><small>${hapSupport === 'native' ? 'Taps on key actions, like logging food, finishing a set or a new PR.' : hapSupport === 'switch' ? 'A light tap on tabs, controls and Done set.' : 'Not supported on this device.'}</small></span><input type="checkbox" switch name="haptics" ${hapOn ? 'checked' : ''}></label>
       </div>
       <p class="sec-foot">Coach audio mixes with your music and is silent when your ringer switch is off.</p>
       ${isNative() ? '' : `<div class="stack" data-photos style="visibility:hidden"><!-- holds its room until the photo index loads, so the rows below don't jump -->

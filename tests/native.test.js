@@ -37,7 +37,7 @@ test('native haptics: taps are impacts, outcomes are notifications', async () =>
   haptic('success');
   haptic('select');
   await tickq();
-  eq(JSON.stringify(calls.filter((c) => c[0] === 'Haptics').map((c) => [c[1], c[2]])), JSON.stringify([['impact', { style: 'MEDIUM' }], ['notification', { type: 'SUCCESS' }], ['selectionChanged', undefined]]));
+  eq(JSON.stringify(calls.filter((c) => c[0] === 'Haptics').map((c) => [c[1], c[2]])), JSON.stringify([['impact', { style: 'MEDIUM' }], ['notification', { type: 'SUCCESS' }], ['selectionStart', undefined], ['selectionChanged', undefined]]));
 });
 
 test('rest timer on the lock screen: asks once, schedules one notification, moves it, cancels it', async () => {

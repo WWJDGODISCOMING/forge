@@ -6,7 +6,10 @@
 
 ### What's new
 
-- Your iPhone now taps when you log food, save a weigh-in or start a workout.
+- Your iPhone now taps when you log food, finish a set or start a workout.
+- Deleting a food entry or all photos gives a warning tap.
+- Fixed: picker ticks now work on iPhone.
+- A new PR's taps are spaced so they don't blur together.
 
 ## 0.16.14 — Snap a meal reads packaged foods (2026-10-16)
 

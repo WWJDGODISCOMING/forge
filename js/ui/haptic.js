@@ -19,10 +19,15 @@ const supportsSwitch = (() => {
 })();
 
 export const hapticsOn = () => !state.settings || state.settings.haptics !== false;
-export const hapticSupport = () => (NATIVE ? 'native' : supportsSwitch ? 'switch' : navigator.vibrate ? 'vibrate' : 'none');
+export const hapticSupport = () => (NATIVE ? 'native' : supportsSwitch ? 'switch' : globalThis.navigator?.vibrate ? 'vibrate' : 'none');
 const useSwitch = () => hapticsOn() && supportsSwitch && !NATIVE;
 /** A native tap where the app can; true if it did. */
-const nativeTap = (kind = 'light') => NATIVE && hapticsOn() && nativeHaptic(kind);
+let lastTap = 0;
+const nativeTap = (kind = 'light') => {
+  const ok = NATIVE && hapticsOn() && nativeHaptic(kind);
+  if (ok) lastTap = Date.now();
+  return ok;
+};
 
 /**
  * The haptic vocabulary. Each returns true if it fired. All are native-only and gated by Settings → Haptic tick,
@@ -31,7 +36,7 @@ const nativeTap = (kind = 'light') => NATIVE && hapticsOn() && nativeHaptic(kind
 export const haptics = {
   select() {
     if (nativeTap('select')) return true;
-    if (hapticsOn() && !NATIVE && navigator.vibrate) { navigator.vibrate(10); return true; }
+    if (hapticsOn() && !NATIVE && globalThis.navigator?.vibrate) { navigator.vibrate(10); return true; }
     return false;
   },
   light: () => nativeTap('light'),
@@ -39,10 +44,14 @@ export const haptics = {
   success: () => nativeTap('success'),
   heavy: () => nativeTap('heavy'),
   warning: () => nativeTap('warning'),
-  /** A big win (PR, badge): a heavy thud, then success ~120 ms later. */
+  /** A big win (PR, badge): a heavy thud (at least 150 ms after any tap before it), then success 120 ms later. */
   win() {
-    if (!nativeTap('heavy')) return false;
-    setTimeout(() => nativeTap('success'), 120);
+    if (!NATIVE || !hapticsOn()) return false;
+    const wait = Math.max(0, lastTap + 150 - Date.now());
+    setTimeout(() => {
+      nativeTap('heavy');
+      setTimeout(() => nativeTap('success'), 120);
+    }, wait);
     return true;
   },
 };
@@ -103,7 +112,7 @@ export function onHapticTap(input, fn) {
   if (!input) return;
   input.addEventListener('change', (e) => {
     input.checked = false;
-    if (!nativeTap('medium') && navigator.vibrate && hapticsOn()) navigator.vibrate(12);
+    if (!nativeTap('medium') && globalThis.navigator?.vibrate && hapticsOn()) navigator.vibrate(12);
     fn(e);
   });
 }
