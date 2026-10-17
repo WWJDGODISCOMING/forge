@@ -29,6 +29,8 @@ import './heroglow.test.js';
 import './tabicons.test.js';
 import './icons.test.js';
 import './haptics.test.js';
+import './spring.test.js';
+import './spring-track.test.js';
 import './illustrations.test.js';
 import './typescale.test.js';
 import './health.test.js';
