@@ -213,9 +213,16 @@
 dialog.sheet.detented .food-scroll { max-height: none; } /* the sheet is already sized; the list fills it */
 /* The dock is a flex sibling of the list inside a body that does not scroll (every sheet size, Duo inner screen included), so it is
    never masked or scrolled and nothing paints under it. Search and Quick add stay above; only the list scrolls.
-   At medium the list also pads by the off-screen part so its last row stays reachable. */
+   At medium the body pads by the off-screen part so the column ends at the screen edge. */
 dialog.sheet .sheet-body.food-body, dialog.sheet.detented.at-medium .sheet-body.food-body { overflow: hidden; display: flex; flex-direction: column; padding-bottom: 0; }
+dialog.sheet.detented.at-medium .sheet-body.food-body { padding-bottom: var(--detent-pad, 0px); }
 .food-body .food-log { flex: 1; min-height: 0; }
-.food-body .food-scroll { flex: 1 1 auto; min-height: 0; }
-dialog.sheet.detented.at-medium .food-body .food-scroll { padding-bottom: var(--detent-pad, 0px); }
-.food-body .food-dock { position: static; flex: none; margin-bottom: 0; padding-bottom: calc(var(--s-3) + var(--safe-bottom)); }
+.food-body .food-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; }
+dialog.sheet.detented .food-body .food-scroll { flex-basis: 0; }
+.food-body .food-scroll > * { flex: none; }
+[data-quick-toggle][hidden] { display: none; }
+/* Add stays outside the small scroller, so it is always on screen; the list shrinks before the dock does. */
+.food-body .food-dock { position: static; flex: 0 1 auto; margin-bottom: 0; padding-bottom: calc(var(--s-3) + var(--safe-bottom)); min-height: calc(var(--s-3) * 2 + var(--safe-bottom) + var(--tap) * var(--ts)); }
+.food-dock-main { display: flex; flex-direction: column; gap: var(--s-3); flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-block: 2px; scroll-padding-block: var(--s-3); }
+.food-dock-main > * { flex: none; }
+.food-dock > [data-add] { flex: none; }

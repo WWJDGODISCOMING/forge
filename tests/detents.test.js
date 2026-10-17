@@ -65,6 +65,8 @@ test('sheet(): detents option, haptic on crossing, shouldDismiss kept for plain 
   const css = src('css/food.css');
   assert(!css.includes('mask-image'), 'no fade mask can hide the dock');
   assert(!/\.food-dock::after/.test(css) && !/\.food-dock::before/.test(css), 'no solid cover is painted under the dock');
-  assert(/\.food-body \.food-dock \{[^}]*position: static;[^}]*flex: none/.test(css), 'the dock is pinned in the flex column, not sticky inside the scroller');
+  assert(/\.food-body \.food-dock \{[^}]*position: static;[^}]*flex: 0 1 auto/.test(css) && /\.food-dock > \[data-add\] \{ flex: none/.test(css) && food.includes('class="food-dock-main"'), 'the dock is pinned in the flex column and Add sits outside its small scroller');
+  assert(/\.food-body \.food-scroll > \* \{ flex: none/.test(css), 'list rows keep their height, so the list scrolls instead of clipping');
+  assert(/at-medium \.sheet-body\.food-body \{ padding-bottom: var\(--detent-pad/.test(css), 'medium pads the body, so the column ends at the screen edge');
   assert(/sheet-body\.food-body[^{]*\{[^}]*overflow: hidden/.test(css) && food.includes("body.classList.add('food-body')"), 'the sheet body does not scroll; the list does');
 });

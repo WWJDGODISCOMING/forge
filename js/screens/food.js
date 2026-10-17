@@ -181,6 +181,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           </section>
         </div>
         <div class="food-dock" data-dock hidden>
+          <div class="food-dock-main">
           <div class="row between center food-dock-head"><div class="food-dock-title"><b class="clamp2" data-sel-name></b><small class="muted" data-sel-brand hidden></small></div>
             <span class="serv-stepper" data-stepper>${stepBtns('1')}</span></div>
           <div class="portion" data-portion hidden>
@@ -195,6 +196,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           </div>
           <p class="small muted macro-line" data-sel-line></p>
           <div class="meal-chips" role="radiogroup" aria-label="Meal">${MEALS.map((m) => `<button type="button" class="chip-btn" role="radio" data-meal="${m}">${MEAL_LABEL[m]}</button>`).join('')}</div>
+          </div>
           <button class="btn" data-add></button>
         </div>
       </div>`;
@@ -205,6 +207,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     const onlineList = $('[data-online-list]', body);
     const onlineNote = $('[data-online-note]', body);
     const amountEl = $('[data-amount]', dock);
+    amountEl.addEventListener('focus', () => amountEl.scrollIntoView({ block: 'nearest' })); // inside the dock's small scroller, never cut mid-line
     let items = []; // My foods and recents
     let onlineItems = []; // USDA
     let portion = null; // while a USDA food is picked: { base, serving: {g, text}, unit: 'serv' | 'oz' | 'g', servings, grams }
@@ -245,6 +248,8 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     const paintDock = () => {
       const s = flow.f.selected;
       dock.hidden = !s;
+      $('[data-quick-toggle]', body).hidden = !!s; // no room for it beside the dock at medium
+      if (s) $('[data-quick]', body).hidden = true;
       if (!s) return;
       head.expand(); // the dock's Add button must be fully on screen
       const usda = !!portion;
