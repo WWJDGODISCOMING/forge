@@ -115,7 +115,8 @@ test('exercise rating: given rating wins, else the hardest rated set, editable',
   setEffort(it, 4);
   eq(exerciseRir(it), 4);
   setEffort(it, null);
-  eq(exerciseRir(it), 1);
+  eq(exerciseRir(it), null); // cleared on purpose: the per-set ratings don't show through
+  eq(shouldAskEffort({ sets: [done(8, 8)], effort_rir: null }), false);
   eq(exerciseRir({ sets: [done(8, 8)] }), null);
 });
 
@@ -124,6 +125,43 @@ test('history carries the exercise rating and planned reps', () => {
   const s = buildIndex([w], 'lb').historyFor('bench')[0];
   eq(s.rir, 3);
   eq(s.sets[0].planReps, 8);
+});
+
+const DB = { id: 'db', load: 'dumbbell', kind: 'compound', pattern: 'horizontal_push', reps: [8, 12] };
+const MACH = { id: 'm', load: 'machine', kind: 'compound', pattern: 'horizontal_push', reps: [8, 12] };
+
+test('exerciseRir only accepts integers 0-4', () => {
+  for (const bad of ['3', NaN, '__proto__', 7, -1, 1.5]) eq(exerciseRir({ sets: [done(8, 8)], effort_rir: bad }), null);
+  eq(exerciseRir({ sets: [done(8, 8, { rir: '3' })] }), null);
+});
+
+test('easy double step is capped at about 15%; otherwise one step with the reason', () => {
+  const t = T(DB, [sess(5, 12, 4)]);
+  eq(t.weight, 10);
+  eq(t.note, 'Felt easy last time, +5 lb.');
+  assert(T(DB, [sess(30, 12, 4)]).weight <= 35);
+  eq(T(BENCH, [sess(135, 10, 3)]).weight, 145);
+});
+
+test('ease-down snaps to the step, has a floor, and holds when the drop is big', () => {
+  eq(T(BENCH, [sess(135, 8, 0), sess(135, 8, 0)]).weight, 125);
+  eq(T(BENCH, [sess(225, 8, 0), sess(225, 8, 0)]).weight, 210);
+  const d = T(DB, [sess(10, 8, 0), sess(10, 8, 0)]);
+  eq(d.weight, 10);
+  eq(d.reps, 8);
+  const m = T(MACH, [sess(2.5, 8, 0), sess(2.5, 8, 0)]);
+  eq(m.weight, 2.5);
+  assert(/Tough twice/.test(m.note));
+});
+
+test('two missed sessions (unrated, known plan) hold, then ease', () => {
+  eq(T(BENCH, [sess(135, 7, null, 3, 10), sess(135, 7, null, 3, 10)]).mode, 'ease');
+  eq(T(BENCH, [sess(135, 7, null, 3, 10)]).mode, 'hold');
+});
+
+test('bodyweight reasons talk about reps, not weight', () => {
+  eq(T(PUSHUP, [sess(null, 10, 0)]).note, 'Went to failure last time: same reps again.');
+  eq(T(PUSHUP, [sess(null, 10, 1)]).note, 'Close to the limit last time: one more rep.');
 });
 
 test('UI wiring: prompt copy, Rate sets toggle, history edit', () => {

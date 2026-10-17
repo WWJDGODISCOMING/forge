@@ -41,18 +41,24 @@ export function shouldAskEffort(item, ex = {}) {
   return true;
 }
 
-/** The exercise's rating: the one given after the last set, else the rating on its hardest rated set. null = none. */
+const validRir = (v) => (Number.isInteger(v) && v >= 0 && v <= 4 ? v : null);
+
+/**
+ * The exercise's rating: the one given after the last set, else the rating on its hardest rated set.
+ * An explicit null on effort_rir means the rating was cleared (don't fall back to the per-set ratings).
+ * Only integers 0–4 count; anything else is null.
+ */
 export function exerciseRir(item) {
-  if (item.effort_rir != null) return item.effort_rir;
-  const rated = workingDone(item).filter((s) => s.rir != null);
+  if (item.effort_rir !== undefined) return validRir(item.effort_rir);
+  const rated = workingDone(item).filter((s) => validRir(s.rir) != null);
   if (!rated.length) return null;
-  return hardestSet(rated).rir;
+  return validRir(hardestSet(rated).rir);
 }
 
-/** Rate an exercise (0–4, 4 = "4 or more"); null clears the rating. */
+/** Rate an exercise (0–4, 4 = "4 or more"); null clears it (and stops the prompt asking again). */
 export function setEffort(item, rir) {
   if (rir == null) {
-    delete item.effort_rir;
+    item.effort_rir = null; // cleared on purpose: keeps older per-set ratings from showing through
     return item;
   }
   item.effort_rir = Math.min(4, Math.max(0, Math.round(rir)));
