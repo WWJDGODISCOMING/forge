@@ -144,16 +144,40 @@ export function nextTarget(ex, history, { inventory = {}, unit = 'lb', role = 's
   const lastSets = last.sets.length;
   const allTop = minReps >= hi;
 
+  // Effort rating from the most recent session (reps in reserve). No rating → numbers only, as before.
+  const rated = !ex.timed && last.rir != null;
+  const missedIn = (h) => h.sets.some((s) => (s.planReps != null ? (s.reps || 0) < s.planReps : (s.reps || 0) < lo));
+  const toughIn = (h) => h.rir === 0 || missedIn(h);
+  const keepSets = Math.max(sets, Math.min(5, lastSets));
+  if (rated && toughIn(last)) {
+    // Hit the wall: hold. A second tough session in a row at this weight eases the load about 5%.
+    const w0 = topWeight(last.sets);
+    const holdReps = Math.min(hi, Math.max(lo, minReps));
+    const prev0 = hist[1];
+    if (loaded && prev0 && toughIn(prev0) && topWeight(prev0.sets) === w0) {
+      const eased = snapDown(w0 * 0.95, loads, ex, unit);
+      if (eased < w0) return { ...base, weight: eased, sets: keepSets, reps: holdReps, mode: 'ease', stalled: true, note: `Tough twice in a row: easing to ${fmt(eased)} ${unit}.` };
+    }
+    return { ...base, weight: w0, sets: keepSets, reps: holdReps, mode: 'hold', note: missedIn(last) ? 'Missed reps last time: same weight again.' : 'Went to failure last time: same weight again.' };
+  }
+  if (rated && last.rir === 1) {
+    const w1 = topWeight(last.sets);
+    const up = minReps < hi;
+    return { ...base, weight: w1, sets: keepSets, reps: Math.min(hi, Math.max(lo, minReps + (up ? 1 : 0))), mode: 'reps', note: up ? 'Close to the limit last time: same weight, one more rep.' : 'Close to the limit last time: same weight.' };
+  }
+  const easy = rated && last.rir >= 3;
+
   // Timed holds and bodyweight / band work: progress reps (or seconds), then suggest the next chain step.
   if (!loaded) {
     if (allTop) {
-      const extended = ex.timed ? Math.min(maxReps + 5, hi + 30) : Math.min(minReps + 1, hi + 5);
+      const extended = ex.timed ? Math.min(maxReps + 5, hi + 30) : Math.min(minReps + (easy ? 2 : 1), hi + 5);
       return {
         ...base, weight: topWeight(last.sets), reps: extended, mode: chainNext ? 'chain' : 'reps',
         nextStepId: chainNext ? chainNext.id : undefined,
-        note: chainNext ? `You hit the top of the range. Ready to try ${chainNext.name}?` : 'Top of the range: keep adding reps or slow the lowering to 3 seconds.',
+        note: chainNext ? `You hit the top of the range. Ready to try ${chainNext.name}?` : easy ? 'Felt easy last time, +2 reps.' : 'Top of the range: keep adding reps or slow the lowering to 3 seconds.',
       };
     }
+    if (easy) return { ...base, weight: topWeight(last.sets), reps: Math.min(hi, minReps + 2), mode: 'reps', note: 'Felt easy last time, +2 reps.' };
     const step = ex.timed ? 5 : 1;
     return { ...base, weight: topWeight(last.sets), reps: Math.min(hi, minReps + step), mode: 'reps', note: ex.timed ? `Add ${step} seconds.` : 'Add a rep to your weakest set.' };
   }
@@ -168,6 +192,18 @@ export function nextTarget(ex, history, { inventory = {}, unit = 'lb', role = 's
     const dropped = lighterLoad(w, loads, ex, unit);
     if (dropped != null) return { ...base, weight: dropped, reps: lo, mode: 'reset', stalled: true, note: 'Two tough sessions in a row: drop about 10% and build back up.' };
     return { ...base, weight: w, reps: lo, mode: 'reset', stalled: true, note: 'Two tough sessions in a row: same weight, aim for the bottom of the range and build back up.' };
+  }
+
+  if (easy && allTop) {
+    // Felt easy and every set hit the top: take two steps up, when the heavier weight is within reach.
+    const n1 = nextLoad(w, loads, ex, unit);
+    const n2 = n1 != null ? nextLoad(n1, loads, ex, unit) : null;
+    if (n2 != null && (n2 - n1 <= loadStep(ex, unit) + 1e-9 || predictedReps(w, minReps, n2) >= lo)) {
+      return { ...base, weight: n2, reps: lo, mode: 'weight', note: `Felt easy last time, +${fmt(n2 - w)} ${unit}.` };
+    }
+  }
+  if (easy && !allTop) {
+    return { ...base, weight: w, sets: keepSets, reps: Math.min(hi, Math.max(lo, minReps + 2)), mode: 'reps', stalled, note: 'Felt easy last time, +2 reps.' };
   }
 
   if (allTop) {
