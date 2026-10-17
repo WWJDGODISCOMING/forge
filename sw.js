@@ -58,6 +58,8 @@ const SHELL = [
   './js/food/flow.js',
   './js/food/meal-library.js',
   './js/food/meal-plan.js',
+  './js/screens/food-prefs.js',
+  './js/screens/food-plan.js',
   './js/weight/smoothing.js',
   './js/weight/reading.js',
   './js/weight/chart.js',
