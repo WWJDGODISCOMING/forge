@@ -2,7 +2,8 @@
 .meter-row { display: flex; flex-direction: column; gap: var(--s-2); }
 .meter-row--big .meter { height: 12px; }
 .meter-row--big:first-child .row { align-items: flex-end; }
-.meter-row--big:first-child .meter-val b { font-size: calc(34px * var(--ts)); line-height: 1.1; font-variant-numeric: tabular-nums; }
+.meter-row--big:first-child .meter-val { align-items: baseline; }
+.meter-row--big:first-child .meter-val b { font: 700 min(calc(var(--t-hero-sub) * var(--ts)), 72px)/1.1 var(--num); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
 .meter-row > .row.between { flex-wrap: wrap; align-items: baseline; column-gap: var(--s-3); row-gap: 2px; }
 .meter-row > .row.between > .label { white-space: nowrap; }
 /* Value and "of target" stay one unit: if it doesn't fit beside the label it drops under it; at the largest text the target drops under the number. Never mid-value. */
@@ -201,3 +202,7 @@
 .snap-foot .meal-chips .chip-btn { min-height: 44px; min-width: 0; padding: 0 var(--s-1); font-size: calc(13px * var(--ts)); }
 @media (max-height: 720px) { .snap-foot .macro-line { display: none; } }
 .snap-foot .macro-line { margin: 0; }
+/* Narrow phones (320): keep "3,100 of 2,490 kcal" on one line */
+@media (max-width: 359px) {
+  .meter-row--big:first-child .meter-val b { font-size: min(calc(34px * var(--ts)), 72px); }
+}

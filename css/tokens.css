@@ -69,6 +69,9 @@
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
   --num: ui-rounded, "SF Pro Rounded", -apple-system, system-ui, sans-serif;
 
+  --t-hero: 56px; /* hero numbers: apply as min(calc(var(--t-hero) * var(--ts)), 72px) */
+  --t-hero-sub: 44px;
+
   --tap: 48px;
   --ts: 1; /* text scale: js/ui/textsize.js sets it from iOS Settings → Text Size (1 to 1.35) */
   --safe-top: env(safe-area-inset-top, 0px);
@@ -149,4 +152,11 @@
   --ready-green: var(--good);
   --ready-amber: var(--warn);
   --ready-red: var(--danger);
+}
+
+@media (max-width: 359px) { :root { --t-hero: 48px; } }
+
+/* iPhone Duo unfolded: roomier hero numbers */
+@media (min-width: 700px) {
+  :root { --t-hero: 64px; }
 }
