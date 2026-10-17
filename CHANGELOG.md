@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.18 — Add always in view (2026-10-17)
+
+Follow-up to #119. In the Log food sheet the Add button could be faded out when the picked food's panel was tall (320-wide phones after a USDA pick, or while the keyboard was up editing the amount). The panel now sits below the list instead of inside it, so Add can never fade, and no list row shows under it at half or full height. Only a small area above Add scrolls, with soft edges, when space is tight.
+
+### What's new
+
+- Fixed: Add in Log food is always fully visible, and the list scrolls to its last row.
+- While a food is picked, Quick add is hidden so the food panel has room.
+
 ## 0.16.17 — Sheet detents (2026-10-17)
 
 #58 slice 16. Log food now opens about half the screen tall and can be dragged up to full height; it springs up to full height and stays there when you pick a food or tap a field, so Add and the search box stay clear of the keyboard. Not used with reduced motion or on wide screens. The drag follows your finger, your release speed picks the half or full stop, and a small tick marks each stop. Other sheets, including the exercise ⋯ menu, are unchanged.

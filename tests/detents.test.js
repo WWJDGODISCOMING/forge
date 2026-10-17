@@ -63,6 +63,10 @@ test('sheet(): detents option, haptic on crossing, shouldDismiss kept for plain 
   const food = src('js/screens/food.js');
   assert(food.indexOf('data-quick-toggle') < food.indexOf('class="food-scroll"') && food.indexOf('data-quick hidden') < food.indexOf('class="food-scroll"'), 'Quick add sits above the results list');
   const css = src('css/food.css');
-  assert(css.includes('.sheet-body:has(.food-dock:not([hidden]))') && css.includes('mask-image: linear-gradient(to top, transparent calc(var(--safe-bottom) + 20px), black 0)'), 'rows under the dock are masked out');
+  assert(!/\.sheet-body[^{]*\{[^}]*mask-image/.test(css) && !/\.food-dock \{[^}]*mask-image/.test(css), 'no fade mask on the sheet body or the dock, so Add can never be faded');
   assert(!/\.food-dock::after/.test(css) && !/\.food-dock::before/.test(css), 'no solid cover is painted under the dock');
+  assert(/\.food-body \.food-dock \{[^}]*position: static;[^}]*flex: 0 1 auto/.test(css) && /\.food-dock > \[data-add\] \{ flex: none/.test(css) && food.includes('class="food-dock-main"'), 'the dock is pinned in the flex column and Add sits outside its small scroller');
+  assert(/\.food-body \.food-scroll > \* \{ flex: none/.test(css), 'list rows keep their height, so the list scrolls instead of clipping');
+  assert(/at-medium \.sheet-body\.food-body \{ padding-bottom: var\(--detent-pad/.test(css), 'medium pads the body, so the column ends at the screen edge');
+  assert(/sheet-body\.food-body[^{]*\{[^}]*overflow: hidden/.test(css) && food.includes("body.classList.add('food-body')"), 'the sheet body does not scroll; the list does');
 });

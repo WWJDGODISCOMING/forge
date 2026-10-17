@@ -155,6 +155,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
   const flow = createFlow({ foods: state.foods, logs: state.food_logs, hour: now.getHours() + now.getMinutes() / 60, day });
   if (meal) flow.setMeal(meal);
   sheet('Log food', (body, close, head) => {
+    body.classList.add('food-body');
     body.innerHTML = `
       <div class="stack food-log">
         <div class="food-search-row">
@@ -180,6 +181,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           </section>
         </div>
         <div class="food-dock" data-dock hidden>
+          <div class="food-dock-main">
           <div class="row between center food-dock-head"><div class="food-dock-title"><b class="clamp2" data-sel-name></b><small class="muted" data-sel-brand hidden></small></div>
             <span class="serv-stepper" data-stepper>${stepBtns('1')}</span></div>
           <div class="portion" data-portion hidden>
@@ -194,6 +196,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           </div>
           <p class="small muted macro-line" data-sel-line></p>
           <div class="meal-chips" role="radiogroup" aria-label="Meal">${MEALS.map((m) => `<button type="button" class="chip-btn" role="radio" data-meal="${m}">${MEAL_LABEL[m]}</button>`).join('')}</div>
+          </div>
           <button class="btn" data-add></button>
         </div>
       </div>`;
@@ -204,6 +207,14 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     const onlineList = $('[data-online-list]', body);
     const onlineNote = $('[data-online-note]', body);
     const amountEl = $('[data-amount]', dock);
+    const dockMain = $('.food-dock-main', dock);
+    const paintEdges = () => { // soft edges only while the small scroller has more above or below
+      dockMain.classList.toggle('edge-t', dockMain.scrollTop > 1);
+      dockMain.classList.toggle('edge-b', dockMain.scrollTop + dockMain.clientHeight < dockMain.scrollHeight - 1);
+    };
+    dockMain.addEventListener('scroll', paintEdges, { passive: true });
+    if (typeof ResizeObserver === 'function') new ResizeObserver(paintEdges).observe(dockMain);
+    amountEl.addEventListener('focus', () => amountEl.scrollIntoView({ block: 'nearest' })); // inside the dock's small scroller, never cut mid-line
     let items = []; // My foods and recents
     let onlineItems = []; // USDA
     let portion = null; // while a USDA food is picked: { base, serving: {g, text}, unit: 'serv' | 'oz' | 'g', servings, grams }
@@ -243,7 +254,10 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     };
     const paintDock = () => {
       const s = flow.f.selected;
+      head.holdLarge?.(!!s); // with a food picked the dock needs the full height
       dock.hidden = !s;
+      $('[data-quick-toggle]', body).hidden = !!s; // no room for it beside the dock at medium
+      if (s) $('[data-quick]', body).hidden = true;
       if (!s) return;
       head.expand(); // the dock's Add button must be fully on screen
       const usda = !!portion;
