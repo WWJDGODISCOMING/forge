@@ -6,7 +6,7 @@ import { icon } from './ui/icons.js';
 import { shouldDismiss, rubberBand, dragProgress, velocityOf } from './ui/gesture.js';
 import { registerSheet } from './ui/sheets.js';
 import { haptics } from './ui/haptic.js';
-import { animateSpring, SHEET } from './ui/spring.js';
+import { playSpring, SHEET } from './ui/spring.js';
 
 export { closeAllSheets } from './ui/sheets.js';
 
@@ -73,6 +73,7 @@ export function sheet(title, render) {
   let forget = () => {};
   let anim = null; // the running spring (open, close or release), if any
   let exiting = false; // the running spring is the exit; grabbing it cancels the close
+  let drag = null; // the finger on the sheet, if any: one per sheet, so close() can end it
   const reduced = reducedMotion();
   // Drive the sheet from JS: --sheet-y in px and --sheet-p (backdrop 0..1) set together each frame.
   const place = (y) => {
@@ -86,72 +87,81 @@ export function sheet(title, render) {
     dlg.style.removeProperty('--sheet-p');
     dlg.style.removeProperty('will-change');
   };
-  const run = (from, to, velocity, onDone) => {
+  const run = (from, to, velocity, onDone, reach) => {
     anim?.stop();
     dlg.classList.add('springing');
     dlg.style.willChange = 'transform';
-    anim = animateSpring({ from, to, velocity, params: SHEET, onUpdate: place, onDone });
+    anim = playSpring({ el: dlg, from, to, velocity, params: SHEET, reach, onUpdate: place, onDone });
   };
   const finish = () => {
     forget();
     if (dlg.open) dlg.close();
     dlg.remove();
   };
-  const exit = (velocity) => {
+  // velocity: the finger's speed when released as a dismiss; otherwise the running spring's speed carries into the exit.
+  const exit = (velocity = null) => {
     dlg.classList.remove('dragging');
     if (reduced) {
       dlg.classList.add('closing'); // CSS fades it out
       setTimeout(finish, DUR.med + 40);
       return;
     }
-    const from = anim ? anim.stop().value : parseFloat(dlg.style.getPropertyValue('--sheet-y')) || 0;
+    const caught = anim ? anim.stop() : null;
+    const from = caught ? caught.value : parseFloat(dlg.style.getPropertyValue('--sheet-y')) || 0;
+    const v = velocity != null ? Math.max(velocity, 0) : caught ? caught.velocity : 0;
+    const h = dlg.offsetHeight;
     exiting = true;
-    run(from, dlg.offsetHeight, Math.max(velocity, 0), finish);
+    run(from, h, v, finish, h - 1); // done once it is off-screen, so the invisible sheet never blocks taps
+  };
+  const endDrag = () => {
+    if (!drag) return;
+    const { handle, pointerId } = drag;
+    drag = null;
+    dlg.classList.remove('dragging');
+    try { handle.releasePointerCapture(pointerId); } catch { /* already released */ }
   };
   const close = () => {
     if (closing) return;
     closing = true;
     forget();
-    exit(0);
+    endDrag(); // a finger still down must not fight the exit
+    exit();
   };
   // Drag to dismiss (pointer events on the grabber and header; the body keeps its own scrolling).
   if (!reduced) {
     for (const handle of dlg.querySelectorAll('.sheet-grab, .sheet-head')) {
-      let startY = 0;
-      let base = 0; // where the sheet was when grabbed (nonzero when caught mid-spring)
-      let offset = 0;
-      let samples = null;
       handle.addEventListener('pointerdown', (e) => {
-        if (e.target.closest('button')) return;
+        if (e.target.closest('button') || drag) return;
         if (closing && !exiting) return;
+        let base = 0; // where the sheet was when grabbed (nonzero when caught mid-spring)
         if (anim) {
           // Caught mid-flight: stop under the finger. Grabbing a closing sheet cancels the close.
           base = anim.stop().value;
           anim = null;
           if (closing) { closing = false; exiting = false; forget = registerSheet(close); }
-        } else base = 0;
-        samples = [{ t: e.timeStamp, v: e.clientY }];
-        startY = e.clientY;
-        offset = base;
+        }
+        drag = { handle, pointerId: e.pointerId, startY: e.clientY, base, offset: base, samples: [{ t: e.timeStamp, v: e.clientY }] };
         handle.setPointerCapture(e.pointerId);
         dlg.classList.add('dragging');
         dlg.classList.add('springing');
         dlg.style.willChange = 'transform';
-        place(offset);
+        place(base);
       });
       handle.addEventListener('pointermove', (e) => {
-        if (!samples) return;
-        samples.push({ t: e.timeStamp, v: e.clientY });
-        offset = rubberBand(base + e.clientY - startY);
-        place(offset);
+        if (!drag || closing || drag.handle !== handle) return;
+        drag.samples.push({ t: e.timeStamp, v: e.clientY });
+        drag.offset = rubberBand(drag.base + e.clientY - drag.startY);
+        place(drag.offset);
       });
       const release = (e) => {
-        if (!samples) return;
-        const velocity = velocityOf(samples);
-        samples = null;
-        dlg.classList.remove('dragging');
-        if (e.type !== 'pointercancel' && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
-          if (!closing) { closing = true; forget(); exit(velocity); }
+        if (!drag || closing || drag.handle !== handle) return;
+        const { offset, samples } = drag;
+        const up = e.type !== 'pointercancel';
+        if (up) samples.push({ t: e.timeStamp, v: e.clientY }); // a finger held still hands over 0, not the old flick
+        const velocity = up ? velocityOf(samples) : 0;
+        endDrag();
+        if (up && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
+          closing = true; forget(); exit(velocity);
         } else {
           run(offset, 0, velocity, settle); // snaps back with the finger's speed and a little settle
         }

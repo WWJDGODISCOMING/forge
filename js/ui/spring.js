@@ -53,3 +53,85 @@ export function animateSpring({ from, to, velocity = 0, params = SHEET, onUpdate
     },
   };
 }
+
+const TRACK_MS = 1000 / 120; // one sample per 120 Hz frame
+
+/**
+ * Precomputes the whole spring path so it can play as an accelerated (compositor) animation.
+ * Returns { values, velocities, dt, duration }: one sample per dt ms. With `reach`, the track ends the moment it
+ * gets to that value (so an exit finishes when the sheet is off-screen, not after the 0.4 px tail).
+ */
+export function springTrack(from, to, velocity = 0, params = SHEET, { reach } = {}) {
+  const values = [from];
+  const velocities = [velocity];
+  const dir = to >= from ? 1 : -1;
+  let s = { value: from, velocity };
+  for (let i = 0; i < 1200; i++) { // 10 s at most
+    const r = step(s, to, TRACK_MS, params);
+    s = { value: r.value, velocity: r.velocity };
+    values.push(s.value);
+    velocities.push(s.velocity);
+    if (r.done || (reach != null && (s.value - reach) * dir >= 0)) break;
+  }
+  return { values, velocities, dt: TRACK_MS, duration: (values.length - 1) * TRACK_MS };
+}
+
+/** Value and velocity (units/ms) of a track at time tMs, interpolated between samples. */
+export function trackAt(track, tMs) {
+  const last = track.values.length - 1;
+  if (last < 1) return { value: track.values[0], velocity: track.velocities[0] };
+  const f = Math.min(Math.max(tMs / track.dt, 0), last);
+  const i = Math.min(Math.floor(f), last - 1);
+  const k = f - i;
+  return {
+    value: track.values[i] + (track.values[i + 1] - track.values[i]) * k,
+    velocity: track.velocities[i] + (track.velocities[i + 1] - track.velocities[i]) * k,
+  };
+}
+
+/**
+ * Plays a spring on `el` as a transform animation. This runs on the compositor, so it reaches 120 Hz on iPhone
+ * (requestAnimationFrame is capped at 60 Hz in WKWebView) and doesn't stutter when JS is busy. onUpdate(value, velocity)
+ * still fires each frame for things that follow along (the backdrop). Falls back to the rAF driver without el.animate.
+ * Same contract as animateSpring: stop() returns { value, velocity } and leaves onUpdate(value) as the last write.
+ */
+export function playSpring({ el, from, to, velocity = 0, params = SHEET, reach, onUpdate, onDone }) {
+  if (!el || typeof el.animate !== 'function') return animateSpring({ from, to, velocity, params, onUpdate, onDone });
+  const track = springTrack(from, to, velocity, params, { reach });
+  const anim = el.animate(track.values.map((y) => ({ transform: `translateY(${y}px)` })), {
+    duration: track.duration, easing: 'linear', fill: 'forwards',
+  });
+  let live = true;
+  let raf = 0;
+  let rest = { value: from, velocity };
+  const read = () => trackAt(track, anim.currentTime ?? track.duration);
+  const tick = () => {
+    if (!live) return;
+    rest = read();
+    onUpdate?.(rest.value, rest.velocity);
+    raf = requestAnimationFrame(tick);
+  };
+  onUpdate?.(from, velocity);
+  raf = requestAnimationFrame(tick);
+  anim.onfinish = () => {
+    if (!live) return;
+    live = false;
+    cancelAnimationFrame(raf);
+    rest = trackAt(track, track.duration);
+    onUpdate?.(rest.value, rest.velocity);
+    onDone?.();
+    anim.cancel();
+  };
+  return {
+    stop() {
+      if (live) {
+        live = false;
+        cancelAnimationFrame(raf);
+        rest = read();
+        onUpdate?.(rest.value, rest.velocity); // the inline value takes over from the animation
+        anim.cancel();
+      }
+      return { value: rest.value, velocity: rest.velocity };
+    },
+  };
+}

@@ -74,9 +74,9 @@ test('spring: stop() reports the current value and velocity', () => {
   }
 });
 
-test('spring: sheets use animateSpring with a reduced-motion branch; iOS asks for 120 Hz', () => {
+test('spring: sheets use the spring engine with a reduced-motion branch; iOS asks for 120 Hz', () => {
   const ui = src('js/ui.js');
-  assert(/animateSpring\(/.test(ui), 'ui.js uses animateSpring');
+  assert(/playSpring\(/.test(ui), 'ui.js uses playSpring');
   assert(/const reduced = reducedMotion\(\)/.test(ui) && /if \(reduced\)/.test(ui), 'reduced-motion branch');
   assert(/<key>CADisableMinimumFrameDurationOnPhone<\/key>\s*<true\/>/.test(src('ios/App/App/Info.plist')), 'ProMotion key');
 });

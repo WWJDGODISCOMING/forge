@@ -7,6 +7,8 @@
 ### What's new
 
 - Sheets now follow your finger: grab one mid-way, flick it closed, it keeps up.
+- Sheet springs now play as GPU transform animations (120 Hz on iPhone, no stutter when the app is busy).
+- Fixed: closing a sheet while a finger is on it (route change, Escape) could leave it stuck open; a finger held still before lifting no longer counts as a flick; closing mid-spring carries the sheet's motion.
 
 ## 0.16.15 — Haptic vocabulary (2026-10-17)
 
