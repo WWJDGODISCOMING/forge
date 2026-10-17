@@ -206,7 +206,9 @@ export function sheet(title, render, opts = {}) {
     close();
   });
   dlg.addEventListener('click', (e) => {
-    if (e.target === dlg) close(); // tap on the dimmed backdrop
+    // Only the dimmed backdrop closes; a drag that ends over the sheet itself also clicks the dialog.
+    const r = dlg.getBoundingClientRect();
+    if (e.target === dlg && (e.clientY < r.top || e.clientY > r.bottom || e.clientX < r.left || e.clientX > r.right)) close();
   });
   forget = registerSheet(close);
   // Multi-step sheets: head.setStep('Session length', goBack) swaps the title and shows a back chevron; setStep(title, null) goes home.
