@@ -7,6 +7,7 @@ import { POSES, sessionsWithPose } from './core.js';
 import { prepareJpeg } from './image.js';
 import { keepStorage } from './store.js';
 import { bodyOn, fmtKg, photoUrl } from './metrics.js';
+import { haptics } from '../ui/haptic.js';
 
 /**
  * openCapture({ store, sessions, day, onSaved }). `sessions` (newest first) supply the ghost of each pose's
@@ -105,6 +106,7 @@ export function openCapture({ store, sessions, day = todayKey(), onSaved }) {
         for (const [pose, p] of chosen) await store.save({ day: d, pose, blob: p.blob, w: p.w, h: p.h, note });
         if (note) await store.setNote(d, note);
         close();
+        haptics.success();
         toast(`Saved ${chosen.length === 1 ? 'your photo' : `${chosen.length} photos`}`, 2600, { icon: 'check' });
         if (onSaved) onSaved();
       } catch (e) {

@@ -22,7 +22,7 @@ import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
-import { hapticsOn } from '../ui/haptic.js';
+import { hapticsOn, haptics } from '../ui/haptic.js';
 import {
   LENGTHS, blankEdits, takeSnapshot, restoreSnapshot, isChanged, pickedIds, withSwapAvoid, carryRest, swapResult, swapMessage, noSwapReason, lengthMessage,
 } from '../workouts/change.js';
@@ -171,7 +171,7 @@ export function renderTrain(el) {
   if (plan) wirePreview(el, plan);
   const start = $('[data-start]', el);
   if (start)
-    start.onclick = () => startPlan(plan);
+    start.onclick = () => { haptics.medium(); startPlan(plan); };
   const dl = $('[data-deload]', el);
   if (dl) dl.onclick = () => { startDeload(); toast('Deload week started'); };
   $('[data-program]', el).onclick = () => openProgramPicker();

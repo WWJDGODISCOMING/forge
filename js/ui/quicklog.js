@@ -63,7 +63,6 @@ const RUN = {
 export function openQuickLog() {
   if (opening) return;
   opening = true;
-  lightTap();
   import('../screens/train.js').then((train) => {
     const rows = quickLogRows({ active: hasActiveWorkout(), playerRoute: train.playerRoute() });
     sheet('Quick log', (body, close) => {
@@ -74,7 +73,7 @@ export function openQuickLog() {
       $$('[data-row]', body).forEach((b) => {
         const row = rows.find((r) => r.id === b.dataset.row);
         b.onclick = () => {
-          lightTap();
+          if (row.go) lightTap(); // sheets tap on their own open
           if (row.id === 'workout' && !row.go) unlockAudio(); // inside the tap, before any timer or import: iPhone only lets this tap unlock sound + voice
           close();
           if (row.go) location.hash = row.go;

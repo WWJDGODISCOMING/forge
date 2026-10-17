@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.15 — Haptic vocabulary (2026-10-17)
+
+#58 slice 14. One set of six taps (`select`, `light`, `medium`, `success`, `heavy`, `warning`) in `js/ui/haptic.js`, used on key actions in the iPhone app. No-op on the web, and Settings → Haptic tick turns them all off.
+
+### What's new
+
+- Your iPhone now taps when you log food, save a weigh-in or start a workout.
+
 ## 0.16.14 — Snap a meal reads packaged foods (2026-10-16)
 
 #115. Wrapped bars, bottles and cans now count as food.
