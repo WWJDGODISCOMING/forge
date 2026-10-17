@@ -2,14 +2,14 @@
 
 ## 0.16.20 — Effort ratings (2026-10-17)
 
-#121. After the last set of each exercise, Forge asks "How many more reps could you have done?" (0, 1, 2, 3, 4+ or Skip). One tap rates the hardest set and moves on. It stays quiet for timed moves, warm-ups, exercises where you missed planned reps, and sets you already rated. The per-set buttons now sit behind "Rate sets" (off by default). Next time, the target reads that rating: easy (3+) takes an extra step up, 2 is normal, 1 holds the weight and adds a rep below the top of the range, 0 or missed reps holds and eases the load about 5% after two sessions in a row. No rating means the same numbers-only targets as before, and deload weeks ignore it. The reason shows on the exercise ("Felt easy last time, +5 lb"). History shows the rating and lets you change it. Stored as `effort_rir` on the exercise inside the workout, so there is no rules change.
+#121. After the last set of each exercise, Forge asks "How many more reps could you have done?" (0, 1, 2, 3, 4+ or Skip). One tap rates the hardest set and moves on. It stays quiet for timed moves, warm-ups, exercises where you missed planned reps, and sets you already rated. The per-set buttons now sit behind "Rate every set" in Settings → Workouts and the pause sheet (off by default). Next time, the target reads that rating: easy (3+) takes an extra step up, 2 is normal, 1 holds the weight and adds a rep below the top of the range, 0 or missed reps holds and eases the load about 5% after two sessions in a row. No rating means the same numbers-only targets as before, and deload weeks ignore it. The reason shows on the exercise ("Felt easy last time, +5 lb"). History shows the rating and lets you change it. Stored as `effort_rir` on the exercise inside the workout, so there is no rules change.
 
 ### What's new
 
 - After each exercise, tell Forge how many reps you had left. One tap.
 - Targets now follow your effort: easy means a bigger step up, tough means hold.
 - Each exercise says why its target moved, like "Felt easy last time, +5 lb".
-- Rate sets one at a time is now a toggle in the player. History lets you edit ratings.
+- Rate every set is now a setting (Settings, pause sheet). History lets you edit ratings.
 
 ## 0.16.19 — Focus areas (2026-10-17)
 

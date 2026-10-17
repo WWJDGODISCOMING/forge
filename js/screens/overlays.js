@@ -57,6 +57,7 @@ export function openPaused(rerender) {
       <b class="ov-big">${fmtClock(elapsed() / 1000)}</b>
       <p class="muted small">The clock, rest timer and demos are frozen. Paused time doesn’t count.</p>
       <button class="btn big" data-resume>Resume</button>
+      <button class="btn ghost" data-ratesets aria-pressed="${localStorage.getItem('forge.rateSets') === '1'}">Rate every set: ${localStorage.getItem('forge.rateSets') === '1' ? 'on' : 'off'}</button>
       <div class="row gap">
         <button class="btn ghost grow" data-end>End workout</button>
         <button class="btn danger-ghost grow" data-discard>Discard</button>
@@ -66,6 +67,12 @@ export function openPaused(rerender) {
     el.remove();
     resume();
     rerender();
+  };
+  $('[data-ratesets]', el).onclick = (e) => {
+    const on = localStorage.getItem('forge.rateSets') !== '1';
+    localStorage.setItem('forge.rateSets', on ? '1' : '0');
+    e.currentTarget.setAttribute('aria-pressed', String(on));
+    e.currentTarget.textContent = `Rate every set: ${on ? 'on' : 'off'}`;
   };
   $('[data-end]', el).onclick = () => {
     el.remove();

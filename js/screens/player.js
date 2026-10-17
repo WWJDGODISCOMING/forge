@@ -307,7 +307,6 @@ function drawSet(el) {
       ${it.note && REASON_RE.test(it.note) && lbl.n === 1 && !s.warmup ? `<p class="pl-reason">${esc(it.note)}</p>` : ''}
       <p class="pl-last">${prevSet ? `Last time: ${prevSet.weight ? `${prevSet.weight} ${u} × ` : ''}${prevSet.reps}${isTimed ? 's' : ''}` : it.note ? esc(it.note) : '&nbsp;'}</p>
       ${!isTimed && !s.warmup ? `
-      <button class="pl-rate" data-ratesets aria-pressed="${rateSetsOn()}">Rate sets: ${rateSetsOn() ? 'on' : 'off'}</button>
       ${rateSetsOn() ? `<div class="pl-rir" role="radiogroup" aria-label="Reps left in the tank">
         <span>In the tank</span>
         ${[null, 0, 1, 2, 3, 4].map((r) => `<button data-rir="${r}" class="${draft.rir === r ? 'on' : ''}" aria-pressed="${draft.rir === r}">${r == null ? '–' : r === 4 ? '4+' : r}</button>`).join('')}
@@ -381,11 +380,6 @@ function drawSet(el) {
     draft.reps = Math.max(1, (draft.reps || 0) + d);
     sync();
   }));
-  const rs = $('[data-ratesets]', el);
-  if (rs) rs.onclick = () => {
-    localStorage.setItem('forge.rateSets', rateSetsOn() ? '0' : '1');
-    drawSet(el);
-  };
   $$('[data-rir]', el).forEach((b) => b.addEventListener('click', () => {
     draft.rir = b.dataset.rir === 'null' ? null : Number(b.dataset.rir);
     $$('[data-rir]', el).forEach((x) => {

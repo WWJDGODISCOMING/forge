@@ -167,7 +167,7 @@ test('bodyweight reasons talk about reps, not weight', () => {
 test('UI wiring: prompt copy, Rate sets toggle, history edit', () => {
   const p = src('js/screens/player.js');
   assert(p.includes('How many more reps could you have done?'));
-  assert(p.includes('Rate sets'));
+  assert(src('js/screens/settings.js').includes('Rate every set') && src('js/screens/overlays.js').includes('Rate every set'));
   assert(src('js/screens/history.js').includes('data-effort'));
   assert(src('css/player.css').includes('.pl-effort'));
 });

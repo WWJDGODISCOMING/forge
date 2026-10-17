@@ -399,18 +399,19 @@ body.playing .navbar { display: none; }
 .recovery-card .rc-stat b { font: 900 40px/1 var(--num); color: var(--rec-green); }
 .recovery-card .rc-stat span { color: var(--muted); font-size: calc(13px * var(--ts)); font-weight: 700; }
 
-/* Effort rating: reason line, "Rate sets" toggle and the one-tap prompt after an exercise's last set. */
+/* Effort rating: reason line, "Rate every set" setting and the one-tap prompt after an exercise's last set. */
 .pl-reason { text-align: center; color: var(--text-1); font-size: calc(13px * var(--ts)); font-weight: 700; text-wrap: balance; }
 .pl-rate { align-self: center; min-height: 44px; padding: 0 14px; border: 0; background: none; color: var(--muted); font: 700 calc(12px * var(--ts)) var(--num); cursor: pointer; white-space: nowrap; }
 .pl-rate[aria-pressed="true"] { color: var(--text-1); }
 .pl-effort { position: fixed; left: 0; right: 0; bottom: 0; z-index: 60; padding: 12px 16px calc(var(--safe-bottom) + 12px); background: var(--surface); border-radius: 16px 16px 0 0; box-shadow: 0 -8px 24px rgba(0,0,0,.25); display: flex; flex-direction: column; gap: 8px; }
-.pl-effort p { margin: 0; text-align: center; font-weight: 700; font-size: calc(12px * var(--ts)); white-space: nowrap; }
+.pl-effort p { margin: 0; text-align: center; font-weight: 700; font-size: calc(12px * var(--ts)); text-wrap: balance; }
 .pl-effort div { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
 .pl-effort button { min-width: 0; height: 48px; border-radius: 12px; border: 0; background: var(--surface-2); color: var(--text-1); font: 800 calc(16px * var(--ts)) var(--num); cursor: pointer; white-space: nowrap; }
 .pl-effort button.skip { background: none; color: var(--muted); font-size: calc(13px * var(--ts)); }
 .effort-row { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
 .effort-row span { flex: 1; white-space: nowrap; }
+@media (max-width: 360px) { .effort-row { display: grid; grid-template-columns: repeat(5, minmax(44px, 1fr)); } .effort-row span { grid-column: 1 / -1; } }
 .effort-row button { min-width: 44px; height: 44px; border-radius: 10px; border: 0; background: var(--surface-2); color: var(--muted); font: 700 14px var(--num); cursor: pointer; }
 .effort-row button.on { background: var(--text-1); color: var(--bg); }
 @media (min-width: 600px) { .pl-effort { left: 50%; right: auto; width: 480px; transform: translateX(-50%); } }
-@media (max-width: 360px) { .pl-effort { padding-inline: 12px; } .pl-effort p { font-size: calc(11px * var(--ts)); letter-spacing: -0.1px; } }
+@media (max-width: 360px) { .pl-effort { padding-inline: 12px; } .pl-effort p { font-size: calc(11px * var(--ts)); } }
