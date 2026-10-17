@@ -24,18 +24,27 @@ export function shouldDismiss({ offset, velocity, size, fraction = 0.35, flick =
 
 /**
  * Sheet detents. `detents` are resting offsets in px from fully open (e.g. [0, 320]); `size` is the sheet height.
- * A flick (> 0.5 px/ms) moves one detent that way (a down-flick from the lowest detent dismisses). Otherwise it
+ * A flick (> 0.5 px/ms) moves one detent from `from` (where the drag began; default the nearest detent): down
+ * goes to the first detent at or below the release point, else dismisses. Otherwise it
  * settles on the nearest detent, dismissing only past 35% of the height left below the lowest detent.
  * Returns the detent offset to settle on, or 'dismiss'.
  */
-export function pickDetent({ offset, velocity, detents, size, fraction = 0.35, flick = 0.5 }) {
+export function pickDetent({ offset, velocity, detents, size, from, fraction = 0.35, flick = 0.5 }) {
   const ds = [...detents].sort((a, b) => a - b);
   const last = ds.length - 1;
-  let near = 0;
-  for (let i = 1; i <= last; i++) if (Math.abs(ds[i] - offset) < Math.abs(ds[near] - offset)) near = i;
+  const nearest = (y) => {
+    let n = 0;
+    for (let i = 1; i <= last; i++) if (Math.abs(ds[i] - y) < Math.abs(ds[n] - y)) n = i;
+    return n;
+  };
+  const near = nearest(offset);
   if (Math.abs(velocity) > flick) {
-    if (velocity > 0) return near >= last ? 'dismiss' : ds[near + 1];
-    return ds[Math.max(0, near - 1)];
+    const start = nearest(from ?? ds[near]); // step from where the drag began, so a long flick can't skip a detent
+    if (velocity > 0) {
+      for (let i = start + 1; i <= last; i++) if (ds[i] >= offset) return ds[i];
+      return 'dismiss';
+    }
+    return ds[Math.max(0, start - 1)];
   }
   if (offset > ds[last] && offset - ds[last] > (size - ds[last]) * fraction) return 'dismiss';
   return ds[near];

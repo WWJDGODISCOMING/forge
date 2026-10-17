@@ -210,3 +210,4 @@
 @media (max-width: 359px) {
   .meter-row--big:first-child .meter-val b { font-size: min(calc(34px * var(--ts)), 72px); }
 }
+dialog.sheet.detented .food-scroll { max-height: none; } /* the sheet is already sized; the list fills it */

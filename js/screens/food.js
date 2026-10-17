@@ -154,7 +154,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
   const now = new Date();
   const flow = createFlow({ foods: state.foods, logs: state.food_logs, hour: now.getHours() + now.getMinutes() / 60, day });
   if (meal) flow.setMeal(meal);
-  sheet('Log food', (body, close) => {
+  sheet('Log food', (body, close, head) => {
     body.innerHTML = `
       <div class="stack food-log">
         <div class="food-search-row">
@@ -245,6 +245,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       const s = flow.f.selected;
       dock.hidden = !s;
       if (!s) return;
+      head.expand(); // the dock's Add button must be fully on screen
       const usda = !!portion;
       $('[data-stepper]', dock).hidden = usda;
       $('[data-portion]', dock).hidden = !usda;

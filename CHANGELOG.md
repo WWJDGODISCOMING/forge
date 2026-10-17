@@ -2,11 +2,11 @@
 
 ## 0.16.17 — Sheet detents (2026-10-17)
 
-#58 slice 16. Log food and the exercise ⋯ sheet now open about half the screen tall and can be dragged up to full height. The drag follows your finger, your release speed picks the half or full stop, and a small tick marks each stop. Other sheets are unchanged, and wide screens keep the single height.
+#58 slice 16. Log food now opens about half the screen tall and can be dragged up to full height; it goes to full height when you pick a food or tap a field. Not used with reduced motion or on wide screens. The drag follows your finger, your release speed picks the half or full stop, and a small tick marks each stop. Other sheets, including the exercise ⋯ menu, are unchanged.
 
 ### What's new
 
-- Log food and exercise sheets open half-way. Drag them up for more room.
+- Log food opens half-way. Drag it up for more room.
 
 ## 0.16.16 — Spring sheets (2026-10-17)
 
