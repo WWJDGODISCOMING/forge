@@ -154,6 +154,8 @@
   --ready-red: var(--danger);
 }
 
+@media (max-width: 359px) { :root { --t-hero: 48px; } }
+
 /* iPhone Duo unfolded: roomier hero numbers */
 @media (min-width: 700px) {
   :root { --t-hero: 64px; }

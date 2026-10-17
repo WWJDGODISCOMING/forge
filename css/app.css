@@ -273,8 +273,8 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
 /* ---------- today ---------- */
 .today-head { padding-top: 4px; }
-.big { font-size: min(calc(var(--t-hero) * var(--ts)), 72px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
-.big small { font-size: calc(15px * var(--ts)); font-weight: 600; color: var(--text-2); letter-spacing: 0; }
+.big { font-family: var(--num); flex-wrap: wrap; font-size: min(calc(var(--t-hero) * var(--ts)), 72px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+.big small { white-space: nowrap; font-size: calc(15px * var(--ts)); font-weight: 600; color: var(--text-2); letter-spacing: 0; }
 /* Hero metric: the one number on a card that gets the gradient and a soft glow. */
 .hero-num {
   white-space: nowrap;
@@ -282,6 +282,8 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 0 18px var(--accent-glow));
 }
+/* Narrow phones (320): hero numbers keep 48px and don't grow with Text Size */
+@media (max-width: 359px) { .hero-num, .big { font-size: min(calc(var(--t-hero) * var(--ts)), 48px); } }
 .hero-num small { font-size: calc(17px * var(--ts)); font-weight: 600; letter-spacing: 0; -webkit-text-fill-color: var(--text-2); color: var(--text-2); filter: none; }
 .target-hero { display: flex; flex-direction: column; gap: var(--s-3); }
 .macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }

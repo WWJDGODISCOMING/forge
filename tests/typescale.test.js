@@ -13,6 +13,17 @@ test('typescale: tokens exist, hero rules use them capped at 72px', () => {
   assert(rd('css/food.css').includes('var(--t-hero-sub)'), 'food');
 });
 
+test('typescale: small phones, ring, baseline, onboarding face', () => {
+  const t = rd('css/tokens.css'), app = rd('css/app.css'), h = rd('css/health.css'), f = rd('css/food.css');
+  assert(/max-width:\s*359px\)\s*\{\s*:root\s*\{\s*--t-hero:\s*48px/.test(t), '48px token');
+  assert(/max-width:\s*359px\)\s*\{\s*\.hero-num, \.big \{ font-size: min\(calc\(var\(--t-hero\) \* var\(--ts\)\), 48px\)/.test(app), '48px cap');
+  assert(/\.score-mini \{[^}]*flex:\s*none/.test(h), 'ring flex none');
+  assert(/\.hero-num\.w-hero \{ white-space: normal/.test(h) && /\.w-hero small/.test(h), 'w-hero wraps as units');
+  assert(/\.big small \{ white-space: nowrap/.test(app), 'big small nowrap');
+  assert(/\.meter-val \{ align-items: baseline/.test(f), 'baseline');
+  assert(/\.big \{[^}]*font-family: var\(--num\)/.test(app), '.big face');
+});
+
 test('typescale: Perfect week header is sentence case', () => {
   const c = rd('js/missions/celebrate.js');
   assert(c.includes('<h2 class="pw-title">Perfect week</h2>'), 'sentence case');

@@ -2,6 +2,7 @@
 .meter-row { display: flex; flex-direction: column; gap: var(--s-2); }
 .meter-row--big .meter { height: 12px; }
 .meter-row--big:first-child .row { align-items: flex-end; }
+.meter-row--big:first-child .meter-val { align-items: baseline; }
 .meter-row--big:first-child .meter-val b { font: 700 min(calc(var(--t-hero-sub) * var(--ts)), 72px)/1.1 var(--num); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
 .meter-row > .row.between { flex-wrap: wrap; align-items: baseline; column-gap: var(--s-3); row-gap: 2px; }
 .meter-row > .row.between > .label { white-space: nowrap; }

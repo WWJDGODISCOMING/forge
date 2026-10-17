@@ -6,6 +6,7 @@
 
 - Weight and weekly hero numbers go from 48 to 56 px (64 px on the unfolded Duo); onboarding calories from 44 to 56 px; Food calories from 34 to 44 px.
 - Text Size still scales them, but never past 72 px.
+- Small phones (320 wide) keep 48 px hero numbers so nothing clips or overlaps; the Weekly score ring stays round.
 - "Perfect Week" is now "Perfect week" on the celebration screen.
 
 ### What's new

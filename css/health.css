@@ -27,7 +27,7 @@
 /* ---------- Score card on Today and the Score screen ---------- */
 .score-card { display: grid; grid-template-columns: 60px 1fr auto; gap: 14px; align-items: center; }
 .score-card .chev { color: var(--text-3); }
-.score-mini { width: 60px; height: 60px; position: relative; }
+.score-mini { width: 60px; height: 60px; position: relative; flex: none; }
 .score-mini svg, .score-hero svg { display: block; width: 100%; height: 100%; }
 .score-mini b { position: absolute; inset: 0; display: grid; place-items: center; font: 700 calc(20px * var(--ts)) var(--num); letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
 .sc-track { fill: none; stroke: var(--surface-2); }
@@ -152,6 +152,8 @@ svg.sc-hero { overflow: visible; }
 .week-nav .btn { min-width: 56px; min-height: 56px; padding: 0; background: var(--surface-2); color: var(--text-1); }
 .week-nav .btn:disabled { opacity: .35; }
 .w-hero { margin: 0; }
+.hero-num.w-hero { white-space: normal; }
+.w-hero [data-count], .w-hero small { white-space: nowrap; }
 .w-lines { list-style: none; margin: 0; padding: 0; display: grid; font-variant-numeric: tabular-nums; }
 .w-lines li { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: var(--s-3) 0; align-items: center; }
 .w-lines li + li::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: .5px; background: var(--separator); }
