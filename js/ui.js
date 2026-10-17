@@ -87,11 +87,11 @@ export function sheet(title, render) {
     dlg.style.removeProperty('--sheet-p');
     dlg.style.removeProperty('will-change');
   };
-  const run = (from, to, velocity, onDone, reach) => {
+  const run = (from, to, velocity, onDone, reach, relativeTo) => {
     anim?.stop();
     dlg.classList.add('springing');
     dlg.style.willChange = 'transform';
-    anim = playSpring({ el: dlg, from, to, velocity, params: SHEET, reach, onUpdate: place, onDone });
+    anim = playSpring({ el: dlg, from, to, velocity, params: SHEET, reach, relativeTo, onUpdate: place, onDone });
   };
   const finish = () => {
     forget();
@@ -207,7 +207,7 @@ export function sheet(title, render) {
     dlg.style.setProperty('--sheet-p', '0');
     dlg.classList.remove('pre');
     void dlg.offsetHeight;
-    run(h, 0, 0, settle);
+    run(h, 0, 0, settle, undefined, h); // relative to the sheet's own height: late content can't pop it into view
   }
   return close;
 }

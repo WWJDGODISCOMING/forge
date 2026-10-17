@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { test, assert } from './harness.js';
-import { springTrack, trackAt, SHEET } from '../js/ui/spring.js';
+import { springTrack, trackAt, playSpring, SHEET } from '../js/ui/spring.js';
 
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 
@@ -46,4 +46,25 @@ test('track: sheets play springs as accelerated transform animations', () => {
   const sp = src('js/ui/spring.js');
   assert(/\.animate\(/.test(sp) && /easing: 'linear'/.test(sp) && /fill: 'forwards'/.test(sp), 'playSpring uses el.animate');
   assert(/playSpring\(/.test(src('js/ui.js')), 'ui.js plays sheets with playSpring');
+});
+
+test('track: relative (percent) mode starts fully hidden and ends at 0%', () => {
+  const calls = [];
+  const anim = { currentTime: 0, cancel() {} };
+  const el = { offsetHeight: 400, animate(kf) { calls.push(kf); return anim; } };
+  const raf = globalThis.requestAnimationFrame;
+  const caf = globalThis.cancelAnimationFrame;
+  globalThis.requestAnimationFrame = () => 1;
+  globalThis.cancelAnimationFrame = () => {};
+  try {
+    const a = playSpring({ el, from: 300, to: 0, relativeTo: 300 });
+    const kf = calls[0];
+    assert(kf[0].transform === 'translateY(100%)', 'first keyframe fully hidden');
+    assert(kf[kf.length - 1].transform === 'translateY(0%)', 'last keyframe at rest');
+    assert(Math.abs(a.stop().value - 400) < 1e-6, 'a grab converts with the current height');
+  } finally { globalThis.requestAnimationFrame = raf; globalThis.cancelAnimationFrame = caf; }
+});
+
+test('sheets open relative to their own height', () => {
+  assert(/run\(h, 0, 0, settle, undefined, h\)/.test(src('js/ui.js')), 'open path passes relativeTo');
 });

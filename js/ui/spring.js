@@ -95,16 +95,23 @@ export function trackAt(track, tMs) {
  * still fires each frame for things that follow along (the backdrop). Falls back to the rAF driver without el.animate.
  * Same contract as animateSpring: stop() returns { value, velocity } and leaves onUpdate(value) as the last write.
  */
-export function playSpring({ el, from, to, velocity = 0, params = SHEET, reach, onUpdate, onDone }) {
+export function playSpring({ el, from, to, velocity = 0, params = SHEET, reach, relativeTo, onUpdate, onDone }) {
   if (!el || typeof el.animate !== 'function') return animateSpring({ from, to, velocity, params, onUpdate, onDone });
   const track = springTrack(from, to, velocity, params, { reach });
-  const anim = el.animate(track.values.map((y) => ({ transform: `translateY(${y}px)` })), {
+  // relativeTo: the height the track was computed for. Keyframes are then percentages of the element's own height,
+  // so a sheet that grows while it opens still starts fully hidden. Reads convert back to px at the current height.
+  const scale = () => (relativeTo && el.offsetHeight ? el.offsetHeight / relativeTo : 1);
+  const anim = el.animate(track.values.map((y) => ({ transform: relativeTo ? `translateY(${(y / relativeTo) * 100}%)` : `translateY(${y}px)` })), {
     duration: track.duration, easing: 'linear', fill: 'forwards',
   });
   let live = true;
   let raf = 0;
   let rest = { value: from, velocity };
-  const read = () => trackAt(track, anim.currentTime ?? track.duration);
+  const read = () => {
+    const r = trackAt(track, anim.currentTime ?? track.duration);
+    const k = scale();
+    return { value: r.value * k, velocity: r.velocity * k };
+  };
   const tick = () => {
     if (!live) return;
     rest = read();
@@ -118,6 +125,7 @@ export function playSpring({ el, from, to, velocity = 0, params = SHEET, reach, 
     live = false;
     cancelAnimationFrame(raf);
     rest = trackAt(track, track.duration);
+    rest = { value: rest.value * scale(), velocity: rest.velocity * scale() };
     onUpdate?.(rest.value, rest.velocity);
     onDone?.();
     anim.cancel();
