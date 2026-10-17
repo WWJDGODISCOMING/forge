@@ -188,7 +188,7 @@ export function sheet(title, render, opts = {}) {
         const velocity = up ? velocityOf(samples) : 0;
         endDrag();
         const pick = !ds ? null : up ? pickDetent({ offset, velocity, detents: ds, size: dlg.offsetHeight, from: base0 }) : rest;
-        if (ds && !hold ? pick === 'dismiss' : up && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
+        if (ds ? pick === 'dismiss' : up && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
           closing = true; forget(); exit(velocity);
         } else {
           const to = ds && !hold ? pick : 0;
