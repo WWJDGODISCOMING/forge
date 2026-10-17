@@ -5,6 +5,7 @@ import { reducedMotion, DUR } from './ui/motion.js';
 import { icon } from './ui/icons.js';
 import { shouldDismiss, rubberBand, dragProgress, velocityOf } from './ui/gesture.js';
 import { registerSheet } from './ui/sheets.js';
+import { haptics } from './ui/haptic.js';
 
 export { closeAllSheets } from './ui/sheets.js';
 
@@ -66,6 +67,7 @@ export function sheet(title, render) {
     </div>
     <div class="sheet-body"></div>`;
   document.body.appendChild(dlg);
+  haptics.light();
   let closing = false;
   let forget = () => {};
   const close = () => {
@@ -160,7 +162,7 @@ export function confirmSheet({ title, message, confirmLabel = 'Confirm', danger 
           <button class="btn grow ${danger ? 'danger' : ''}" data-yes>${esc(confirmLabel)}</button>
         </div>`;
       body.querySelector('[data-no]').onclick = () => { answered = true; closeSheet(); resolve(false); };
-      body.querySelector('[data-yes]').onclick = () => { answered = true; closeSheet(); resolve(true); };
+      body.querySelector('[data-yes]').onclick = () => { if (danger) haptics.warning(); answered = true; closeSheet(); resolve(true); };
     });
     // resolve false if dismissed another way
     const obs = new MutationObserver(() => {

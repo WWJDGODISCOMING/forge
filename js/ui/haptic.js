@@ -19,13 +19,45 @@ const supportsSwitch = (() => {
 })();
 
 export const hapticsOn = () => !state.settings || state.settings.haptics !== false;
-export const hapticSupport = () => (NATIVE ? 'native' : supportsSwitch ? 'switch' : navigator.vibrate ? 'vibrate' : 'none');
+export const hapticSupport = () => (NATIVE ? 'native' : supportsSwitch ? 'switch' : globalThis.navigator?.vibrate ? 'vibrate' : 'none');
 const useSwitch = () => hapticsOn() && supportsSwitch && !NATIVE;
 /** A native tap where the app can; true if it did. */
-const nativeTap = (kind = 'light') => NATIVE && hapticsOn() && nativeHaptic(kind);
+let lastTap = 0;
+const nativeTap = (kind = 'light') => {
+  const ok = NATIVE && hapticsOn() && nativeHaptic(kind);
+  if (ok) lastTap = Date.now();
+  return ok;
+};
+
+/**
+ * The haptic vocabulary. Each returns true if it fired. All are native-only and gated by Settings → Haptic tick,
+ * except `select`, which may fall back to navigator.vibrate on browsers that have it.
+ */
+export const haptics = {
+  select() {
+    if (nativeTap('select')) return true;
+    if (hapticsOn() && !NATIVE && globalThis.navigator?.vibrate) { navigator.vibrate(10); return true; }
+    return false;
+  },
+  light: () => nativeTap('light'),
+  medium: () => nativeTap('medium'),
+  success: () => nativeTap('success'),
+  heavy: () => nativeTap('heavy'),
+  warning: () => nativeTap('warning'),
+  /** A big win (PR, badge): a heavy thud (at least 150 ms after any tap before it), then success 120 ms later. */
+  win() {
+    if (!NATIVE || !hapticsOn()) return false;
+    const wait = Math.max(0, lastTap + 150 - Date.now());
+    setTimeout(() => {
+      nativeTap('heavy');
+      setTimeout(() => nativeTap('success'), 120);
+    }, wait);
+    return true;
+  },
+};
 
 /** A light tap in the iPhone app only (quick-log open and pick); the web has no equivalent. */
-export const lightTap = () => nativeTap('light');
+export const lightTap = () => haptics.light();
 
 /** The invisible control to put inside a <label class="haptic-btn">. Listen for `change` on it. */
 export function hapticInput(attrs = '') {
@@ -34,8 +66,7 @@ export function hapticInput(attrs = '') {
 
 /** A light tick where the browser has navigator.vibrate (not iPhone Safari: there only a real tap on a switch ticks). */
 export function tick() {
-  if (nativeTap('select')) return;
-  if (hapticsOn() && navigator.vibrate) navigator.vibrate(10);
+  haptics.select();
 }
 
 /**
@@ -81,7 +112,7 @@ export function onHapticTap(input, fn) {
   if (!input) return;
   input.addEventListener('change', (e) => {
     input.checked = false;
-    if (!nativeTap('medium') && navigator.vibrate && hapticsOn()) navigator.vibrate(12);
+    if (!nativeTap('medium') && globalThis.navigator?.vibrate && hapticsOn()) navigator.vibrate(12);
     fn(e);
   });
 }

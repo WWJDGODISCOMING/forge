@@ -35,9 +35,11 @@ const IMPACT = { light: 'LIGHT', medium: 'MEDIUM', heavy: 'HEAVY' };
 const NOTIFY = { success: 'SUCCESS', warning: 'WARNING', error: 'ERROR' };
 
 /** kind: 'light' | 'medium' | 'heavy' (a tap), 'success' | 'warning' | 'error' (an outcome), 'select' (a picker tick). */
+let selecting = false; // iOS only makes the selection generator in selectionStart(); selectionChanged() does nothing without it
 export function haptic(kind = 'light') {
   const H = plugin('Haptics');
   if (!H) return false;
+  if (kind === 'select' && H.selectionChanged && !selecting) { selecting = true; quiet(H.selectionStart && H.selectionStart()); }
   if (NOTIFY[kind]) quiet(H.notification({ type: NOTIFY[kind] }));
   else if (kind === 'select') quiet(H.selectionChanged ? H.selectionChanged() : H.impact({ style: 'LIGHT' }));
   else quiet(H.impact({ style: IMPACT[kind] || 'LIGHT' }));

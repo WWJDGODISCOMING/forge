@@ -4,6 +4,7 @@ import { icon } from '../ui/icons.js';
 import { myStore, mySessions } from './access.js';
 import { DOW_NAMES, fmtBytes, exportName, poseLabel, photoLossLine } from './core.js';
 import { isNative } from '../native/bridge.js';
+import { haptics } from '../ui/haptic.js';
 import { getRemindDow, setRemindDow } from './cards.js';
 import { zipStore } from './zipwriter.js';
 import { deliverSheet } from './deliver.js';
@@ -78,6 +79,7 @@ export async function bindPhotoSettings(el) {
         return;
       }
       try {
+        haptics.warning();
         await myStore().clearAll();
         close();
         toast('All photos deleted from this phone');

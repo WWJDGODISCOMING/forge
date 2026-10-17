@@ -11,6 +11,7 @@ import { MEAL_LABEL, MEALS, cleanFood, copyMealFields, dayBefore, dayTotals, gro
 import { createFlow } from '../food/flow.js';
 import { search, createOnlineSearch } from '../food/search.js';
 import { SERVING_CHOICES, amountLabel, gramsFromAmount, gramsToOz, measureServing, portionItem, servingsLabel } from '../food/portion.js';
+import { haptics } from '../ui/haptic.js';
 
 let viewDay = null; // the day shown; null = today
 const dayShown = () => (viewDay && viewDay <= todayKey() ? viewDay : todayKey());
@@ -316,7 +317,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       list.addEventListener('click', (e) => { const li = e.target.closest('[data-i], [data-o]'); if (li) pick(li); });
       list.addEventListener('keydown', (e) => { const li = e.target.closest('[data-i], [data-o]'); if (li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(li); } });
     }
-    $$('[data-serv-choice]', dock).forEach((b) => { b.onclick = () => { const n = Number(b.dataset.servChoice); setPortion({ unit: 'serv', servings: n, grams: n * portion.serving.g }); }; });
+    $$('[data-serv-choice]', dock).forEach((b) => { b.onclick = () => { haptics.select(); const n = Number(b.dataset.servChoice); setPortion({ unit: 'serv', servings: n, grams: n * portion.serving.g }); }; });
     $('[data-measures]', dock).addEventListener('click', (e) => {
       const b = e.target.closest('[data-measure]');
       if (!b || !portion) return;
@@ -350,13 +351,14 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       setTimeout(() => import('./snap.js').then((m) => m.openSnapMeal({ file, day, meal: flow.f.meal })), 0);
     };
     $('[name=q]', body).addEventListener('input', (e) => { flow.search(e.target.value); paintResults(); onlineSearch.query(e.target.value); });
-    $('[data-minus]', dock).onclick = () => { flow.f.servings = stepServings(flow.f.servings, -1); paintDock(); };
-    $('[data-plus]', dock).onclick = () => { flow.f.servings = stepServings(flow.f.servings, 1); paintDock(); };
-    $$('[data-meal]', dock).forEach((b) => { b.onclick = () => { flow.setMeal(b.dataset.meal); paintMeal(); }; });
+    $('[data-minus]', dock).onclick = () => { haptics.select(); flow.f.servings = stepServings(flow.f.servings, -1); paintDock(); };
+    $('[data-plus]', dock).onclick = () => { haptics.select(); flow.f.servings = stepServings(flow.f.servings, 1); paintDock(); };
+    $$('[data-meal]', dock).forEach((b) => { b.onclick = () => { haptics.select(); flow.setMeal(b.dataset.meal); paintMeal(); }; });
     $('[data-add]', dock).onclick = () => {
       const fields = flow.commit();
       if (!fields) return;
       put('food_logs', newRecord(fields));
+      haptics.success();
       close();
       toast(`Added to ${MEAL_LABEL[fields.meal].toLowerCase()} · ${Math.round(fields.kcal * fields.servings).toLocaleString('en-US')} kcal`);
     };
@@ -397,11 +399,11 @@ function openEditEntry(e) {
       $('[data-line]', body).textContent = `${Math.round(e.kcal * servings).toLocaleString('en-US')} kcal · ${Math.round(e.protein_g * servings)} g protein · ${Math.round(e.carbs_g * servings)} g carbs · ${Math.round(e.fat_g * servings)} g fat`;
       $$('[data-meal]', body).forEach((b) => { const on = b.dataset.meal === meal; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
     };
-    $('[data-minus]', body).onclick = () => { servings = stepServings(servings, -1); paint(); };
-    $('[data-plus]', body).onclick = () => { servings = stepServings(servings, 1); paint(); };
-    $$('[data-meal]', body).forEach((b) => { b.onclick = () => { meal = b.dataset.meal; paint(); }; });
+    $('[data-minus]', body).onclick = () => { haptics.select(); servings = stepServings(servings, -1); paint(); };
+    $('[data-plus]', body).onclick = () => { haptics.select(); servings = stepServings(servings, 1); paint(); };
+    $$('[data-meal]', body).forEach((b) => { b.onclick = () => { haptics.select(); meal = b.dataset.meal; paint(); }; });
     $('[data-save]', body).onclick = () => { patch('food_logs', e.id, { servings, meal }); close(); };
-    $('[data-del]', body).onclick = () => { softDelete('food_logs', e.id); close(); toast('Removed'); };
+    $('[data-del]', body).onclick = () => { haptics.warning(); softDelete('food_logs', e.id); close(); toast('Removed'); };
     paint();
   });
 }

@@ -22,7 +22,7 @@ import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
-import { hapticsOn } from '../ui/haptic.js';
+import { hapticsOn, haptics } from '../ui/haptic.js';
 import {
   LENGTHS, blankEdits, takeSnapshot, restoreSnapshot, isChanged, pickedIds, withSwapAvoid, carryRest, swapResult, swapMessage, noSwapReason, lengthMessage,
 } from '../workouts/change.js';
@@ -61,6 +61,7 @@ export function previewPlan() {
 
 /** Start a previewed plan (Train or Today): unlock audio on this tap, cache today's photos, go. */
 export function startPlan(plan) {
+  haptics.medium();
   unlockAudio(); // this tap unlocks sound + voice for the 3-2-1 GO on iPhone
   startWorkout(plan);
   cachePhotos(plan.exercises.map((it) => it.exercise_id)); // today's demo photos, for the gym's dead zones

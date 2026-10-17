@@ -7,7 +7,7 @@
 // Reduced motion: no sparks, shake or scaling: a colour flash, the ✓, sound and text only.
 import { onFrame, reducedMotion, EASE } from './motion.js';
 import { sfx, coach } from './sound.js';
-import { tick } from './haptic.js';
+import { tick, haptics } from './haptic.js';
 import { icon } from './icons.js';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
@@ -223,7 +223,7 @@ export function prExplosion(prs, { origin } = {}) {
   return enqueue(() => new Promise((resolve) => {
     const [x, y] = origin ? centerOf(origin) : [innerWidth / 2, innerHeight * 0.42];
     sfx.pr();
-    tick();
+    if (!haptics.win()) tick();
     coach.pr();
     const layer = document.createElement('div');
     layer.className = 'fx-pr';
@@ -283,7 +283,7 @@ export function prExplosion(prs, { origin } = {}) {
 export function levelUp({ level, name }) {
   return enqueue(() => new Promise((resolve) => {
     sfx.pr();
-    tick();
+    if (!haptics.win()) tick();
     const layer = document.createElement('div');
     layer.className = 'lvl-up';
     layer.setAttribute('role', 'status');
