@@ -7,7 +7,7 @@ import { icon } from '../ui/icons.js';
 import { MEALS, MEAL_LABEL, mealForHour } from '../food/core.js';
 import { servingsLabel } from '../food/portion.js';
 import { createOnlineSearch } from '../food/search.js';
-import { ESTIMATE_NOTE, estimateMeal, upstreamTag, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
+import { ESTIMATE_NOTE, estimateMeal, matchQuery, upstreamTag, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
 
 /** A heading for the real cause, so a busy server never reads as a bad photo. */
 export function errorHeading(message = '', code = '') {
@@ -28,6 +28,7 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
   let mealSel = meal || mealForHour(now.getHours() + now.getMinutes() / 60);
   let rows = [];
   let swapping = null; // the row id whose USDA match list is open
+  let swapQuery = ''; // what that search starts with ('' = the food's name)
   let live = true; // false once the sheet is closed: a late answer is dropped
   let preview = '';
   let online = null;
@@ -86,7 +87,9 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
         <div class="snap-row-top">
           <div class="food-row"><b class="clamp2">${esc(r.name)}</b>
             <small class="food-sub"><span class="food-kcal">${num(m.kcal)} kcal</span><span class="food-kcal">${Math.round(m.protein_g)} g protein</span><span class="food-serv">${esc(portion)}</span></small>
-            ${isUnsure(r) ? '<small class="snap-unsure">Not sure about this one. Check it.</small>' : ''}</div>
+            ${r.source === 'label' ? '<small class="snap-label">From label</small>' : ''}
+            ${isUnsure(r) ? `<small class="snap-unsure">${esc(r.note || 'Not sure about this one. Check it.')}</small>` : ''}</div>
+          ${r.kind === 'photo' && matchQuery(r) ? `<button type="button" class="btn ghost snap-match" data-match>${icon('search')}<span>Find exact match</span></button>` : ''}
         </div>
         <div class="snap-row-bar">
           <span class="serv-stepper"><button type="button" class="icon-btn" data-minus aria-label="Smaller portion of ${esc(r.name)}">${icon('minus')}</button><output aria-live="polite">${esc(servingsLabel(r.qty))}×</output><button type="button" class="icon-btn" data-plus aria-label="Bigger portion of ${esc(r.name)}">${icon('plus')}</button></span>
@@ -94,7 +97,7 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
           <button type="button" class="icon-btn" data-remove aria-label="Remove ${esc(r.name)}">${icon('trash')}</button></span>
         </div>
         ${swapping === r.id ? `<div class="snap-swap" data-swap-panel>
-          <label class="field"><input type="search" data-swap-q value="${esc(r.name)}" autocomplete="off" aria-label="Search USDA foods"></label>
+          <label class="field"><input type="search" data-swap-q value="${esc(swapping === r.id && swapQuery ? swapQuery : r.name)}" autocomplete="off" aria-label="Search USDA foods"></label>
           <ul class="list food-results" data-swap-list></ul>
           <p class="small muted" data-swap-note role="status" aria-live="polite"></p></div>` : ''}
       </li>`;
@@ -128,7 +131,9 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
         $('[data-minus]', li).onclick = () => edit((r) => stepRow(r, -1));
         $('[data-plus]', li).onclick = () => edit((r) => stepRow(r, 1));
         $('[data-remove]', li).onclick = () => { if (online) online.cancel(); swapping = null; rows = removeRow(rows, id); paintResults(); };
-        $('[data-swap]', li).onclick = () => { if (online) online.cancel(); swapping = swapping === id ? null : id; paintResults(); };
+        $('[data-swap]', li).onclick = () => { if (online) online.cancel(); swapQuery = ''; swapping = swapping === id ? null : id; paintResults(); };
+        const match = $('[data-match]', li);
+        if (match) match.onclick = () => { if (online) online.cancel(); swapQuery = matchQuery(rows.find((r) => r.id === id)); swapping = id; paintResults(); };
       });
     };
 

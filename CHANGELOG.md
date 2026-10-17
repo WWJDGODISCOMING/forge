@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.14 — Snap a meal reads packaged foods (2026-10-17)
+
+#115. Wrapped bars, bottles and cans now count as food.
+
+- The photo prompt says packaged items are food, and asks for the brand, product, net weight and the printed Nutrition Facts when visible. New optional fields: `brand`, `product`, `net_weight_g`, `source` (`label` or `estimate`).
+- Server check: more than 9 kcal per gram is clamped to 9 and the item is marked low confidence with a short reason (a 36 g bar at 380 kcal becomes 324 kcal or less).
+- When a brand and product are read, the item shows **Find exact match**, which opens the USDA search pre-filled with the brand and product. A "From label" tag shows when the numbers came from the label.
+- No change to rate limits, AI-off behaviour, Cloud Functions config or `firestore.rules`.
+
+### What's new
+
+- Snap a meal now reads wrapped bars and packaged foods.
+
 ## 0.16.13 — Hero number type scale (2026-10-16)
 
 #58 slice 13. The big numbers on Today, Weekly, onboarding and Food are larger and tighter.

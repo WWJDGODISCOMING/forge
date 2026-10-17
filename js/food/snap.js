@@ -19,7 +19,18 @@ export function snapRows(foods) {
     id: `s${i}`, kind: 'photo', name: String(f.name).slice(0, 80), portion: String(f.portion || '').slice(0, 40), grams: num(f.grams),
     kcal: num(f.kcal), protein_g: num(f.protein_g), carbs_g: num(f.carbs_g), fat_g: num(f.fat_g),
     confidence: num(f.confidence), qty: 1,
+    ...(f.brand ? { brand: String(f.brand).slice(0, 60) } : {}), ...(f.product ? { product: String(f.product).slice(0, 80) } : {}),
+    ...(f.source === 'label' || f.source === 'estimate' ? { source: f.source } : {}),
+    ...(f.note ? { note: String(f.note).slice(0, 120) } : {}),
   }));
+}
+
+/** "brand product" for the USDA search, or '' when the label wasn't read. Not repeated if the product already starts with the brand. */
+export function matchQuery(r) {
+  const brand = String((r && r.brand) || '').trim();
+  const product = String((r && r.product) || '').trim();
+  if (!brand || !product) return '';
+  return product.toLowerCase().startsWith(brand.toLowerCase()) ? product : `${brand} ${product}`;
 }
 
 /** Calories and macros for a row at its current portion. */

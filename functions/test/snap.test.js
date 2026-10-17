@@ -179,3 +179,39 @@ test('the request names the explicit grok-4.3 model', async () => {
   await run({ image: IMG }, { fetch });
   assert.equal(JSON.parse(fetch.calls[0].init.body).model, 'grok-4.3');
 });
+
+test('prompt tells the model packaged items are food and asks for the new fields', async () => {
+  const f = model(JSON.stringify(REPLY));
+  await run({ image: IMG }, { fetch: f });
+  const text = JSON.parse(f.calls[0].init.body).messages[0].content[0].text;
+  assert.match(text, /Packaged items, wrappers, bottles, cans, boxes and bars ARE food/);
+  assert.match(text, /brand/);
+  assert.match(text, /net_weight_g/);
+  assert.match(text, /Nutrition Facts/);
+});
+
+test('parseFoods reads brand, product, net weight and source when present, and omits them when absent', () => {
+  const [a] = parseFoods(JSON.stringify({ foods: [{ name: 'Bar', grams: 36, kcal: 150, brand: ' CLIF Kid ', product: 'Zbar', net_weight_g: 36, source: 'label' }] }));
+  assert.equal(a.brand, 'CLIF Kid');
+  assert.equal(a.product, 'Zbar');
+  assert.equal(a.net_weight_g, 36);
+  assert.equal(a.source, 'label');
+  const [b] = parseFoods(JSON.stringify({ foods: [{ name: 'Bar', kcal: 150, source: 'nonsense', net_weight_g: -4 }] }));
+  assert.equal('source' in b, false);
+  assert.equal('net_weight_g' in b, false);
+  assert.equal('brand' in b, false);
+});
+
+test('more than 9 kcal per gram is clamped and flagged low confidence', () => {
+  const [bar] = parseFoods(JSON.stringify({ foods: [{ name: 'Chocolate brownie bar', grams: 36, net_weight_g: 36, kcal: 380, protein_g: 7, confidence: 0.9 }] }));
+  assert.ok(bar.kcal <= 324);
+  assert.ok(bar.confidence < 0.5);
+  assert.ok(bar.note);
+  const [ok] = parseFoods(JSON.stringify({ foods: [{ name: 'Bar', grams: 36, kcal: 150, confidence: 0.9 }] }));
+  assert.equal(ok.kcal, 150);
+  assert.equal(ok.confidence, 0.9);
+  assert.equal('note' in ok, false);
+  const [bad] = parseFoods(JSON.stringify({ foods: [{ name: 'X', grams: 'a', kcal: -5 }] }));
+  assert.equal(bad.kcal, 0);
+  assert.equal(bad.grams, 0);
+});
