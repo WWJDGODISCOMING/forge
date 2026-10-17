@@ -31,7 +31,7 @@ export const RECIPES = [
   r('b-quinoa-blue', 'breakfast', 'Blueberry quinoa breakfast bowl', 400, 15, 'lh ps veg df gf fz bp', ['quinoa|1/2 cup dry|g', 'blueberries|1/2 cup|p', 'coconut milk|1/3 cup|s', 'maple syrup|1 tbsp|s', 'pumpkin seeds|1 tbsp|s'],
     ['Rinse the quinoa and simmer in 1 cup water for 15 minutes.', 'Stir in the coconut milk and warm through.', 'Top with blueberries, seeds and maple syrup.']),
   r('b-scramble-sweet', 'breakfast', 'Veggie scramble with sweet potato hash', 430, 22, 'lh ps veg df gf', ['eggs|2|d', 'sweet potato|1 small|p', 'zucchini|1/2|p', 'olive oil|1 tbsp|s', 'fresh parsley|1 tbsp|p'],
-    ['Dice the sweet potato small and pan-fry in oil for 10 minutes.', 'Add the zucchini for 3 minutes.', 'Scramble the eggs in the pan until fully set, with no runny parts. Top with parsley.']),
+    ['Dice the sweet potato small and pan-fry in oil for 10 minutes.', 'Add the zucchini for 3 minutes.', 'Scramble the eggs in the pan until fully set, until firm. Top with parsley.']),
   r('b-turkey-patty', 'breakfast', 'Turkey and apple breakfast patties with rice', 440, 30, 'lh ps df gf fz bp', ['fresh ground turkey|4 oz|m', 'apple|1/2|p', 'fresh sage|1 tsp|p', 'cooked rice|3/4 cup|g', 'olive oil|1 tsp|s'],
     ['Mix the turkey with grated apple and sage, and shape into two patties.', 'Cook in oil, 5 minutes per side, until no pink remains and the middle reaches 165°F.', 'Serve over warm rice. Freeze extras the same day.']),
   r('b-milk-pancakes', 'breakfast', 'Oat pancakes with maple and pear', 410, 16, 'lh ps veg fz bp', ['rolled oats|1/2 cup|g', 'eggs|1|d', 'milk|1/3 cup|d', 'pear|1|p', 'maple syrup|1 tbsp|s', 'butter|1 tsp|d'],

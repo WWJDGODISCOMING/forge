@@ -19,6 +19,7 @@ export const DEFAULT_PROTEIN = 100;
 
 const MIN_SCALE = 0.75;
 const MAX_SCALE = 2;
+const FLOOR_MAX_SCALE = 3; // only used to lift a day to the calorie floor
 const DAY_KEY = /^\d{4}-\d{2}-\d{2}$/;
 
 /** Share of the day's calories for each slot, by number of snacks. */
@@ -61,9 +62,9 @@ export const parseAvoid = (text) => cleanPrefs({ avoid: String(text || '').split
 const stemWord = (w) => (w.length > 4 && w.endsWith('ies') ? `${w.slice(0, -3)}y` : w.length > 4 && w.endsWith('oes') ? w.slice(0, -2) : w.length > 3 && w.endsWith('s') && !w.endsWith('ss') ? w.slice(0, -1) : w);
 const norm = (t) => String(t).toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim().split(' ').map(stemWord).join(' ');
 
-/** Everything the avoid list is matched against: tags, name, and ingredient names, plus "dairy" and "gluten" when they apply. */
+/** Everything the avoid list is matched against: the tomato and spicy tags, name, and ingredient names, plus "dairy" and "gluten" when they apply. */
 function haystack(rec) {
-  const bits = [rec.name, ...rec.tags.map((t) => t.replace(/_/g, ' ')), ...rec.ingredients.map((i) => i.name)];
+  const bits = [rec.name, ...rec.tags.filter((t) => t === 'contains_tomato' || t === 'spicy').map((t) => t.replace(/_/g, ' ')), ...rec.ingredients.map((i) => i.name)];
   if (!rec.tags.includes('dairy_free')) bits.push('dairy');
   if (!rec.tags.includes('gluten_free')) bits.push('gluten');
   return ` ${bits.map(norm).join(' | ')} `;
@@ -198,12 +199,15 @@ export function generateWeek({ prefs: prefsIn, targets, weekStart }) {
   const days = picks.map((day, d) => {
     let entries = slots.filter((s) => day[s]).map((s) => ({ slot: s, ...day[s] }));
     const total = () => entries.reduce((n, e) => n + e.rec.kcal * e.servings, 0);
+    const caf = () => entries.reduce((n, e) => n + e.rec.caffeine_mg * e.servings, 0);
+    // fish never scales; a caffeine item may double if the day's cap still holds; the rest may go up to FLOOR_MAX_SCALE
+    const limit = (e) => (e.rec.fish_oz > 0 ? 1 : e.rec.caffeine_mg > 0 ? (caf() + e.rec.caffeine_mg * (2 - e.servings) <= capMg ? 2 : 1) : FLOOR_MAX_SCALE);
     for (let pass = 0; pass < 6 && entries.length && total() < t.floor; pass++) {
-      const room = entries.filter((e) => !fixedServing(e.rec) && e.servings < MAX_SCALE);
+      const room = entries.filter((e) => e.servings < limit(e));
       if (!room.length) break;
       const missing = t.floor - total();
       const share = missing / room.reduce((n, e) => n + e.rec.kcal, 0);
-      for (const e of room) e.servings = Math.min(MAX_SCALE, Math.ceil((e.servings + share) * 4) / 4);
+      for (const e of room) e.servings = Math.min(limit(e), Math.ceil((e.servings + share) * 4) / 4);
     }
     const meals = entries.map((e) => mealOf(e.rec, e.servings, e.slot));
     return {
