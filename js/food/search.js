@@ -62,13 +62,24 @@ export function searchLocal(query, { foods = [], logs = [], limit = 40 } = {}) {
   return [...mine.filter(hit), ...extra.filter(hit)].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
 }
 
+export const MAX_QUERY = 60; // the foodSearch function rejects anything longer
+
+/** Trims a search to MAX_QUERY characters at a word boundary, so a long name still searches instead of failing. */
+export function capQuery(q, max = MAX_QUERY) {
+  const t = String(q || '').replace(/\s+/g, ' ').trim();
+  if (t.length <= max) return t;
+  const cut = t.slice(0, max + 1);
+  const i = cut.lastIndexOf(' ');
+  return (i > 0 ? cut.slice(0, i) : t.slice(0, max)).trim();
+}
+
 /** Asks the foodSearch function. Throws an error with kind 'offline' or 'unavailable' so the sheet can say one quiet line. */
 async function searchUsda(query) {
   const isOffline = () => typeof navigator !== 'undefined' && navigator.onLine === false;
   if (isOffline()) throw Object.assign(new Error('offline'), { kind: 'offline' });
   try {
     const { call } = await import('../functions.js');
-    const res = await call('foodSearch', { query }, { timeout: 9000 });
+    const res = await call('foodSearch', { query: capQuery(query) }, { timeout: 9000 });
     return (res && Array.isArray(res.foods) ? res.foods : []).map(usdaItem);
   } catch (e) {
     // The server's own "That's a lot of searches…" is a friendly line, not an outage: pass it through.

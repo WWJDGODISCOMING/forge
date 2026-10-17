@@ -188,6 +188,10 @@
 .snap-rows .snap-row-bar { gap: var(--s-2); }
 .snap-acts { display: inline-flex; flex: none; gap: var(--s-2); }
 .snap-unsure { color: var(--warn); font-size: calc(13px * var(--ts)); line-height: 1.3; }
+.snap-tags { display: flex; flex-wrap: wrap; align-items: center; gap: 0 var(--s-2); }
+.snap-label { display: inline-block; padding: 2px var(--s-2); border-radius: var(--r-pill); background: var(--accent-tint); color: var(--accent-text); font-size: calc(12px * var(--ts)); font-weight: 600; line-height: 1.3; }
+.snap-match { display: inline-flex; align-items: center; gap: var(--s-1, 4px); width: auto; min-height: 44px; padding: 0 var(--s-3); white-space: nowrap; font-size: calc(14px * var(--ts)); }
+.snap-match svg { width: 18px; height: 18px; flex: none; }
 .snap-swap { display: flex; flex-direction: column; gap: var(--s-2); }
 .snap-top .snap-head { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .snap-top .snap-again { width: auto; flex: none; min-height: 44px; padding: 0 var(--s-3); }

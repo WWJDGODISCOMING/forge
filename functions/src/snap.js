@@ -57,13 +57,34 @@ export function validateImage(data) {
 }
 
 const PROMPT = 'You estimate the food on a plate from a photo for a calorie tracker. Reply with JSON only: '
-  + '{"foods":[{"name":"plain food name","portion":"e.g. 1 cup or 150 g","grams":number,"kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"confidence":number between 0 and 1}]}. '
+  + '{"foods":[{"name":"plain food name","portion":"e.g. 1 cup or 150 g","grams":number,"kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"confidence":number between 0 and 1,'
+  + '"brand":"optional, only if printed","product":"optional, only if printed","net_weight_g":number (optional, only if printed),"source":"label" or "estimate"}]}. '
   + 'List each distinct food once (at most 12), with the numbers for the amount you can see, not per 100 g. '
-  + 'If the picture has no food, reply {"foods":[]}. Do not add any other text.';
+  + 'Packaged items, wrappers, bottles, cans, boxes and bars ARE food: never reply with no food just because something is wrapped. '
+  + 'For a packaged item, read the visible brand, product name and net weight (in grams; convert oz), and set grams to the total net weight of everything you can see (net weight × number of packages). '
+  + 'If a Nutrition Facts panel is visible, use its printed per-serving values, scaled to the net weight or servings you can see, and set source to "label"; otherwise set source to "estimate". '
+  + 'Keep calories realistic: no food has more than 9 kcal per gram. '
+  + 'Only if the picture has no food or drink at all, reply {"foods":[]}. Do not add any other text.';
+export const PROMPT_TEXT = PROMPT;
 
+export const MAX_KCAL_PER_G = 9; // pure fat is about 9 kcal/g, so nothing edible is higher
+export const FLAG_NOTE = 'Calories looked too high for the weight, so they were lowered.';
 const num = (x, hi) => { const n = Number(x); return Number.isFinite(n) ? Math.min(hi, Math.max(0, n)) : 0; };
 const r1 = (x) => Math.round(x * 10) / 10;
 const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
+
+/** More than 9 kcal per gram is impossible: clamp to 9 and mark the item low confidence with a short reason. */
+export function sanityCheck(item) {
+  const g = item.grams > 0 ? item.grams : item.net_weight_g; // kcal is for the amount in the photo, which is grams
+  if (g > 0 && item.kcal / g > MAX_KCAL_PER_G) {
+    const kcal = Math.floor(g * MAX_KCAL_PER_G);
+    const k = kcal / item.kcal; // macros shrink with the calories so they still add up
+    const out = { ...item, kcal, protein_g: r1(item.protein_g * k), carbs_g: r1(item.carbs_g * k), fat_g: r1(item.fat_g * k), confidence: Math.min(item.confidence, 0.4), note: FLAG_NOTE };
+    if (out.source === 'label') delete out.source; // no longer the label's numbers
+    return out;
+  }
+  return item;
+}
 
 /** The model's reply text → a short, bounded list the app can trust. Returns [] for anything unusable. */
 export function parseFoods(text) {
@@ -78,11 +99,18 @@ export function parseFoods(text) {
     if (!f || typeof f !== 'object') continue;
     const name = clean(f.name, 80);
     if (!name) continue;
-    out.push({
+    const item = {
       name, portion: clean(f.portion, 40), grams: Math.round(num(f.grams, 5000)), kcal: Math.round(num(f.kcal, 5000)),
       protein_g: r1(num(f.protein_g, 500)), carbs_g: r1(num(f.carbs_g, 500)), fat_g: r1(num(f.fat_g, 500)),
       confidence: Math.round(num(f.confidence, 1) * 100) / 100,
-    });
+    };
+    // Packaged-food fields are optional: absent when the model didn't read them, so older clients see the same shape.
+    const brand = clean(f.brand, 60), product = clean(f.product, 80), net = r1(num(f.net_weight_g, 5000));
+    if (brand) item.brand = brand;
+    if (product) item.product = product;
+    if (net > 0) item.net_weight_g = net;
+    if (f.source === 'label' || f.source === 'estimate') item.source = f.source;
+    out.push(sanityCheck(item));
     if (out.length >= MAX_FOODS) break;
   }
   return out;
