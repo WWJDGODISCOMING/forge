@@ -355,7 +355,7 @@ function exerciseMenu(i, el) {
         renderSession(el);
       }
     });
-  });
+  }, { detents: ['medium', 'large'] });
 }
 
 // The How-To sheet lives in howto.js; re-exported here for older imports.

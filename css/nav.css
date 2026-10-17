@@ -178,6 +178,8 @@ dialog.sheet.dragging::backdrop, dialog.sheet.springing::backdrop { transition: 
 @keyframes step-back { from { opacity: 0; transform: translateX(-28px); } }
 @media (prefers-reduced-motion: reduce) { .sheet-body.step-in, .sheet-body.step-back { animation: none; } }
 .sheet-body { flex: 1; min-height: 0; overflow-y: auto; padding: 14px 20px calc(var(--safe-bottom) + 20px); }
+/* Detent sheets: at medium the lower part is off-screen, so pad the scroll end by that much to keep the last row reachable. */
+dialog.sheet.detented.at-medium .sheet-body { padding-bottom: calc(var(--safe-bottom) + 20px + var(--detent-pad, 0px)); }
 
 /* ---------- Cold-start skeleton (replaces the spinner) ---------- */
 .skel-screen { display: flex; flex-direction: column; gap: 14px; padding-top: 2px; }

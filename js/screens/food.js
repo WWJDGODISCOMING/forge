@@ -377,7 +377,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       toast(`Added ${fields.kcal} kcal to ${MEAL_LABEL[fields.meal].toLowerCase()}`);
     });
     paintResults();
-  });
+  }, { detents: ['medium', 'large'] });
 }
 
 /** Change servings or meal on an entry you already logged, or delete it. */

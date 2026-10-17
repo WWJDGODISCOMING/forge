@@ -66,5 +66,5 @@ test('track: relative (percent) mode starts fully hidden and ends at 0%', () => 
 });
 
 test('sheets open relative to their own height', () => {
-  assert(/run\(h, 0, 0, settle, undefined, h\)/.test(src('js/ui.js')), 'open path passes relativeTo');
+  assert(/run\(h, rest, 0, .*undefined, h\)/.test(src('js/ui.js')), 'open path passes relativeTo');
 });
