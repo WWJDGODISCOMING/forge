@@ -56,7 +56,10 @@ test('sheet(): detents option, haptic on crossing, shouldDismiss kept for plain 
   assert(ui.includes("dlg.style.height = 'calc(100dvh - var(--safe-top) - 16px)'"), 'sized to the max sheet height before measuring');
   assert(ui.includes('expand: toLarge') && src('js/screens/food.js').includes('head.expand()'), 'dock opening goes to large');
   assert(ui.includes("document.activeElement.matches('input, textarea, select')) toLarge()"), 'focus during the open goes to large');
-  assert(ui.includes('from: base0'), 'flick steps from where the drag began');
+  const toLargeBody = ui.slice(ui.indexOf('const toLarge = () => {'), ui.indexOf('const opened = () => {'));
+  assert(toLargeBody.includes('atRest(0);') && toLargeBody.split('run(').length === 2, 'toLarge parks at large (atRest(0)) and starts exactly one spring, so settle() cannot drop back to medium');
+  assert(toLargeBody.indexOf('atRest(0);') < toLargeBody.indexOf('run('), 'toLarge sets the rest detent before the spring runs');
+  assert(ui.includes('from: base0'),'flick steps from where the drag began');
   const food = src('js/screens/food.js');
   assert(food.indexOf('data-quick-toggle') < food.indexOf('class="food-scroll"') && food.indexOf('data-quick hidden') < food.indexOf('class="food-scroll"'), 'Quick add sits above the results list');
   assert(src('css/food.css').includes('.food-dock::after') && src('css/food.css').includes('top: 100%'), 'dock covers the rows under it');
