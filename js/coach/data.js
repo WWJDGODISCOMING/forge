@@ -88,5 +88,6 @@ export function coachData() {
     missions: missionsSummary(),
     program: programData(),
     longterm: longtermData(today, units()),
+    focus: (state.profile && state.profile.focus_muscles) || [],
   };
 }

@@ -18,6 +18,8 @@ import { exerciseById } from '../workouts/library.js';
 import { openPlateCalculator, openCardioLog } from './tools.js';
 import { openExercisePicker } from './picker.js';
 import { patch } from '../db.js';
+import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
+import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
@@ -143,6 +145,10 @@ export function renderTrain(el) {
         </div>
         <p><b>${esc(PROGRAMS[program.template]?.name || program.name)}</b></p>
         <p class="small muted">Week ${d.week} of ${d.cycle}${d.deload ? ' — deload week' : ` · deload in week ${d.cycle}`}</p>
+        <div class="row between center focus-row">
+          <p class="small"><span class="muted">Focus areas:</span> <b>${esc(focusLabel(state.profile.focus_muscles) || 'None')}</b></p>
+          <button class="link small" data-focus>Edit</button>
+        </div>
       </div>
 
       <div class="tools">
@@ -176,6 +182,7 @@ export function renderTrain(el) {
   const dl = $('[data-deload]', el);
   if (dl) dl.onclick = () => { startDeload(); toast('Deload week started'); };
   $('[data-program]', el).onclick = () => openProgramPicker();
+  $('[data-focus]', el).onclick = () => openFocusPicker();
   $('[data-cardio]', el).onclick = () => openCardioLog();
   $('[data-plates]', el).onclick = () => openPlateCalculator();
 }
@@ -207,6 +214,7 @@ function previewCard(plan, { d, loc, program, u }) {
         </div>
         <div class="pv-chips">
           <span class="pill">${icon('timer')} ~${plan.est_minutes} min</span>
+          ${plan.focus && plan.focus.length ? `<span class="pill pill-focus">Focus: ${esc(plan.focusLabel)}</span>` : ''}
         </div>
         ${plan.notes.map((x) => `<p class="notice info small">${esc(x)}</p>`).join('')}
         ${n ? `
@@ -448,6 +456,20 @@ function exerciseMore(el, plan, i) {
       close();
       renderTrain(el);
     }));
+  });
+}
+
+function openFocusPicker() {
+  sheet('Focus areas', (body, close) => {
+    body.innerHTML = `${focusChipsHtml(state.profile.focus_muscles)}
+      <div class="row gap"><button class="btn grow" data-ok>Done</button></div>`;
+    const read = bindFocusChips(body);
+    $('[data-ok]', body).onclick = () => {
+      const list = cleanFocus(read());
+      close();
+      patch('profile', 'main', { focus_muscles: list });
+      toast(list.length ? `Focus: ${focusLabel(list)}` : 'Focus areas cleared');
+    };
   });
 }
 

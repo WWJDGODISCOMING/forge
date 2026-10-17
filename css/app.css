@@ -246,6 +246,12 @@ input[type=date] { -webkit-appearance: none; appearance: none; }
   transition: background var(--t-fast) var(--ease-out), color var(--t-fast) var(--ease-out);
 }
 .chip input:checked + span { background: var(--accent-tint); color: var(--text-1); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 55%, transparent); }
+.focus-chips .chip span { padding-inline: 14px; }
+.focus-row { margin-top: var(--s-2); gap: var(--s-2); }
+.focus-row .link { min-width: 44px; justify-content: center; }
+.focus-note { margin-top: var(--s-2); }
+.pill-focus { white-space: nowrap; }
+.chip input:disabled + span { opacity: .45; }
 .chip input:focus-visible + span { outline: 2px solid var(--accent-text); }
 
 /* ---------- notices ---------- */

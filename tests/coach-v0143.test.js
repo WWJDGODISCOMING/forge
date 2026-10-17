@@ -179,10 +179,10 @@ test('coach: more than 8 questions → the eight most relevant, program and miss
   // Stub the seven older answers so only the ordering is under test.
   const saved = QUESTIONS.map((q) => q.answer);
   try {
-    for (const q of QUESTIONS) if (!['missions', 'program', 'longterm'].includes(q.id)) q.answer = () => ({ id: q.id, headline: 'x', lines: ['a', 'b'], why: 'y' });
+    for (const q of QUESTIONS) if (!['missions', 'program', 'longterm', 'spot'].includes(q.id)) q.answer = () => ({ id: q.id, headline: 'x', lines: ['a', 'b'], why: 'y' });
     const d = { missions: missionsData(), program: running('cut4', falling), ...longData(rowsOf(90, (k) => 60 - k * 0.05)) };
     const ids = (data) => availableQuestions(data, TODAY).map((q) => q.id);
-    eq(QUESTIONS.length, 10);
+    eq(QUESTIONS.length, 11);
     eq(MAX_QUESTIONS, 8);
     const active = ids(d);
     eq(active.length, 8, 'capped at 8');

@@ -7,6 +7,7 @@ import { fmtDelta } from '../health/delta.js';
 import { trendChange } from '../weight/smoothing.js';
 import { NOISE_FLOOR } from '../health/trends.js';
 import { MEDICAL } from '../health/insights.js';
+import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { SHOW_MUSCLES, MUSCLE_LABELS, FRESH_PCT, freshCount } from '../workouts/recovery.js';
 
 export { MEDICAL };
@@ -269,6 +270,21 @@ export function longtermAnswer(d) {
   };
 }
 
+// ---- 11. Can I lose fat from one spot? (shown when Focus areas are set) ----
+export function spotAnswer(d) {
+  const f = cleanFocus(d.focus);
+  if (!f.length) return null;
+  return {
+    id: 'spot', headline: 'Fat comes off the whole body, not one spot.',
+    lines: [
+      `Your focus (${focusLabel(f)}) builds muscle there, so it looks firmer and more defined as fat comes off.`,
+      'Where fat leaves first is mostly down to genetics. Training a muscle does not burn the fat on top of it.',
+      'Fat loss comes from your calorie goal, applied to your whole body over time.',
+    ],
+    why: 'Research on spot reduction finds that training a muscle does not preferentially shrink the fat over it.', note: DISCLAIMER,
+  };
+}
+
 /** True when there are no weigh-ins and no workouts yet: the Coach screen shows its starter card. */
 export const needsStarter = (d) => !(d.weights && d.weights.length) && !d.hasTraining;
 
@@ -290,6 +306,7 @@ export const QUESTIONS = [
   { id: 'missions', label: 'How are my missions going?', answer: missionsAnswer, rank: (d) => (missionsOn(d) ? -1 : null) },
   { id: 'program', label: programLabel, answer: programAnswer, rank: (d) => (programRunning(d) ? -2 : null) },
   { id: 'longterm', label: 'How’s my long-term health?', answer: longtermAnswer },
+  { id: 'spot', label: 'Can I lose fat from one spot?', answer: spotAnswer },
 ];
 
 /** The questions that have data behind them right now: [{ id, label, answer }], answers already worked out. */
