@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.19 — Focus areas (2026-10-17)
+
+#120. Pick up to 3 muscle groups you want more defined (chest, shoulders, arms, back, abs/core, glutes, legs) from the Program card on Train or in Edit profile. Smart mode leans toward days that train them, and each session that includes one gets an extra set on it (at most +4 sets in total, none in a deload week). A muscle that is under about 60% recovered is never pushed because it is a focus. Fixed programs (PPL, Upper/Lower, 5x5, custom) keep their day order and only get the extra set. Today's card shows a "Focus: Shoulders" tag. This builds muscle there; fat loss is body-wide and comes from your calorie goal, and Coach now says so when you ask about losing fat from one spot. Stored as `profile.focus_muscles`; no rules change.
+
+### What's new
+
+- Focus areas: choose up to 3 muscles to prioritize, on Train or in your profile.
+- Focus muscles get an extra set in your workouts, never when they are tired or on a deload.
+- Coach answers "Can I lose fat from one spot?" plainly once you set a focus.
+
 ## 0.16.18 — Add always in view (2026-10-17)
 
 Follow-up to #119. In the Log food sheet the Add button could be faded out when the picked food's panel was tall (320-wide phones after a USDA pick, or while the keyboard was up editing the amount). The panel now sits below the list instead of inside it, so Add can never fade, and no list row shows under it at half or full height. Only a small area above Add scrolls, with soft edges, when space is tight.

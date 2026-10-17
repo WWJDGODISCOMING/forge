@@ -232,6 +232,40 @@ if (standalone) {
 }
 
 if (standalone) {
+  test('layout: Focus areas sheet and Program row fit at 320, 390 and the Duo sizes, light and dark, and no chip wraps', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    const cases = [[320, 568], [390, 844], ...WIDE].flatMap(([w, h]) => [{ w, h, dark: true }, { w, h, dark: false }]);
+    for (const c of cases) {
+      await browser.viewport(c.w, c.h, c.dark);
+      const data = seed(); data.profile[0].focus_muscles = ['shoulders', 'abs', 'glutes']; // the longest labels
+      await browser.open('train', data);
+      const at = `${c.w}x${c.h}${c.dark ? 'd' : 'l'}`;
+      if (!(await browser.eval("!!document.querySelector('[data-focus]')"))) { note('no Focus areas row on the Program card', at); continue; }
+      const probsRow = await browser.eval(`(${detect})(${JSON.stringify({ largeText: false })})`);
+      for (const pr of probsRow) note(`program card: ${pr}`, at);
+      // the Program row's value never breaks inside a name (it may wrap between names only at large text)
+      const rowFit = await browser.eval("(() => { const r = document.querySelector('[data-focus]'); const spans = [...r.querySelectorAll('.focus-val span')]; const lines = (e) => { const g = document.createRange(); g.selectNodeContents(e); return new Set([...g.getClientRects()].map((q) => Math.round(q.top))).size; }; const tops = new Set(spans.map((e) => Math.round(e.getBoundingClientRect().top))).size; return { names: spans.map(lines), rows: tops, h: Math.round(r.getBoundingClientRect().height) }; })()");
+      if (rowFit.names.some((n) => n > 1)) note('program card: a focus name breaks across lines', at);
+      if (rowFit.rows > 1) note('program card: the focus value wraps onto a second line', at);
+      if (rowFit.h < 44) note(`program card: the focus row is only ${rowFit.h}px tall`, at);
+      await browser.eval("document.querySelector('[data-focus]').click()");
+      await wait(450);
+      if (!(await browser.eval("!!document.querySelector('dialog.sheet[open]')"))) { note('Focus sheet did not open', at); continue; }
+      await browser.eval("['main', 'nav', 'navbar'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = 'hidden'; })");
+      const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: false })})`);
+      for (const pr of probs) note(`sheet: ${pr}`, at);
+      const chips = await browser.eval("[...document.querySelectorAll('dialog.sheet .focus-chips .chip span')].map((s) => { const st = getComputedStyle(s); const g = document.createRange(); g.selectNodeContents(s); return new Set([...g.getClientRects()].map((q) => Math.round(q.top))).size + ':' + s.scrollWidth + ':' + s.clientWidth; })");
+      if (chips.length !== 8) note(`expected 7 groups plus None, found ${chips.length}`, at);
+      for (const x of chips) { const [lines, sw, cw] = x.split(':').map(Number); if (lines > 1 || sw > cw) note(`a Focus chip wraps or clips (${x})`, at); }
+      if (shots) await browser.screenshot(`${shots}/focus-${c.w}x${c.h}-${c.dark ? 'dark' : 'light'}.png`);
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+
   test('layout: every Change toast message is one line, Undo is plain text, and Undo after a new location keeps earlier swaps', async () => {
     if (skipReason()) return;
     browser = browser || await launch();

@@ -3,6 +3,7 @@
 import { DAY_TYPES, PROGRAMS, smartDayTypes, DAY_MUSCLES } from './programs.js';
 import { expandEquipment, canDo } from './equipment.js';
 import { averageRecovery } from './recovery.js';
+import { activeFocus, cleanFocus, focusLabel, FOCUS_GROUPS, FOCUS_MAX_ADDED, dayFocusBonus } from './focus.js';
 import { nextTarget, warmups, defaultSets } from './progression.js';
 
 const INJURY_WORDS = {
@@ -34,7 +35,7 @@ export function deloadInfo(program, experience = 'beginner', now = Date.now()) {
 }
 
 /** Which day of the program is next. Smart mode: the day type whose muscles are most recovered. */
-export function pickDayType(programKey, { recovery, doneCount = 0, daysPerWeek = 3, lastDayType = null, customDays = [] } = {}) {
+export function pickDayType(programKey, { recovery, doneCount = 0, daysPerWeek = 3, lastDayType = null, customDays = [], focus = [] } = {}) {
   const prog = PROGRAMS[programKey] || PROGRAMS.smart;
   if (prog.custom) return customDays.length ? `custom_${doneCount % customDays.length}` : null;
   if (!prog.smart) return prog.days[doneCount % prog.days.length];
@@ -43,6 +44,7 @@ export function pickDayType(programKey, { recovery, doneCount = 0, daysPerWeek =
   let bestScore = -Infinity;
   options.forEach((d, i) => {
     let score = averageRecovery(recovery, DAY_MUSCLES[d]);
+    score += dayFocusBonus(DAY_MUSCLES[d], focus, recovery); // tired focus muscles earn no bonus, so recovery still wins
     if (d === lastDayType) score -= 15; // avoid repeating the same day back to back
     score -= i * 0.01; // stable tie-break
     if (score > bestScore) {
@@ -180,6 +182,7 @@ export function generateWorkout(opts) {
 
   const dayType = opts.dayType || pickDayType(programKey, {
     recovery, doneCount, daysPerWeek: profile.trainingDays || 3, lastDayType, customDays: (program && program.custom_days) || [],
+    focus: profile.focus_muscles,
   });
 
   let day;
@@ -282,7 +285,7 @@ export function generateWorkout(opts) {
     const wu = slot.role !== 'accessory' && target.weight ? warmups(ex, target.weight, { inventory: location.weight_inventory || {}, unit }) : [];
     const risky = (ex.avoid || []).filter((t) => avoid.has(t));
     const warning = risky.length ? `Heads up: this commonly stresses your ${risky.map((t) => t.replace('_', ' ')).join(', ')} (from your injury note). Swap it if it bothers you.` : null;
-    items.push({ exercise_id: ex.id, role: slot.role, target, warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning });
+    items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning });
   }
 
   if (items.length < 4 && !injuryDropped) {
@@ -310,6 +313,40 @@ export function generateWorkout(opts) {
   // …then drop lifts from the end, always keeping the first one.
   while (total() > budget && items.length > 1) items.pop();
 
+  // Focus areas: after the fit, +1 set on one lift per active focus group (main first, then secondary, then accessory),
+  // at most FOCUS_MAX_ADDED in total, none on a deload or light day. Groups under ~60% recovered are skipped.
+  // A set is added only if it fits the session, or by taking one set from the largest other lift above 2 sets. No lift is ever dropped.
+  if (!lighter) {
+    let added = 0;
+    const donors = new Set();
+    const chosen = new Set(cleanFocus(profile.focus_muscles).flatMap((k) => FOCUS_GROUPS[k].muscles));
+    const trainsFocus = (it) => it.primary.some((m) => chosen.has(m));
+    const rank = { main: 0, secondary: 1, accessory: 2 };
+    const cost = (it, sets) => minutesFor(exercises.find((e) => e.id === it.exercise_id), sets, it.role, it.target);
+    for (const key of activeFocus(profile.focus_muscles, recovery)) {
+      if (added >= FOCUS_MAX_ADDED) break;
+      const ms = FOCUS_GROUPS[key].muscles;
+      const first = (it) => it.primary.findIndex((m) => ms.includes(m));
+      const cand = items
+        .filter((it) => !it.focusKey && !donors.has(it) && first(it) >= 0 && it.target.sets < 6)
+        .sort((a, b) => rank[a.role] - rank[b.role] || first(a) - first(b))[0];
+      if (!cand) continue;
+      const extra = cost(cand, cand.target.sets + 1) - cost(cand, cand.target.sets);
+      if (total() + extra <= budget) {
+        cand.target.sets += 1;
+      } else {
+        let donor = null;
+        for (const it of items) if (it !== cand && !it.focusKey && !trainsFocus(it) && it.target.sets > 2 && (!donor || it.target.sets >= donor.target.sets)) donor = it;
+        if (!donor || total() + extra - (cost(donor, donor.target.sets) - cost(donor, donor.target.sets - 1)) > budget) continue;
+        donor.target.sets -= 1;
+        donors.add(donor);
+        cand.target.sets += 1;
+      }
+      cand.focusKey = key;
+      added += 1;
+    }
+  }
+
   // Short sessions: pair accessories into supersets.
   if (sessionMin <= 45) {
     const acc = items.filter((it) => it.role === 'accessory' && !exercises.find((e) => e.id === it.exercise_id).timed);
@@ -320,6 +357,7 @@ export function generateWorkout(opts) {
     }
   }
 
+  const focus = [...new Set(items.filter((it) => it.focusKey).map((it) => it.focusKey))];
   const readinessApplied = rLevel === 'amber' ? 'amber' : readinessDeload ? 'red' : null;
-  return { dayType, label: day.label, deload, readinessDeload, readiness: readinessApplied, week, cycle, notes, exercises: items, est_minutes: Math.round(total() + warmMin), warm_min: warmMin };
+  return { dayType, label: day.label, focus, focusLabel: focusLabel(focus), deload, readinessDeload, readiness: readinessApplied, week, cycle, notes, exercises: items, est_minutes: Math.round(total() + warmMin), warm_min: warmMin };
 }

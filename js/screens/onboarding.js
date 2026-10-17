@@ -9,6 +9,8 @@ import {
 import { weightToDisplay, weightFromInput, weightUnit, feetInchesToCm, cmToFeetInches, formatWeight } from '../units.js';
 import { LOCATION_PRESETS, presetDescription, locationFromPreset } from '../workouts/equipment.js';
 import { currentWeightKg } from '../derived.js';
+import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
+import { cleanFocus } from '../workouts/focus.js';
 
 let draft = null;
 let step = 0;
@@ -31,6 +33,7 @@ function startDraft(editing) {
     sessionMin: p.sessionMin || 60,
     experience: p.experience || 'beginner',
     injuries: p.injuries || '',
+    focus: cleanFocus(p.focus_muscles),
     locations: new Set(['home', 'ymca', 'travel']),
     pacePct: p.pacePct ?? null,
     allowFastPace: !!p.allowFastPace,
@@ -193,15 +196,20 @@ const stepTraining = {
     <fieldset class="field"><legend>Lifting experience</legend>
       <div class="seg wrap">${Object.entries(EXPERIENCE).map(([k, l]) => `<label><input type="radio" name="exp" value="${k}" ${draft.experience === k ? 'checked' : ''}><span>${l}</span></label>`).join('')}</div>
     </fieldset>
+    <fieldset class="field"><legend>Focus areas <small class="muted">optional</small></legend>
+      ${focusChipsHtml(draft.focus)}
+    </fieldset>
     <label class="field"><span>Injuries or limits <small class="muted">optional</small></span>
       <textarea name="injuries" rows="2" placeholder="e.g. left shoulder, no overhead pressing">${esc(draft.injuries)}</textarea>
     </label>`,
+  mount(form) { bindFocusChips(form); },
   read(form) {
     draft.activity = form.activity.value || 'light';
     draft.trainingDays = Number(form.days.value) || 3;
     draft.sessionMin = Number(form.len.value) || 60;
     draft.experience = form.exp.value || 'beginner';
     draft.injuries = form.injuries.value.trim();
+    draft.focus = cleanFocus($$('input[name=focus]:checked', form).map((b) => b.value));
   },
 };
 
@@ -301,6 +309,7 @@ function finish() {
     sessionMin: draft.sessionMin,
     experience: draft.experience,
     injuries: draft.injuries,
+    focus_muscles: draft.focus,
     pacePct: t.pacePct,
     allowFastPace: draft.allowFastPace,
     ...tourFieldsForSave(!!state.profile), // a brand-new account gets the how-to tour; editing a profile doesn't
