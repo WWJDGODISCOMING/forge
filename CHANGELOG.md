@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.16 — Spring sheets (2026-10-17)
+
+#58 slice 15. A small spring solver (`js/ui/spring.js`) now drives bottom sheets: opening, closing and the release after a drag. Grabbing a sheet mid-move stops it under your finger, and your flick speed carries into the spring. Reduced motion uses a short fade. The iPhone app asks for 120 Hz animation (`CADisableMinimumFrameDurationOnPhone`).
+
+### What's new
+
+- Sheets now follow your finger: grab one mid-way, flick it closed, it keeps up.
+
 ## 0.16.15 — Haptic vocabulary (2026-10-17)
 
 #58 slice 14. One set of six taps (`select`, `light`, `medium`, `success`, `heavy`, `warning`) in `js/ui/haptic.js`, used on key actions in the iPhone app. No-op on the web, and Settings → Haptic tick turns them all off.

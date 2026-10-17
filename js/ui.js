@@ -6,6 +6,7 @@ import { icon } from './ui/icons.js';
 import { shouldDismiss, rubberBand, dragProgress, velocityOf } from './ui/gesture.js';
 import { registerSheet } from './ui/sheets.js';
 import { haptics } from './ui/haptic.js';
+import { animateSpring, SHEET } from './ui/spring.js';
 
 export { closeAllSheets } from './ui/sheets.js';
 
@@ -70,39 +71,79 @@ export function sheet(title, render) {
   haptics.light();
   let closing = false;
   let forget = () => {};
+  let anim = null; // the running spring (open, close or release), if any
+  let exiting = false; // the running spring is the exit; grabbing it cancels the close
+  const reduced = reducedMotion();
+  // Drive the sheet from JS: --sheet-y in px and --sheet-p (backdrop 0..1) set together each frame.
+  const place = (y) => {
+    dlg.style.setProperty('--sheet-y', `${y}px`);
+    dlg.style.setProperty('--sheet-p', String(1 - dragProgress(y, dlg.offsetHeight)));
+  };
+  const settle = () => {
+    anim = null;
+    dlg.classList.remove('springing');
+    dlg.style.removeProperty('--sheet-y');
+    dlg.style.removeProperty('--sheet-p');
+    dlg.style.removeProperty('will-change');
+  };
+  const run = (from, to, velocity, onDone) => {
+    anim?.stop();
+    dlg.classList.add('springing');
+    dlg.style.willChange = 'transform';
+    anim = animateSpring({ from, to, velocity, params: SHEET, onUpdate: place, onDone });
+  };
+  const finish = () => {
+    forget();
+    if (dlg.open) dlg.close();
+    dlg.remove();
+  };
+  const exit = (velocity) => {
+    dlg.classList.remove('dragging');
+    if (reduced) {
+      dlg.classList.add('closing'); // CSS fades it out
+      setTimeout(finish, DUR.med + 40);
+      return;
+    }
+    const from = anim ? anim.stop().value : parseFloat(dlg.style.getPropertyValue('--sheet-y')) || 0;
+    exiting = true;
+    run(from, dlg.offsetHeight, Math.max(velocity, 0), finish);
+  };
   const close = () => {
     if (closing) return;
     closing = true;
     forget();
-    dlg.classList.remove('dragging');
-    dlg.style.removeProperty('--sheet-y'); // the .closing class slides it the rest of the way
-    dlg.style.removeProperty('--sheet-p');
-    dlg.classList.add('closing');
-    setTimeout(() => {
-      if (dlg.open) dlg.close();
-      dlg.remove();
-    }, DUR.med + 40);
+    exit(0);
   };
   // Drag to dismiss (pointer events on the grabber and header; the body keeps its own scrolling).
-  if (!reducedMotion()) {
+  if (!reduced) {
     for (const handle of dlg.querySelectorAll('.sheet-grab, .sheet-head')) {
       let startY = 0;
+      let base = 0; // where the sheet was when grabbed (nonzero when caught mid-spring)
       let offset = 0;
       let samples = null;
       handle.addEventListener('pointerdown', (e) => {
-        if (closing || e.target.closest('button')) return;
+        if (e.target.closest('button')) return;
+        if (closing && !exiting) return;
+        if (anim) {
+          // Caught mid-flight: stop under the finger. Grabbing a closing sheet cancels the close.
+          base = anim.stop().value;
+          anim = null;
+          if (closing) { closing = false; exiting = false; forget = registerSheet(close); }
+        } else base = 0;
         samples = [{ t: e.timeStamp, v: e.clientY }];
         startY = e.clientY;
-        offset = 0;
+        offset = base;
         handle.setPointerCapture(e.pointerId);
         dlg.classList.add('dragging');
+        dlg.classList.add('springing');
+        dlg.style.willChange = 'transform';
+        place(offset);
       });
       handle.addEventListener('pointermove', (e) => {
         if (!samples) return;
         samples.push({ t: e.timeStamp, v: e.clientY });
-        offset = rubberBand(e.clientY - startY);
-        dlg.style.setProperty('--sheet-y', `${offset}px`);
-        dlg.style.setProperty('--sheet-p', String(1 - dragProgress(offset, dlg.offsetHeight)));
+        offset = rubberBand(base + e.clientY - startY);
+        place(offset);
       });
       const release = (e) => {
         if (!samples) return;
@@ -110,17 +151,16 @@ export function sheet(title, render) {
         samples = null;
         dlg.classList.remove('dragging');
         if (e.type !== 'pointercancel' && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
-          close();
+          if (!closing) { closing = true; forget(); exit(velocity); }
         } else {
-          dlg.style.removeProperty('--sheet-y'); // springs back
-          dlg.style.removeProperty('--sheet-p');
+          run(offset, 0, velocity, settle); // snaps back with the finger's speed and a little settle
         }
       };
       handle.addEventListener('pointerup', release);
       handle.addEventListener('pointercancel', release);
     }
   }
-  dlg.querySelector('[data-close]').addEventListener('click', close);
+  dlg.querySelector('[data-close]').addEventListener('click', () => close());
   dlg.addEventListener('cancel', (e) => {
     e.preventDefault();
     close();
@@ -146,8 +186,19 @@ export function sheet(title, render) {
   };
   render(dlg.querySelector('.sheet-body'), close, head);
   dlg.showModal();
-  void dlg.offsetHeight; // lock in the off-screen start, then let it spring up
-  dlg.classList.remove('pre');
+  if (reduced) {
+    void dlg.offsetHeight; // lock in the transparent start, then fade in
+    dlg.classList.remove('pre');
+  } else {
+    // Spring up from off-screen. 'pre' is dropped on the same frame the JS takes over, so nothing flashes.
+    const h = dlg.offsetHeight;
+    dlg.classList.add('springing');
+    dlg.style.setProperty('--sheet-y', `${h}px`);
+    dlg.style.setProperty('--sheet-p', '0');
+    dlg.classList.remove('pre');
+    void dlg.offsetHeight;
+    run(h, 0, 0, settle);
+  }
   return close;
 }
 
