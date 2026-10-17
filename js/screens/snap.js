@@ -87,9 +87,8 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
         <div class="snap-row-top">
           <div class="food-row"><b class="clamp2">${esc(r.name)}</b>
             <small class="food-sub"><span class="food-kcal">${num(m.kcal)} kcal</span><span class="food-kcal">${Math.round(m.protein_g)} g protein</span><span class="food-serv">${esc(portion)}</span></small>
-            ${r.source === 'label' ? '<small class="snap-label">From label</small>' : ''}
+            ${r.source === 'label' || (r.kind === 'photo' && matchQuery(r)) ? `<span class="snap-tags">${r.source === 'label' ? '<small class="snap-label">From label</small>' : ''}${r.kind === 'photo' && matchQuery(r) ? `<button type="button" class="btn ghost snap-match" data-match aria-label="Find exact match for ${esc(r.name)}">${icon('search')}<span>Find exact match</span></button>` : ''}</span>` : ''}
             ${isUnsure(r) ? `<small class="snap-unsure">${esc(r.note || 'Not sure about this one. Check it.')}</small>` : ''}</div>
-          ${r.kind === 'photo' && matchQuery(r) ? `<button type="button" class="btn ghost snap-match" data-match>${icon('search')}<span>Find exact match</span></button>` : ''}
         </div>
         <div class="snap-row-bar">
           <span class="serv-stepper"><button type="button" class="icon-btn" data-minus aria-label="Smaller portion of ${esc(r.name)}">${icon('minus')}</button><output aria-live="polite">${esc(servingsLabel(r.qty))}×</output><button type="button" class="icon-btn" data-plus aria-label="Bigger portion of ${esc(r.name)}">${icon('plus')}</button></span>

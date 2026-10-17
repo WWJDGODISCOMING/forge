@@ -61,7 +61,7 @@ const PROMPT = 'You estimate the food on a plate from a photo for a calorie trac
   + '"brand":"optional, only if printed","product":"optional, only if printed","net_weight_g":number (optional, only if printed),"source":"label" or "estimate"}]}. '
   + 'List each distinct food once (at most 12), with the numbers for the amount you can see, not per 100 g. '
   + 'Packaged items, wrappers, bottles, cans, boxes and bars ARE food: never reply with no food just because something is wrapped. '
-  + 'For a packaged item, read the visible brand, product name and net weight (in grams; convert oz), and set grams to the net weight. '
+  + 'For a packaged item, read the visible brand, product name and net weight (in grams; convert oz), and set grams to the total net weight of everything you can see (net weight × number of packages). '
   + 'If a Nutrition Facts panel is visible, use its printed per-serving values, scaled to the net weight or servings you can see, and set source to "label"; otherwise set source to "estimate". '
   + 'Keep calories realistic: no food has more than 9 kcal per gram. '
   + 'Only if the picture has no food or drink at all, reply {"foods":[]}. Do not add any other text.';
@@ -75,9 +75,13 @@ const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f
 
 /** More than 9 kcal per gram is impossible: clamp to 9 and mark the item low confidence with a short reason. */
 export function sanityCheck(item) {
-  const g = item.net_weight_g > 0 ? item.net_weight_g : item.grams;
+  const g = item.grams > 0 ? item.grams : item.net_weight_g; // kcal is for the amount in the photo, which is grams
   if (g > 0 && item.kcal / g > MAX_KCAL_PER_G) {
-    return { ...item, kcal: Math.floor(g * MAX_KCAL_PER_G), confidence: Math.min(item.confidence, 0.4), note: FLAG_NOTE };
+    const kcal = Math.floor(g * MAX_KCAL_PER_G);
+    const k = kcal / item.kcal; // macros shrink with the calories so they still add up
+    const out = { ...item, kcal, protein_g: r1(item.protein_g * k), carbs_g: r1(item.carbs_g * k), fat_g: r1(item.fat_g * k), confidence: Math.min(item.confidence, 0.4), note: FLAG_NOTE };
+    if (out.source === 'label') delete out.source; // no longer the label's numbers
+    return out;
   }
   return item;
 }

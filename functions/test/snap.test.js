@@ -215,3 +215,25 @@ test('more than 9 kcal per gram is clamped and flagged low confidence', () => {
   assert.equal(bad.kcal, 0);
   assert.equal(bad.grams, 0);
 });
+
+test('the clamp uses the grams in the photo, so a multipack is not cut', () => {
+  const [two] = parseFoods(JSON.stringify({ foods: [{ name: 'Snickers', grams: 105, net_weight_g: 52.7, kcal: 500, protein_g: 9, carbs_g: 60, fat_g: 25, confidence: 0.9, source: 'label' }] }));
+  assert.equal(two.kcal, 500);
+  assert.equal('note' in two, false);
+  assert.equal(two.source, 'label');
+  const [one] = parseFoods(JSON.stringify({ foods: [{ name: 'Bar', grams: 36, net_weight_g: 36, kcal: 380, confidence: 0.9 }] }));
+  assert.equal(one.kcal, 324);
+  const [noGrams] = parseFoods(JSON.stringify({ foods: [{ name: 'Bar', net_weight_g: 36, kcal: 380 }] }));
+  assert.equal(noGrams.kcal, 324);
+});
+
+test('a clamped item scales its macros and drops the label source', () => {
+  const [bar] = parseFoods(JSON.stringify({ foods: [{ name: 'Brownie bar', grams: 36, kcal: 380, protein_g: 7, carbs_g: 40, fat_g: 25, confidence: 0.9, source: 'label' }] }));
+  assert.equal(bar.kcal, 324);
+  assert.equal(bar.protein_g, 6);
+  assert.equal(bar.carbs_g, 34.1);
+  assert.equal(bar.fat_g, 21.3);
+  assert.equal('source' in bar, false);
+  const [est] = parseFoods(JSON.stringify({ foods: [{ name: 'Brownie bar', grams: 36, kcal: 380, source: 'estimate' }] }));
+  assert.equal(est.source, 'estimate');
+});
