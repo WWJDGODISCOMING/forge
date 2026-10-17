@@ -406,6 +406,48 @@ if (standalone) {
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
+
+  test('layout: Log food list scrolls to its last row and Add stays on screen (medium, large, keyboard, Duo inner)', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    const many = seed({ over: true });
+    for (let i = 0; i < 40; i++) many.foods.push({ ...many.foods[0], id: `fx${i}`, name: `Synthetic food ${i}` });
+    // tall: unhide the USDA portion block (the worst-case dock; USDA itself is blocked in the test browser); 'kb': shrink the viewport by 336px
+    const cases = [[390, 844, 1, false, 'medium'], [390, 844, 1, false, 'large'], [320, 568, 1.35, true, 'large'], [375, 667, 1, true, 'large'], [390, 844, 1, 'kb', 'large'], [626, 890, 1, false, 'inner']];
+    for (const [w, h, ts, tall, mode] of cases) {
+      await browser.viewport(w, h, true);
+      if (mode === 'medium') await browser.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'no-preference' }] });
+      await browser.open('food', many);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+      await browser.eval("document.querySelector('[data-log-food]').click()"); await wait(900);
+      const at = `${w}x${h}${ts !== 1 ? 'T' : ''} ${mode}${tall === 'kb' ? ' kb' : ''}`;
+      const list = await browser.eval(`(() => {
+        const sc = document.querySelector('dialog.sheet .food-scroll'); if (!sc) return null;
+        sc.scrollTop = sc.scrollHeight; const rows = sc.querySelectorAll('li[data-i]'); const last = rows[rows.length - 1].getBoundingClientRect(), b = sc.getBoundingClientRect();
+        return { scrolls: sc.scrollHeight > sc.clientHeight + 1, lastIn: last.bottom <= b.bottom + 1 && last.top >= b.top - 1 };
+      })()`);
+      if (!list) { note('no food list', at); continue; }
+      if (!list.scrolls) note('food list does not scroll', at);
+      if (!list.lastIn) note('last row cannot be scrolled into view', at);
+      await browser.eval("document.querySelector('dialog.sheet [data-results] li[data-i]').click()"); await wait(900);
+      if (tall) await browser.eval("(() => { const p = document.querySelector('dialog.sheet [data-portion]'); p.hidden = false; p.querySelectorAll('[hidden]').forEach((e) => { e.hidden = false; }); })()");
+      if (tall === 'kb') await browser.viewport(w, h - 336, true);
+      await wait(400);
+      const r = await browser.eval(`(() => {
+        const add = document.querySelector('dialog.sheet [data-add]'); if (!add) return null;
+        const a = add.getBoundingClientRect(), d = document.querySelector('dialog.sheet .food-dock').getBoundingClientRect(), sc = document.querySelector('dialog.sheet .food-scroll'), b = sc.getBoundingClientRect();
+        return { top: a.top, bottom: a.bottom, vh: innerHeight, over: b.bottom > d.top + 1 };
+      })()`);
+      if (!r) { note('Add missing', at); continue; }
+      if (r.top < 0 || r.bottom > r.vh + 0.5) note(`Add is off screen (${Math.round(r.top)}-${Math.round(r.bottom)} of ${r.vh})`, at);
+      if (r.over) note('the list runs under the dock', at);
+    }
+    await browser.send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-reduced-motion', value: 'reduce' }] });
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' | ')}]`).join('\n        ')}`);
+  });
 }
 
 if (standalone) {

@@ -6,7 +6,8 @@ Follow-up to #119. In the Log food sheet the Add button could be faded out when 
 
 ### What's new
 
-- Fixed: Add in Log food is always fully visible.
+- Fixed: Add in Log food is always fully visible, and the food list scrolls to its last row at every size.
+- While a food is picked the "Quick add" button is hidden, so half height has room for the panel.
 
 ## 0.16.17 — Sheet detents (2026-10-17)
 
