@@ -3,7 +3,7 @@
 // Supersets alternate (A1 → A2 → rest). Timed sets count in and finish themselves. Boxing rounds call combos.
 import { state } from '../state.js';
 import { esc, $, $$, toast } from '../ui.js';
-import { live, syncLive, completeSet, undoSet, elapsed, paused, checkAway, describeStep, upNext, flush } from '../workouts/live.js';
+import { live, syncLive, save, completeSet, undoSet, elapsed, paused, checkAway, describeStep, upNext, flush } from '../workouts/live.js';
 import { buildQueue, nextOpenStep, setLabel, supersetTag } from '../workouts/session-core.js';
 import { exerciseById } from '../workouts/library.js';
 import { historyIndex, unit } from '../workouts/plan.js';
@@ -15,11 +15,12 @@ import { powerUp, prExplosion, enqueue } from '../ui/fx.js';
 import { onFrame, reducedMotion, viewTransition, EASE } from '../ui/motion.js';
 import { mountFigure, hasFigure } from '../ui/figure.js';
 import { photoLoop, hasPhotos, photoFallback } from '../ui/photos.js';
-import { hapticInput, onHapticTap } from '../ui/haptic.js';
+import { hapticInput, onHapticTap, haptics } from '../ui/haptic.js';
 import { openPaused, openAway, openComplete, saveAndSummarize, closeOverlays } from './overlays.js';
 import { openHowTo } from './session.js';
 import { COMBOS } from './timer.js';
 import { icon } from '../ui/icons.js';
+import { shouldAskEffort, setEffort, EFFORT_CHOICES, effortLabel } from '../workouts/effort.js';
 
 const BOXING = new Set(['shadowboxing', 'heavy_bag_rounds', 'db_shadowboxing', 'boxing_footwork', 'slip_and_roll']);
 const round1 = (x) => Math.round(x * 10) / 10;
@@ -34,6 +35,9 @@ let awayChecked = null;
 let counting = false; // the 3-2-1 overlay is up: don't draw underneath it
 let undoLockedUntil = 0; // the bottom Undo ignores taps right after the final Done (the card offers its own)
 const UNDO_LOCK_MS = 650;
+const REASON_RE = /^(Felt easy|Missed reps|Went to failure|Close to the limit|Tough twice)/;
+const rateSetsOn = () => localStorage.getItem('forge.rateSets') === '1';
+const closeEffort = () => document.querySelectorAll('.pl-effort').forEach((n) => n.remove());
 
 const allSetsDone = (w) => w.exercises.some((x) => x.sets.length) && w.exercises.every((x) => x.sets.every((s) => s.done));
 
@@ -80,6 +84,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 export function leavePlayer() {
+  closeEffort();
   clearInterval(clockTimer);
   if (unsubRest) unsubRest();
   unsubRest = null;
@@ -217,6 +222,7 @@ function currentStep() {
 
 // ---------- set screen ----------
 function drawSet(el) {
+  closeEffort();
   const w = live.w;
   const cur = currentStep();
   if (!cur) {
@@ -298,12 +304,14 @@ function drawSet(el) {
         ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv>${draft.weight ?? '—'}</b><small>${u}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
         <div class="stepper"><button data-r="-1" aria-label="${isTimed ? 'Fewer seconds' : 'Fewer reps'}">−</button><div><b data-rv>${draft.reps}</b><small>${isTimed ? 'sec' : 'reps'}</small></div><button data-r="1" aria-label="${isTimed ? 'More seconds' : 'More reps'}">+</button></div>
       </div>
+      ${it.note && REASON_RE.test(it.note) && lbl.n === 1 && !s.warmup ? `<p class="pl-reason">${esc(it.note)}</p>` : ''}
       <p class="pl-last">${prevSet ? `Last time: ${prevSet.weight ? `${prevSet.weight} ${u} × ` : ''}${prevSet.reps}${isTimed ? 's' : ''}` : it.note ? esc(it.note) : '&nbsp;'}</p>
       ${!isTimed && !s.warmup ? `
-      <div class="pl-rir" role="radiogroup" aria-label="Reps left in the tank">
+      <button class="pl-rate" data-ratesets aria-pressed="${rateSetsOn()}">Rate sets: ${rateSetsOn() ? 'on' : 'off'}</button>
+      ${rateSetsOn() ? `<div class="pl-rir" role="radiogroup" aria-label="Reps left in the tank">
         <span>In the tank</span>
         ${[null, 0, 1, 2, 3, 4].map((r) => `<button data-rir="${r}" class="${draft.rir === r ? 'on' : ''}" aria-pressed="${draft.rir === r}">${r == null ? '–' : r === 4 ? '4+' : r}</button>`).join('')}
-      </div>` : ''}
+      </div>` : ''}` : ''}
 
       <div class="pl-dock">
       <label class="haptic-btn pl-done ${s.done ? 'is-done' : ''}" data-done-label>
@@ -373,6 +381,11 @@ function drawSet(el) {
     draft.reps = Math.max(1, (draft.reps || 0) + d);
     sync();
   }));
+  const rs = $('[data-ratesets]', el);
+  if (rs) rs.onclick = () => {
+    localStorage.setItem('forge.rateSets', rateSetsOn() ? '0' : '1');
+    drawSet(el);
+  };
   $$('[data-rir]', el).forEach((b) => b.addEventListener('click', () => {
     draft.rir = b.dataset.rir === 'null' ? null : Number(b.dataset.rir);
     $$('[data-rir]', el).forEach((x) => {
@@ -456,7 +469,7 @@ function doneSet(el, ex, i, j, repsOverride) {
   if (res.prs.length) prExplosion(res.prs, { origin: $('[data-hero]', el) }); // one card per set
 
   // Move on after the power-up has had its moment (rest is already running underneath).
-  setTimeout(() => {
+  const proceed = () => {
     if (!live.w || location.hash !== '#/play') return;
     if (res.lastSetOfWorkout) {
       // Let any PR card finish, then confirm: Finish, or take the last set back.
@@ -476,7 +489,36 @@ function doneSet(el, ex, i, j, repsOverride) {
       toast(`Now: ${d.name}`);
       viewTransition(() => drawSet(el), 'push');
     }
+  };
+  setTimeout(() => {
+    if (!live.w || location.hash !== '#/play') return;
+    const item = live.w.exercises[i];
+    if (res.lastOfExercise && shouldAskEffort(item, ex)) askEffort(item, proceed);
+    else proceed();
   }, reducedMotion() ? 250 : 650);
+}
+
+/** One compact bottom prompt after an exercise's last working set: 0 / 1 / 2 / 3 / 4+ or Skip. One tap advances. */
+function askEffort(item, next) {
+  closeEffort();
+  const bar = document.createElement('div');
+  bar.className = 'pl-effort';
+  bar.setAttribute('role', 'group');
+  bar.setAttribute('aria-label', 'How many more reps could you have done?');
+  bar.innerHTML = `<p>How many more reps could you have done?</p><div>${EFFORT_CHOICES.map((r) => `<button data-e="${r}">${effortLabel(r)}</button>`).join('')}<button data-e="skip" class="skip">Skip</button></div>`;
+  document.body.appendChild(bar);
+  if (!reducedMotion()) bar.animate([{ transform: 'translateY(100%)' }, { transform: 'none' }], { duration: 220, easing: EASE.out });
+  let used = false;
+  $$('button', bar).forEach((b) => b.addEventListener('click', () => {
+    if (used) return;
+    used = true;
+    haptics.light();
+    if (b.dataset.e === 'skip') item.effort_skipped = true;
+    else setEffort(item, Number(b.dataset.e));
+    save();
+    bar.remove();
+    next();
+  }));
 }
 
 // ---------- timed sets (3-2-1 lead-in, then they finish themselves) ----------

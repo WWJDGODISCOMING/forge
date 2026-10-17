@@ -6,7 +6,8 @@ import { exerciseById } from '../workouts/library.js';
 import { e1rm, toUnit } from '../workouts/progression.js';
 import { MUSCLE_LABELS } from '../workouts/recovery.js';
 import { dayKey, addDays } from '../weight/smoothing.js';
-import { softDelete } from '../db.js';
+import { softDelete, patch } from '../db.js';
+import { exerciseRir, setEffort, effortLabel, EFFORT_CHOICES } from '../workouts/effort.js';
 import { CARDIO_TYPES } from './tools.js';
 import { icon, emptyState } from '../ui/icons.js';
 
@@ -184,19 +185,34 @@ function openWorkout(id) {
       <div class="stack">
         <p class="muted small">${new Date(w.started_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${w.finished_at ? ` · ${Math.round((Date.parse(w.finished_at) - Date.parse(w.started_at)) / 60000)} min` : ''}</p>
         ${(w.prs || []).length ? `<div class="card prs"><p class="label">PRs ${icon('trophy')}</p><ul class="reasons">${w.prs.map((p) => `<li>${esc(p.label)}</li>`).join('')}</ul></div>` : ''}
-        ${(w.exercises || []).map((it) => {
+        ${(w.exercises || []).map((it, n) => {
           const ex = exerciseById(it.exercise_id);
           const sets = it.sets.filter((s) => s.done);
           if (!sets.length) return '';
-          return `<div><b>${esc(ex ? ex.name : it.exercise_id)}</b><p class="small muted">${sets.map((s) => `${s.warmup ? 'W ' : ''}${s.weight_kg != null ? `${Math.round(toUnit(s.weight_kg, u) * 10) / 10}×` : ''}${s.reps}${ex && ex.timed ? 's' : ''}${s.rir != null ? ` @${s.rir}` : ''}`).join(' · ')}</p></div>`;
+          return `<div><b>${esc(ex ? ex.name : it.exercise_id)}</b><p class="small muted">${sets.map((s) => `${s.warmup ? 'W ' : ''}${s.weight_kg != null ? `${Math.round(toUnit(s.weight_kg, u) * 10) / 10}×` : ''}${s.reps}${ex && ex.timed ? 's' : ''}${s.rir != null ? ` @${s.rir}` : ''}`).join(' · ')}</p>${ex && ex.timed ? '' : effortRow(n, exerciseRir(it))}</div>`;
         }).join('')}
         <button class="btn danger-ghost" data-del>Delete this workout</button>
       </div>`;
+    body.querySelectorAll('[data-effort]').forEach((b) => b.addEventListener('click', () => {
+      const [n, v] = b.dataset.effort.split(':');
+      const it = w.exercises[Number(n)];
+      const same = exerciseRir(it) === Number(v);
+      setEffort(it, same ? null : Number(v));
+      if (!same) delete it.effort_skipped;
+      patch('workouts', w.id, { exercises: w.exercises });
+      const r = exerciseRir(it);
+      b.closest('.effort-row').querySelectorAll('[data-effort]').forEach((x) => x.classList.toggle('on', Number(x.dataset.effort.split(':')[1]) === r));
+    }));
     $('[data-del]', body).onclick = async () => {
       close();
       if (await confirmSheet({ title: 'Delete workout?', message: 'It will be removed from your history and PRs on all devices.', confirmLabel: 'Delete', danger: true })) softDelete('workouts', id);
     };
   });
+}
+
+/** "Reps left" rating for one exercise, editable afterward (tap the lit one again to clear it). */
+function effortRow(n, r) {
+  return `<div class="effort-row" role="group" aria-label="Reps left in the tank"><span class="small muted">Reps left</span>${EFFORT_CHOICES.map((v) => `<button data-effort="${n}:${v}" class="${r === v ? 'on' : ''}" aria-label="${effortLabel(v)} reps left">${effortLabel(v)}</button>`).join('')}</div>`;
 }
 
 function openCardio(id) {

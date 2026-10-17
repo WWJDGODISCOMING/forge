@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.20 — Effort ratings (2026-10-17)
+
+#121. After the last set of each exercise, Forge asks "How many more reps could you have done?" (0, 1, 2, 3, 4+ or Skip). One tap rates the hardest set and moves on. It stays quiet for timed moves, warm-ups, exercises where you missed planned reps, and sets you already rated. The per-set buttons now sit behind "Rate sets" (off by default). Next time, the target reads that rating: easy (3+) takes an extra step up, 2 is normal, 1 holds the weight and adds a rep below the top of the range, 0 or missed reps holds and eases the load about 5% after two sessions in a row. No rating means the same numbers-only targets as before, and deload weeks ignore it. The reason shows on the exercise ("Felt easy last time, +5 lb"). History shows the rating and lets you change it. Stored as `effort_rir` on the exercise inside the workout, so there is no rules change.
+
+### What's new
+
+- After each exercise, tell Forge how many reps you had left. One tap.
+- Targets now follow your effort: easy means a bigger step up, tough means hold.
+- Each exercise says why its target moved, like "Felt easy last time, +5 lb".
+- Rate sets one at a time is now a toggle in the player. History lets you edit ratings.
+
 ## 0.16.19 — Focus areas (2026-10-17)
 
 #120. Pick up to 3 muscle groups you want more defined (chest, shoulders, arms, back, abs/core, glutes, legs) from the Program card on Train or in Edit profile. Smart mode leans toward days that train them, and each session that includes one gets an extra set on it (at most +4 sets in total, none in a deload week). A muscle that is under about 60% recovered is never pushed because it is a focus. Fixed programs (PPL, Upper/Lower, 5x5, custom) keep their day order and only get the extra set. Today's card shows a "Focus: Shoulders" tag. This builds muscle there; fat loss is body-wide and comes from your calorie goal, and Coach now says so when you ask about losing fat from one spot. Stored as `profile.focus_muscles`; no rules change.
