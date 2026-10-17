@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.17 — Sheet detents (2026-10-17)
+
+#58 slice 16. Log food now opens about half the screen tall and can be dragged up to full height; it springs up to full height and stays there when you pick a food or tap a field, so Add and the search box stay clear of the keyboard. Not used with reduced motion or on wide screens. The drag follows your finger, your release speed picks the half or full stop, and a small tick marks each stop. Other sheets, including the exercise ⋯ menu, are unchanged.
+
+### What's new
+
+- Log food opens half-way. Drag it up for more room.
+
 ## 0.16.16 — Spring sheets (2026-10-17)
 
 #58 slice 15. A small spring solver (`js/ui/spring.js`) now drives bottom sheets: opening, closing and the release after a drag. Grabbing a sheet mid-move stops it under your finger, and your flick speed carries into the spring. Reduced motion uses a short fade. The iPhone app asks for 120 Hz animation (`CADisableMinimumFrameDurationOnPhone`).

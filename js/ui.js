@@ -3,7 +3,7 @@
 import { isNative } from './native/bridge.js';
 import { reducedMotion, DUR } from './ui/motion.js';
 import { icon } from './ui/icons.js';
-import { shouldDismiss, rubberBand, dragProgress, velocityOf } from './ui/gesture.js';
+import { shouldDismiss, rubberBand, dragProgress, velocityOf, pickDetent, crossedDetent } from './ui/gesture.js';
 import { registerSheet } from './ui/sheets.js';
 import { haptics } from './ui/haptic.js';
 import { playSpring, SHEET } from './ui/spring.js';
@@ -53,8 +53,10 @@ let sheetCount = 0;
  * Opens a bottom sheet: grabber, glass header, drag the grabber or header down to dismiss (a long drag or a
  * quick flick closes it, otherwise it springs back), and an animated exit. `render(body, close)` fills it.
  * Escape and a tap on the dimmed backdrop close it too. Returns close().
+ * opts.detents ['medium', 'large']: opens about half the screen tall and drags up to full height (phones only, not with reduced motion;
+ * sized to the tallest sheet the screen allows; head.expand() goes to full height). Without it the sheet has a single height.
  */
-export function sheet(title, render) {
+export function sheet(title, render, opts = {}) {
   const dlg = document.createElement('dialog');
   dlg.className = 'sheet pre';
   const titleId = `sheet-title-${++sheetCount}`;
@@ -75,23 +77,45 @@ export function sheet(title, render) {
   let exiting = false; // the running spring is the exit; grabbing it cancels the close
   let drag = null; // the finger on the sheet, if any: one per sheet, so close() can end it
   const reduced = reducedMotion();
+  let ds = null; // detent offsets [0 (large), medium] in px from fully open, once detents are in play
+  let rest = 0; // the detent the sheet is resting at
+  let armed = false; // focus-to-large only after the open spring has finished
   // Drive the sheet from JS: --sheet-y in px and --sheet-p (backdrop 0..1) set together each frame.
   const place = (y) => {
     dlg.style.setProperty('--sheet-y', `${y}px`);
-    dlg.style.setProperty('--sheet-p', String(1 - dragProgress(y, dlg.offsetHeight)));
+    const low = ds ? ds[ds.length - 1] : 0; // the backdrop stays full at the lowest detent
+    dlg.style.setProperty('--sheet-p', String(1 - dragProgress(Math.max(0, y - low), dlg.offsetHeight - low)));
+  };
+  const atRest = (to) => {
+    rest = to;
+    if (ds) dlg.classList.toggle('at-medium', to > 0);
   };
   const settle = () => {
     anim = null;
+    dlg.style.removeProperty('will-change');
+    if (rest > 0) { place(rest); return; } // parked at a lower detent: JS keeps owning the position
     dlg.classList.remove('springing');
     dlg.style.removeProperty('--sheet-y');
     dlg.style.removeProperty('--sheet-p');
-    dlg.style.removeProperty('will-change');
   };
   const run = (from, to, velocity, onDone, reach, relativeTo) => {
     anim?.stop();
     dlg.classList.add('springing');
     dlg.style.willChange = 'transform';
     anim = playSpring({ el: dlg, from, to, velocity, params: SHEET, reach, relativeTo, onUpdate: place, onDone });
+  };
+  // Move a parked sheet up to full height (a text field got focus, or the food dock opened).
+  const toLarge = () => {
+    if (!ds || closing || drag || rest === 0) return;
+    const caught = anim ? anim.stop() : null;
+    const from = caught ? caught.value : rest;
+    atRest(0);
+    run(from, 0, caught ? caught.velocity : 0, () => { armed = true; settle(); });
+  };
+  const opened = () => {
+    settle();
+    armed = true;
+    if (dlg.contains(document.activeElement) && document.activeElement.matches('input, textarea, select')) toLarge(); // focused during the open
   };
   const finish = () => {
     forget();
@@ -133,7 +157,7 @@ export function sheet(title, render) {
       handle.addEventListener('pointerdown', (e) => {
         if (e.target.closest('button') || drag) return;
         if (closing && !exiting) return;
-        let base = 0; // where the sheet was when grabbed (nonzero when caught mid-spring)
+        let base = rest; // where the sheet was when grabbed (nonzero when caught mid-spring)
         if (anim) {
           // Caught mid-flight: stop under the finger. Grabbing a closing sheet cancels the close.
           base = anim.stop().value;
@@ -150,20 +174,25 @@ export function sheet(title, render) {
       handle.addEventListener('pointermove', (e) => {
         if (!drag || closing || drag.handle !== handle) return;
         drag.samples.push({ t: e.timeStamp, v: e.clientY });
+        const prev = drag.offset;
         drag.offset = rubberBand(drag.base + e.clientY - drag.startY);
         place(drag.offset);
+        if (ds && crossedDetent(prev, drag.offset, ds) != null) haptics.select();
       });
       const release = (e) => {
         if (!drag || closing || drag.handle !== handle) return;
-        const { offset, samples } = drag;
+        const { offset, samples, base: base0 } = drag;
         const up = e.type !== 'pointercancel';
         if (up) samples.push({ t: e.timeStamp, v: e.clientY }); // a finger held still hands over 0, not the old flick
         const velocity = up ? velocityOf(samples) : 0;
         endDrag();
-        if (up && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
+        const pick = !ds ? null : up ? pickDetent({ offset, velocity, detents: ds, size: dlg.offsetHeight, from: base0 }) : rest;
+        if (ds ? pick === 'dismiss' : up && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
           closing = true; forget(); exit(velocity);
         } else {
-          run(offset, 0, velocity, settle); // snaps back with the finger's speed and a little settle
+          const to = ds ? pick : 0;
+          atRest(to);
+          run(offset, to, velocity, settle); // snaps back with the finger's speed and a little settle
         }
       };
       handle.addEventListener('pointerup', release);
@@ -181,6 +210,7 @@ export function sheet(title, render) {
   forget = registerSheet(close);
   // Multi-step sheets: head.setStep('Session length', goBack) swaps the title and shows a back chevron; setStep(title, null) goes home.
   const head = {
+    expand: toLarge,
     setStep(text, onBack = null) {
       dlg.querySelector('h2').textContent = text;
       const b = dlg.querySelector('.sh-back');
@@ -196,9 +226,28 @@ export function sheet(title, render) {
   };
   render(dlg.querySelector('.sheet-body'), close, head);
   dlg.showModal();
+  if (opts.detents?.length > 1 && !reduced && !window.matchMedia('(min-width: 600px)').matches) {
+    // Size to the tallest a sheet can be before measuring, so the stops depend on the screen and not on content
+    // that hasn't loaded yet. Medium rests with 50% of the viewport showing.
+    dlg.style.height = 'calc(100dvh - var(--safe-top) - 16px)';
+    const full = dlg.offsetHeight;
+    const medium = Math.round(full - window.innerHeight * 0.5);
+    if (medium > 40) {
+      ds = [0, medium];
+      dlg.style.setProperty('--detent-pad', `${medium}px`); // lets the last row scroll above the screen edge at medium
+      dlg.classList.add('detented');
+      atRest(medium);
+      dlg.addEventListener('focusin', (e) => {
+        if (armed && e.target.closest('input, textarea, select')) toLarge();
+      });
+    } else {
+      dlg.style.removeProperty('height');
+    }
+  }
   if (reduced) {
     void dlg.offsetHeight; // lock in the transparent start, then fade in
     dlg.classList.remove('pre');
+    armed = true;
   } else {
     // Spring up from off-screen. 'pre' is dropped on the same frame the JS takes over, so nothing flashes.
     const h = dlg.offsetHeight;
@@ -207,7 +256,7 @@ export function sheet(title, render) {
     dlg.style.setProperty('--sheet-p', '0');
     dlg.classList.remove('pre');
     void dlg.offsetHeight;
-    run(h, 0, 0, settle, undefined, h); // relative to the sheet's own height: late content can't pop it into view
+    run(h, rest, 0, opened, undefined, h); // relative to the sheet's own height: late content can't pop it into view
   }
   return close;
 }

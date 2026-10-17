@@ -22,6 +22,43 @@ export function shouldDismiss({ offset, velocity, size, fraction = 0.35, flick =
   return offset > size * fraction;
 }
 
+/**
+ * Sheet detents. `detents` are resting offsets in px from fully open (e.g. [0, 320]); `size` is the sheet height.
+ * A flick (> 0.5 px/ms): down lands on the first detent below the release point, else dismisses; up moves one
+ * detent above `from` (where the drag began; default the nearest detent). Otherwise it
+ * settles on the nearest detent, dismissing only past 35% of the height left below the lowest detent.
+ * Returns the detent offset to settle on, or 'dismiss'.
+ */
+export function pickDetent({ offset, velocity, detents, size, from, fraction = 0.35, flick = 0.5 }) {
+  const ds = [...detents].sort((a, b) => a - b);
+  const last = ds.length - 1;
+  const nearest = (y) => {
+    let n = 0;
+    for (let i = 1; i <= last; i++) if (Math.abs(ds[i] - y) < Math.abs(ds[n] - y)) n = i;
+    return n;
+  };
+  const near = nearest(offset);
+  if (Math.abs(velocity) > flick) {
+    if (velocity > 0) {
+      for (let i = 0; i <= last; i++) if (ds[i] > offset) return ds[i]; // the first detent below the release point
+      return 'dismiss';
+    }
+    return ds[Math.max(0, nearest(from ?? ds[near]) - 1)]; // up: one detent above where the drag began
+  }
+  if (offset > ds[last] && offset - ds[last] > (size - ds[last]) * fraction) return 'dismiss';
+  return ds[near];
+}
+
+/** The detent passed between two drag samples (either direction), or null. Landing exactly on one counts as reaching it. */
+export function crossedDetent(prevOffset, offset, detents) {
+  if (offset === prevOffset) return null;
+  const down = offset > prevOffset;
+  for (const d of detents) {
+    if (down ? d > prevOffset && d <= offset : d < prevOffset && d >= offset) return d;
+  }
+  return null;
+}
+
 /** Dragging past the top (negative) gets stiffer the further you pull, like iOS; down is 1:1. */
 export function rubberBand(offset, limit = 80) {
   if (offset >= 0) return offset;
