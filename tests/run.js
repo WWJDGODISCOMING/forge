@@ -64,6 +64,7 @@ import './v01521.test.js';
 import './v01525.test.js';
 import './v01526.test.js';
 import './v01614.test.js';
+import './v01619.test.js';
 import './layout.test.js';
 import { VERSION } from '../js/version.js';
 
