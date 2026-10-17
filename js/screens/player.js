@@ -306,13 +306,11 @@ function drawSet(el) {
       </div>
       ${it.note && REASON_RE.test(it.note) && lbl.n === 1 && !s.warmup ? `<p class="pl-reason">${esc(it.note)}</p>` : ''}
       <p class="pl-last">${prevSet ? `Last time: ${prevSet.weight ? `${prevSet.weight} ${u} × ` : ''}${prevSet.reps}${isTimed ? 's' : ''}` : it.note ? esc(it.note) : '&nbsp;'}</p>
-      ${!isTimed && !s.warmup ? `
-      ${rateSetsOn() ? `<div class="pl-rir" role="radiogroup" aria-label="Reps left in the tank">
-        <span>In the tank</span>
-        ${[null, 0, 1, 2, 3, 4].map((r) => `<button data-rir="${r}" class="${draft.rir === r ? 'on' : ''}" aria-pressed="${draft.rir === r}">${r == null ? '–' : r === 4 ? '4+' : r}</button>`).join('')}
-      </div>` : ''}` : ''}
 
       <div class="pl-dock">
+      ${!isTimed && !s.warmup && rateSetsOn() ? `<div class="pl-rir" role="radiogroup" aria-label="Reps left in the tank">
+        ${[null, 0, 1, 2, 3, 4].map((r) => `<button data-rir="${r}" class="${draft.rir === r ? 'on' : ''}" aria-pressed="${draft.rir === r}" aria-label="${r == null ? 'No rating' : r === 4 ? '4 or more reps left' : `${r} ${r === 1 ? 'rep' : 'reps'} left`}">${r == null ? '–' : r === 4 ? '4+' : r}</button>`).join('')}
+      </div>` : ''}
       <label class="haptic-btn pl-done ${s.done ? 'is-done' : ''}" data-done-label>
         ${hapticInput('data-done aria-label="Done set"')}
         <span data-done-text>${s.done ? `${icon('check')} Done` : isTimed ? `Start ${draft.reps} s` : 'Done set'}</span>
