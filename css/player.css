@@ -414,4 +414,4 @@ body.playing .navbar { display: none; }
 .effort-row button { min-width: 44px; height: 44px; border-radius: 10px; border: 0; background: var(--surface-2); color: var(--muted); font: 700 14px var(--num); cursor: pointer; }
 .effort-row button.on { background: var(--text-1); color: var(--bg); }
 @media (min-width: 600px) { .pl-effort { left: 50%; right: auto; width: 480px; transform: translateX(-50%); } }
-@media (max-width: 360px) { .pl-effort { padding-inline: 12px; } .pl-effort p { font-size: calc(11px * var(--ts)); } }
+@media (max-width: 360px) { .pl-effort { padding-inline: 12px; } .pl-effort div { gap: 4px; } .pl-effort button { padding: 0; font-size: calc(15px * var(--ts)); } .pl-effort button.skip { font-size: calc(11px * var(--ts)); } .pl-effort p { font-size: calc(11px * var(--ts)); } }
