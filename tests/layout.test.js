@@ -75,6 +75,51 @@ for (const route of standalone ? ['today', 'train', 'body', 'score', 'settings']
 }
 
 if (standalone) {
+  test('layout: the effort prompt fits at 320, 390 and the Duo sizes, light and dark, without wrapping', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    const cases = [[320, 568, true, 1], [320, 568, false, 1], [320, 568, true, 1.35], [390, 844, true, 1], [390, 844, false, 1], [390, 844, true, 1.35], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1]];
+    for (const [w, h, dark, ts] of cases) {
+      await browser.viewport(w, h, dark);
+      await browser.open('play', seed({ active: true, effort: true }));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      await browser.eval("document.querySelector('[data-done]').click()");
+      await new Promise((r) => setTimeout(r, 1200));
+      const got = await browser.eval("(() => { const b = document.querySelector('.pl-effort'); if (!b) return null; const r = b.getBoundingClientRect(); const p = b.querySelector('p'); const btns = [...b.querySelectorAll('button')].map((x) => { const q = x.getBoundingClientRect(); return { h: q.height, w: q.width, wrap: x.scrollWidth > x.clientWidth + 1 }; }); return { bottom: r.bottom, vh: innerHeight, vw: innerWidth, left: r.left, right: r.right, pWrap: p.getBoundingClientRect().height > parseFloat(getComputedStyle(p).fontSize) * 1.3 * 2.2, pOver: p.scrollWidth > p.clientWidth + 1, n: btns.length, small: btns.filter((x) => x.h < 44 || x.w < 40).length, wrapped: btns.filter((x) => x.wrap).length }; })()");
+      const tag = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? 'T' : ''}`;
+      assert(got, `prompt did not show at ${tag}`);
+      assert(got.n === 6 && got.small === 0 && got.wrapped === 0, `buttons ${JSON.stringify(got)} at ${tag}`);
+      assert(!got.pWrap && !got.pOver, `question wraps at ${tag}: ${JSON.stringify(got)}`);
+      assert(got.left >= 0 && got.right <= got.vw + 1 && Math.abs(got.bottom - got.vh) <= 1, `prompt off-screen at ${tag}: ${JSON.stringify(got)}`);
+    }
+  });
+  test('layout: History Reps left row fits at 320 and 390, normal and large text, every button 44px', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    for (const [w, h] of [[320, 568], [390, 844]]) for (const ts of [1, 1.35]) {
+      await browser.viewport(w, h, true);
+      await browser.open('history', seed());
+      await browser.eval("(() => { const r = document.querySelector('li[data-w]') || document.querySelector('li.tap[data-w]'); if (r) r.click(); })()");
+      await new Promise((r) => setTimeout(r, 600));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const got = await browser.eval("(() => { const row = document.querySelector('.effort-row'); if (!row) return null; const bs = [...row.querySelectorAll('button')].map((b) => b.getBoundingClientRect()); return { n: bs.length, small: bs.filter((q) => q.height < 43.5 || q.width < 43.5).length, right: Math.max(...bs.map((q) => q.right)), left: Math.min(...bs.map((q) => q.left)), vw: innerWidth }; })()");
+      assert(got, `Reps left row missing at ${w} ts${ts}`);
+      assert(got.n === 5 && got.small === 0 && got.right <= got.vw - 8 && got.left >= 0, `Reps left row at ${w} ts${ts}: ${JSON.stringify(got)}`);
+    }
+  });
+  test('layout: Rate every set on: the six In the tank buttons sit fully visible above Done set, never under it', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    for (const [w, h, ts] of [[375, 667, 1], [390, 844, 1], [466, 678, 1], [626, 890, 1], [390, 844, 1.35], [320, 568, 1]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('play', seed({ active: true }), "localStorage.setItem('forge.rateSets', '1');");
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const got = await browser.eval("(() => { const bs = [...document.querySelectorAll('.pl-rir button')].map((b) => b.getBoundingClientRect()); const d = document.querySelector('.pl-done'); if (!d) return null; const dr = d.getBoundingClientRect(); return { n: bs.length, small: bs.filter((q) => q.height < 43.5 || q.width < 43.5).length, hidden: bs.filter((q) => q.top < 0 || q.bottom > innerHeight + 0.5 || q.left < 0 || q.right > innerWidth + 0.5).length, overlap: bs.filter((q) => q.bottom > dr.top + 0.5 && q.top < dr.bottom - 0.5).length, doneBottom: dr.bottom, vh: innerHeight }; })()");
+      const tag = `${w}x${h}${ts !== 1 ? 'T' : ''}`;
+      assert(got && got.n === 6, `rating row missing at ${tag}: ${JSON.stringify(got)}`);
+      assert(got.small === 0 && got.hidden === 0 && got.overlap === 0 && got.doneBottom <= got.vh + 0.5, `rating row at ${tag}: ${JSON.stringify(got)}`);
+    }
+  });
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
@@ -534,7 +579,7 @@ if (standalone) {
       if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
       const r = await browser.eval(`(() => {
         const f = document.querySelector('.ms-foot'); if (!f) return null;
-        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => [(q.top + q.bottom) / 2, q.height]).sort((x, y) => x[0] - y[0]); if (!c.length) return 0; const hh = Math.max(...c.map((q) => q[1])); return c.filter((q, i) => i === 0 || q[0] - c[i - 1][0] > hh * 0.6).length; };
         const t = f.querySelector('.nw');
         return { text: f.innerText, tail: t ? lines(t) : 0, all: lines(f), cut: f.scrollWidth > f.clientWidth + 1 };
       })()`);
@@ -559,7 +604,7 @@ if (standalone) {
       await new Promise((r) => setTimeout(r, 300));
       if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
       const r = await browser.eval(`(() => {
-        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => [(q.top + q.bottom) / 2, q.height]).sort((x, y) => x[0] - y[0]); if (!c.length) return 0; const hh = Math.max(...c.map((q) => q[1])); return c.filter((q, i) => i === 0 || q[0] - c[i - 1][0] > hh * 0.6).length; };
         const stats = [...document.querySelectorAll('.stats-m span')];
         const tops = [...document.querySelectorAll('.stats-m b')].map((b) => Math.round(b.getBoundingClientRect().top));
         const sw = document.querySelector('.g-row.sw .g-text > span');
@@ -1139,7 +1184,7 @@ if (standalone) {
       if (ts === 1 && shots) await browser.screenshot(`${shots}/lock-${w}x${h}.png`);
       const m = await browser.eval(`(() => {
         const lock = document.getElementById('lock'); const r = lock.getBoundingClientRect();
-        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+        const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => [(q.top + q.bottom) / 2, q.height]).sort((x, y) => x[0] - y[0]); if (!c.length) return 0; const hh = Math.max(...c.map((q) => q[1])); return c.filter((q, i) => i === 0 || q[0] - c[i - 1][0] > hh * 0.6).length; };
         const b = lock.querySelector('[data-unlock]').getBoundingClientRect(); const t = lock.querySelector('h1');
         const kids = [...lock.children].map((c) => c.getBoundingClientRect());
         return { shown: getComputedStyle(lock).display !== 'none', full: r.width >= innerWidth - 1 && r.height >= innerHeight - 1, btnH: b.height, btnL: b.left, btnR: b.right,
@@ -1194,7 +1239,7 @@ if (standalone) {
     const note = noteTo(found);
     const probe = `(() => {
       const box = document.querySelector('[data-privacy]'); if (!box) return null;
-      const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+      const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => [(q.top + q.bottom) / 2, q.height]).sort((x, y) => x[0] - y[0]); if (!c.length) return 0; const hh = Math.max(...c.map((q) => q[1])); return c.filter((q, i) => i === 0 || q[0] - c[i - 1][0] > hh * 0.6).length; };
       const r = box.getBoundingClientRect();
       return { text: box.innerText.replace(/\\s+/g, ' ').trim(), sw: !!box.querySelector('input[name=applock]'), time: !!box.querySelector('input[name=locktime]'),
         out: [...box.querySelectorAll('*')].some((e) => e.getBoundingClientRect().right > innerWidth + 0.5),
@@ -1241,7 +1286,7 @@ if (standalone) {
     const probe = `(() => {
       const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null;
       const r = d.getBoundingClientRect(); const body = d.querySelector('.sheet-body');
-      const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); return new Set([...rg.getClientRects()].filter((q) => q.width > 0).map((q) => Math.round((q.top + q.bottom) / 2 / 6))).size; };
+      const lines = (e) => { const rg = document.createRange(); rg.selectNodeContents(e); const c = [...rg.getClientRects()].filter((q) => q.width > 0).map((q) => [(q.top + q.bottom) / 2, q.height]).sort((x, y) => x[0] - y[0]); if (!c.length) return 0; const hh = Math.max(...c.map((q) => q[1])); return c.filter((q, i) => i === 0 || q[0] - c[i - 1][0] > hh * 0.6).length; };
       const kids = [...d.querySelectorAll('.sheet-body *')].filter((e) => e.offsetParent !== null);
       const btn = d.querySelector('[data-passwords]');
       return { left: r.left, right: r.right, w: r.width, vw: innerWidth, title: d.querySelector('h2').textContent,

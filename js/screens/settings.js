@@ -81,6 +81,7 @@ export function renderSettings(el) {
             <label><input type="radio" name="coach" value="voice" ${coachMode === 'voice' ? 'checked' : ''}><span>Voice</span></label>
           </div>
         </div>
+        <label class="g-row sw"><span class="g-text"><span>Rate every set</span><small>Also log reps left after each set, not just each exercise.</small></span><input type="checkbox" switch name="ratesets" ${localStorage.getItem('forge.rateSets') === '1' ? 'checked' : ''}></label>
         <label class="g-row sw"><span class="g-text"><span>Sound effects</span><small>Power-up, PR and finish sounds.</small></span><input type="checkbox" switch name="sfx" ${sfxOn ? 'checked' : ''}></label>
         <label class="g-row sw"><span class="g-text"><span>Haptic tick</span><small>${hapSupport === 'native' ? 'Taps on key actions, like logging food, finishing a set or a new PR.' : hapSupport === 'switch' ? 'A light tap on tabs, controls and Done set.' : 'Not supported on this device.'}</small></span><input type="checkbox" switch name="haptics" ${hapOn ? 'checked' : ''}></label>
       </div>
@@ -190,6 +191,7 @@ export function renderSettings(el) {
     patch('settings', 'main', { sfx: e.target.checked });
     if (e.target.checked) setTimeout(() => sfx.charge(0.5), 50);
   });
+  $('input[name=ratesets]', el).addEventListener('change', (e) => localStorage.setItem('forge.rateSets', e.target.checked ? '1' : '0'));
   $('input[name=haptics]', el).addEventListener('change', (e) => patch('settings', 'main', { haptics: e.target.checked }));
 
   // Missions: the steps target moves in steps of 500 (2,000 to 30,000); the bedtime is a time input.

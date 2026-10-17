@@ -1,2 +1,2 @@
 // Bump this AND the VERSION line at the top of sw.js on every release (the tests check they match).
-export const VERSION = '0.16.19';
+export const VERSION = '0.16.20';
