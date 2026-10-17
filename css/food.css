@@ -214,6 +214,6 @@ dialog.sheet.detented .food-scroll { max-height: none; } /* the sheet is already
 /* Quick add sits under the search row, so a long list never buries it. Rows fade out under the dock with a mask, not a painted cover. */
 dialog.sheet.detented .food-dock { position: sticky; }
 dialog.sheet.detented .sheet-body:has(.food-dock:not([hidden])) {
-  -webkit-mask-image: linear-gradient(to top, transparent calc(var(--safe-bottom) + 20px), #000 0);
-  mask-image: linear-gradient(to top, transparent calc(var(--safe-bottom) + 20px), #000 0);
+  -webkit-mask-image: linear-gradient(to top, transparent calc(var(--safe-bottom) + 20px), black 0);
+  mask-image: linear-gradient(to top, transparent calc(var(--safe-bottom) + 20px), black 0);
 }

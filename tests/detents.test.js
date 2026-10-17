@@ -63,6 +63,6 @@ test('sheet(): detents option, haptic on crossing, shouldDismiss kept for plain 
   const food = src('js/screens/food.js');
   assert(food.indexOf('data-quick-toggle') < food.indexOf('class="food-scroll"') && food.indexOf('data-quick hidden') < food.indexOf('class="food-scroll"'), 'Quick add sits above the results list');
   const css = src('css/food.css');
-  assert(css.includes('.sheet-body:has(.food-dock:not([hidden]))') && css.includes('mask-image: linear-gradient(to top, transparent calc(var(--safe-bottom) + 20px), #000 0)'), 'rows under the dock are masked out');
+  assert(css.includes('.sheet-body:has(.food-dock:not([hidden]))') && css.includes('mask-image: linear-gradient(to top, transparent calc(var(--safe-bottom) + 20px), black 0)'), 'rows under the dock are masked out');
   assert(!/\.food-dock::after/.test(css) && !/\.food-dock::before/.test(css), 'no solid cover is painted under the dock');
 });
