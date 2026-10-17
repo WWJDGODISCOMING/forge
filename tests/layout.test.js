@@ -75,6 +75,23 @@ for (const route of standalone ? ['today', 'train', 'body', 'score', 'settings']
 }
 
 if (standalone) {
+  test('layout: the effort prompt fits at 320, 390 and the Duo sizes, light and dark, without wrapping', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    const cases = [[320, 568, true], [320, 568, false], [390, 844, true], [390, 844, false], [466, 678, true], [678, 466, true], [626, 890, false], [890, 626, true]];
+    for (const [w, h, dark] of cases) {
+      await browser.viewport(w, h, dark);
+      await browser.open('play', seed({ active: true, effort: true }));
+      await browser.eval("document.querySelector('[data-done]').click()");
+      await new Promise((r) => setTimeout(r, 1200));
+      const got = await browser.eval("(() => { const b = document.querySelector('.pl-effort'); if (!b) return null; const r = b.getBoundingClientRect(); const p = b.querySelector('p'); const btns = [...b.querySelectorAll('button')].map((x) => { const q = x.getBoundingClientRect(); return { h: q.height, w: q.width, wrap: x.scrollWidth > x.clientWidth + 1 }; }); return { bottom: r.bottom, vh: innerHeight, vw: innerWidth, left: r.left, right: r.right, pWrap: p.getBoundingClientRect().height > parseFloat(getComputedStyle(p).lineHeight || 20) * 1.6, pOver: p.scrollWidth > p.clientWidth + 1, n: btns.length, small: btns.filter((x) => x.h < 44 || x.w < 40).length, wrapped: btns.filter((x) => x.wrap).length }; })()");
+      const tag = `${w}x${h}${dark ? 'd' : 'l'}`;
+      assert(got, `prompt did not show at ${tag}`);
+      assert(got.n === 6 && got.small === 0 && got.wrapped === 0, `buttons ${JSON.stringify(got)} at ${tag}`);
+      assert(!got.pWrap && !got.pOver, `question wraps at ${tag}: ${JSON.stringify(got)}`);
+      assert(got.left >= 0 && got.right <= got.vw + 1 && Math.abs(got.bottom - got.vh) <= 1, `prompt off-screen at ${tag}: ${JSON.stringify(got)}`);
+    }
+  });
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {
     if (skipReason()) return;
     browser = browser || await launch();

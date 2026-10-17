@@ -9,7 +9,7 @@ export const REST_DAY = '2026-10-13T12:00:00';
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** @param {{long?: boolean, empty?: boolean}} opt  long: long names + 4-digit calories; empty: a brand-new account */
-export function seed({ long = false, empty = false, active = false, over = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
+export function seed({ long = false, empty = false, active = false, effort = false, over = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
   const rec = (id, extra = {}) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
   const profile = rec('main', {
     goal: 'lose_fat', sex: 'male', age: 37, heightCm: 180, weightKg: 88, targetWeightKg: 80, activity: 'light',
@@ -57,10 +57,11 @@ export function seed({ long = false, empty = false, active = false, over = false
   }
   if (active) {
     const plan = (reps, kg) => ({ warmup: false, plan_weight_kg: kg, plan_reps: reps, weight_kg: null, reps: null, rir: null, done: false, completed_at: null });
+    const doneSet = (reps, kg) => ({ ...plan(reps, kg), weight_kg: kg, reps, done: true, completed_at: new Date(now - 300000).toISOString() });
     out.workouts.push(rec('act1', {
       status: 'active', started_at: new Date(now - 600000).toISOString(), finished_at: null, label: 'Upper body', day_type: 'upper', location_id: 'l1', template: 'smart', notes: [], prs: [], deload: false,
       exercises: [
-        { exercise_id: 'db_bench_press', role: 'main', superset: null, note: '', warning: null, next_step_id: null, target: { sets: 3, rep_lo: 8, rep_hi: 10, reps: 8, weight_kg: 22, rir: 2, mode: 'hold' }, sets: [plan(8, 22), plan(8, 22), plan(8, 22)] },
+        { exercise_id: 'db_bench_press', role: 'main', superset: null, note: '', warning: null, next_step_id: null, target: { sets: 3, rep_lo: 8, rep_hi: 10, reps: 8, weight_kg: 22, rir: 2, mode: 'hold' }, sets: effort ? [doneSet(8, 22), doneSet(8, 22), plan(8, 22)] : [plan(8, 22), plan(8, 22), plan(8, 22)] },
         { exercise_id: 'pushup', role: 'accessory', superset: null, note: '', warning: null, next_step_id: null, target: { sets: 2, rep_lo: 10, rep_hi: 12, reps: 10, weight_kg: null, rir: 2, mode: 'hold' }, sets: [plan(10, null), plan(10, null)] },
       ],
     }));
