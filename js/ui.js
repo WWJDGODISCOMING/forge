@@ -109,7 +109,7 @@ export function sheet(title, render, opts = {}) {
     if (!ds || closing || drag || rest === 0) return;
     const caught = anim ? anim.stop() : null;
     const from = caught ? caught.value : rest;
-    atRest(0);
+    run(from, 0, caught ? caught.velocity : 0, () => { armed = true; settle(); });
     run(from, 0, caught ? caught.velocity : 0, settle);
   };
   const opened = () => {

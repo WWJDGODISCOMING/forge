@@ -162,14 +162,6 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
             <input type="search" name="q" placeholder="Search foods" autocomplete="off" autocapitalize="off" enterkeyhint="search" aria-label="Search foods"></label>
           <label class="icon-btn snap-btn" data-snap-btn title="Take photo of your meal" aria-label="Take photo of your meal">${icon('camera', { size: 22 })}<input type="file" accept="image/*" data-snap-file hidden></label>
         </div>
-        <div class="food-scroll">
-          <ul class="list food-results" data-results></ul>
-          <section class="food-online" data-online hidden aria-label="USDA results">
-            <h3 class="food-online-head" data-online-head>From USDA FoodData Central</h3>
-            <ul class="list food-results" data-online-list></ul>
-            <p class="small muted food-online-note" data-online-note role="status" aria-live="polite"></p>
-          </section>
-        </div>
         <button class="btn ghost" data-quick-toggle>Quick add: just calories</button>
         <form class="stack" data-quick hidden novalidate>
           <div class="field-grid">
@@ -179,6 +171,14 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           <p class="error" aria-live="polite"></p>
           <button class="btn" type="submit">Add</button>
         </form>
+        <div class="food-scroll">
+          <ul class="list food-results" data-results></ul>
+          <section class="food-online" data-online hidden aria-label="USDA results">
+            <h3 class="food-online-head" data-online-head>From USDA FoodData Central</h3>
+            <ul class="list food-results" data-online-list></ul>
+            <p class="small muted food-online-note" data-online-note role="status" aria-live="polite"></p>
+          </section>
+        </div>
         <div class="food-dock" data-dock hidden>
           <div class="row between center food-dock-head"><div class="food-dock-title"><b class="clamp2" data-sel-name></b><small class="muted" data-sel-brand hidden></small></div>
             <span class="serv-stepper" data-stepper>${stepBtns('1')}</span></div>

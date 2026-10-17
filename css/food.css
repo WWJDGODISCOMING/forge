@@ -211,3 +211,6 @@
   .meter-row--big:first-child .meter-val b { font-size: min(calc(34px * var(--ts)), 72px); }
 }
 dialog.sheet.detented .food-scroll { max-height: none; } /* the sheet is already sized; the list fills it */
+/* Quick add sits under the search row, so a long list never buries it. The dock's cover hides rows scrolling under the bottom edge. */
+dialog.sheet.detented .food-dock { position: sticky; }
+dialog.sheet.detented .food-dock::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: calc(var(--safe-bottom) + 24px); background: var(--surface-1); }

@@ -25,6 +25,8 @@ test('pickDetent: a down-flick from medium dismisses; a hard up-flick never does
 test('pickDetent: a flick steps from where the drag began', () => {
   assert(pickDetent({ offset: 250, velocity: 0.9, detents: D, size, from: 0 }) === 300, 'large to medium');
   assert(pickDetent({ offset: 400, velocity: 0.9, detents: D, size, from: 0 }) === 'dismiss', 'past medium dismisses');
+  assert(pickDetent({ offset: 100, velocity: 0.9, detents: D, size, from: 300 }) === 300, 'released above medium lands on medium');
+  assert(pickDetent({ offset: 340, velocity: 0.9, detents: D, size, from: 300 }) === 'dismiss', 'below medium dismisses');
   assert(pickDetent({ offset: 100, velocity: -0.9, detents: D, size, from: 300 }) === 0, 'up from medium');
 });
 
@@ -55,4 +57,7 @@ test('sheet(): detents option, haptic on crossing, shouldDismiss kept for plain 
   assert(ui.includes('expand: toLarge') && src('js/screens/food.js').includes('head.expand()'), 'dock opening goes to large');
   assert(ui.includes("document.activeElement.matches('input, textarea, select')) toLarge()"), 'focus during the open goes to large');
   assert(ui.includes('from: base0'), 'flick steps from where the drag began');
+  const food = src('js/screens/food.js');
+  assert(food.indexOf('data-quick-toggle') < food.indexOf('class="food-scroll"') && food.indexOf('data-quick hidden') < food.indexOf('class="food-scroll"'), 'Quick add sits above the results list');
+  assert(src('css/food.css').includes('.food-dock::after') && src('css/food.css').includes('top: 100%'), 'dock covers the rows under it');
 });
