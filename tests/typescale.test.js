@@ -18,7 +18,7 @@ test('typescale: small phones, ring, baseline, onboarding face', () => {
   assert(/max-width:\s*359px\)\s*\{\s*:root\s*\{\s*--t-hero:\s*48px/.test(t), '48px token');
   assert(/max-width:\s*359px\)\s*\{\s*\.hero-num, \.big \{ font-size: min\(calc\(var\(--t-hero\) \* var\(--ts\)\), 48px\)/.test(app), '48px cap');
   assert(/\.score-mini \{[^}]*flex:\s*none/.test(h), 'ring flex none');
-  assert(/\.hero-num\.w-hero \{ white-space: normal/.test(h) && /\.w-hero small/.test(h), 'w-hero wraps as units');
+  assert(/\.hero-num\.w-hero \{ display: flex; flex-wrap: wrap; align-items: baseline; column-gap: \.22em/.test(h) && /\.w-hero small/.test(h), 'w-hero wraps as units');
   assert(/\.big small \{ white-space: nowrap/.test(app), 'big small nowrap');
   assert(/\.meter-val \{ align-items: baseline/.test(f), 'baseline');
   assert(/\.big \{[^}]*font-family: var\(--num\)/.test(app), '.big face');

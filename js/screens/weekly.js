@@ -20,7 +20,7 @@ function scoreHead(delta) {
   const d = delta == null ? null : fmtDelta(delta);
   if (!d) return '<p class="big-title">First week of scores</p>';
   if (d.same) return '<p class="big-title">Same as the week before</p>';
-  return `<p class="hero-num w-hero"><span data-count>${d.text}</span> <small>points ${d.sign > 0 ? 'up' : 'down'}</small></p>`;
+  return `<p class="hero-num w-hero" role="img" aria-label="${d.text} points ${d.sign > 0 ? 'up' : 'down'}"><span data-count>${d.text}</span> <small>points ${d.sign > 0 ? 'up' : 'down'}</small></p>`;
 }
 
 /**

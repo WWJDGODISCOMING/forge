@@ -152,7 +152,7 @@ svg.sc-hero { overflow: visible; }
 .week-nav .btn { min-width: 56px; min-height: 56px; padding: 0; background: var(--surface-2); color: var(--text-1); }
 .week-nav .btn:disabled { opacity: .35; }
 .w-hero { margin: 0; }
-.hero-num.w-hero { white-space: normal; }
+.hero-num.w-hero { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: .22em; row-gap: 2px; }
 .w-hero [data-count], .w-hero small { white-space: nowrap; }
 .w-lines { list-style: none; margin: 0; padding: 0; display: grid; font-variant-numeric: tabular-nums; }
 .w-lines li { position: relative; display: grid; grid-template-columns: 1fr auto; gap: 2px 12px; padding: var(--s-3) 0; align-items: center; }
