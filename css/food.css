@@ -220,9 +220,13 @@ dialog.sheet.detented.at-medium .sheet-body.food-body { padding-bottom: var(--de
 .food-body .food-scroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; display: flex; flex-direction: column; }
 dialog.sheet.detented .food-body .food-scroll { flex-basis: 0; }
 .food-body .food-scroll > * { flex: none; }
+dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* the long list gives way before the dock */
 [data-quick-toggle][hidden] { display: none; }
 /* Add stays outside the small scroller, so it is always on screen; the list shrinks before the dock does. */
 .food-body .food-dock { position: static; flex: 0 1 auto; margin-bottom: 0; padding-bottom: calc(var(--s-3) + var(--safe-bottom)); min-height: calc(var(--s-3) * 2 + var(--safe-bottom) + var(--tap) * var(--ts)); }
-.food-dock-main { display: flex; flex-direction: column; gap: var(--s-3); flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-block: 2px; scroll-padding-block: var(--s-3); }
+.food-dock-main { display: flex; flex-direction: column; gap: var(--s-3); flex: 0 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px; margin: -4px; scroll-padding-block: var(--s-3); } /* the padding keeps the focus ring whole */
 .food-dock-main > * { flex: none; }
+.food-dock-main.edge-t { -webkit-mask-image: linear-gradient(to bottom, transparent, black 16px); mask-image: linear-gradient(to bottom, transparent, black 16px); }
+.food-dock-main.edge-b { -webkit-mask-image: linear-gradient(to top, transparent, black 16px); mask-image: linear-gradient(to top, transparent, black 16px); }
+.food-dock-main.edge-t.edge-b { -webkit-mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent); mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 16px), transparent); }
 .food-dock > [data-add] { flex: none; }

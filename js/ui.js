@@ -105,6 +105,7 @@ export function sheet(title, render, opts = {}) {
     anim = playSpring({ el: dlg, from, to, velocity, params: SHEET, reach, relativeTo, onUpdate: place, onDone });
   };
   // Move a parked sheet up to full height (a text field got focus, or the food dock opened).
+  let hold = false;
   const toLarge = () => {
     if (!ds || closing || drag || rest === 0) return;
     const caught = anim ? anim.stop() : null;
@@ -187,10 +188,10 @@ export function sheet(title, render, opts = {}) {
         const velocity = up ? velocityOf(samples) : 0;
         endDrag();
         const pick = !ds ? null : up ? pickDetent({ offset, velocity, detents: ds, size: dlg.offsetHeight, from: base0 }) : rest;
-        if (ds ? pick === 'dismiss' : up && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
+        if (ds && !hold ? pick === 'dismiss' : up && shouldDismiss({ offset, velocity, size: dlg.offsetHeight })) {
           closing = true; forget(); exit(velocity);
         } else {
-          const to = ds ? pick : 0;
+          const to = ds && !hold ? pick : 0;
           atRest(to);
           run(offset, to, velocity, settle); // snaps back with the finger's speed and a little settle
         }
@@ -211,6 +212,7 @@ export function sheet(title, render, opts = {}) {
   // Multi-step sheets: head.setStep('Session length', goBack) swaps the title and shows a back chevron; setStep(title, null) goes home.
   const head = {
     expand: toLarge,
+    holdLarge(on) { hold = on; }, // while on, the sheet never rests at medium (a drag springs back to full height or dismisses)
     setStep(text, onBack = null) {
       dlg.querySelector('h2').textContent = text;
       const b = dlg.querySelector('.sh-back');

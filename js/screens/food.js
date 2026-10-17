@@ -207,6 +207,13 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     const onlineList = $('[data-online-list]', body);
     const onlineNote = $('[data-online-note]', body);
     const amountEl = $('[data-amount]', dock);
+    const dockMain = $('.food-dock-main', dock);
+    const paintEdges = () => { // soft edges only while the small scroller has more above or below
+      dockMain.classList.toggle('edge-t', dockMain.scrollTop > 1);
+      dockMain.classList.toggle('edge-b', dockMain.scrollTop + dockMain.clientHeight < dockMain.scrollHeight - 1);
+    };
+    dockMain.addEventListener('scroll', paintEdges, { passive: true });
+    if (typeof ResizeObserver === 'function') new ResizeObserver(paintEdges).observe(dockMain);
     amountEl.addEventListener('focus', () => amountEl.scrollIntoView({ block: 'nearest' })); // inside the dock's small scroller, never cut mid-line
     let items = []; // My foods and recents
     let onlineItems = []; // USDA
@@ -247,6 +254,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     };
     const paintDock = () => {
       const s = flow.f.selected;
+      head.holdLarge?.(!!s); // with a food picked the dock needs the full height
       dock.hidden = !s;
       $('[data-quick-toggle]', body).hidden = !!s; // no room for it beside the dock at medium
       if (s) $('[data-quick]', body).hidden = true;
