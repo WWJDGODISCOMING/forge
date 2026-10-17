@@ -273,12 +273,12 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
 /* ---------- today ---------- */
 .today-head { padding-top: 4px; }
-.big { font-size: 44px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.1; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
+.big { font-size: min(calc(var(--t-hero) * var(--ts)), 72px); font-weight: 700; letter-spacing: -0.04em; line-height: 1.1; display: flex; align-items: baseline; gap: 6px; font-variant-numeric: tabular-nums; }
 .big small { font-size: calc(15px * var(--ts)); font-weight: 600; color: var(--text-2); letter-spacing: 0; }
 /* Hero metric: the one number on a card that gets the gradient and a soft glow. */
 .hero-num {
   white-space: nowrap;
-  font: 700 48px/1 var(--num); letter-spacing: -0.035em; font-variant-numeric: tabular-nums;
+  font: 700 min(calc(var(--t-hero) * var(--ts)), 72px)/1 var(--num); letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
   background: var(--accent-gradient); -webkit-background-clip: text; background-clip: text; color: transparent;
   filter: drop-shadow(0 0 18px var(--accent-glow));
 }

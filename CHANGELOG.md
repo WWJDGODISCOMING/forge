@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.13 — Hero number type scale (2026-10-16)
+
+#58 slice 13. The big numbers on Today, Weekly, onboarding and Food are larger and tighter.
+
+- Weight and weekly hero numbers go from 48 to 56 px (64 px on the unfolded Duo); onboarding calories from 44 to 56 px; Food calories from 34 to 44 px.
+- Text Size still scales them, but never past 72 px.
+- "Perfect Week" is now "Perfect week" on the celebration screen.
+
+### What's new
+
+- Bigger, tighter hero numbers on Today, Weekly, onboarding and Food.
+
 ## 0.16.12 — Illustrated empty states (2026-10-16)
 
 #58 slice 12. Five small drawings replace the round icon badge on a few empty screens.

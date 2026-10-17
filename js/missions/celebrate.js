@@ -235,7 +235,7 @@ function playPerfectWeek({ n, streak }) {
     stage.dataset.shown = '1';
     stage.innerHTML = `<div class="pw-card">
       <div class="pw-medal">${badgeSVG('perfectweek', { shine: true, size: 140, label: 'Perfect Week' })}</div>
-      <h2 class="pw-title">Perfect Week</h2>
+      <h2 class="pw-title">Perfect week</h2>
       <p class="pw-n">#${n}</p>
       <p class="pw-streak">${streak > 1 ? `${streak} weeks in a row` : 'Every mission, 7 days in a row'}</p>
       <p class="pw-xp"><span class="pw-xp-n">+0 XP</span></p>
