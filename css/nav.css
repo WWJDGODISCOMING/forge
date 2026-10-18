@@ -190,7 +190,7 @@ html.sheet-lift-on body { background: transparent; }
   transform-origin: 50% var(--lift-oy, 0px);
   transform: translateY(calc((var(--safe-top) + 8px) * var(--sheet-lift))) scale(calc(1 - .06 * var(--sheet-lift)));
 }
-#main.lifted { background: var(--bg); min-height: 100dvh; clip-path: inset(var(--lift-oy, 0px) 0 0 0 round calc(12px * var(--sheet-lift))); } /* rounds the top of what is on screen, wherever the page is scrolled */
+#main.lifted { background: linear-gradient(rgba(255, 255, 255, calc(var(--lift-hi) * var(--sheet-lift))) calc(var(--lift-oy, 0px) + 4px), transparent calc(var(--lift-oy, 0px) + 140px)) no-repeat, var(--bg); min-height: 100dvh; clip-path: inset(var(--lift-oy, 0px) 0 0 0 round calc(12px * var(--sheet-lift))); } /* rounds the top of what is on screen, wherever the page is scrolled */
 #nav.lifted { border-radius: calc(12px * var(--sheet-lift)); }
 #navbar.lifted { border-radius: calc(12px * var(--sheet-lift)) calc(12px * var(--sheet-lift)) 0 0; overflow: hidden; }
 

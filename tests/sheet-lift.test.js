@@ -38,13 +38,13 @@ test('sheet(): #navbar lifts with #main and #nav, and the page keeps its own bac
   const css = readFileSync(new URL('../css/nav.css', import.meta.url), 'utf8');
   assert(src.includes("document.getElementById('navbar')"), 'navbar joins the lifted group');
   assert(css.includes('#main.lifted, #nav.lifted, #navbar.lifted {'), 'same transform for all three');
-  assert(css.includes('#main.lifted { background: var(--bg)'), 'lifted page paints --bg');
+  assert(css.includes('#main.lifted { background: linear-gradient(') && css.includes(', var(--bg); min-height: 100dvh'), 'lifted page paints --bg');
   assert(css.includes('html.sheet-lift-on body { background: transparent'), 'body no longer paints the lift colour');
 });
 
 test('sheet(): scrolling the page behind re-measures --lift-oy, and close removes the listener', () => {
   assert(src.includes("addEventListener('scroll', onScroll, { passive: true })"), 'passive scroll listener');
-  assert(src.includes('requestAnimationFrame(() => { measureRaf = 0; measure(); })'), 'at most once per frame');
+  assert(src.includes('requestAnimationFrame(() => { measureRaf = 0; measureMain(); })'), 'at most once per frame');
   assert(src.includes("removeEventListener('scroll', onScroll)"), 'unlift removes it');
 });
 
@@ -56,5 +56,26 @@ test('sheet(): native light theme switches to light status-bar text past halfway
 
 test('sheet(): #main is only looked up once, inside lift()', () => {
   assert((src.match(/getElementById\('main'\)/g) || []).length === 1, 'one lookup');
-  assert(/const lift = \(\) => \{\s*pages = \[document\.getElementById\('main'\)/.test(src), 'inside lift()');
+  assert(/const lift = \(\) => \{[^]*?pages = \[document\.getElementById\('main'\)/.test(src), 'inside lift()');
+});
+
+test('sheet(): one owner lifts the page; a sheet stacked on top touches nothing, and only the owner clears it', () => {
+  assert(!src.includes('liftOpen'), 'no shared counter');
+  assert(src.includes('if (liftOwner) return;') && src.includes('liftOwner = dlg;'), 'first lifter owns the page');
+  assert(src.includes('if (liftOwner !== dlg) return;') && src.includes('liftOwner = null;'), 'only the owner unlifts');
+});
+
+test('sheet(): scrolling behind a lifted page never reads getBoundingClientRect', () => {
+  const a = src.indexOf('const measureMain'), b = src.indexOf('const onScroll');
+  assert(a > 0 && b > a, 'handlers found');
+  const seg = src.slice(a, src.indexOf('// Native, light theme'));
+  assert(!seg.includes('getBoundingClientRect') && seg.includes('window.scrollY - mainTop'), 'scrollY minus the recorded document top');
+  assert(src.includes('mainTop = pages[0].getBoundingClientRect().top + window.scrollY;') && src.indexOf('mainTop = pages[0]') < src.indexOf("el.classList.add('lifted')"), 'recorded once, before lifted');
+});
+
+test('dark mode: the pushed-back page gets a brighter top band against a pure black canvas; light is unchanged', () => {
+  const t = readFileSync(new URL('../css/tokens.css', import.meta.url), 'utf8');
+  const css = readFileSync(new URL('../css/nav.css', import.meta.url), 'utf8');
+  assert(t.includes('--lift-bg: #000;') && t.includes('--lift-hi: .16;') && t.includes('--lift-hi: 0;') && t.includes('--lift-bg: #050506;'), 'tokens');
+  assert(css.includes('calc(var(--lift-hi) * var(--sheet-lift))'), 'band scales with lift');
 });

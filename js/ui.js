@@ -48,7 +48,7 @@ export function toast(message, ms = 2600, { icon: name = '', action = null } = {
 }
 
 let sheetCount = 0;
-let liftOpen = 0; // detent sheets currently easing the page back
+let liftOwner = null; // the first detent sheet to ease the page back; sheets opened on top leave the page alone
 
 
 /**
@@ -92,10 +92,12 @@ export function sheet(title, render, opts = {}) {
   // Detent sheets ease the page behind back (#main and #nav share one transform origin, so they move as one piece).
   let pages = [];
   const willChange = (on) => { for (const el of pages) { if (on) el.style.willChange = 'transform'; else el.style.removeProperty('will-change'); } };
-  // Top of the viewport, in each element's own space. The page behind can still scroll, so this is re-measured on scroll.
-  const measure = () => { for (const el of pages) el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`); };
+  // Top of the viewport, in each element's own space, measured once before any transform. #nav and #navbar are fixed,
+  // so only #main's origin moves as the page behind scrolls (scrollY - its document top; no getBoundingClientRect while lifted).
+  let mainTop = 0;
+  const measureMain = () => { pages[0]?.style.setProperty('--lift-oy', `${window.scrollY - mainTop}px`); };
   let measureRaf = 0;
-  const onScroll = () => { if (!measureRaf) measureRaf = requestAnimationFrame(() => { measureRaf = 0; measure(); }); };
+  const onScroll = () => { if (!measureRaf) measureRaf = requestAnimationFrame(() => { measureRaf = 0; measureMain(); }); };
   // Native, light theme: the strip above a lifted page is near-black, so the status bar goes light text past halfway.
   let barLight = false;
   const lightBar = (on) => {
@@ -104,15 +106,18 @@ export function sheet(title, render, opts = {}) {
     syncStatusBar(on ? true : false);
   };
   const lift = () => {
+    if (liftOwner) return; // a detent sheet is already easing the page back
+    liftOwner = dlg;
     pages = [document.getElementById('main'), document.getElementById('nav'), document.getElementById('navbar')].filter(Boolean);
-    liftOpen++;
-    measure();
+    for (const el of pages) el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`);
+    mainTop = pages[0].getBoundingClientRect().top + window.scrollY;
     for (const el of pages) el.classList.add('lifted');
     document.documentElement.classList.add('sheet-lift-on');
     window.addEventListener('scroll', onScroll, { passive: true });
   };
   const unlift = () => {
-    if (!pages.length) return;
+    if (liftOwner !== dlg) return;
+    liftOwner = null;
     window.removeEventListener('scroll', onScroll);
     if (measureRaf) { cancelAnimationFrame(measureRaf); measureRaf = 0; }
     lightBar(false);
@@ -122,7 +127,7 @@ export function sheet(title, render, opts = {}) {
       if (!el.getAttribute('style')) el.removeAttribute('style');
     }
     pages = [];
-    if (--liftOpen <= 0) { liftOpen = 0; document.documentElement.classList.remove('sheet-lift-on'); }
+    document.documentElement.classList.remove('sheet-lift-on');
   };
   const atRest = (to) => {
     rest = to;
