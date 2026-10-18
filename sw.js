@@ -49,6 +49,7 @@ const SHELL = [
   './js/units.js',
   './js/export.js',
   './js/csv.js',
+  './js/cardio-types.js',
   './js/derived.js',
   './js/nutrition/targets.js',
   './js/food/core.js',

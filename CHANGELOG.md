@@ -7,6 +7,8 @@
 ### What's new
 
 - Jog in place in Log cardio.
+- The cardio detail sheet leaves out the Distance tile for activities that can't have one.
+- Export cardio (CSV) has a new `activity_name` column (for example "Jog in place") next to the stable `activity` key.
 
 ## 0.16.22 — Meal plan AI (2026-10-18)
 

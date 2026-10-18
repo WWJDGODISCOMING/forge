@@ -8,7 +8,7 @@ import { MUSCLE_LABELS } from '../workouts/recovery.js';
 import { dayKey, addDays } from '../weight/smoothing.js';
 import { softDelete, patch } from '../db.js';
 import { exerciseRir, setEffort, effortLabel, EFFORT_CHOICES } from '../workouts/effort.js';
-import { CARDIO_TYPES } from './tools.js';
+import { CARDIO_TYPES, cardioStatsHtml } from '../cardio-types.js';
 import { icon, emptyState } from '../ui/icons.js';
 
 let trendId = null;
@@ -223,9 +223,7 @@ function openCardio(id) {
     body.innerHTML = `
       <div class="stack">
         <div class="stats">
-          <div><span>Minutes</span><b>${c.duration_min}</b></div>
-          <div><span>Distance</span><b>${c.distance_km ? (u === 'kg' ? `${c.distance_km.toFixed(2)} km` : `${(c.distance_km / 1.609344).toFixed(2)} mi`) : '—'}</b></div>
-          <div><span>Calories</span><b>${c.calories ?? '—'}</b></div>
+          ${cardioStatsHtml(c, u)}
         </div>
         ${c.avg_hr ? `<p>Avg heart rate: ${c.avg_hr} bpm <span class="muted small">(typed in)</span></p>` : ''}
         ${c.notes ? `<p class="muted">${esc(c.notes)}</p>` : ''}

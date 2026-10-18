@@ -3,6 +3,7 @@ import { sheet, esc, $, $$, toast, todayKey } from '../ui.js';
 import { put, newRecord } from '../db.js';
 import { platesPerSide, barWeight } from '../workouts/progression.js';
 import { unit } from '../workouts/plan.js';
+import { CARDIO_TYPES, NO_DISTANCE, cardioDistanceKm } from '../cardio-types.js';
 
 export function openPlateCalculator(startWeight) {
   const u = unit();
@@ -42,13 +43,7 @@ export function openPlateCalculator(startWeight) {
   });
 }
 
-/** Activities that have no distance, so the sheet hides the field and saves none. */
-export const NO_DISTANCE = ['jog_in_place'];
-
-export const CARDIO_TYPES = {
-  peloton: 'Peloton ride', bike: 'Bike (other)', run: 'Run', jog_in_place: 'Jog in place', walk: 'Walk', row: 'Row', elliptical: 'Elliptical', stairs: 'Stair climber',
-  boxing: 'Boxing / shadowboxing', hiit: 'HIIT / intervals', jump_rope: 'Jump rope', swim: 'Swim', other: 'Other',
-};
+export { CARDIO_TYPES, NO_DISTANCE };
 
 /** prefill: { activity, duration_min, notes } */
 export function openCardioLog(prefill = {}) {
@@ -86,7 +81,7 @@ export function openCardioLog(prefill = {}) {
       }
       const day = form.day.value || todayKey();
       const started = day === todayKey() ? new Date(Date.now() - min * 60000) : new Date(day + 'T12:00:00');
-      const km = form.dist.value && !NO_DISTANCE.includes(form.activity.value) ? Number(form.dist.value) * (dist === 'mi' ? 1.609344 : 1) : null;
+      const km = cardioDistanceKm(form.activity.value, form.dist.value, dist);
       put('cardio_sessions', newRecord({
         activity: form.activity.value,
         started_at: started.toISOString(),
