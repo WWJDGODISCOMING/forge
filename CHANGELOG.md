@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.22 — Meal plan AI (2026-10-18)
+
+#124, part 3. An optional "Personalize with AI" week for the Plan view. It is off by default: turn on Settings → Meal plan AI (the row says it sends your food preferences to xAI). With it off, nothing changes and the app makes no network calls for plans. With it on, a Personalize with AI row appears on the Plan; tapping it asks the new `personalizeMealPlan` Cloud Function (the xAI key stays on the server, in the existing `XAI_API_KEY` secret). Every AI meal is checked on the server before it comes back: your diet chips, your skip list (same matching as the standard plan), the Low-histamine and Pregnancy-safe rules, fish at 12 oz a week, caffeine at 200 mg a day, and the 1,500 kcal floor (1,800 with Pregnancy-safe). A meal that fails is replaced by the standard plan's pick for that slot, and a day that falls under the floor becomes the standard day. The app checks the skip list again and shows a calm message, keeping the standard plan, on any error. Limits: 2 per hour and 5 per day per person, plus a daily cap for everyone. The AI week stays on this phone only; the server saves nothing (`meal_plans` rules, export and Delete everything are in place for later). Logging a planned meal is unchanged and adds no new food log fields. Digits-only skip terms (like "532") are now dropped. Needs a functions and rules deploy.
+
+### What's new
+
+- Optional Personalize with AI on the Plan, off until you turn on Meal plan AI.
+- AI meals follow your diet and skip list, or the standard plan fills in.
+- Use the standard plan switches back to the built-in week any time.
+- Numbers are estimates and every plan still carries the doctor reminder.
+
 ## 0.16.21 — Meal plans (2026-10-17)
 
 #124, part 1. The Food tab has a new Plan view with this week's meals, day by day: breakfast, lunch, dinner and 0 to 2 snacks, each with estimated calories and protein. Set it up in Settings → Food preferences: diet style (Low-histamine, Pregnancy-safe, Vegetarian, Dairy-free, Gluten-free), foods to avoid, the leftovers rule, cooking style and snacks per day. Calories and protein come from your existing goal. Plans come from a built-in recipe library and a rule-based picker, so they work with no network and no AI. The same settings and week always give the same plan. Pregnancy-safe leaves out raw or undercooked eggs, meat and fish, high-mercury fish, deli meat, liver and unpasteurized dairy, caps fish at 12 oz a week and caffeine at 200 mg a day. Plans never go below 1,500 kcal a day (1,800 with Pregnancy-safe). "Log this" adds a meal to your food log, "Swap" offers two alternatives under the same rules, and each recipe opens in a sheet. Swaps are stored in `profile.meal_prefs.swaps`, so there is no rules change. Not medical advice; the footer says so on every plan. Grocery list and batch-prep card are included. Personalize with AI and saved plans in Firestore come in a later part.

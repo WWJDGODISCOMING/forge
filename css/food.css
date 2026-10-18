@@ -278,5 +278,8 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .plan-check input:checked ~ .plan-gtext { opacity: .55; text-decoration: line-through; }
 .plan-recipe { gap: var(--s-2); }
 .plan-recipe h3 { margin: 0; }
+.plan-ai-note { margin: 0; padding-inline: var(--s-2); }
+.plan-spin svg { animation: spin 0.9s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .plan-spin svg { animation: none; opacity: .6; } }
 .plan-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: var(--s-2); }
 @media (prefers-reduced-motion: no-preference) { .plan-open:active { opacity: .7; } }

@@ -60,6 +60,7 @@ export function renderSettings(el) {
       <div class="group" data-tour="settings-profile">
         <a class="g-row" href="#/profile"><span class="g-ic">${icon('person')}</span><span class="g-text"><span>${esc(GOALS[p.goal]?.label || 'Profile')}</span><small>${esc(p.age)} yrs · ${formatHeight(p.heightCm, u)}${p.targetWeightKg ? ` · goal ${formatWeight(p.targetWeightKg, u, 0)}` : ''}</small></span><span class="chev">${icon('chev')}</span></a>
         <button type="button" class="g-row" data-food-prefs><span class="g-ic">${icon('food')}</span><span class="g-text"><span>Food preferences</span><small>${esc(prefsSummary())}</small></span><span class="chev">${icon('chev')}</span></button>
+        <label class="g-row sw"><span class="g-text"><span>Meal plan AI</span><small>Sends your food preferences to xAI to personalize your meal plan.</small></span><input type="checkbox" switch name="mealai" ${st.meal_ai === true ? 'checked' : ''}></label>
       </div>
 
       <p class="sec-title">Units</p>
@@ -193,6 +194,7 @@ export function renderSettings(el) {
     patch('settings', 'main', { sfx: e.target.checked });
     if (e.target.checked) setTimeout(() => sfx.charge(0.5), 50);
   });
+  $('input[name=mealai]', el).addEventListener('change', (e) => { patch('settings', 'main', { meal_ai: e.target.checked }); haptics.select(); });
   $('input[name=ratesets]', el).addEventListener('change', (e) => localStorage.setItem('forge.rateSets', e.target.checked ? '1' : '0'));
   $('input[name=haptics]', el).addEventListener('change', (e) => patch('settings', 'main', { haptics: e.target.checked }));
 
@@ -263,6 +265,7 @@ export function renderSettings(el) {
       });
       if (!ok) return;
     }
+    await import('../food/meal-ai.js').then((m) => m.clearAllAiPlans());
     await signOut();
   };
 
@@ -308,6 +311,7 @@ function openDeleteEverything() {
         await deleteAccount();
         accountGone = true;
         await import('../photos/store.js').then((m) => m.dropPhotoDb(uid)); // progress photos on this phone go too
+        await import('../food/meal-ai.js').then((m) => m.clearAllAiPlans());
         await clearLocalCache();
       } catch (ex) {
         if (accountGone) {

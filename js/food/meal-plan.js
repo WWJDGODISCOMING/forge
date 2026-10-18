@@ -30,6 +30,7 @@ const SPLIT = {
 };
 export const SLOT_LABEL = { breakfast: 'Breakfast', lunch: 'Lunch', dinner: 'Dinner', snack1: 'Snack', snack2: 'Snack' };
 export const slotsFor = (snacks) => Object.keys(SPLIT[snacks] || SPLIT[0]);
+export const slotShare = (snacks, slot) => (SPLIT[snacks] || SPLIT[0])[slot] || 0;
 const recipeSlot = (slot) => (slot.startsWith('snack') ? 'snack' : slot);
 
 const r1 = (x) => Math.round(x * 10) / 10;
@@ -54,7 +55,7 @@ export function cleanPrefs(raw, opts = {}) {
   for (const a of Array.isArray(p.avoid) ? p.avoid : []) {
     if (typeof a !== 'string') continue;
     const t = cleanTerm(a);
-    if (t.length >= 3 && !avoid.includes(t) && avoid.length < MAX_AVOID) avoid.push(t);
+    if (t.length >= 3 && /[a-zÀ-ɏ]/.test(t) && !avoid.includes(t) && avoid.length < MAX_AVOID) avoid.push(t);
   }
   const swaps = {};
   if (p.swaps && typeof p.swaps === 'object') {
@@ -112,7 +113,13 @@ const anyOf = (list) => { const k = list.join('\u0001'); if (!reCache.has(k)) re
 
 /** True when any avoid tag appears in the recipe. Substring match on purpose: over-excluding is safer than missing an avoided food. */
 export function matchesAvoid(rec, avoid) {
-  const h = hay(rec);
+  return avoidHit(hay(rec), avoid);
+}
+
+/** The same matching for free text (an AI meal's name, ingredients and steps): the server and the app both run it on AI output. */
+export const matchesAvoidText = (parts, avoid) => avoidHit(` ${parts.map(norm).join(' | ')} `, avoid);
+
+function avoidHit(h, avoid) {
   const nightHay = h.replace(/sweet potato/g, 'sweet yam'); // sweet potatoes are not nightshades
   return avoid.some((a) => {
     const n = normTerm(a);
@@ -177,9 +184,9 @@ export function planTargets(prefs, targets) {
 }
 
 const fixedServing = (rec) => rec.fish_oz > 0 || rec.caffeine_mg > 0; // fish and caffeine are capped per week and day, so never scaled
-const scaleFor = (rec, slotKcal) => (fixedServing(rec) ? 1 : Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round((slotKcal / rec.kcal) * 4) / 4)));
+export const scaleFor = (rec, slotKcal) => (fixedServing(rec) ? 1 : Math.min(MAX_SCALE, Math.max(MIN_SCALE, Math.round((slotKcal / rec.kcal) * 4) / 4)));
 
-function mealOf(rec, servings, slot) {
+export function mealOf(rec, servings, slot) {
   return {
     slot, id: rec.id, name: rec.name, servings,
     kcal: Math.round(rec.kcal * servings), protein_g: Math.round(rec.protein_g * servings),
@@ -326,11 +333,14 @@ export function fmtAmount(x) {
   if (!frac) return String(whole);
   return `${whole || ''}${FRACS[frac] || ''}`;
 }
-const QTY = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)\s*(.*)$/;
+const UFRAC = { '⅛': 1 / 8, '¼': 0.25, '⅜': 3 / 8, '½': 0.5, '⅝': 5 / 8, '¾': 0.75, '⅞': 7 / 8, '⅓': 1 / 3, '⅔': 2 / 3 };
+const QTY = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?\s*[⅛¼⅜½⅝¾⅞⅓⅔]|[⅛¼⅜½⅝¾⅞⅓⅔]|\d+(?:\.\d+)?)\s*(.*)$/;
 /** "1/2 cup" → { n: 0.5, unit: "cup" }; null when the amount has no leading number. */
 export function parseQty(q) {
-  const m = QTY.exec(String(q).trim());
+  const m = QTY.exec(String(q).trim().replace(/(\d),(?=\d{3}(?!\d))/g, '$1')); // "1,000 g" → "1000 g"
   if (!m) return null;
+  const uf = /[⅛¼⅜½⅝¾⅞⅓⅔]$/.exec(m[1]);
+  if (uf) return { n: (parseFloat(m[1]) || 0) + UFRAC[uf[0]], unit: m[2].trim() };
   const n = m[1].split(/\s+/).reduce((t, part) => t + (part.includes('/') ? Number(part.split('/')[0]) / Number(part.split('/')[1]) : Number(part)), 0);
   return Number.isFinite(n) ? { n, unit: m[2].trim() } : null;
 }
@@ -366,16 +376,19 @@ export function groceryList(plan) {
   const rows = new Map();
   for (const d of plan.days) for (const m of d.meals) {
     const rec = getRecipe(m.id);
-    if (!rec) continue;
-    for (const ing of rec.ingredients) {
+    const own = Array.isArray(m.ingredients); // an AI meal carries its own list, already scaled for that meal
+    const ings = own ? m.ingredients : rec ? rec.ingredients : null;
+    if (!ings) continue;
+    for (const ing of ings) {
+      const section = SECTIONS[ing.section] ? ing.section : 'pantry';
       if (SKIP_GROCERY.has(ing.name)) continue;
       const rice = ing.name === 'cooked rice';
       const name = rice ? 'rice' : ing.name;
-      const key = `${ing.section}|${name}`;
-      const row = rows.get(key) || { key, name, section: ing.section, uses: 0, parts: [], cooked: rice };
+      const key = `${section}|${name}`;
+      const row = rows.get(key) || { key, name, section, uses: 0, parts: [], cooked: rice };
       const q = parseQty(String(ing.qty).replace(/\s*\([^)]*\)/g, ''));
       row.uses += 1;
-      row.parts.push(q ? toTsp({ ...q, n: q.n * (m.servings || 1) }) : null);
+      row.parts.push(q ? toTsp({ ...q, n: own ? q.n : q.n * (m.servings || 1) }) : null);
       rows.set(key, row);
     }
   }

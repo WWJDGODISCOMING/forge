@@ -9,6 +9,7 @@ rules_version = '2';
 // - body_measures, health_daily and integrations are written only by Cloud Functions. You can read them;
 //   on body_measures and health_daily you can also delete a record by marking it deleted (a tombstone the
 //   sync respects forever) and confirm or reject a flagged weigh-in. Nothing else.
+// - meal_plans are written only by the personalizeMealPlan Cloud Function; you can read and delete them.
 // - oauth_states, withings_users and shortcut_tokens (top level) are server-only.
 // No collection-group rules exist, so collection-group queries are denied.
 service cloud.firestore {
@@ -19,7 +20,7 @@ service cloud.firestore {
     }
 
     function allowedCollection(col) {
-      return col in ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs'];
+      return col in ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs', 'meal_plans'];
     }
 
     function hasStandardFields(uid, id) {
@@ -67,6 +68,13 @@ service cloud.firestore {
               && (!('food_id' in d) || d.food_id is string)));
     }
 
+    // meal_plans (one doc per Monday) are written only by the personalizeMealPlan Cloud Function, which checks every
+    // string and number before it saves. You can read and delete them. (A full week is too big for rules to check:
+    // the 1000-expression limit.)
+    function clientWritable(col) {
+      return col != 'meal_plans';
+    }
+
     function serverOwned(col) {
       return col in ['body_measures', 'health_daily', 'integrations'];
     }
@@ -86,8 +94,8 @@ service cloud.firestore {
 
     match /users/{uid}/{col}/{id} {
       allow read, delete: if isOwner(uid) && allowedCollection(col);
-      allow create: if isOwner(uid) && allowedCollection(col) && hasStandardFields(uid, id) && validFor(col, id);
-      allow update: if isOwner(uid) && allowedCollection(col) && hasStandardFields(uid, id) && validFor(col, id)
+      allow create: if isOwner(uid) && allowedCollection(col) && clientWritable(col) && hasStandardFields(uid, id) && validFor(col, id);
+      allow update: if isOwner(uid) && allowedCollection(col) && clientWritable(col) && hasStandardFields(uid, id) && validFor(col, id)
         && request.resource.data.created_at == resource.data.created_at
         && request.resource.data.user_id == resource.data.user_id;
 

@@ -357,3 +357,36 @@ test('foods and food_logs: created_at and user_id cannot change, standard fields
     await assertFails(setDoc(doc(db, `users/alice/${col}/other`), { ...d, id: 'x1' })); // id must match the path
   }
 });
+
+// ---- meal_plans (v0.16.22): one doc per Monday; read and delete by the owner, written only by Cloud Functions ----
+const MON = '2026-10-19';
+const meal = (slot) => ({ slot, id: 'd-chicken-veg', name: 'Roast chicken with vegetables', servings: 1, kcal: 600, protein_g: 45, carbs_g: 50, fat_g: 20,
+  ingredients: [{ name: 'chicken', qty: '5 oz' }], steps: ['Roast until cooked through.'] });
+const fiveMeals = ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2'].map(meal);
+const plan = (uid, id = MON) => rec(uid, id, {
+  source: 'ai', weekStart: id, days: Array.from({ length: 7 }, (_, i) => ({ date: `2026-10-${19 + i}`, meals: fiveMeals })),
+});
+
+test('meal_plans: the owner can read and delete a week but cannot create or change one', async () => {
+  const ref = doc(as('alice'), `users/alice/meal_plans/${MON}`);
+  await assertFails(setDoc(ref, plan('alice')));
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), `users/alice/meal_plans/${MON}`), plan('alice')); });
+  await assertSucceeds(getDoc(ref));
+  await assertSucceeds(getDocs(collection(as('alice'), 'users/alice/meal_plans')));
+  await assertFails(updateDoc(ref, { source: 'rules', updated_at: '2026-10-19T09:00:00Z' }));
+  await assertSucceeds(deleteDoc(ref));
+});
+
+test('meal_plans: nobody else and nobody signed out can read, write or delete', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => { await setDoc(doc(ctx.firestore(), `users/alice/meal_plans/${MON}`), plan('alice')); });
+  const ref = (db) => doc(db, `users/alice/meal_plans/${MON}`);
+  await assertFails(getDoc(ref(as('bob'))));
+  await assertFails(setDoc(ref(as('bob')), plan('alice')));
+  await assertFails(updateDoc(ref(as('bob')), { source: 'ai' }));
+  await assertFails(deleteDoc(ref(as('bob'))));
+  await assertFails(getDocs(collection(as('bob'), 'users/alice/meal_plans')));
+  const out = env.unauthenticatedContext().firestore();
+  await assertFails(getDoc(ref(out)));
+  await assertFails(setDoc(ref(out), plan('alice')));
+  await assertFails(deleteDoc(ref(out)));
+});
