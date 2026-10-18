@@ -18,7 +18,7 @@ test('liftProgress: 0 with a single detent', () => {
 });
 
 test('sheet(): place() sets --sheet-lift only when detents are in play', () => {
-  assert(/if \(ds && pages\.length\)[^\n]*--sheet-lift/.test(src), 'guarded by ds');
+  assert(/if \(ds && pages\.length[^\n]*--sheet-lift/.test(src), 'guarded by ds');
   assert((src.match(/\blift\(\);/g) || []).length === 1, 'lift() has one call site');
 });
 
@@ -61,8 +61,8 @@ test('sheet(): #main is only looked up once, inside lift()', () => {
 
 test('sheet(): one owner lifts the page; a sheet stacked on top touches nothing, and only the owner clears it', () => {
   assert(!src.includes('liftOpen'), 'no shared counter');
-  assert(src.includes('if (liftOwner) return;') && src.includes('liftOwner = dlg;'), 'first lifter owns the page');
-  assert(src.includes('if (liftOwner !== dlg) return;') && src.includes('liftOwner = null;'), 'only the owner unlifts');
+  assert(src.includes('if (prev && !prev.closing()) return;') && src.includes('liftOwner = { dlg,'), 'first lifter owns the page');
+  assert(src.includes('if (liftOwner?.dlg !== dlg) return;') && src.includes('liftOwner = null;'), 'only the owner unlifts');
 });
 
 test('sheet(): scrolling behind a lifted page never reads getBoundingClientRect', () => {

@@ -48,7 +48,7 @@ export function toast(message, ms = 2600, { icon: name = '', action = null } = {
 }
 
 let sheetCount = 0;
-let liftOwner = null; // the first detent sheet to ease the page back; sheets opened on top leave the page alone
+let liftOwner = null; // the first detent sheet to ease the page back; sheets opened on top leave the page alone; a closing owner hands the page to the next detent sheet
 
 
 /**
@@ -87,7 +87,7 @@ export function sheet(title, render, opts = {}) {
     dlg.style.setProperty('--sheet-y', `${y}px`);
     const low = ds ? ds[ds.length - 1] : 0; // the backdrop stays full at the lowest detent
     dlg.style.setProperty('--sheet-p', String(1 - dragProgress(Math.max(0, y - low), dlg.offsetHeight - low)));
-    if (ds && pages.length) { const l = String(liftProgress(y, ds)); for (const el of pages) el.style.setProperty('--sheet-lift', l); lightBar(Number(l) > 0.5); } // same frame as --sheet-y
+    if (ds && pages.length && liftOwner?.dlg === dlg) { const l = String(liftProgress(y, ds)); for (const el of pages) el.style.setProperty('--sheet-lift', l); lightBar(Number(l) > 0.5); } // same frame as --sheet-y
   };
   // Detent sheets ease the page behind back (#main and #nav share one transform origin, so they move as one piece).
   let pages = [];
@@ -105,21 +105,31 @@ export function sheet(title, render, opts = {}) {
     barLight = on;
     syncStatusBar(on ? true : false);
   };
+  const stopWatching = () => {
+    window.removeEventListener('scroll', onScroll);
+    if (measureRaf) { cancelAnimationFrame(measureRaf); measureRaf = 0; }
+  };
   const lift = () => {
-    if (liftOwner) return; // a detent sheet is already easing the page back
-    liftOwner = dlg;
-    pages = [document.getElementById('main'), document.getElementById('nav'), document.getElementById('navbar')].filter(Boolean);
-    for (const el of pages) el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`);
-    mainTop = pages[0].getBoundingClientRect().top + window.scrollY;
-    for (const el of pages) el.classList.add('lifted');
-    document.documentElement.classList.add('sheet-lift-on');
+    const prev = liftOwner;
+    if (prev && !prev.closing()) return; // a detent sheet is already easing the page back
+    liftOwner = { dlg, closing: () => closing, stop: stopWatching, state: () => ({ pages, mainTop, barLight }) };
+    if (prev) {
+      // Handoff from a sheet that is closing (Log food <-> Snap a meal): keep the page as it is and carry on from it.
+      prev.stop();
+      ({ pages, mainTop, barLight } = prev.state());
+    } else {
+      pages = [document.getElementById('main'), document.getElementById('nav'), document.getElementById('navbar')].filter(Boolean);
+      for (const el of pages) el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`);
+      mainTop = pages[0].getBoundingClientRect().top + window.scrollY;
+      for (const el of pages) el.classList.add('lifted');
+      document.documentElement.classList.add('sheet-lift-on');
+    }
     window.addEventListener('scroll', onScroll, { passive: true });
   };
   const unlift = () => {
-    if (liftOwner !== dlg) return;
+    if (liftOwner?.dlg !== dlg) return;
     liftOwner = null;
-    window.removeEventListener('scroll', onScroll);
-    if (measureRaf) { cancelAnimationFrame(measureRaf); measureRaf = 0; }
+    stopWatching();
     lightBar(false);
     for (const el of pages) {
       el.classList.remove('lifted');

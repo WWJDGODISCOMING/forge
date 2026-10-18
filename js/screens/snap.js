@@ -33,7 +33,7 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
   let preview = '';
   let online = null;
 
-  sheet('Snap a meal', (body, closeSheet) => {
+  sheet('Snap a meal', (body, closeSheet, sheetCtl) => {
     const close = () => { live = false; if (online) online.cancel(); if (preview) URL.revokeObjectURL(preview); closeSheet(); };
     const dlg = body.closest('dialog');
     if (dlg) dlg.addEventListener('close', () => { live = false; if (preview) URL.revokeObjectURL(preview); });
@@ -171,12 +171,14 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
         rows = await estimateMeal(b64, call);
         if (!live) return;
         paintResults();
+        sheetCtl.expand(); // the estimate is the point: show it all, once
       } catch (e) {
         if (!live) return;
         paintError((e && e.message) || 'Something went wrong. Try again in a minute.', (e && e.code) || '', upstreamTag(e));
+        sheetCtl.expand();
       }
     }
 
     if (file) start(file); else paintPicker();
-  });
+  }, { detents: ['medium', 'large'] });
 }
