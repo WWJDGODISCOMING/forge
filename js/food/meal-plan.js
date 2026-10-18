@@ -346,7 +346,22 @@ export function scaleQty(q, f) {
 export const servingsText = (s) => `${fmtAmount(s)} ${s === 1 ? 'serving' : 'servings'}`;
 
 const SKIP_GROCERY = new Set(['water']);
-/** The week's shopping, grouped by store section. Amounts are summed (scaled by servings) when the units match; otherwise the row says "for N meals". */
+const TSP = { tsp: 1, tbsp: 3, cup: 48 };
+const COUNT_WORDS = new Set(['', 'small', 'medium', 'large']);
+const pluralName = (n) => (/s$/.test(n) ? n : /[^aeiou]y$/.test(n) ? `${n.slice(0, -1)}ies` : /(o|sh|ch|x)$/.test(n) ? `${n}es` : `${n}s`);
+const cap = (n) => n.charAt(0).toUpperCase() + n.slice(1);
+/** Spoon and cup amounts become teaspoons so they add up. */
+function toTsp(p) {
+  const [w, ...rest] = p.unit.split(' ');
+  const f = TSP[w.replace(/s$/, '')];
+  return f ? { n: p.n * f, unit: ['tsp', ...rest].join(' '), vol: true } : p;
+}
+function fromTsp(n, unit) {
+  const rest = unit.split(' ').slice(1).join(' ');
+  const [v, u] = n >= 36 ? [n / 48, 'cup'] : n >= 3 ? [n / 3, 'tbsp'] : [n, 'tsp'];
+  return qtyText(v, [u, rest].filter(Boolean).join(' '));
+}
+/** The week's shopping, grouped by store section. Amounts are summed (scaled by servings) when the units match; countable items round up to whole ones; otherwise the row says "for N meals". */
 export function groceryList(plan) {
   const rows = new Map();
   for (const d of plan.days) for (const m of d.meals) {
@@ -358,21 +373,28 @@ export function groceryList(plan) {
       const name = rice ? 'rice' : ing.name;
       const key = `${ing.section}|${name}`;
       const row = rows.get(key) || { key, name, section: ing.section, uses: 0, parts: [], cooked: rice };
-      const q = parseQty(ing.qty);
+      const q = parseQty(String(ing.qty).replace(/\s*\([^)]*\)/g, ''));
       row.uses += 1;
-      row.parts.push(q ? { ...q, n: q.n * (m.servings || 1) } : null);
+      row.parts.push(q ? toTsp({ ...q, n: q.n * (m.servings || 1) }) : null);
       rows.set(key, row);
     }
   }
   const finish = (row) => {
     const units = new Set(row.parts.map((p) => (p ? unitKey(p.unit) : null)));
     let qty = `for ${row.uses} ${row.uses === 1 ? 'meal' : 'meals'}`;
+    let name = row.name;
     if (units.size === 1 && !units.has(null)) {
       const unit = [...units][0];
       const total = row.parts.reduce((n, p) => n + p.n, 0);
-      qty = row.cooked ? `about ${qtyText(total, unit)} cooked` : qtyText(total, unit);
+      const whole = Math.ceil(total - 1e-9);
+      if (COUNT_WORDS.has(unit)) { qty = String(whole); if (whole > 1) name = pluralName(name); }
+      else if (unit === 'leaves') qty = `${whole} leaves`;
+      else {
+        const text = row.parts[0].vol ? fromTsp(total, unit) : qtyText(total, unit);
+        qty = row.cooked ? `about ${text} cooked` : text;
+      }
     }
-    return { key: row.key, name: row.name, section: row.section, uses: row.uses, qty };
+    return { key: row.key, name: cap(name), section: row.section, uses: row.uses, qty };
   };
   return Object.keys(SECTIONS).map((section) => ({
     section, label: SECTIONS[section],
@@ -380,6 +402,7 @@ export function groceryList(plan) {
   })).filter((g) => g.items.length);
 }
 
+const PREP_ORDER = ['dinner', 'lunch', 'breakfast', 'snack']; // main meals before snacks
 /** Sunday prep: batch-friendly meals that appear at least twice, with freeze-same-day guidance for Low-histamine or the Freeze rule. */
 export function batchPrep(plan, prefsIn) {
   const prefs = cleanPrefs(prefsIn);
@@ -388,7 +411,7 @@ export function batchPrep(plan, prefsIn) {
   const first = new Map();
   for (const d of plan.days) for (const m of d.meals) { counts.set(m.id, (counts.get(m.id) || 0) + 1); if (!first.has(m.id)) first.set(m.id, m); }
   const items = [...counts].map(([id, n]) => ({ rec: getRecipe(id), n })).filter((x) => x.rec && x.n >= 2 && x.rec.tags.includes('batch_friendly'))
-    .sort((a, b) => b.n - a.n || a.rec.name.localeCompare(b.rec.name)).slice(0, 4)
+    .sort((a, b) => PREP_ORDER.indexOf(a.rec.slot) - PREP_ORDER.indexOf(b.rec.slot) || b.n - a.n || a.rec.name.localeCompare(b.rec.name)).slice(0, 5)
     .map((x) => ({ id: x.rec.id, name: x.rec.name, portions: x.n, freezes: x.rec.tags.includes('freezer_friendly'), meal: first.get(x.rec.id) }));
   const tips = ['Cook, then portion into containers.'];
   if (prefs.leftovers === 'freeze' || prefs.diets.includes('low_histamine')) tips.push('Cool and freeze the extra portions the same day. Skip the fridge for leftovers.', 'Thaw one portion at a time and reheat until steaming hot.');

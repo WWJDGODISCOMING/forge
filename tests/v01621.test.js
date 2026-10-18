@@ -264,13 +264,13 @@ test('amounts: scaled to the servings, summed in the grocery list, rice as rice,
   const plan = { days: [{ meals: [{ id: 'l-chicken-rice', servings: 1.5 }, { id: 'd-salmon-rice', servings: 1 }, { id: 'b-oat-apple', servings: 1 }, { id: 'b-oat-apple', servings: 1.5 }] }] };
   const rows = groceryList(plan).flatMap((g) => g.items);
   const row = (n) => rows.find((r) => r.name === n);
-  eq(row('rice').qty, 'about 2½ cups cooked'); assert(!row('cooked rice'));
-  assert(!row('water'), 'water is not shopping');
-  eq(row('apple').qty, '2½');
-  eq(row('olive oil').qty, '2½ tbsp');
-  eq(row('fresh salmon fillet').qty, '4 oz');
+  eq(row('Rice').qty, 'about 2½ cups cooked'); assert(!row('Cooked rice'));
+  assert(!row('Water'), 'water is not shopping');
+  eq(row('Apples').qty, '3');
+  eq(row('Olive oil').qty, '2½ tbsp');
+  eq(row('Fresh salmon fillet').qty, '4 oz');
   const mixed = groceryList({ days: [{ meals: [{ id: 'l-chicken-rice', servings: 1 }, { id: 'b-turkey-patty', servings: 1 }] }] }).flatMap((g) => g.items);
-  eq(mixed.find((r) => r.name === 'olive oil').qty, 'for 2 meals');
+  assert(!mixed.find((r) => r.name === 'Olive oil').qty.startsWith('for'), 'tsp and tbsp now add up');
 });
 
 test('log this: a planned meal already in the log is recognised, so a second tap does nothing', () => {
@@ -319,4 +319,29 @@ test('Log this: guards double taps, records carbs and fat, shows Logged once the
   assert(src.includes('Logged <span'), 'logged state label');
   assert(src.includes('data-setup') && src.includes('Set up your meal plan'), 'first-run setup card');
   assert(src.includes('planWeekFor(todayKey())') && src.includes("'Next week'"), 'Sunday shows next week');
+});
+
+test('round 2: prep lists main meals before snacks; grocery rounds countables, merges spoons and cups', () => {
+  const P = { diets: ['low_histamine', 'pregnancy_safe'], leftovers: 'normal', cooking: 'batch' };
+  for (const ws of ['2026-10-12', '2026-10-19', '2026-10-26']) {
+    const items = batchPrep(generateWeek({ prefs: P, targets: TARGETS, weekStart: ws }), P).items;
+    assert(items.length <= 5);
+    const order = ['dinner', 'lunch', 'breakfast', 'snack'];
+    const slots = items.map((i) => order.indexOf(getRecipe(i.id).slot));
+    eqj(slots, [...slots].sort((a, b) => a - b), 'mains first');
+  }
+  const rows = groceryList({ days: [{ meals: [{ id: 'b-oat-apple', servings: 1.25 }, { id: 'b-scramble-sweet', servings: 1.25 }, { id: 'b-scramble-sweet', servings: 1 }, { id: 's-oat-bites', servings: 1 }] }] }).flatMap((g) => g.items);
+  const row = (n) => rows.find((r) => r.name === n);
+  eq(row('Eggs').qty, '5'); eq(row('Apples').qty, '2');
+  assert(row('Sweet potatoes') && /^\d+$/.test(row('Sweet potatoes').qty), 'whole, plural');
+  assert(/cup/.test(row('Rolled oats').qty), 'oats sum despite the gluten-free note');
+  assert(/^\d/.test(row('Maple syrup').qty) && !row('Maple syrup').qty.startsWith('for'), 'tbsp amounts add up');
+  assert(rows.every((r) => r.name[0] === r.name[0].toUpperCase()));
+});
+
+test('round 2: summary uses non-breaking hyphens, rows have their own icons', () => {
+  const prefs = readFileSync(new URL('../js/screens/food-prefs.js', import.meta.url), 'utf8');
+  assert(prefs.includes('\\u2011') && prefs.includes('\\u00a0·'));
+  const src = readFileSync(new URL('../js/screens/food-plan.js', import.meta.url), 'utf8');
+  for (const ic of ['sliders', 'list', 'calendar']) assert(src.includes(`'${ic}'`));
 });

@@ -168,9 +168,9 @@ export function renderPlan(el, { rerender }) {
   box.innerHTML = `
     <div class="plan-head"><h2>${nextWeek ? 'Next week' : 'This week'}</h2><small class="muted">Aiming for about ${num(plan.kcalTarget)} kcal and ${num(plan.proteinTarget)} g protein a day</small></div>
     <div class="stack plan-rows">
-      ${row('data-prefs', 'food', 'Food preferences', prefsSummary(prefs))}
-      ${row('data-open-grocery', 'food', 'Grocery list', 'By store section')}
-      ${hasPrep ? row('data-open-prep', 'food', 'Sunday prep', 'Cook once, eat all week') : ''}
+      ${row('data-prefs', 'sliders', 'Food preferences', prefsSummary(prefs))}
+      ${row('data-open-grocery', 'list', 'Grocery list', 'By store section')}
+      ${hasPrep ? row('data-open-prep', 'calendar', 'Sunday prep', 'Cook once, eat all week') : ''}
     </div>
     ${plan.gaps.length ? '<div class="card"><p class="small">Some meals are left out because nothing fits your food preferences. Loosening them will fill the gaps.</p></div>' : ''}
     <div class="plan-strip" role="group" aria-label="Day of the week">${plan.days.map((d, i) => `<button type="button" class="plan-dayb${d.date < today ? ' past' : ''}${d.date === today ? ' today' : ''}" data-day="${i}" aria-pressed="${i === picked.idx}" aria-label="${esc(dayName(d.date))}"><small>${LETTERS[i]}</small><b>${Number(d.date.slice(8))}</b></button>`).join('')}</div>

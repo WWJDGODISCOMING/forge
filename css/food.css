@@ -252,15 +252,18 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .plan-ing-qty { flex: 0 1 auto; max-width: 45%; text-align: right; }
 .plan-rows { gap: var(--s-2); }
 .plan-setup h2 { margin: 0; }
-.plan-strip { display: flex; margin-inline: calc(4px - var(--gutter)); }
+.plan-strip { display: flex; margin-inline: min(0px, calc((100% - 308px) / 2)); }
 .plan-tick { display: inline-flex; width: 1em; height: 1em; vertical-align: -2px; }
 .plan-tick svg { width: 100%; height: 100%; }
-.plan-dayb { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex: 1 1 44px; min-width: 44px; min-height: 52px; padding: 4px 0; border: 3px solid transparent; background-clip: padding-box; border-radius: 16px; background: var(--surface-2); color: var(--text-1); font: inherit; cursor: pointer; min-width: 0; }
+.plan-dayb { position: relative; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; flex: 1 1 44px; min-width: 44px; min-height: 52px; padding: 4px 0; border: 0; background: none; color: var(--text-1); font: inherit; cursor: pointer; }
+.plan-dayb::before { content: ''; position: absolute; inset: 0 2px; border-radius: 16px; background: var(--surface-2); box-shadow: inset 0 0 0 1px var(--line, var(--surface-3)); z-index: -1; }
+.plan-dayb { isolation: isolate; }
 .plan-dayb small { font-size: calc(11px * var(--ts)); opacity: .7; }
 .plan-dayb b { font-size: calc(15px * var(--ts)); }
 .plan-dayb.past { opacity: .5; }
 .plan-dayb.today b { color: var(--accent-text); }
-.plan-dayb[aria-pressed=true] { background: var(--accent); color: var(--accent-ink); opacity: 1; }
+.plan-dayb[aria-pressed=true]::before { background: var(--accent); box-shadow: none; }
+.plan-dayb[aria-pressed=true] { color: var(--accent-ink); opacity: 1; }
 .plan-dayb[aria-pressed=true] small, .plan-dayb[aria-pressed=true] b { color: inherit; opacity: 1; }
 .btn.ok { background: var(--good-tint); color: var(--good); }
 .plan-gsec { gap: var(--s-1); }
@@ -273,5 +276,7 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .plan-check input:focus-visible + .plan-ring { outline: 2px solid var(--accent); outline-offset: 2px; }
 .plan-gtext { display: flex; flex-direction: column; min-width: 0; }
 .plan-check input:checked ~ .plan-gtext { opacity: .55; text-decoration: line-through; }
+.plan-recipe { gap: var(--s-2); }
+.plan-recipe h3 { margin: 0; }
 .plan-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: var(--s-2); }
 @media (prefers-reduced-motion: no-preference) { .plan-open:active { opacity: .7; } }

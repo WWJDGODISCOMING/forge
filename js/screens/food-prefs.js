@@ -14,9 +14,9 @@ const chipRadio = (name, value, label, on) => `<label class="chip">${radio(name,
 
 /** One-line summary for the Settings row. */
 export function prefsSummary(prefs = mealPrefs()) {
-  const bits = prefs.diets.map((d) => DIETS.find((x) => x[0] === d)[1]);
+  const bits = prefs.diets.map((d) => DIETS.find((x) => x[0] === d)[1].replace(/-/g, '\u2011'));
   if (prefs.avoid.length) bits.push(`avoiding ${prefs.avoid.length}`);
-  return bits.length ? bits.join(' · ') : 'Diet, foods to skip, how you cook';
+  return bits.length ? bits.join('\u00a0· ') : 'Diet, foods to skip, how you cook';
 }
 
 export function openFoodPrefs({ onSave = () => {} } = {}) {
