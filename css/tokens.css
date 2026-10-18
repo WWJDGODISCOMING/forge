@@ -89,7 +89,6 @@
 @media (prefers-color-scheme: light) {
   :root {
     --bg: #f2f2f7;
-    --lift-bg: #050506;
     --surface-1: #ffffff;
     --surface-2: #f0f0f4;
     --surface-3: #e3e3e9;

@@ -34,6 +34,26 @@ test('sheet(): closing removes the lift class, variables and will-change', () =>
   assert(src.includes("'--sheet-lift', '--lift-oy', 'will-change'") && src.includes("classList.remove('lifted')"), 'unlift clears everything');
 });
 
+test('sheet(): #navbar lifts with #main and #nav, and the page keeps its own background', () => {
+  const css = readFileSync(new URL('../css/nav.css', import.meta.url), 'utf8');
+  assert(src.includes("document.getElementById('navbar')"), 'navbar joins the lifted group');
+  assert(css.includes('#main.lifted, #nav.lifted, #navbar.lifted {'), 'same transform for all three');
+  assert(css.includes('#main.lifted { background: var(--bg)'), 'lifted page paints --bg');
+  assert(css.includes('html.sheet-lift-on body { background: transparent'), 'body no longer paints the lift colour');
+});
+
+test('sheet(): scrolling the page behind re-measures --lift-oy, and close removes the listener', () => {
+  assert(src.includes("addEventListener('scroll', onScroll, { passive: true })"), 'passive scroll listener');
+  assert(src.includes('requestAnimationFrame(() => { measureRaf = 0; measure(); })'), 'at most once per frame');
+  assert(src.includes("removeEventListener('scroll', onScroll)"), 'unlift removes it');
+});
+
+test('sheet(): native light theme switches to light status-bar text past halfway, only on a change', () => {
+  assert(src.includes('lightBar(Number(l) > 0.5)'), 'threshold at half');
+  assert(src.includes('if (on === barLight || !isNative()'), 'native only, and only when the side changes');
+  assert(src.includes('lightBar(false);'), 'restored on close');
+});
+
 test('sheet(): #main is only looked up once, inside lift()', () => {
   assert((src.match(/getElementById\('main'\)/g) || []).length === 1, 'one lookup');
   assert(/const lift = \(\) => \{\s*pages = \[document\.getElementById\('main'\)/.test(src), 'inside lift()');

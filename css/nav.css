@@ -183,13 +183,16 @@ dialog.sheet.detented.at-medium .sheet-body { padding-bottom: calc(var(--safe-bo
 
 /* Detent sheets: the page behind eases back as the sheet goes to large (--sheet-lift 0..1, set from JS). transform + radius only. */
 @property --sheet-lift { syntax: '<number>'; inherits: false; initial-value: 0; }
-html.sheet-lift-on, html.sheet-lift-on body { background: var(--lift-bg); }
-#main.lifted, #nav.lifted {
+/* The canvas behind is near-black; the page keeps its own --bg and is the card that scales. */
+html.sheet-lift-on { background: var(--lift-bg); }
+html.sheet-lift-on body { background: transparent; }
+#main.lifted, #nav.lifted, #navbar.lifted {
   transform-origin: 50% var(--lift-oy, 0px);
   transform: translateY(calc((var(--safe-top) + 8px) * var(--sheet-lift))) scale(calc(1 - .06 * var(--sheet-lift)));
 }
-#main.lifted { clip-path: inset(var(--lift-oy, 0px) 0 0 0 round calc(12px * var(--sheet-lift))); } /* rounds the top of what is on screen, wherever the page is scrolled */
+#main.lifted { background: var(--bg); min-height: 100dvh; clip-path: inset(var(--lift-oy, 0px) 0 0 0 round calc(12px * var(--sheet-lift))); } /* rounds the top of what is on screen, wherever the page is scrolled */
 #nav.lifted { border-radius: calc(12px * var(--sheet-lift)); }
+#navbar.lifted { border-radius: calc(12px * var(--sheet-lift)) calc(12px * var(--sheet-lift)) 0 0; overflow: hidden; }
 
 /* ---------- Cold-start skeleton (replaces the spinner) ---------- */
 .skel-screen { display: flex; flex-direction: column; gap: 14px; padding-top: 2px; }

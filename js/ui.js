@@ -1,6 +1,6 @@
 // Small UI helpers: escaping, toasts, bottom sheets, confirm.
 
-import { isNative } from './native/bridge.js';
+import { isNative, syncStatusBar } from './native/bridge.js';
 import { reducedMotion, DUR } from './ui/motion.js';
 import { icon } from './ui/icons.js';
 import { shouldDismiss, rubberBand, dragProgress, velocityOf, pickDetent, crossedDetent, liftProgress } from './ui/gesture.js';
@@ -87,22 +87,35 @@ export function sheet(title, render, opts = {}) {
     dlg.style.setProperty('--sheet-y', `${y}px`);
     const low = ds ? ds[ds.length - 1] : 0; // the backdrop stays full at the lowest detent
     dlg.style.setProperty('--sheet-p', String(1 - dragProgress(Math.max(0, y - low), dlg.offsetHeight - low)));
-    if (ds && pages.length) { const l = String(liftProgress(y, ds)); for (const el of pages) el.style.setProperty('--sheet-lift', l); } // same frame as --sheet-y
+    if (ds && pages.length) { const l = String(liftProgress(y, ds)); for (const el of pages) el.style.setProperty('--sheet-lift', l); lightBar(Number(l) > 0.5); } // same frame as --sheet-y
   };
   // Detent sheets ease the page behind back (#main and #nav share one transform origin, so they move as one piece).
   let pages = [];
   const willChange = (on) => { for (const el of pages) { if (on) el.style.willChange = 'transform'; else el.style.removeProperty('will-change'); } };
+  // Top of the viewport, in each element's own space. The page behind can still scroll, so this is re-measured on scroll.
+  const measure = () => { for (const el of pages) el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`); };
+  let measureRaf = 0;
+  const onScroll = () => { if (!measureRaf) measureRaf = requestAnimationFrame(() => { measureRaf = 0; measure(); }); };
+  // Native, light theme: the strip above a lifted page is near-black, so the status bar goes light text past halfway.
+  let barLight = false;
+  const lightBar = (on) => {
+    if (on === barLight || !isNative() || window.matchMedia('(prefers-color-scheme: dark)').matches) return;
+    barLight = on;
+    syncStatusBar(on ? true : false);
+  };
   const lift = () => {
-    pages = [document.getElementById('main'), document.getElementById('nav')].filter(Boolean);
+    pages = [document.getElementById('main'), document.getElementById('nav'), document.getElementById('navbar')].filter(Boolean);
     liftOpen++;
-    for (const el of pages) {
-      el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`); // top of the viewport, in the element's own space
-      el.classList.add('lifted');
-    }
+    measure();
+    for (const el of pages) el.classList.add('lifted');
     document.documentElement.classList.add('sheet-lift-on');
+    window.addEventListener('scroll', onScroll, { passive: true });
   };
   const unlift = () => {
     if (!pages.length) return;
+    window.removeEventListener('scroll', onScroll);
+    if (measureRaf) { cancelAnimationFrame(measureRaf); measureRaf = 0; }
+    lightBar(false);
     for (const el of pages) {
       el.classList.remove('lifted');
       for (const k of ['--sheet-lift', '--lift-oy', 'will-change']) el.style.removeProperty(k);
