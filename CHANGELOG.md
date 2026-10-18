@@ -2,13 +2,13 @@
 
 ## 0.16.23 — Jog in place (2026-10-18)
 
-#129. Log cardio has a new activity, Jog in place, right after Run. It shows by name in History and its detail sheet. Jogging in place has no distance, so the Distance box hides for it and none is saved; minutes, calories and notes work as before. No rules change: `firestore.rules` doesn't limit the activity value.
+#129. Log cardio has a new activity, Jog in place, right after Run. It shows by name in History and its detail sheet. Jogging in place has no distance, so the Distance box hides for it and none is saved; minutes, calories and notes work as before. Export cardio (CSV) also has an `activity_name` column next to the stable `activity` key. No rules change: `firestore.rules` doesn't limit the activity value.
 
 ### What's new
 
 - Jog in place in Log cardio.
-- The cardio detail sheet leaves out the Distance tile for activities that can't have one.
-- Export cardio (CSV) has a new `activity_name` column (for example "Jog in place") next to the stable `activity` key.
+- The cardio detail sheet skips the Distance tile for Jog in place.
+- Export cardio (CSV) now names each activity, like Jog in place.
 
 ## 0.16.22 — Meal plan AI (2026-10-18)
 
