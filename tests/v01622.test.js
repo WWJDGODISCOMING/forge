@@ -4,7 +4,6 @@ import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import { checkAiPlan, cachedAiPlan, saveAiPlan, clearAiPlan, clearAllAiPlans, requestAiPlan, AI_FAIL } from '../js/food/meal-ai.js';
 import { cleanPrefs, groceryList, parseQty, addDays, MEAL_FOOTER } from '../js/food/meal-plan.js';
-import { VERSION } from '../js/version.js';
 
 const WEEK = '2026-10-19';
 const meal = (slot, over = {}) => ({
@@ -18,8 +17,6 @@ const week = (over = {}) => ({
 });
 const store = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), size: () => m.size, get length() { return m.size; }, key: (i) => [...m.keys()][i] ?? null }; };
 const prefs = cleanPrefs({ diets: ['low_histamine'], avoid: ['mushrooms'] });
-
-test('v0.16.22: version bumped', () => { eq(VERSION, '0.16.22'); });
 
 test('checkAiPlan keeps a good week, with finished day totals', () => {
   const p = checkAiPlan(week(), prefs, WEEK);

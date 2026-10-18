@@ -42,8 +42,11 @@ export function openPlateCalculator(startWeight) {
   });
 }
 
+/** Activities that have no distance, so the sheet hides the field and saves none. */
+export const NO_DISTANCE = ['jog_in_place'];
+
 export const CARDIO_TYPES = {
-  peloton: 'Peloton ride', bike: 'Bike (other)', run: 'Run', walk: 'Walk', row: 'Row', elliptical: 'Elliptical', stairs: 'Stair climber',
+  peloton: 'Peloton ride', bike: 'Bike (other)', run: 'Run', jog_in_place: 'Jog in place', walk: 'Walk', row: 'Row', elliptical: 'Elliptical', stairs: 'Stair climber',
   boxing: 'Boxing / shadowboxing', hiit: 'HIIT / intervals', jump_rope: 'Jump rope', swim: 'Swim', other: 'Other',
 };
 
@@ -62,7 +65,7 @@ export function openCardioLog(prefill = {}) {
           <label class="field grow"><span>Date</span><input name="day" type="date" value="${todayKey()}" max="${todayKey()}"></label>
         </div>
         <div class="row gap">
-          <label class="field grow"><span>Distance (${dist}) <small class="muted">optional</small></span><input name="dist" type="number" inputmode="decimal" step="0.01"></label>
+          <label class="field grow" data-dist-field ${NO_DISTANCE.includes(prefill.activity) ? 'hidden' : ''}><span>Distance (${dist}) <small class="muted">optional</small></span><input name="dist" type="number" inputmode="decimal" step="0.01"></label>
           <label class="field grow"><span>Calories <small class="muted">optional</small></span><input name="kcal" type="number" inputmode="numeric"></label>
         </div>
         <label class="field"><span>Avg heart rate <small class="muted">optional</small></span><input name="hr" type="number" inputmode="numeric"></label>
@@ -72,6 +75,8 @@ export function openCardioLog(prefill = {}) {
         <button class="btn" type="submit">Save</button>
       </form>`;
     const form = $('form', body);
+    const distField = $('[data-dist-field]', body);
+    form.activity.addEventListener('change', () => { distField.hidden = NO_DISTANCE.includes(form.activity.value); });
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const min = Number(form.min.value);
@@ -81,7 +86,7 @@ export function openCardioLog(prefill = {}) {
       }
       const day = form.day.value || todayKey();
       const started = day === todayKey() ? new Date(Date.now() - min * 60000) : new Date(day + 'T12:00:00');
-      const km = form.dist.value ? Number(form.dist.value) * (dist === 'mi' ? 1.609344 : 1) : null;
+      const km = form.dist.value && !NO_DISTANCE.includes(form.activity.value) ? Number(form.dist.value) * (dist === 'mi' ? 1.609344 : 1) : null;
       put('cardio_sessions', newRecord({
         activity: form.activity.value,
         started_at: started.toISOString(),
