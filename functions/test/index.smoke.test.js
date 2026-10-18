@@ -10,7 +10,7 @@ const installed = existsSync(new URL('../node_modules/firebase-functions/package
 test('index.js exports every function with region us-east1 and maxInstances 2', { skip: !installed && !process.env.CI && 'npm install first' }, async () => {
   process.env.GCLOUD_PROJECT = 'demo-forge';
   const mod = await import('../index.js');
-  const names = ['withingsAuthStart', 'withingsOAuthCallback', 'withingsWebhook', 'withingsTask', 'withingsSyncNow', 'withingsDataCheck', 'withingsDisconnect', 'withingsMaintenance', 'withingsReimport', 'healthIngest', 'createShortcutToken', 'revokeShortcutToken', 'importHealthDays', 'deleteAppleHealthData', 'foodSearch', 'snapMealPhoto'];
+  const names = ['withingsAuthStart', 'withingsOAuthCallback', 'withingsWebhook', 'withingsTask', 'withingsSyncNow', 'withingsDataCheck', 'withingsDisconnect', 'withingsMaintenance', 'withingsReimport', 'healthIngest', 'createShortcutToken', 'revokeShortcutToken', 'importHealthDays', 'deleteAppleHealthData', 'foodSearch', 'snapMealPhoto', 'personalizeMealPlan'];
   for (const n of names) {
     assert.ok(mod[n], `${n} exported`);
     const ep = mod[n].__endpoint;

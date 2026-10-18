@@ -6,7 +6,7 @@
 //   firebase functions:secrets:set WITHINGS_CLIENT_SECRET
 //   firebase functions:secrets:set WITHINGS_WEBHOOK_KEY
 //   firebase functions:secrets:set USDA_API_KEY   (food search; a free api.data.gov key)
-//   firebase functions:secrets:set XAI_API_KEY    (Snap a meal; already set)
+//   firebase functions:secrets:set XAI_API_KEY    (Snap a meal and the optional meal-plan AI; already set)
 // Plain config (asked for at deploy, saved in functions/.env.<project>): WITHINGS_CLIENT_ID.
 import { initializeApp } from 'firebase-admin/app';
 import { getFirestore } from 'firebase-admin/firestore';
@@ -32,6 +32,7 @@ import { handleIngest, importDays, createToken, revokeToken, deleteAppleData, Ba
 import { log } from './src/log.js';
 import { searchFoods, FoodSearchError } from './src/usda.js';
 import { snapMeal, SnapError } from './src/snap.js';
+import { personalizeMealPlan as buildAiMealPlan, MealAiError } from './src/mealai.js';
 
 initializeApp();
 const REGION = 'us-east1';
@@ -238,6 +239,23 @@ export const snapMealPhoto = onCall({ secrets: [XAI_KEY], timeoutSeconds: 60, me
       if (e.code === 'nofood') throw new HttpsError('failed-precondition', 'I couldn’t spot any food in that photo. Try again closer, or search for it.');
       if (e.code === 'garbled') throw new HttpsError('unavailable', 'That estimate got cut off. Try again.');
       throw new HttpsError('unavailable', 'Photo estimates aren’t available right now.', details);
+    }
+    throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
+  }
+});
+
+// ---------- Meal plan AI (xAI text). Preferences go to xAI and are dropped; every meal is checked here before it is returned or saved ----------
+export const personalizeMealPlan = onCall({ secrets: [XAI_KEY], timeoutSeconds: 90, memory: '512MiB' }, async (req) => {
+  const uid = needUid(req);
+  try {
+    return await buildAiMealPlan({ db: db(), uid, data: req.data, apiKey: XAI_KEY.value().trim(), fetch: globalThis.fetch });
+  } catch (e) {
+    if (e instanceof MealAiError) {
+      if (e.code === 'invalid') throw new HttpsError('invalid-argument', 'Those food preferences couldn’t be read. Check them and try again.');
+      if (e.code === 'limited') throw new HttpsError('resource-exhausted', 'That’s enough AI plans for now. Try again later, or use the standard plan.');
+      if (e.code === 'busy') throw new HttpsError('unavailable', 'The AI is busy. Try again in a minute, or use the standard plan.');
+      if (e.code === 'garbled') throw new HttpsError('unavailable', 'The AI plan didn’t come out right. Try again, or use the standard plan.');
+      throw new HttpsError('unavailable', 'AI meal plans aren’t available right now. The standard plan still works.');
     }
     throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
   }

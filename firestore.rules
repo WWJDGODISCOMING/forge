@@ -51,7 +51,7 @@ service cloud.firestore {
     // Function that writes AI plans also checks every string and number before it saves.
     function validMeal(m) {
       return m is map
-        && m.keys().hasOnly(['slot', 'id', 'name', 'servings', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'ingredients', 'steps'])
+        && m.keys().hasOnly(['slot', 'id', 'name', 'servings', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'fish_oz', 'caffeine_mg', 'ingredients', 'steps'])
         && m.name.size() >= 1 && m.name.size() <= 80
         && m.slot in ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2']
         && m.kcal >= 0 && m.kcal <= 5000
