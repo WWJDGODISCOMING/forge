@@ -6,7 +6,7 @@
 
 ### What's new
 
-- Snap a meal, My foods and How to do it open half-way. Drag up for more.
+- Snap a meal, My foods, How to do it and Change workout open half-way. Drag up for more.
 
 ## 0.16.24 — Background scale-down (2026-10-18)
 
