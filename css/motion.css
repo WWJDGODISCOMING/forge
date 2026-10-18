@@ -43,6 +43,10 @@ html[data-vt="pop"]::view-transition-new(root) { animation: vt-pop-new var(--t-s
 html[data-vt="tab"]::view-transition-old(root), html[data-vt="fade"]::view-transition-old(root) { animation: vt-fade-out var(--t-med) var(--ease-out) both; }
 html[data-vt="tab"]::view-transition-new(root), html[data-vt="fade"]::view-transition-new(root) { animation: vt-fade-in var(--t-med) var(--ease-out) both; }
 ::view-transition-group(pl-hero) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-bounce); }
+/* Score ring: grows from the Today card into the Score screen and back. Above the sliding root. */
+::view-transition-group(score-ring) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; }
+::view-transition-old(score-ring), ::view-transition-new(score-ring) { height: 100%; object-fit: contain; mix-blend-mode: normal; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(score-ring) { animation: none; } }
 
 @keyframes vt-push-old { to { transform: translateX(-30%); filter: brightness(.6); } }
 @keyframes vt-push-new { from { transform: translateX(100%); } }

@@ -100,7 +100,7 @@ export function countUp(el, to, { from = 0, dur = 900, format = (v) => Math.roun
  * Run a DOM update as a View Transition when supported (Safari 18+), tagged with a direction so CSS can
  * slide tabs or push/pop detail screens. Falls back to an instant update. Reduced motion → crossfade (CSS).
  */
-export function viewTransition(update, kind = 'fade') {
+export function viewTransition(update, kind = 'fade', shared = null) {
   if (!document.startViewTransition) {
     // No View Transitions: swap straight away and fade the new screen in (no layout jump).
     return Promise.resolve(update()).then(() => {
@@ -112,8 +112,32 @@ export function viewTransition(update, kind = 'fade') {
     });
   }
   document.documentElement.dataset.vt = kind;
-  const vt = document.startViewTransition(update);
+  // Shared element: the outgoing element gets the name now (so the old screen is captured with it), the incoming
+  // one right after the update. Only one element holds the name at a time, and both lose it when the morph ends.
+  const sharedOn = shared && !reducedMotion();
+  const tag = (sel) => {
+    const el = document.querySelector(sel);
+    if (el) el.style.viewTransitionName = shared.name;
+    return el;
+  };
+  const untag = () => document.querySelectorAll(shared.from + ',' + shared.to).forEach((el) => { el.style.viewTransitionName = ''; });
+  if (sharedOn) tag(shared.from);
+  const vt = document.startViewTransition(async () => {
+    if (sharedOn) untag(); // the old screen is already captured; keep the name unique on the page
+    await update();
+    if (sharedOn) tag(shared.to);
+  });
   return vt.finished.catch(() => {}).finally(() => {
     delete document.documentElement.dataset.vt;
+    if (sharedOn) untag();
   });
+}
+
+/** Which ring morphs for a route change: Today ↔ Score only. Pure, so it can be tested. */
+export function sharedRingFor(from, to) {
+  const f = from[0] || 'today';
+  const t = to[0] || 'today';
+  if (f === 'today' && t === 'score' && !from[1]) return { name: 'score-ring', from: '#main .score-mini', to: '#main .score-hero' };
+  if (f === 'score' && t === 'today' && !to[1]) return { name: 'score-ring', from: '#main .score-hero', to: '#main .score-mini' };
+  return null;
 }

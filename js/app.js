@@ -6,7 +6,7 @@ import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
-import { viewTransition, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
+import { viewTransition, sharedRingFor, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
@@ -524,7 +524,7 @@ window.addEventListener('hashchange', async () => {
   viewTransition(async () => {
     await render();
     afterRoute(to);
-  }, reducedMotion() ? 'fade' : kind);
+  }, reducedMotion() ? 'fade' : kind, kind === 'tab' ? null : sharedRingFor(from, to));
 });
 
 // Tapping a tab: switch to it; tapping the tab you're on scrolls to the top, or pops a detail screen back to its root.
