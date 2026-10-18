@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.25 — Detents on tall sheets (2026-10-18)
+
+#58 slice. Snap a meal, Change workout, How to do it and My foods now open half-way and drag up to full height, with the page easing back, like Log food. Short sheets still fit their content. No functions or rules change.
+
+### What's new
+
+- Snap a meal, My foods and How to do it open half-way. Drag up for more.
+
 ## 0.16.24 — Background scale-down (2026-10-18)
 
 #58 slice. When you drag Log food, or the meal plan's Recipe, Grocery list or Sunday prep, up to full height, the page behind eases back a little with rounded top corners, following your finger. Other sheets are unchanged. It is off with Reduced Motion and on wide screens. No functions or rules change.
