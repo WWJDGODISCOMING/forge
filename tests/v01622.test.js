@@ -2,8 +2,8 @@
 // (shape and skip list) and a bad one is dropped whole. Synthetic data only.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { checkAiPlan, cachedAiPlan, saveAiPlan, clearAiPlan, requestAiPlan, AI_FAIL } from '../js/food/meal-ai.js';
-import { cleanPrefs, groceryList, addDays, MEAL_FOOTER } from '../js/food/meal-plan.js';
+import { checkAiPlan, cachedAiPlan, saveAiPlan, clearAiPlan, clearAllAiPlans, requestAiPlan, AI_FAIL } from '../js/food/meal-ai.js';
+import { cleanPrefs, groceryList, parseQty, addDays, MEAL_FOOTER } from '../js/food/meal-plan.js';
 import { VERSION } from '../js/version.js';
 
 const WEEK = '2026-10-19';
@@ -16,7 +16,7 @@ const week = (over = {}) => ({
   weekStart: WEEK, source: 'ai', floor: 1500, kcalTarget: 2000, proteinTarget: 100, fish_oz: 0,
   days: Array.from({ length: 7 }, (_, i) => ({ date: addDays(WEEK, i), meals: ['breakfast', 'lunch', 'dinner'].map((s) => meal(s)) })), ...over,
 });
-const store = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), size: () => m.size }; };
+const store = () => { const m = new Map(); return { getItem: (k) => (m.has(k) ? m.get(k) : null), setItem: (k, v) => m.set(k, String(v)), removeItem: (k) => m.delete(k), size: () => m.size, get length() { return m.size; }, key: (i) => [...m.keys()][i] ?? null }; };
 const prefs = cleanPrefs({ diets: ['low_histamine'], avoid: ['mushrooms'] });
 
 test('v0.16.22: version bumped', () => { eq(VERSION, '0.16.22'); });
@@ -61,14 +61,58 @@ test('checkAiPlan trims long text and lists instead of trusting them', () => {
 test('the saved AI week comes back only while it passes the current skip list; a new skip term drops it', () => {
   const s = store();
   const p = checkAiPlan(week(), cleanPrefs({}), WEEK);
-  saveAiPlan(p, s);
-  assert(cachedAiPlan(WEEK, cleanPrefs({}), s), 'comes back');
-  eq(cachedAiPlan(WEEK, cleanPrefs({ avoid: ['chicken'] }), s), null);
+  saveAiPlan(p, cleanPrefs({}), 'u1', s);
+  assert(cachedAiPlan(WEEK, cleanPrefs({}), 'u1', s), 'comes back');
+  eq(cachedAiPlan(WEEK, cleanPrefs({ avoid: ['chicken'] }), 'u1', s), null);
   eq(s.size(), 0, 'and is forgotten');
-  saveAiPlan(p, s); clearAiPlan(WEEK, s);
-  eq(cachedAiPlan(WEEK, cleanPrefs({}), s), null, 'Use the standard plan clears it');
+  saveAiPlan(p, cleanPrefs({}), 'u1', s); clearAiPlan(WEEK, s);
+  eq(cachedAiPlan(WEEK, cleanPrefs({}), 'u1', s), null, 'Use the standard plan clears it');
   s.setItem(`forge.mealai.${WEEK}`, '{not json');
-  eq(cachedAiPlan(WEEK, cleanPrefs({}), s), null, 'junk is ignored');
+  eq(cachedAiPlan(WEEK, cleanPrefs({}), 'u1', s), null, 'junk is ignored');
+});
+
+test('a saved AI week is dropped (and its key removed) when the diet chips or other preferences change', () => {
+  for (const change of [{ diets: ['pregnancy_safe'] }, { diets: ['low_histamine'] }, { leftovers: 'freeze' }, { snacks: 2 }, { cooking: 'batch' }]) {
+    const s = store();
+    saveAiPlan(checkAiPlan(week(), cleanPrefs({}), WEEK), cleanPrefs({}), 'u1', s);
+    assert(cachedAiPlan(WEEK, cleanPrefs({}), 'u1', s), 'same prefs keep it');
+    eq(cachedAiPlan(WEEK, cleanPrefs(change), 'u1', s), null, JSON.stringify(change));
+    eq(s.size(), 0, 'key removed');
+  }
+});
+
+test('a saved AI week made under one account is not shown to another (or to nobody)', () => {
+  const s = store();
+  saveAiPlan(checkAiPlan(week(), cleanPrefs({}), WEEK), cleanPrefs({}), 'uidA', s);
+  eq(cachedAiPlan(WEEK, cleanPrefs({}), 'uidB', s), null);
+  eq(s.size(), 0, 'key removed');
+  saveAiPlan(checkAiPlan(week(), cleanPrefs({}), WEEK), cleanPrefs({}), 'uidA', s);
+  eq(cachedAiPlan(WEEK, cleanPrefs({}), undefined, s), null);
+});
+
+test('Sign out and Delete everything clear every saved AI week', () => {
+  const s = store();
+  const p = checkAiPlan(week(), cleanPrefs({}), WEEK);
+  saveAiPlan(p, cleanPrefs({}), 'u1', s);
+  saveAiPlan(Object.assign({}, p, { weekStart: '2026-10-12' }), cleanPrefs({}), 'u1', s);
+  s.setItem('other.key', 'keep');
+  clearAllAiPlans(s);
+  eq(s.size(), 1, 'only the other key is left');
+  const settings = readFileSync(new URL('../js/screens/settings.js', import.meta.url), 'utf8');
+  const out = settings.indexOf('await signOut();');
+  assert(settings.slice(out - 120, out).includes('clearAllAiPlans'), 'sign out clears them');
+  const del = settings.indexOf('await clearLocalCache();');
+  assert(settings.slice(del - 120, del).includes('clearAllAiPlans'), 'Delete everything clears them');
+});
+
+test('amounts with a thousands comma parse as one number', () => {
+  eq(parseQty('1,000 g').n, 1000);
+  eq(parseQty('1,000 g').unit, 'g');
+  eq(parseQty('8,532 g').n, 8532);
+  const m = meal('dinner', { ingredients: [{ name: 'potatoes', qty: '1,000 g', section: 'produce' }] });
+  const rows = groceryList(week({ days: [{ date: WEEK, meals: [m, m, m, m] }] })).flatMap((g) => g.items);
+  const r = rows.find((i) => /potato/i.test(i.name));
+  eq(r.qty, '4000 g');
 });
 
 test('requestAiPlan sends only preferences and targets, and returns a checked plan', async () => {

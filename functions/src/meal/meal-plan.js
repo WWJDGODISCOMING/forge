@@ -337,7 +337,7 @@ const UFRAC = { '⅛': 1 / 8, '¼': 0.25, '⅜': 3 / 8, '½': 0.5, '⅝': 5 / 8,
 const QTY = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?\s*[⅛¼⅜½⅝¾⅞⅓⅔]|[⅛¼⅜½⅝¾⅞⅓⅔]|\d+(?:\.\d+)?)\s*(.*)$/;
 /** "1/2 cup" → { n: 0.5, unit: "cup" }; null when the amount has no leading number. */
 export function parseQty(q) {
-  const m = QTY.exec(String(q).trim());
+  const m = QTY.exec(String(q).trim().replace(/(\d),(?=\d{3}(?!\d))/g, '$1')); // "1,000 g" → "1000 g"
   if (!m) return null;
   const uf = /[⅛¼⅜½⅝¾⅞⅓⅔]$/.exec(m[1]);
   if (uf) return { n: (parseFloat(m[1]) || 0) + UFRAC[uf[0]], unit: m[2].trim() };

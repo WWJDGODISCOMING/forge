@@ -47,21 +47,34 @@ export function checkAiPlan(plan, prefs, weekStart) {
   };
 }
 
-/** The saved AI week for this week start, if it is still allowed by the current skip list; otherwise null (and it is forgotten). */
-export function cachedAiPlan(weekStart, prefs, store = globalThis.localStorage) {
+const PREFIX = 'forge.mealai.';
+/** What the week was made for: the same five preferences the server gets. A change to any of them makes the saved week stale. */
+const fingerprint = (prefs) => JSON.stringify([prefs.diets, prefs.avoid, prefs.leftovers, prefs.cooking, prefs.snacks]);
+
+/** The saved AI week for this week start, if it was made for this account and these preferences and still passes the skip list; otherwise null (and it is forgotten). */
+export function cachedAiPlan(weekStart, prefs, uid, store = globalThis.localStorage) {
   try {
     const raw = store && store.getItem(KEY(weekStart));
     if (!raw) return null;
-    const ok = checkAiPlan(JSON.parse(raw), prefs, weekStart);
+    const saved = JSON.parse(raw);
+    const ok = saved && uid && saved.uid === uid && saved.fp === fingerprint(prefs) ? checkAiPlan(saved.plan, prefs, weekStart) : null;
     if (!ok) store.removeItem(KEY(weekStart));
     return ok;
   } catch { return null; }
 }
-export function saveAiPlan(plan, store = globalThis.localStorage) {
-  try { store.setItem(KEY(plan.weekStart), JSON.stringify(plan)); } catch { /* private mode: the week still shows this time */ }
+export function saveAiPlan(plan, prefs, uid, store = globalThis.localStorage) {
+  try { store.setItem(KEY(plan.weekStart), JSON.stringify({ uid, fp: fingerprint(prefs), plan })); } catch { /* private mode: the week still shows this time */ }
 }
 export function clearAiPlan(weekStart, store = globalThis.localStorage) {
   try { store.removeItem(KEY(weekStart)); } catch { /* nothing saved */ }
+}
+/** Forgets every saved AI week on this phone (Sign out, Delete everything). */
+export function clearAllAiPlans(store = globalThis.localStorage) {
+  try {
+    const keys = [];
+    for (let i = 0; i < store.length; i++) keys.push(store.key(i));
+    keys.filter((k) => k && k.startsWith(PREFIX)).forEach((k) => store.removeItem(k));
+  } catch { /* nothing saved */ }
 }
 
 /** Asks the server for the AI week. Resolves to a checked plan; rejects with a short, calm message for the screen. `call` is js/functions.js call. */
