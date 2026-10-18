@@ -9,12 +9,13 @@ export const REST_DAY = '2026-10-13T12:00:00';
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** @param {{long?: boolean, empty?: boolean}} opt  long: long names + 4-digit calories; empty: a brand-new account */
-export function seed({ long = false, empty = false, active = false, effort = false, over = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
+export function seed({ long = false, empty = false, active = false, effort = false, over = false, mealPrefs = null, now = new Date(WORKOUT_DAY).getTime() } = {}) {
   const rec = (id, extra = {}) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
   const profile = rec('main', {
     goal: 'lose_fat', sex: 'male', age: 37, heightCm: 180, weightKg: 88, targetWeightKg: 80, activity: 'light',
     trainingDays: 4, sessionMin: 45, experience: 'intermediate', injuries: [], pacePct: 0.5, allowFastPace: false,
     tour: 'seen', tour_seen_at: new Date(now).toISOString(), tour_offer: TOUR_OFFER,
+    ...(mealPrefs ? { meal_prefs: mealPrefs } : {}),
   });
   const settings = rec('main', { units: 'imperial', player: 'guided', haptics: true, missions_started: dayKey(now - 3 * DAY) });
   const locations = [

@@ -311,3 +311,12 @@ test('part 1 does not touch Cloud Functions, rules or config, and has no network
     assert(!/fetch\(|XMLHttpRequest|XAI_API_KEY|import\(/.test(src), f);
   }
 });
+
+test('Log this: guards double taps, records carbs and fat, shows Logged once the entry exists; setup card and Sunday label', () => {
+  const src = readFileSync(new URL('../js/screens/food-plan.js', import.meta.url), 'utf8');
+  assert(src.includes('isPlannedLogged(state.food_logs, meal, day)) return false'), 'second tap must be a no-op');
+  assert(src.includes('carbs_g: meal.carbs_g') && src.includes('fat_g: meal.fat_g'), 'carbs and fat passed to logFields');
+  assert(src.includes('Logged <span'), 'logged state label');
+  assert(src.includes('data-setup') && src.includes('Set up your meal plan'), 'first-run setup card');
+  assert(src.includes('planWeekFor(todayKey())') && src.includes("'Next week'"), 'Sunday shows next week');
+});

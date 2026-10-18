@@ -1705,8 +1705,16 @@ if (standalone) {
         for (const ts of [1, 1.35]) {
           const at = `${w}${dark ? 'd' : 'l'}${ts !== 1 ? 'T' : ''}`;
           await browser.viewport(w, h, dark);
+          const prefsSeed = { diets: ['low_histamine', 'pregnancy_safe'], avoid: ['tomatoes', 'spicy foods'], leftovers: 'freeze', cooking: 'batch', snacks: 2 };
+          const setLarge = async () => { if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); } };
+          // first run: the setup card shows and the days stay hidden
           await browser.open('food', seed({}));
-          if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+          await setLarge();
+          await browser.eval("document.querySelector('input[name=food-view][value=plan]').click()"); await wait(500);
+          if (!(await browser.eval("!!document.querySelector('[data-plan] [data-setup] [data-prefs]') && !document.querySelector('[data-plan] .plan-meal')"))) note('setup card missing or days shown before setup', at);
+          for (const p of await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)) note(`Plan setup: ${p}`, at);
+          await browser.open('food', seed({ mealPrefs: prefsSeed }));
+          await setLarge();
           await browser.eval("document.querySelector('input[name=food-view][value=plan]').click()"); await wait(500);
           if (!(await browser.eval("!!document.querySelector('[data-plan] .plan-meal [data-log]')"))) { note('Plan view did not draw', at); continue; }
           if (!(await browser.eval("document.querySelector('[data-plan-foot]')?.textContent.includes('Not medical advice')"))) note('plan footer missing', at);
@@ -1717,10 +1725,16 @@ if (standalone) {
           if (!r) note('recipe sheet did not open', at);
           else { if (r.over > 1 || r.right > 1) note('recipe sheet overflows sideways', at); for (const b of r.bad) note(`recipe sheet clips "${b}"`, at); }
           await browser.eval("document.querySelector('dialog.sheet [data-close]').click()"); await wait(600);
-          await browser.eval("document.querySelector('[data-prefs]').click()"); await wait(700);
-          r = await browser.eval(sheetCheck);
-          if (!r) note('Food preferences did not open', at);
-          else { if (r.over > 1 || r.right > 1) note('Food preferences overflows sideways', at); for (const b of r.bad) note(`Food preferences clips "${b}"`, at); }
+          for (const [sel, name] of [['[data-prefs]', 'Food preferences'], ['[data-open-grocery]', 'Grocery list'], ['[data-open-prep]', 'Sunday prep']]) {
+            if (!(await browser.eval(`!!document.querySelector('${sel}')`))) { if (sel !== '[data-open-prep]') note(`${name} row missing`, at); continue; }
+            await browser.eval(`document.querySelector('${sel}').click()`); await wait(700);
+            r = await browser.eval(sheetCheck);
+            if (!r) note(`${name} did not open`, at);
+            else { if (r.over > 1 || r.right > 1) note(`${name} overflows sideways`, at); for (const b of r.bad) note(`${name} clips "${b}"`, at); }
+            await browser.eval("document.querySelector('dialog.sheet [data-close]').click()"); await wait(600);
+          }
+          await browser.eval("document.querySelectorAll('.plan-dayb')[6].click()"); await wait(300);
+          for (const p of await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)) note(`Plan Sunday: ${p}`, at);
         }
       }
     }
