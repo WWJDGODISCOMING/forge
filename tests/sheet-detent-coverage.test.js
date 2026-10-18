@@ -37,6 +37,21 @@ test('tall sheets pass detents medium + large', () => {
   for (const [f, o] of TALL) assert(OPT.test(sheetBody(f, o)), `${f} ${o}`);
 });
 
+test('Snap a meal goes to full height once when results or an error land, not on repaints', () => {
+  const snap = read('js/screens/snap.js');
+  assert(snap.includes('(body, closeSheet, sheetCtl) =>'), 'takes the sheet controls');
+  assert((snap.match(/sheetCtl\.expand\(\)/g) || []).length === 2, 'results and error only');
+  assert(snap.slice(snap.indexOf('async function start')).split('sheetCtl.expand()').length === 3, 'both calls live in start()');
+});
+
+test('sheet(): a closing lift owner hands the page to the next detent sheet; stacked sheets keep one owner', () => {
+  const ui = read('js/ui.js');
+  assert(ui.includes('if (prev && !prev.closing()) return;'), 'a live owner keeps the page');
+  assert(ui.includes('prev.stop();') && ui.includes('= prev.state()'), 'the new owner inherits the measured page');
+  assert(ui.includes('liftOwner?.dlg !== dlg'), 'a handed-over sheet cannot unlift the new owner');
+  assert(ui.includes('liftOwner?.dlg === dlg) { const l'), 'only the owner drives --sheet-lift');
+});
+
 test('short sheets do not pass detents', () => {
   for (const [f, o] of SHORT) assert(!/detents/.test(sheetBody(f, o)), `${f} ${o}`);
 });
