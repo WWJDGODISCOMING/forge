@@ -9,6 +9,7 @@ import { haptics } from '../ui/haptic.js';
 import { logFields } from '../food/core.js';
 import { getRecipe } from '../food/meal-library.js';
 import { generateWeek, alternatives, withSwap, weekStartOf, planWeekFor, SLOT_LABEL, MEAL_FOOTER, groceryList, batchPrep, scaleQty, servingsText, plannedPortion, plannedLogDay, isPlannedLogged } from '../food/meal-plan.js';
+import { cachedAiPlan, saveAiPlan, clearAiPlan, requestAiPlan, AI_FAIL } from '../food/meal-ai.js';
 import { mealPrefs, openFoodPrefs, prefsSummary } from './food-prefs.js';
 
 const num = (n) => Math.round(n).toLocaleString('en-US');
@@ -23,6 +24,7 @@ function targets() {
 }
 /** On Sunday (prep day) the plan is next week, Monday to Sunday; otherwise this week. */
 export const currentPlan = (prefs = mealPrefs()) => generateWeek({ prefs, targets: targets(), weekStart: planWeekFor(todayKey()) });
+export const aiEnabled = () => !!(state.settings && state.settings.meal_ai === true);
 const hasPrefs = () => !!(state.profile && state.profile.meal_prefs);
 const logged = (meal, date) => isPlannedLogged(state.food_logs, meal, plannedLogDay(date, todayKey()));
 
@@ -42,17 +44,20 @@ export function logPlanned(meal, date) {
 
 export function openRecipe(meal) {
   const rec = getRecipe(meal.id);
-  if (!rec) return;
+  const own = Array.isArray(meal.ingredients) && meal.ingredients.length; // an AI week carries its own amounts (already for this meal)
+  if (!rec && !own) return;
   const f = meal.servings || 1;
-  sheet(rec.name, (body) => {
+  const ings = own ? meal.ingredients : rec.ingredients.map((i) => ({ name: i.name, qty: scaleQty(i.qty, f) }));
+  const steps = own && meal.steps && meal.steps.length ? meal.steps : rec ? rec.steps : [];
+  sheet(meal.name, (body) => {
     body.innerHTML = `
       <div class="stack plan-recipe">
         <p class="small muted">${esc(estimate(meal))} for ${esc(servingsText(f))}. Estimates.</p>
         <h3>Ingredients</h3>
-        <ul class="list plan-ing">${rec.ingredients.map((i) => `<li><span class="plan-ing-name">${esc(i.name)}</span><small class="muted plan-ing-qty">${esc(scaleQty(i.qty, f))}</small></li>`).join('')}</ul>
+        <ul class="list plan-ing">${ings.map((i) => `<li><span class="plan-ing-name">${esc(i.name)}</span><small class="muted plan-ing-qty">${esc(i.qty)}</small></li>`).join('')}</ul>
         <p class="small muted">Amounts are for ${esc(servingsText(f))}.</p>
         <h3>Steps</h3>
-        <ol class="plan-steps">${rec.steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
+        <ol class="plan-steps">${steps.map((s) => `<li>${esc(s)}</li>`).join('')}</ol>
         <p class="disclaimer">${esc(MEAL_FOOTER)}</p>
       </div>`;
   }, { detents: ['medium', 'large'] });
@@ -84,7 +89,7 @@ function openSwap(plan, dayIdx, meal, rerender) {
   });
 }
 
-function mealRow(m, date) {
+function mealRow(m, date, swappable) {
   const done = logged(m, date);
   return `<li class="plan-meal" data-slot="${m.slot}">
     <button type="button" class="plan-open" data-open aria-label="Open recipe for ${esc(m.name)}">
@@ -92,7 +97,7 @@ function mealRow(m, date) {
       <b class="clamp2">${esc(m.name)}</b>
       <small class="muted">${esc(estimate(m))}</small>
     </button>
-    <div class="plan-acts"><button type="button" class="btn ${done ? 'ok' : 'ghost'} small-btn" data-log ${done ? 'aria-disabled="true"' : ''}>${done ? `Logged <span class="plan-tick" aria-hidden="true">${icon('check')}</span>` : 'Log this'}</button><button type="button" class="btn ghost small-btn" data-swap>Swap</button></div>
+    <div class="plan-acts"><button type="button" class="btn ${done ? 'ok' : 'ghost'} small-btn" data-log ${done ? 'aria-disabled="true"' : ''}>${done ? `Logged <span class="plan-tick" aria-hidden="true">${icon('check')}</span>` : 'Log this'}</button>${swappable ? '<button type="button" class="btn ghost small-btn" data-swap>Swap</button>' : ''}</div>
   </li>`;
 }
 
@@ -135,6 +140,8 @@ function openPrep(plan, prefs) {
 const row = (attr, ic, title, sub) => `<button type="button" class="g-row plan-prefs" ${attr}><span class="g-ic">${icon(ic)}</span><span class="g-text"><span>${esc(title)}</span><small>${esc(sub)}</small></span><span class="chev">${icon('chev')}</span></button>`;
 
 let picked = null; // { weekStart, idx }: the day shown in the strip
+let aiBusy = false;
+let aiNote = ''; // a calm message after the last AI try, shown until the next one
 
 /** Draws the Plan view into `el` (the Food screen's section). */
 export function renderPlan(el, { rerender }) {
@@ -157,7 +164,10 @@ export function renderPlan(el, { rerender }) {
     return;
   }
 
-  const plan = currentPlan(prefs);
+  const base = currentPlan(prefs);
+  const aiOn = aiEnabled();
+  const aiPlan = aiOn ? cachedAiPlan(base.weekStart, prefs) : null; // with AI off nothing is read, sent or shown
+  const plan = aiPlan || base;
   const today = todayKey();
   const nextWeek = plan.weekStart !== weekStartOf(today);
   const todayIdx = plan.days.findIndex((d) => d.date === today);
@@ -166,8 +176,10 @@ export function renderPlan(el, { rerender }) {
   const hasPrep = !!(prep && prep.items.length);
 
   box.innerHTML = `
-    <div class="plan-head"><h2>${nextWeek ? 'Next week' : 'This week'}</h2><small class="muted">Aiming for about ${num(plan.kcalTarget)} kcal and ${num(plan.proteinTarget)} g protein a day</small></div>
+    <div class="plan-head"><h2>${nextWeek ? 'Next week' : 'This week'}</h2><small class="muted">${aiPlan ? 'Made with AI, checked against your food preferences. ' : ''}Aiming for about ${num(plan.kcalTarget)} kcal and ${num(plan.proteinTarget)} g protein a day. All numbers are estimates.</small></div>
     <div class="stack plan-rows">
+      ${aiOn ? (aiPlan ? row('data-ai-off', 'refresh', 'Use the standard plan', 'Go back to the built-in week') : row('data-ai-on', 'star', aiBusy ? 'Working on your plan…' : 'Personalize with AI', 'Sends your food preferences to xAI')) : ''}
+      ${aiOn && aiNote ? `<p class="small muted plan-ai-note" role="status" data-ai-note>${esc(aiNote)}</p>` : ''}
       ${row('data-prefs', 'sliders', 'Food preferences', prefsSummary(prefs))}
       ${row('data-open-grocery', 'list', 'Grocery list', 'By store section')}
       ${hasPrep ? row('data-open-prep', 'calendar', 'Sunday prep', 'Cook once, eat all week') : ''}
@@ -183,17 +195,41 @@ export function renderPlan(el, { rerender }) {
     const d = plan.days[di];
     $$('.plan-dayb', box).forEach((b) => b.setAttribute('aria-pressed', String(Number(b.dataset.day) === di)));
     dayBox.innerHTML = `<div class="row between center"><h3>${d.date === today ? 'Today' : esc(dayName(d.date))}</h3><small class="muted">About ${num(d.kcal)} kcal</small></div>
-      <ul class="plan-meals">${d.meals.map((m) => mealRow(m, d.date)).join('')}</ul>`;
+      <ul class="plan-meals">${d.meals.map((m) => mealRow(m, d.date, !aiPlan)).join('')}</ul>`;
     $$('.plan-meal', dayBox).forEach((li) => {
       const meal = d.meals.find((m) => m.slot === li.dataset.slot);
       $('[data-open]', li).onclick = () => openRecipe(meal);
       $('[data-log]', li).onclick = () => { if (logPlanned(meal, d.date)) draw(); };
-      $('[data-swap]', li).onclick = () => openSwap(plan, di, meal, rerender);
+      const sw = $('[data-swap]', li);
+      if (sw) sw.onclick = () => openSwap(plan, di, meal, rerender);
     });
   };
   $$('.plan-dayb', box).forEach((b) => { b.onclick = () => { picked.idx = Number(b.dataset.day); haptics.select(); draw(); }; });
   $('[data-prefs]', box).onclick = () => openFoodPrefs({ onSave: rerender });
   $('[data-open-grocery]', box).onclick = () => openGrocery(plan);
+  const on = $('[data-ai-on]', box);
+  if (on) {
+    on.disabled = aiBusy;
+    on.setAttribute('aria-busy', String(aiBusy));
+    if (aiBusy) on.querySelector('.g-ic').classList.add('plan-spin');
+    on.onclick = async () => {
+      if (aiBusy) return;
+      aiBusy = true; aiNote = '';
+      rerender();
+      try {
+        const { call } = await import('../functions.js');
+        saveAiPlan(await requestAiPlan({ prefs, targets: targets(), weekStart: base.weekStart, call }));
+        haptics.success();
+      } catch (e) {
+        aiNote = (e && e.message) || AI_FAIL;
+        toast(aiNote);
+      }
+      aiBusy = false;
+      rerender();
+    };
+  }
+  const off = $('[data-ai-off]', box);
+  if (off) off.onclick = () => { clearAiPlan(base.weekStart); aiNote = ''; haptics.select(); rerender(); };
   const pr = $('[data-open-prep]', box);
   if (pr) pr.onclick = () => openPrep(plan, prefs);
   draw();
