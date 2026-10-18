@@ -5,6 +5,7 @@ import { RECIPES, TAGS, SLOTS, getRecipe } from '../js/food/meal-library.js';
 import {
   cleanPrefs, parseAvoid, matchesAvoid, fits, eligible, generateWeek, alternatives, withSwap, groceryList, batchPrep,
   weekStartOf, planTargets, calorieFloor, MEAL_FOOTER, FISH_CAP_OZ, CAFFEINE_CAP_MG, DIETS, slotsFor,
+  planWeekFor, scaleQty, fmtAmount, servingsText, plannedPortion, plannedLogDay, isPlannedLogged,
 } from '../js/food/meal-plan.js';
 
 const eqj = (a, b, m) => eq(JSON.stringify(a), JSON.stringify(b), m);
@@ -198,10 +199,103 @@ test('grocery list groups by store section, merges repeats; batch prep follows c
   eq(new Set(names).size, names.length);
   assert(list.some((g) => g.items.some((i) => i.uses > 1)));
   eq(batchPrep(plan, { ...LHPS, cooking: 'scratch' }), null);
-  const freeze = batchPrep(plan, { ...LHPS, cooking: 'batch' });
+  const freeze = batchPrep(generateWeek({ prefs: { ...LHPS, cooking: 'batch' }, targets: TARGETS, weekStart: WEEK }), { ...LHPS, cooking: 'batch' });
   assert(freeze.items.length > 0 && freeze.tips.join(' ').toLowerCase().includes('same day'));
-  const normal = batchPrep(plan, { ...LHPS, leftovers: 'normal', cooking: 'both' });
+  const lowHist = batchPrep(plan, { ...LHPS, leftovers: 'normal', cooking: 'both' });
+  assert(lowHist.tips.join(' ').toLowerCase().includes('same day'), 'low-histamine always freezes the same day');
+  const plain = generateWeek({ prefs: { diets: ['pregnancy_safe'], cooking: 'batch' }, targets: TARGETS, weekStart: WEEK });
+  const normal = batchPrep(plain, { diets: ['pregnancy_safe'], leftovers: 'normal', cooking: 'both' });
   assert(!normal.tips.join(' ').toLowerCase().includes('same day'));
+  for (const i of freeze.items) assert(i.portions >= 2 && i.meal && i.meal.id === i.id, 'prep lists only repeated meals, each tappable');
+});
+
+test('macros: every recipe and every planned meal has finite carbs and fat, and kcal is about 4P + 4C + 9F', () => {
+  for (const x of RECIPES) {
+    assert(Number.isFinite(x.carbs_g) && Number.isFinite(x.fat_g) && x.carbs_g >= 0 && x.fat_g > 0, `${x.id} macros`);
+    assert(Math.abs(4 * x.protein_g + 4 * x.carbs_g + 9 * x.fat_g - x.kcal) / x.kcal < 0.15, `${x.id} kcal`);
+  }
+  const plan = generateWeek({ prefs: LHPS, targets: TARGETS, weekStart: WEEK });
+  for (const d of plan.days) for (const m of d.meals) {
+    assert(Number.isFinite(m.carbs_g) && Number.isFinite(m.fat_g) && m.carbs_g > 0 || m.id === 's-egg-hard' || m.id === 's-salami', `${m.id} carbs`);
+    assert(Math.abs(4 * m.protein_g + 4 * m.carbs_g + 9 * m.fat_g - m.kcal) / m.kcal < 0.15, `${m.id} x${m.servings} kcal`);
+  }
+});
+
+test('foods to skip: how people really type it', () => {
+  const out = (t) => RECIPES.filter((x) => matchesAvoid(x, parseAvoid(t))).map((x) => x.id);
+  for (const t of ['spicy foods', 'Spicy food']) for (const id of ['d-curry', 'b-spicy-eggs', 'l-spicy-chili']) assert(out(t).includes(id), `${t} ${id}`);
+  for (const id of ['l-pasta-red', 'd-spag-bolognese', 'b-tomato-toast', 'l-spicy-chili']) assert(out('Tomato products').includes(id), id);
+  for (const t of ['fish', 'seafood']) for (const id of ['l-salmon-potato', 'd-cod-quinoa', 'l-tuna-sandwich']) assert(out(t).includes(id), `${t} ${id}`);
+  assert(out('nuts').includes('s-trail-mix'));
+  for (const id of ['l-chicken-rice', 'd-beef-stew', 'l-turkey-quinoa', 'b-spicy-eggs', 's-salami']) assert(out('meat').includes(id), `meat ${id}`);
+  for (const id of ['b-spicy-eggs', 's-salami']) assert(out('pork').includes(id), `pork ${id}`);
+  for (const t of ['nightshades', 'peppers']) for (const id of ['l-pasta-red', 'd-chicken-veg', 'l-spicy-chili']) assert(out(t).includes(id), `${t} ${id}`);
+  assert(!out('nightshades').includes('b-scramble-sweet') && !out('nightshades').includes('l-turkey-quinoa'), 'sweet potato is not a nightshade');
+  assert(!out('nuts').includes('b-rice-pear'), 'coconut is not a nut here');
+  eqj(parseAvoid('<b>Tomatoes</b>, null, !!!'), ['tomatoes', 'null']);
+});
+
+test('"old leftovers" in the skip list turns on Freeze right away', () => {
+  eq(cleanPrefs({ avoid: ['old leftovers'] }).leftovers, 'freeze');
+  eq(cleanPrefs({ avoid: ['tomatoes'] }).leftovers, 'normal');
+  assert(!fits(getRecipe('b-yogurt-parfait'), { avoid: ['Old leftovers'] }));
+});
+
+test('meal_prefs sanitizing: swap keys, recipe ids, weeks and the cap; avoid terms are plain strings', () => {
+  const today = '2026-10-21';
+  const swaps = { '2026-10-19:0:dinner': 'd-salmon-rice', '2026-10-26:6:snack2': 's-apple-seed', '2026-10-19:0:dinnerx': 'd-salmon-rice', '2026-10-19:7:dinner': 'd-salmon-rice',
+    '2026-10-19:1:lunch': 'nope', '2026-10-19:2:lunch': 'x'.repeat(100000), '2026-10-05:0:dinner': 'd-salmon-rice', '2026-11-30:0:dinner': 'd-salmon-rice', '2026-10-20:0:dinner': 'd-salmon-rice' };
+  const p = cleanPrefs({ swaps, avoid: [{}, null, 5, '<b>tomatoes</b>', ['x']] }, { today });
+  eqj(Object.keys(p.swaps).sort(), ['2026-10-19:0:dinner', '2026-10-26:6:snack2']);
+  eqj(p.avoid, ['tomatoes']);
+  const many = {};
+  for (let w = 0; w < 60; w++) many[`${weekStartOf(`2026-${String(1 + (w % 9)).padStart(2, '0')}-01`)}:${w % 7}:lunch`] = 'l-beef-rice';
+  assert(Object.keys(cleanPrefs({ swaps: many }).swaps).length <= 40);
+  let prefs = {};
+  for (let i = 0; i < 80; i++) prefs = withSwap(prefs, addWeeks(WEEK, i), i % 7, 'dinner', 'd-salmon-rice');
+  assert(Object.keys(prefs.swaps).length <= 40, 'withSwap caps');
+  assert(prefs.swaps[`${addWeeks(WEEK, 79)}:${79 % 7}:dinner`], 'the newest swap stays');
+});
+const addWeeks = (w, n) => { const d = new Date(`${w}T12:00:00Z`); d.setUTCDate(d.getUTCDate() + 7 * n); return d.toISOString().slice(0, 10); };
+
+test('amounts: scaled to the servings, summed in the grocery list, rice as rice, no water', () => {
+  eq(scaleQty('1/2 cup', 1.25), '⅝ cup'); eq(scaleQty('1 small', 1.25), '1¼ small'); eq(scaleQty('2', 1.5), '3'); eq(scaleQty('to taste', 2), 'to taste');
+  eq(servingsText(1.25), '1¼ servings'); eq(servingsText(1), '1 serving'); eq(fmtAmount(0.5), '½');
+  const plan = { days: [{ meals: [{ id: 'l-chicken-rice', servings: 1.5 }, { id: 'd-salmon-rice', servings: 1 }, { id: 'b-oat-apple', servings: 1 }, { id: 'b-oat-apple', servings: 1.5 }] }] };
+  const rows = groceryList(plan).flatMap((g) => g.items);
+  const row = (n) => rows.find((r) => r.name === n);
+  eq(row('rice').qty, 'about 2½ cups cooked'); assert(!row('cooked rice'));
+  assert(!row('water'), 'water is not shopping');
+  eq(row('apple').qty, '2½');
+  eq(row('olive oil').qty, '2½ tbsp');
+  eq(row('fresh salmon fillet').qty, '4 oz');
+  const mixed = groceryList({ days: [{ meals: [{ id: 'l-chicken-rice', servings: 1 }, { id: 'b-turkey-patty', servings: 1 }] }] }).flatMap((g) => g.items);
+  eq(mixed.find((r) => r.name === 'olive oil').qty, 'for 2 meals');
+});
+
+test('log this: a planned meal already in the log is recognised, so a second tap does nothing', () => {
+  const meal = { slot: 'snack1', name: 'Mango coconut bowl', servings: 1.25 };
+  const log = { day: '2026-10-21', meal: 'snack', name: 'Mango coconut bowl', portion: plannedPortion(meal), deleted: false };
+  assert(isPlannedLogged([log], meal, '2026-10-21'));
+  assert(!isPlannedLogged([log], meal, '2026-10-20'));
+  assert(!isPlannedLogged([{ ...log, deleted: true }], meal, '2026-10-21'));
+  assert(!isPlannedLogged([{ ...log, portion: '1 serving' }], meal, '2026-10-21'));
+  eq(plannedLogDay('2026-10-25', '2026-10-21'), '2026-10-21'); eq(plannedLogDay('2026-10-20', '2026-10-21'), '2026-10-20');
+});
+
+test('the Plan shows next week on Sunday and Monday-to-Sunday weeks otherwise', () => {
+  eq(planWeekFor('2026-10-18'), '2026-10-19'); // Sunday
+  eq(planWeekFor('2026-10-19'), '2026-10-19'); // Monday
+  eq(planWeekFor('2026-10-24'), '2026-10-19'); // Saturday
+});
+
+test('recipe copy: no lemon in a low-histamine plan, gluten-free only where it is true, fish notes, no stew in low-histamine', () => {
+  assert(!RECIPES.some((x) => /lemon/i.test(x.name)));
+  for (const id of ['d-sushi', 'b-yogurt-parfait']) assert(!getRecipe(id).tags.includes('gluten_free'), id);
+  for (const id of ['b-oat-apple', 's-oat-bites']) assert(getRecipe(id).ingredients[0].qty.includes('certified gluten-free'), id);
+  assert(!getRecipe('d-beef-stew').tags.includes('low_histamine'));
+  for (const id of ['l-salmon-potato', 'd-salmon-rice', 'd-cod-quinoa']) assert(getRecipe(id).steps.join(' ').includes('fresh or frozen'), id);
+  assert(!getRecipe('b-scramble-sweet').steps.join(' ').includes('until firm.') || !getRecipe('b-scramble-sweet').steps.join(' ').includes('set, until'));
 });
 
 test('copy: the footer is exact, no health claims in the library or the module', () => {
