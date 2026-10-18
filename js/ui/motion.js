@@ -1,6 +1,8 @@
 // Motion system: one shared animation loop (sleeps when nothing is animating), count-ups, and
 // View Transitions for screen changes. Tokens live in css/motion.css (--t-fast/med/slow, --ease-*).
 
+import { transitionKind } from '../nav.js';
+
 export const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 // ---------- the single rAF loop ----------
@@ -61,6 +63,17 @@ export function formatCount(parsed, v) {
 }
 
 const counted = new Set();
+/** While a ring morph runs: selector of the incoming ring, which shows its final arc and number from the first frame. */
+let finalRing = null;
+/** Mark the incoming morph ring under `root` as final, so its arc is not drawn in from empty. */
+export function keepRingFinal(root) {
+  if (finalRing) root.querySelectorAll(finalRing).forEach((el) => el.classList.add('sc-final'));
+}
+const onScreen = (el) => {
+  if (!el) return false;
+  const r = el.getBoundingClientRect();
+  return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
+};
 /** Call when you move to another screen, so its numbers count up again on the next visit. */
 export const resetCounters = () => counted.clear();
 
@@ -73,6 +86,7 @@ export function animateCounters(root) {
   root.querySelectorAll('[data-count]').forEach((el, i) => {
     if (el.children.length || counted.has(i)) return;
     counted.add(i);
+    if (finalRing && el.closest(finalRing)) return; // the ring that is flying in carries its value, no count-up
     const parsed = parseCountText(el.textContent);
     if (!parsed || !Number.isFinite(parsed.value) || parsed.value === 0) return;
     countUp(el, parsed.value, { format: (v) => formatCount(parsed, v), dur: 800 });
@@ -114,30 +128,44 @@ export function viewTransition(update, kind = 'fade', shared = null) {
   document.documentElement.dataset.vt = kind;
   // Shared element: the outgoing element gets the name now (so the old screen is captured with it), the incoming
   // one right after the update. Only one element holds the name at a time, and both lose it when the morph ends.
-  const sharedOn = shared && !reducedMotion();
-  const tag = (sel) => {
-    const el = document.querySelector(sel);
-    if (el) el.style.viewTransitionName = shared.name;
-    return el;
-  };
+  // The outgoing ring must be on screen before capture and the incoming one after render, else plain crossfade.
+  const sharedOn = shared && !reducedMotion() && onScreen(document.querySelector(shared.from));
   const untag = () => document.querySelectorAll(shared.from + ',' + shared.to).forEach((el) => { el.style.viewTransitionName = ''; });
-  if (sharedOn) tag(shared.from);
+  if (sharedOn) {
+    document.querySelector(shared.from).style.viewTransitionName = shared.name;
+    finalRing = shared.toFinal;
+  }
   const vt = document.startViewTransition(async () => {
     if (sharedOn) untag(); // the old screen is already captured; keep the name unique on the page
     await update();
-    if (sharedOn) tag(shared.to);
+    if (sharedOn) {
+      const el = document.querySelector(shared.to);
+      if (onScreen(el)) el.style.viewTransitionName = shared.name;
+    }
   });
   return vt.finished.catch(() => {}).finally(() => {
     delete document.documentElement.dataset.vt;
-    if (sharedOn) untag();
+    if (sharedOn) { untag(); finalRing = null; }
   });
 }
 
-/** Which ring morphs for a route change: Today ↔ Score only. Pure, so it can be tested. */
+/**
+ * Which ring morphs for a route change. Score is the Progress tab root, so Today to Score is a 'tab' change:
+ * it morphs only when the Score card was tapped (`cardTap`), and on the way back when Score was opened that way
+ * (`fromCard`). Tab-bar taps, deep links and every other pair give null. Pure, so it can be tested.
+ */
+export function ringMorphFor(from, to, { cardTap = false, fromCard = false, reduced = false } = {}) {
+  if (reduced || transitionKind(from, to) !== 'tab') return null;
+  const ring = sharedRingFor(from, to);
+  if (!ring) return null;
+  return (ring.from.endsWith('score-mini') ? cardTap : fromCard) ? ring : null;
+}
+
+/** Today and Score ring names and selectors. */
 export function sharedRingFor(from, to) {
   const f = from[0] || 'today';
   const t = to[0] || 'today';
-  if (f === 'today' && t === 'score' && !from[1]) return { name: 'score-ring', from: '#main .score-mini', to: '#main .score-hero' };
-  if (f === 'score' && t === 'today' && !to[1]) return { name: 'score-ring', from: '#main .score-hero', to: '#main .score-mini' };
+  if (f === 'today' && t === 'score' && !from[1]) return { name: 'score-ring', from: '#main .score-mini', to: '#main .score-hero', toFinal: '.score-hero' };
+  if (f === 'score' && t === 'today' && !to[1]) return { name: 'score-ring', from: '#main .score-hero', to: '#main .score-mini', toFinal: '.score-mini' };
   return null;
 }

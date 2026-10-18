@@ -6,7 +6,7 @@ import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
-import { viewTransition, sharedRingFor, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
+import { viewTransition, ringMorphFor, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
@@ -499,6 +499,16 @@ function afterRoute(parts) {
   window.scrollTo(0, scrollMemory.restore(route)); // tab roots remember where you were; detail screens start at the top
 }
 
+// Tapping the Score card on Today grows its ring into Score (a tab switch, so it is flagged here); tapping Today
+// from a Score opened that way shrinks it back. Used up by the next hashchange.
+let cardTap = false;
+let scoreFromCard = false;
+main.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-score]')) return;
+  cardTap = true;
+  scrollMemory.forget('score'); // opens at the top, so the ring is on screen
+});
+
 window.addEventListener('hashchange', async () => {
   closeAllSheets(); // a sheet never stays on top of the new screen (navigating button, deep link, back gesture)
   const from = prevParts;
@@ -518,13 +528,16 @@ window.addEventListener('hashchange', async () => {
     return;
   }
   const kind = transitionKind(from, to);
+  const ring = ringMorphFor(from, to, { cardTap, fromCard: scoreFromCard, reduced: reducedMotion() });
+  scoreFromCard = cardTap && from[0] !== 'score' && to[0] === 'score' && !!ring; // any other navigation forgets it
+  cardTap = false;
   if (kind !== 'tab') syncQL(true); // hide the + at once for a push or pop; render() brings it back on a root
   // Keep the screen we are leaving (one level) so a swipe back can show it sliding in behind.
   if (kind === 'push') snapshot = { route: from.join('/'), html: main.innerHTML, scroll: window.scrollY };
   viewTransition(async () => {
     await render();
     afterRoute(to);
-  }, reducedMotion() ? 'fade' : kind, kind === 'tab' ? null : sharedRingFor(from, to));
+  }, reducedMotion() ? 'fade' : kind, ring);
 });
 
 // Tapping a tab: switch to it; tapping the tab you're on scrolls to the top, or pops a detail screen back to its root.

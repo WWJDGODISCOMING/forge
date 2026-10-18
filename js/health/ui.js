@@ -1,5 +1,5 @@
 // Shared bits for the score rings (Today card, Score screen). The ring fills from empty unless reduced motion is on.
-import { reducedMotion } from '../ui/motion.js';
+import { reducedMotion, keepRingFinal } from '../ui/motion.js';
 
 /** Colour token for a 0–100 value: good when strong, accent when fine, warn when middling, ember when low. */
 export const scoreColor = (v) => (v == null ? 'var(--surface-3)' : v >= 80 ? 'var(--good)' : v >= 60 ? 'var(--accent-text)' : v >= 40 ? 'var(--warn)' : 'var(--ember)');
@@ -24,6 +24,7 @@ export function ringSvg(value, { size = 100, stroke = 10 } = {}) {
 export function animateScoreRings(root) {
   if (reducedMotion()) return;
   root.classList.add('sc-pre');
+  keepRingFinal(root); // a morphing ring is never drawn in from empty
   requestAnimationFrame(() => requestAnimationFrame(() => root.classList.remove('sc-pre')));
 }
 
