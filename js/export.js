@@ -6,6 +6,7 @@ import { exerciseById } from './workouts/library.js';
 import { toCSV } from './csv.js';
 import { BODY_COLUMNS, bodyRows } from './export-body.js';
 import { deliver } from './deliver-file.js';
+import { cardioCsvRows, CARDIO_CSV_COLUMNS } from './cardio-types.js';
 
 export async function exportJSON() {
   const out = { app: 'forge', version: VERSION, exported_at: new Date().toISOString(), data: {} };
@@ -49,10 +50,7 @@ export async function exportWorkoutsCSV() {
 }
 
 export async function exportCardioCSV() {
-  const rows = (await readAll('cardio_sessions')).filter((r) => !r.deleted)
-    .sort((a, b) => (a.started_at < b.started_at ? -1 : 1))
-    .map((r) => ({ ...r, distance_mi: r.distance_km ? (r.distance_km / 1.609344).toFixed(2) : '' }));
-  const csv = toCSV(rows, ['day', 'started_at', 'activity', 'duration_min', 'distance_km', 'distance_mi', 'calories', 'avg_hr', 'notes', 'source', 'id']);
+  const csv = toCSV(cardioCsvRows(await readAll('cardio_sessions')), CARDIO_CSV_COLUMNS);
   await deliver(`forge-cardio-${todayKey()}.csv`, csv, 'text/csv');
 }
 

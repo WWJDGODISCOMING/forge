@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.23 — Jog in place (2026-10-18)
+
+#129. Log cardio has a new activity, Jog in place, right after Run. It shows by name in History and its detail sheet. Jogging in place has no distance, so the Distance box hides for it and none is saved; minutes, calories and notes work as before. Export cardio (CSV) also has an `activity_name` column next to the stable `activity` key. No rules change: `firestore.rules` doesn't limit the activity value.
+
+### What's new
+
+- Jog in place in Log cardio.
+- The cardio detail sheet skips the Distance tile for Jog in place.
+- Export cardio (CSV) now names each activity, like Jog in place.
+
 ## 0.16.22 — Meal plan AI (2026-10-18)
 
 #124, part 3. An optional "Personalize with AI" week for the Plan view. It is off by default: turn on Settings → Meal plan AI (the row says it sends your food preferences to xAI). With it off, nothing changes and the app makes no network calls for plans. With it on, a Personalize with AI row appears on the Plan; tapping it asks the new `personalizeMealPlan` Cloud Function (the xAI key stays on the server, in the existing `XAI_API_KEY` secret). Every AI meal is checked on the server before it comes back: your diet chips, your skip list (same matching as the standard plan), the Low-histamine and Pregnancy-safe rules, fish at 12 oz a week, caffeine at 200 mg a day, and the 1,500 kcal floor (1,800 with Pregnancy-safe). A meal that fails is replaced by the standard plan's pick for that slot, and a day that falls under the floor becomes the standard day. The app checks the skip list again and shows a calm message, keeping the standard plan, on any error. Limits: 2 per hour and 5 per day per person, plus a daily cap for everyone. The AI week stays on this phone only; the server saves nothing (`meal_plans` rules, export and Delete everything are in place for later). Logging a planned meal is unchanged and adds no new food log fields. Digits-only skip terms (like "532") are now dropped. Needs a functions and rules deploy.
