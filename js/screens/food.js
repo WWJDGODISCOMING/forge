@@ -12,7 +12,9 @@ import { createFlow } from '../food/flow.js';
 import { search, createOnlineSearch } from '../food/search.js';
 import { SERVING_CHOICES, amountLabel, gramsFromAmount, gramsToOz, measureServing, portionItem, servingsLabel } from '../food/portion.js';
 import { haptics } from '../ui/haptic.js';
+import { renderPlan } from './food-plan.js';
 
+let foodView = 'log'; // 'log' or 'plan' (the Plan segment), kept while the app is open
 let viewDay = null; // the day shown; null = today
 const dayShown = () => (viewDay && viewDay <= todayKey() ? viewDay : todayKey());
 const fmtNum = (n) => Math.round(n * 100) / 100;
@@ -53,7 +55,18 @@ function meter(label, value, target, unit, { big = false } = {}) {
   </div>`;
 }
 
+const viewSeg = () => `<div class="seg food-view" role="radiogroup" aria-label="Food view">
+  <label><input type="radio" name="food-view" value="log" ${foodView === 'log' ? 'checked' : ''}><span>Log</span></label>
+  <label><input type="radio" name="food-view" value="plan" ${foodView === 'plan' ? 'checked' : ''}><span>Plan</span></label></div>`;
+const bindViewSeg = (el) => $$('input[name=food-view]', el).forEach((r) => { r.onchange = () => { haptics.select(); foodView = r.value; renderFood(el); }; });
+
 export function renderFood(el) {
+  if (foodView === 'plan') {
+    el.innerHTML = `<section class="stack food food-planview"><h1>Food</h1>${viewSeg()}</section>`;
+    bindViewSeg(el);
+    renderPlan($('section', el), { rerender: () => renderFood(el) });
+    return;
+  }
   const day = dayShown();
   const isToday = day === todayKey();
   const t = currentTargets();
@@ -66,6 +79,7 @@ export function renderFood(el) {
   el.innerHTML = `
     <section class="stack food">
       <h1>Food</h1>
+      ${viewSeg()}
       ${state.foodError ? `<div class="card" data-food-error><p class="label">Food isn’t switched on yet</p>
         <p class="small muted">The database said no (${esc(state.foodError)}). Food needs the new security rules published: run <code>firebase deploy --only firestore:rules</code> (DEPLOY.md, “If an update changes firestore.rules”). Nothing else in the app is affected.</p></div>` : ''}
       <div class="food-cols">
@@ -118,6 +132,7 @@ export function renderFood(el) {
       </div>
     </section>`;
 
+  bindViewSeg(el);
   $('[data-prev]', el).onclick = () => { viewDay = dayBefore(day); renderFood(el); };
   $('[data-next]', el).onclick = () => {
     const d = new Date(`${day}T12:00:00Z`);

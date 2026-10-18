@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.21 — Meal plans (2026-10-17)
+
+#124, part 1. The Food tab has a new Plan view with this week's meals, day by day: breakfast, lunch, dinner and 0 to 2 snacks, each with estimated calories and protein. Set it up in Settings → Food preferences: diet style (Low-histamine, Pregnancy-safe, Vegetarian, Dairy-free, Gluten-free), foods to avoid, the leftovers rule, cooking style and snacks per day. Calories and protein come from your existing goal. Plans come from a built-in recipe library and a rule-based picker, so they work with no network and no AI. The same settings and week always give the same plan. Pregnancy-safe leaves out raw or undercooked eggs, meat and fish, high-mercury fish, deli meat, liver and unpasteurized dairy, caps fish at 12 oz a week and caffeine at 200 mg a day. Plans never go below 1,500 kcal a day (1,800 with Pregnancy-safe). "Log this" adds a meal to your food log, "Swap" offers two alternatives under the same rules, and each recipe opens in a sheet. Swaps are stored in `profile.meal_prefs.swaps`, so there is no rules change. Not medical advice; the footer says so on every plan. Grocery list and batch-prep card are included. Personalize with AI and saved plans in Firestore come in a later part.
+
+### What's new
+
+- New Plan view on Food: a full week of meals that fit your diet and your goal.
+- Set diet style, foods to avoid, leftovers and cooking style in Settings.
+- Log this adds a planned meal to your food log. Swap shows two other choices.
+- Recipes open in a sheet. Grocery list and batch-prep card help you shop and cook.
+- Every plan shows estimates and a reminder to check with your doctor or dietitian.
+
 ## 0.16.20 — Effort ratings (2026-10-17)
 
 #121. After the last set of each exercise, Forge asks "How many more reps could you have done?" (0, 1, 2, 3, 4+ or Skip). One tap rates the hardest set and moves on. It stays quiet for timed moves, warm-ups, exercises where you missed planned reps, and sets you already rated. The per-set buttons now sit behind "Rate every set" in Settings → Workouts and the pause sheet (off by default). Next time, the target reads that rating: easy (3+) takes an extra step up, 2 is normal, 1 holds the weight and adds a rep below the top of the range, 0 or missed reps holds and eases the load about 5% after two sessions in a row. Unrated sessions use the reps alone: missing planned reps holds the weight, then eases it the second time. Deload weeks ignore ratings. The reason shows on the exercise ("Felt easy last time, +5 lb"). History shows the rating and lets you change it. Stored as `effort_rir` on the exercise inside the workout, so there is no rules change.

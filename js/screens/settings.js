@@ -13,6 +13,7 @@ import { VERSION } from '../version.js';
 import { unlockAudio, coach, sfx, beep } from '../ui/sound.js';
 import { hapticSupport, haptics } from '../ui/haptic.js';
 import { icon } from '../ui/icons.js';
+import { openFoodPrefs, prefsSummary } from './food-prefs.js';
 import { photoSettingsHtml, bindPhotoSettings } from '../photos/settings.js';
 import { missionSettings, setMissionSetting } from '../missions/store.js';
 import { privacySettingsHtml, bindPrivacySettings } from '../native/lock-ui.js';
@@ -58,6 +59,7 @@ export function renderSettings(el) {
       <div class="stack set-pane${sel === 'general' ? ' on' : ''}" id="set-general" role="tabpanel" aria-labelledby="setnav-general">
       <div class="group" data-tour="settings-profile">
         <a class="g-row" href="#/profile"><span class="g-ic">${icon('person')}</span><span class="g-text"><span>${esc(GOALS[p.goal]?.label || 'Profile')}</span><small>${esc(p.age)} yrs · ${formatHeight(p.heightCm, u)}${p.targetWeightKg ? ` · goal ${formatWeight(p.targetWeightKg, u, 0)}` : ''}</small></span><span class="chev">${icon('chev')}</span></a>
+        <button type="button" class="g-row" data-food-prefs><span class="g-ic">${icon('food')}</span><span class="g-text"><span>Food preferences</span><small>${esc(prefsSummary())}</small></span><span class="chev">${icon('chev')}</span></button>
       </div>
 
       <p class="sec-title">Units</p>
@@ -243,6 +245,7 @@ export function renderSettings(el) {
       if (btn && btn.isConnected) { btn.disabled = false; if (lab) lab.textContent = label; }
     }
   };
+  $('[data-food-prefs]', el).onclick = () => openFoodPrefs({ onSave: () => renderSettings(el) });
   $('[data-export-json]', el).onclick = run(exportJSON);
   $('[data-export-csv]', el).onclick = run(exportWeightsCSV);
   $('[data-export-workouts]', el).onclick = run(exportWorkoutsCSV);
