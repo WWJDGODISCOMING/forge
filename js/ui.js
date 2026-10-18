@@ -3,7 +3,7 @@
 import { isNative } from './native/bridge.js';
 import { reducedMotion, DUR } from './ui/motion.js';
 import { icon } from './ui/icons.js';
-import { shouldDismiss, rubberBand, dragProgress, velocityOf, pickDetent, crossedDetent } from './ui/gesture.js';
+import { shouldDismiss, rubberBand, dragProgress, velocityOf, pickDetent, crossedDetent, liftProgress } from './ui/gesture.js';
 import { registerSheet } from './ui/sheets.js';
 import { haptics } from './ui/haptic.js';
 import { playSpring, SHEET } from './ui/spring.js';
@@ -48,6 +48,8 @@ export function toast(message, ms = 2600, { icon: name = '', action = null } = {
 }
 
 let sheetCount = 0;
+let liftOpen = 0; // detent sheets currently easing the page back
+
 
 /**
  * Opens a bottom sheet: grabber, glass header, drag the grabber or header down to dismiss (a long drag or a
@@ -85,6 +87,29 @@ export function sheet(title, render, opts = {}) {
     dlg.style.setProperty('--sheet-y', `${y}px`);
     const low = ds ? ds[ds.length - 1] : 0; // the backdrop stays full at the lowest detent
     dlg.style.setProperty('--sheet-p', String(1 - dragProgress(Math.max(0, y - low), dlg.offsetHeight - low)));
+    if (ds && pages.length) { const l = String(liftProgress(y, ds)); for (const el of pages) el.style.setProperty('--sheet-lift', l); } // same frame as --sheet-y
+  };
+  // Detent sheets ease the page behind back (#main and #nav share one transform origin, so they move as one piece).
+  let pages = [];
+  const willChange = (on) => { for (const el of pages) { if (on) el.style.willChange = 'transform'; else el.style.removeProperty('will-change'); } };
+  const lift = () => {
+    pages = [document.getElementById('main'), document.getElementById('nav')].filter(Boolean);
+    liftOpen++;
+    for (const el of pages) {
+      el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`); // top of the viewport, in the element's own space
+      el.classList.add('lifted');
+    }
+    document.documentElement.classList.add('sheet-lift-on');
+  };
+  const unlift = () => {
+    if (!pages.length) return;
+    for (const el of pages) {
+      el.classList.remove('lifted');
+      for (const k of ['--sheet-lift', '--lift-oy', 'will-change']) el.style.removeProperty(k);
+      if (!el.getAttribute('style')) el.removeAttribute('style');
+    }
+    pages = [];
+    if (--liftOpen <= 0) { liftOpen = 0; document.documentElement.classList.remove('sheet-lift-on'); }
   };
   const atRest = (to) => {
     rest = to;
@@ -93,6 +118,7 @@ export function sheet(title, render, opts = {}) {
   const settle = () => {
     anim = null;
     dlg.style.removeProperty('will-change');
+    willChange(false);
     if (rest > 0) { place(rest); return; } // parked at a lower detent: JS keeps owning the position
     dlg.classList.remove('springing');
     dlg.style.removeProperty('--sheet-y');
@@ -102,6 +128,7 @@ export function sheet(title, render, opts = {}) {
     anim?.stop();
     dlg.classList.add('springing');
     dlg.style.willChange = 'transform';
+    willChange(true);
     anim = playSpring({ el: dlg, from, to, velocity, params: SHEET, reach, relativeTo, onUpdate: place, onDone });
   };
   // Move a parked sheet up to full height (a text field got focus, or the food dock opened).
@@ -119,6 +146,7 @@ export function sheet(title, render, opts = {}) {
     if (dlg.contains(document.activeElement) && document.activeElement.matches('input, textarea, select')) toLarge(); // focused during the open
   };
   const finish = () => {
+    unlift();
     forget();
     if (dlg.open) dlg.close();
     dlg.remove();
@@ -170,6 +198,7 @@ export function sheet(title, render, opts = {}) {
         dlg.classList.add('dragging');
         dlg.classList.add('springing');
         dlg.style.willChange = 'transform';
+        willChange(true);
         place(base);
       });
       handle.addEventListener('pointermove', (e) => {
@@ -240,6 +269,7 @@ export function sheet(title, render, opts = {}) {
       ds = [0, medium];
       dlg.style.setProperty('--detent-pad', `${medium}px`); // lets the last row scroll above the screen edge at medium
       dlg.classList.add('detented');
+      lift();
       atRest(medium);
       dlg.addEventListener('focusin', (e) => {
         if (armed && e.target.closest('input, textarea, select')) toLarge();

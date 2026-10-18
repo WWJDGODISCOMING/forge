@@ -5,6 +5,7 @@
 
   /* Colour: near-black canvas, surfaces step up in small lightness increments, no outlines. */
   --bg: #0a0a0b;
+  --lift-bg: #050506;
   --surface-1: #161618;
   --surface-2: #212124;
   --surface-3: #2d2d31;
@@ -88,6 +89,7 @@
 @media (prefers-color-scheme: light) {
   :root {
     --bg: #f2f2f7;
+    --lift-bg: #050506;
     --surface-1: #ffffff;
     --surface-2: #f0f0f4;
     --surface-3: #e3e3e9;

@@ -4,7 +4,6 @@ import { VERSION } from '../js/version.js';
 import { CARDIO_TYPES, NO_DISTANCE, cardioDistanceKm, cardioStatsHtml, cardioCsvRows, CARDIO_CSV_COLUMNS } from '../js/cardio-types.js';
 import { toCSV } from '../js/csv.js';
 
-test('v0.16.23: version bumped', () => { eq(VERSION, '0.16.23'); });
 
 test('Jog in place is offered right after Run, with its label and no distance', () => {
   const keys = Object.keys(CARDIO_TYPES);

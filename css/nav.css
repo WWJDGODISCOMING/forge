@@ -181,6 +181,16 @@ dialog.sheet.dragging::backdrop, dialog.sheet.springing::backdrop { transition: 
 /* Detent sheets: at medium the lower part is off-screen, so pad the scroll end by that much to keep the last row reachable. */
 dialog.sheet.detented.at-medium .sheet-body { padding-bottom: calc(var(--safe-bottom) + 20px + var(--detent-pad, 0px)); }
 
+/* Detent sheets: the page behind eases back as the sheet goes to large (--sheet-lift 0..1, set from JS). transform + radius only. */
+@property --sheet-lift { syntax: '<number>'; inherits: false; initial-value: 0; }
+html.sheet-lift-on, html.sheet-lift-on body { background: var(--lift-bg); }
+#main.lifted, #nav.lifted {
+  transform-origin: 50% var(--lift-oy, 0px);
+  transform: translateY(calc((var(--safe-top) + 8px) * var(--sheet-lift))) scale(calc(1 - .06 * var(--sheet-lift)));
+}
+#main.lifted { clip-path: inset(var(--lift-oy, 0px) 0 0 0 round calc(12px * var(--sheet-lift))); } /* rounds the top of what is on screen, wherever the page is scrolled */
+#nav.lifted { border-radius: calc(12px * var(--sheet-lift)); }
+
 /* ---------- Cold-start skeleton (replaces the spinner) ---------- */
 .skel-screen { display: flex; flex-direction: column; gap: 14px; padding-top: 2px; }
 .sk-title { height: 41px; width: 52%; border-radius: 12px; margin-bottom: 8px; }
