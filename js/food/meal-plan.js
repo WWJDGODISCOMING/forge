@@ -333,11 +333,14 @@ export function fmtAmount(x) {
   if (!frac) return String(whole);
   return `${whole || ''}${FRACS[frac] || ''}`;
 }
-const QTY = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?)\s*(.*)$/;
+const UFRAC = { '⅛': 1 / 8, '¼': 0.25, '⅜': 3 / 8, '½': 0.5, '⅝': 5 / 8, '¾': 0.75, '⅞': 7 / 8, '⅓': 1 / 3, '⅔': 2 / 3 };
+const QTY = /^(\d+\s+\d+\/\d+|\d+\/\d+|\d+(?:\.\d+)?\s*[⅛¼⅜½⅝¾⅞⅓⅔]|[⅛¼⅜½⅝¾⅞⅓⅔]|\d+(?:\.\d+)?)\s*(.*)$/;
 /** "1/2 cup" → { n: 0.5, unit: "cup" }; null when the amount has no leading number. */
 export function parseQty(q) {
   const m = QTY.exec(String(q).trim());
   if (!m) return null;
+  const uf = /[⅛¼⅜½⅝¾⅞⅓⅔]$/.exec(m[1]);
+  if (uf) return { n: (parseFloat(m[1]) || 0) + UFRAC[uf[0]], unit: m[2].trim() };
   const n = m[1].split(/\s+/).reduce((t, part) => t + (part.includes('/') ? Number(part.split('/')[0]) / Number(part.split('/')[1]) : Number(part)), 0);
   return Number.isFinite(n) ? { n, unit: m[2].trim() } : null;
 }
@@ -373,7 +376,8 @@ export function groceryList(plan) {
   const rows = new Map();
   for (const d of plan.days) for (const m of d.meals) {
     const rec = getRecipe(m.id);
-    const ings = Array.isArray(m.ingredients) ? m.ingredients : rec ? rec.ingredients : null; // an AI meal carries its own list
+    const own = Array.isArray(m.ingredients); // an AI meal carries its own list, already scaled for that meal
+    const ings = own ? m.ingredients : rec ? rec.ingredients : null;
     if (!ings) continue;
     for (const ing of ings) {
       const section = SECTIONS[ing.section] ? ing.section : 'pantry';
@@ -384,7 +388,7 @@ export function groceryList(plan) {
       const row = rows.get(key) || { key, name, section, uses: 0, parts: [], cooked: rice };
       const q = parseQty(String(ing.qty).replace(/\s*\([^)]*\)/g, ''));
       row.uses += 1;
-      row.parts.push(q ? toTsp({ ...q, n: q.n * (m.servings || 1) }) : null);
+      row.parts.push(q ? toTsp({ ...q, n: own ? q.n : q.n * (m.servings || 1) }) : null);
       rows.set(key, row);
     }
   }

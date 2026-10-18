@@ -211,10 +211,7 @@ test('personalizeMealPlan: sends the preferences (not the key in the URL), saves
   assert.equal(call.init.headers.authorization, 'Bearer KEY123');
   assert.ok(!call.url.includes('KEY123'));
   assert.ok(JSON.parse(call.init.body).messages[0].content.includes('mushroom'));
-  const saved = (await db.doc(`users/u1/meal_plans/${WEEK}`).get()).data();
-  assert.equal(saved.source, 'ai'); assert.equal(saved.user_id, 'u1'); assert.equal(saved.id, WEEK); assert.equal(saved.weekStart, WEEK); assert.equal(saved.deleted, false);
-  assert.equal(saved.days.length, 7);
-  assert.deepEqual(Object.keys(saved).sort(), ['created_at', 'days', 'deleted', 'id', 'source', 'updated_at', 'user_id', 'weekStart']);
+  assert.equal((await db.doc(`users/u1/meal_plans/${WEEK}`).get()).exists, false, 'nothing is saved server-side');
   assert.equal((await db.doc(`users/u2/meal_plans/${WEEK}`).get()).exists, false);
   const logged = lines.join('\n');
   for (const secret of ['KEY123', 'mushroom', 'Herb chicken', 'chicken breast']) assert.ok(!logged.includes(secret), `logged ${secret}`);
@@ -282,12 +279,12 @@ test('personalizeMealPlan: model errors, timeouts, garbled, oversized and cut-of
   }
 });
 
-test('personalizeMealPlan: unsafe AI output is replaced before it is returned or saved', async () => {
+test('personalizeMealPlan: unsafe AI output is replaced before it is returned', async () => {
   const days = goodDays().map((d, i) => ({ meals: d.meals.map((m) => (m.slot === 'dinner' ? meal('dinner', { name: i % 2 ? 'Swordfish steak' : 'Tomato mushroom pasta', ingredients: [{ name: i % 2 ? 'swordfish' : 'tomatoes', qty: '6 oz' }] }) : m)) }));
   const db = fakeDb();
   const { plan } = await run({ db, fetch: model(reply(days)) });
-  const saved = (await db.doc(`users/u1/meal_plans/${WEEK}`).get()).data();
-  for (const t of [...texts(plan), ...texts(saved)]) assert.ok(!/swordfish|tomato|mushroom/.test(t), t);
+  assert.equal((await db.doc(`users/u1/meal_plans/${WEEK}`).get()).exists, false);
+  for (const t of texts(plan)) assert.ok(!/swordfish|tomato|mushroom/.test(t), t);
   assert.equal(plan.days.length, 7);
   assert.ok(plan.days.every((d) => d.meals.some((m) => m.slot === 'dinner')));
 });

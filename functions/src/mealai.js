@@ -282,7 +282,7 @@ export async function deleteMealAiData({ db, uid, now = Date.now() }) {
 }
 
 // ---------- the whole job ----------
-/** Check, count, ask the model, check every meal, save for this user. Returns { plan }. Throws MealAiError. */
+/** Check, count, ask the model, check every meal. Nothing is stored; the app keeps the week on the phone. Returns { plan }. Throws MealAiError. */
 export async function personalizeMealPlan({ db, uid, data, apiKey, fetch, now = Date.now() }) {
   const input = cleanInput(data);
   if (!apiKey) { log('meal_ai_error', { reason: 'nokey' }); throw new MealAiError('nokey'); }
@@ -315,14 +315,6 @@ export async function personalizeMealPlan({ db, uid, data, apiKey, fetch, now = 
   const aiDays = parseDays(choice.message && choice.message.content);
   const plan = buildWeek({ aiDays, prefs: input.prefs, targets: input.targets, weekStart: input.weekStart });
   if (!plan.days.some((d) => d.meals.length)) throw new MealAiError('garbled');
-  const ref = db.doc(P.mealPlan(uid, input.weekStart));
-  const prev = await ref.get();
-  const iso = new Date(now).toISOString();
-  await ref.set({
-    id: input.weekStart, user_id: uid, created_at: prev.exists && typeof prev.data().created_at === 'string' ? prev.data().created_at : iso, updated_at: iso,
-    source: 'ai', deleted: false, weekStart: input.weekStart,
-    days: plan.days.map((d) => ({ date: d.date, meals: d.meals })),
-  });
   log('meal_ai', { replaced: plan.replaced, ms: Date.now() - started });
   return { plan };
 }

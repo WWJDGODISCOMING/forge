@@ -120,6 +120,16 @@ test('Swap is hidden on an AI week (its meals are not in the standard picker) an
   assert(plan.includes('const own = Array.isArray(meal.ingredients) && meal.ingredients.length'));
 });
 
+test('grocery list: an AI meal’s own amounts are not scaled twice and Unicode fractions parse', () => {
+  const replaced = meal('dinner', { servings: 1.25, ingredients: [{ name: 'fresh rosemary', qty: '1¼ tsp', section: 'produce' }, { name: 'green onion', qty: '2½', section: 'produce' }, { name: 'butter', qty: '½ tbsp', section: 'pantry' }] });
+  const rows = groceryList(week({ days: [{ date: WEEK, meals: [replaced] }] })).flatMap((g) => g.items);
+  const row = (n) => rows.find((i) => i.name === n);
+  eq(row('Fresh rosemary').qty, '1¼ tsp');
+  eq(row('Green onions').qty, '3');
+  eq(row('Butter').qty, '1½ tsp');
+  for (const r of rows) assert((r.qty.match(/[⅛¼⅜½⅝¾⅞⅓⅔]/g) || []).length <= 1, `two fractions in ${r.qty}`);
+});
+
 test('digits-only skip terms are dropped by the app’s own cleaning too', () => {
   eq(JSON.stringify(cleanPrefs({ avoid: ['8,532', '532', 'tomatoes', '12 oz'] }).avoid), JSON.stringify(['tomatoes', '12 oz']));
 });
