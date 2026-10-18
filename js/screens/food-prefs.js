@@ -4,11 +4,13 @@ import { state } from '../state.js';
 import { patch } from '../db.js';
 import { esc, $, $$, sheet, toast } from '../ui.js';
 import { haptics } from '../ui/haptic.js';
-import { cleanPrefs, parseAvoid, DIETS, LEFTOVERS, COOKING, MAX_AVOID } from '../food/meal-plan.js';
+import { cleanPrefs, parseAvoid, DIETS, COOKING, MAX_AVOID } from '../food/meal-plan.js';
 
 export const mealPrefs = () => cleanPrefs(state.profile && state.profile.meal_prefs);
 
+const LEFTOVER_CHIP = { freeze: 'Freeze right away', normal: 'Normal' };
 const radio = (name, value, label, on) => `<label><input type="radio" name="${name}" value="${value}" ${on ? 'checked' : ''}><span>${esc(label)}</span></label>`;
+const chipRadio = (name, value, label, on) => `<label class="chip">${radio(name, value, label, on).slice('<label>'.length)}`;
 
 /** One-line summary for the Settings row. */
 export function prefsSummary(prefs = mealPrefs()) {
@@ -29,9 +31,10 @@ export function openFoodPrefs({ onSave = () => {} } = {}) {
         <label class="field"><span>Separate with commas</span><input name="avoid" maxlength="400" value="${esc(p.avoid.join(', '))}" autocomplete="off" autocapitalize="off" placeholder="tomatoes, mushrooms, spicy" aria-describedby="avoid-note"></label>
         <p class="small muted" id="avoid-note">Up to ${MAX_AVOID}. Plans leave out any recipe that has them.</p>
         <p class="sec-title">Leftovers</p>
-        <div class="seg wrap" role="radiogroup" aria-label="Leftovers">${Object.entries(LEFTOVERS).map(([k, l]) => radio('leftovers', k, l, p.leftovers === k)).join('')}</div>
+        <div class="chips" role="radiogroup" aria-label="Leftovers">${Object.entries(LEFTOVER_CHIP).map(([k, l]) => chipRadio('leftovers', k, l, p.leftovers === k)).join('')}</div>
+        <p class="small muted">Freeze right away means extra portions go to the freezer the same day, never the fridge.</p>
         <p class="sec-title">Cooking style</p>
-        <div class="seg small" role="radiogroup" aria-label="Cooking style">${Object.entries(COOKING).map(([k, l]) => radio('cooking', k, l, p.cooking === k)).join('')}</div>
+        <div class="chips" role="radiogroup" aria-label="Cooking style">${Object.entries(COOKING).map(([k, l]) => chipRadio('cooking', k, l, p.cooking === k)).join('')}</div>
         <p class="sec-title">Snacks a day</p>
         <div class="seg small" role="radiogroup" aria-label="Snacks a day">${[0, 1, 2].map((n) => radio('snacks', n, String(n), p.snacks === n)).join('')}</div>
         <p class="small muted">Always 3 meals, plus the snacks you pick.</p>

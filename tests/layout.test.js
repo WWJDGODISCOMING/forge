@@ -1692,6 +1692,42 @@ if (standalone) {
   });
 }
 
+if (standalone) {
+  test('layout: Food Plan, recipe sheet and Food preferences: no wraps, clips or overflow at 320, 390 and both Duo sizes, light and dark, Large Text', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    const sheetCheck = `(() => { const d = document.querySelector('dialog.sheet'); if (!d) return null; const b = d.querySelector('.sheet-body'); const r = d.getBoundingClientRect(); const bad = [...d.querySelectorAll('button, .chip span, .seg span, .btn')].filter((e) => e.offsetParent && (e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > innerWidth + 1)).map((e) => e.textContent.trim().slice(0, 24)); return { over: b.scrollWidth - b.clientWidth, right: r.right - innerWidth, bad }; })()`;
+    for (const [w, h] of [[320, 568], [390, 844], [466, 678], [626, 890]]) {
+      for (const dark of [true, false]) {
+        for (const ts of [1, 1.35]) {
+          const at = `${w}${dark ? 'd' : 'l'}${ts !== 1 ? 'T' : ''}`;
+          await browser.viewport(w, h, dark);
+          await browser.open('food', seed({}));
+          if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+          await browser.eval("document.querySelector('input[name=food-view][value=plan]').click()"); await wait(500);
+          if (!(await browser.eval("!!document.querySelector('[data-plan] .plan-meal [data-log]')"))) { note('Plan view did not draw', at); continue; }
+          if (!(await browser.eval("document.querySelector('[data-plan-foot]')?.textContent.includes('Not medical advice')"))) note('plan footer missing', at);
+          const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+          for (const p of probs) note(`Plan: ${p}`, at);
+          await browser.eval("document.querySelector('.plan-open').click()"); await wait(700);
+          let r = await browser.eval(sheetCheck);
+          if (!r) note('recipe sheet did not open', at);
+          else { if (r.over > 1 || r.right > 1) note('recipe sheet overflows sideways', at); for (const b of r.bad) note(`recipe sheet clips "${b}"`, at); }
+          await browser.eval("document.querySelector('dialog.sheet [data-close]').click()"); await wait(600);
+          await browser.eval("document.querySelector('[data-prefs]').click()"); await wait(700);
+          r = await browser.eval(sheetCheck);
+          if (!r) note('Food preferences did not open', at);
+          else { if (r.over > 1 || r.right > 1) note('Food preferences overflows sideways', at); for (const b of r.bad) note(`Food preferences clips "${b}"`, at); }
+        }
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;
