@@ -357,3 +357,72 @@ test('foods and food_logs: created_at and user_id cannot change, standard fields
     await assertFails(setDoc(doc(db, `users/alice/${col}/other`), { ...d, id: 'x1' })); // id must match the path
   }
 });
+
+// ---- meal_plans (v0.16.22): one doc per Monday, owner only ----
+const MON = '2026-10-19';
+const meal = (extra = {}) => ({
+  slot: 'dinner', id: 'd-chicken-veg', name: 'Roast chicken with vegetables', servings: 1, kcal: 600, protein_g: 45, carbs_g: 50, fat_g: 20,
+  ingredients: [{ name: 'chicken', qty: '5 oz' }], steps: ['Roast until cooked through.'], ...extra,
+});
+const mealDay = (i, meals = [meal()]) => ({ date: `2026-10-${19 + i}`, meals });
+const plan = (uid, id = MON, extra = {}) => rec(uid, id, {
+  source: 'rules', weekStart: id, days: Array.from({ length: 7 }, (_, i) => mealDay(i)), ...extra,
+});
+
+test('meal_plans: the owner can write, read, update and delete a week', async () => {
+  const ref = doc(as('alice'), `users/alice/meal_plans/${MON}`);
+  await assertSucceeds(setDoc(ref, plan('alice')));
+  await assertSucceeds(getDoc(ref));
+  await assertSucceeds(updateDoc(ref, { source: 'ai', updated_at: '2026-10-19T09:00:00Z' }));
+  await assertSucceeds(deleteDoc(ref));
+  const five = ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2'].map((slot) => meal({ slot }));
+  const full = plan('alice', '2026-10-26', { days: Array.from({ length: 7 }, (_, i) => mealDay(i, five)) });
+  await assertSucceeds(setDoc(doc(as('alice'), 'users/alice/meal_plans/2026-10-26'), full));
+});
+
+test('meal_plans: nobody else and nobody signed out can read or write', async () => {
+  await assertSucceeds(setDoc(doc(as('alice'), `users/alice/meal_plans/${MON}`), plan('alice')));
+  const ref = (db) => doc(db, `users/alice/meal_plans/${MON}`);
+  await assertFails(getDoc(ref(as('bob'))));
+  await assertFails(setDoc(ref(as('bob')), plan('alice')));
+  await assertFails(updateDoc(ref(as('bob')), { source: 'ai' }));
+  await assertFails(deleteDoc(ref(as('bob'))));
+  await assertFails(getDocs(collection(as('bob'), 'users/alice/meal_plans')));
+  const out = env.unauthenticatedContext().firestore();
+  await assertFails(getDoc(ref(out)));
+  await assertFails(setDoc(ref(out), plan('alice')));
+});
+
+test('meal_plans: a bad week start, id mismatch, wrong source or day count is rejected', async () => {
+  const db = as('alice');
+  const put = (id, d) => setDoc(doc(db, `users/alice/meal_plans/${id}`), d);
+  await assertFails(put('2026-10-20', plan('alice', '2026-10-20'))); // a Tuesday
+  await assertFails(put('2026-10-18', plan('alice', '2026-10-18'))); // a Sunday
+  await assertFails(put('2026-13-01', plan('alice', '2026-13-01')));
+  await assertFails(put('week-one', plan('alice', 'week-one')));
+  await assertFails(put(MON, plan('alice', MON, { weekStart: '2026-10-26' }))); // doc id and weekStart differ
+  await assertFails(put(MON, plan('alice', MON, { source: 'grok' })));
+  await assertFails(put(MON, plan('alice', MON, { days: [] })));
+  await assertFails(put(MON, plan('alice', MON, { days: Array.from({ length: 6 }, (_, i) => mealDay(i)) })));
+  await assertFails(put(MON, plan('alice', MON, { days: Array.from({ length: 8 }, (_, i) => mealDay(i)) })));
+  await assertFails(put(MON, plan('alice', MON, { days: 'x' })));
+  await assertFails(put(MON, plan('bob', MON))); // user_id must be mine
+});
+
+test('meal_plans: oversized or out-of-range meal fields and extra fields are rejected', async () => {
+  const db = as('alice');
+  const ref = doc(db, `users/alice/meal_plans/${MON}`);
+  const withMeal = (m) => plan('alice', MON, { days: Array.from({ length: 7 }, (_, i) => mealDay(i, i === 6 ? [meal(), m] : [meal()])) });
+  const bad = [
+    meal({ name: 'x'.repeat(81) }), meal({ name: '' }), meal({ name: 5 }),
+    meal({ ingredients: Array.from({ length: 13 }, () => ({ name: 'a', qty: '1' })) }), meal({ steps: Array.from({ length: 9 }, () => 'Stir.') }),
+    meal({ kcal: -1 }), meal({ kcal: 5001 }), meal({ kcal: '600' }), meal({ protein_g: 501 }), meal({ carbs_g: -5 }), meal({ fat_g: 501 }),
+    meal({ servings: 0 }), meal({ servings: 11 }), meal({ slot: 'brunch' }), meal({ photo_url: 'https://x' }),
+  ];
+  for (const m of bad) await assertFails(setDoc(ref, withMeal(m)));
+  await assertFails(setDoc(ref, plan('alice', MON, { notes: 'extra' })));
+  await assertFails(setDoc(ref, plan('alice', MON, { days: Array.from({ length: 7 }, (_, i) => ({ ...mealDay(i), extra: 1 })) })));
+  await assertFails(setDoc(ref, plan('alice', MON, { days: Array.from({ length: 7 }, (_, i) => mealDay(i, Array.from({ length: 6 }, () => meal()))) })));
+  await assertFails(setDoc(ref, plan('alice', MON, { days: Array.from({ length: 7 }, (_, i) => ({ ...mealDay(i), date: 'soon' })) })));
+  await assertSucceeds(setDoc(ref, withMeal(meal({ name: 'x'.repeat(80), kcal: 5000 }))));
+});

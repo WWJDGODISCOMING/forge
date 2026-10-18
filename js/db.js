@@ -16,10 +16,10 @@ import { db, auth } from './firebase.js';
 import { state } from './state.js';
 
 // Every collection the app writes. Export, delete-everything and firestore.rules use this list.
-export const COLLECTIONS = ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs'];
+export const COLLECTIONS = ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs', 'meal_plans'];
 // Added after the first release. Until firestore.rules is republished they can't be read, so export and
 // delete-everything treat "permission denied" on these as empty instead of failing.
-export const NEWER_COLLECTIONS = ['foods', 'food_logs'];
+export const NEWER_COLLECTIONS = ['foods', 'food_logs', 'meal_plans'];
 
 // Written only by Cloud Functions (Withings sync; Apple Health from W2). The app reads them, includes them
 // in exports and in delete-everything, and may only mark a record deleted (a tombstone the sync respects)

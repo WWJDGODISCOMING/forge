@@ -19,7 +19,7 @@ service cloud.firestore {
     }
 
     function allowedCollection(col) {
-      return col in ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs'];
+      return col in ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs', 'meal_plans'];
     }
 
     function hasStandardFields(uid, id) {
@@ -46,6 +46,48 @@ service cloud.firestore {
         && d.fat_g is number && d.fat_g >= 0 && d.fat_g <= 500;
     }
 
+    // meal_plans/{Monday}: one week of meals (source 'rules' or 'ai'). Rules can't loop over lists, so each day is
+    // checked at fixed positions (up to 5 meals a day) and ingredients and steps are checked for count only. The Cloud
+    // Function that writes AI plans also checks every string and number before it saves.
+    function validMeal(m) {
+      return m is map
+        && m.keys().hasOnly(['slot', 'id', 'name', 'servings', 'kcal', 'protein_g', 'carbs_g', 'fat_g', 'ingredients', 'steps'])
+        && m.name.size() >= 1 && m.name.size() <= 80
+        && m.slot in ['breakfast', 'lunch', 'dinner', 'snack1', 'snack2']
+        && m.kcal >= 0 && m.kcal <= 5000
+        && m.protein_g >= 0 && m.protein_g <= 500
+        && m.carbs_g >= 0 && m.carbs_g <= 500
+        && m.fat_g >= 0 && m.fat_g <= 500
+        && (!('id' in m) || (m.id is string && m.id.size() <= 40))
+        && (!('servings' in m) || (m.servings is number && m.servings > 0 && m.servings <= 10))
+        && m.ingredients is list && m.ingredients.size() <= 12
+        && m.steps is list && m.steps.size() <= 8;
+    }
+
+    function validMealAt(meals, i) {
+      return meals.size() <= i || validMeal(meals[i]);
+    }
+
+    function validDay(day) {
+      return day is map && day.keys().hasOnly(['date', 'meals'])
+        && day.date is string && day.date.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && day.meals is list && day.meals.size() <= 5
+        && validMealAt(day.meals, 0) && validMealAt(day.meals, 1) && validMealAt(day.meals, 2)
+        && validMealAt(day.meals, 3) && validMealAt(day.meals, 4);
+    }
+
+    function validMealPlan(id) {
+      let d = request.resource.data;
+      return d.keys().hasOnly(['id', 'user_id', 'created_at', 'updated_at', 'source', 'deleted', 'deleted_at', 'weekStart', 'days'])
+        && d.source in ['rules', 'ai']
+        && d.weekStart is string && d.weekStart == id
+        && d.weekStart.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
+        && timestamp.date(int(d.weekStart[0:4]), int(d.weekStart[5:7]), int(d.weekStart[8:10])).toMillis() % 604800000 == 345600000
+        && d.days is list && d.days.size() == 7
+        && validDay(d.days[0]) && validDay(d.days[1]) && validDay(d.days[2]) && validDay(d.days[3])
+        && validDay(d.days[4]) && validDay(d.days[5]) && validDay(d.days[6]);
+    }
+
     function validFor(col, id) {
       let d = request.resource.data;
       return (col != 'profile' || (id == 'main' && d.goal is string && d.weightKg is number && d.heightCm is number))
@@ -59,6 +101,7 @@ service cloud.firestore {
         && (col != 'cardio_sessions' || (d.activity is string && d.duration_min is number && d.started_at is string))
         && (col != 'programs' || (d.template is string && d.started_at is string))
         && (col != 'exercises' || (d.name is string && d.pattern is string && d.equipment is list))
+        && (col != 'meal_plans' || validMealPlan(id))
         && (col != 'foods' || (validFoodName(d) && validMacros(d) && d.serving is string && d.serving.size() <= 40))
         && (col != 'food_logs' || (validFoodName(d) && validMacros(d)
               && d.day is string && d.day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
