@@ -1,9 +1,9 @@
 // Small UI helpers: escaping, toasts, bottom sheets, confirm.
 
-import { isNative } from './native/bridge.js';
+import { isNative, syncStatusBar } from './native/bridge.js';
 import { reducedMotion, DUR } from './ui/motion.js';
 import { icon } from './ui/icons.js';
-import { shouldDismiss, rubberBand, dragProgress, velocityOf, pickDetent, crossedDetent } from './ui/gesture.js';
+import { shouldDismiss, rubberBand, dragProgress, velocityOf, pickDetent, crossedDetent, liftProgress } from './ui/gesture.js';
 import { registerSheet } from './ui/sheets.js';
 import { haptics } from './ui/haptic.js';
 import { playSpring, SHEET } from './ui/spring.js';
@@ -48,6 +48,8 @@ export function toast(message, ms = 2600, { icon: name = '', action = null } = {
 }
 
 let sheetCount = 0;
+let liftOwner = null; // the first detent sheet to ease the page back; sheets opened on top leave the page alone
+
 
 /**
  * Opens a bottom sheet: grabber, glass header, drag the grabber or header down to dismiss (a long drag or a
@@ -85,6 +87,47 @@ export function sheet(title, render, opts = {}) {
     dlg.style.setProperty('--sheet-y', `${y}px`);
     const low = ds ? ds[ds.length - 1] : 0; // the backdrop stays full at the lowest detent
     dlg.style.setProperty('--sheet-p', String(1 - dragProgress(Math.max(0, y - low), dlg.offsetHeight - low)));
+    if (ds && pages.length) { const l = String(liftProgress(y, ds)); for (const el of pages) el.style.setProperty('--sheet-lift', l); lightBar(Number(l) > 0.5); } // same frame as --sheet-y
+  };
+  // Detent sheets ease the page behind back (#main and #nav share one transform origin, so they move as one piece).
+  let pages = [];
+  const willChange = (on) => { for (const el of pages) { if (on) el.style.willChange = 'transform'; else el.style.removeProperty('will-change'); } };
+  // Top of the viewport, in each element's own space, measured once before any transform. #nav and #navbar are fixed,
+  // so only #main's origin moves as the page behind scrolls (scrollY - its document top; no getBoundingClientRect while lifted).
+  let mainTop = 0;
+  const measureMain = () => { pages[0]?.style.setProperty('--lift-oy', `${window.scrollY - mainTop}px`); };
+  let measureRaf = 0;
+  const onScroll = () => { if (!measureRaf) measureRaf = requestAnimationFrame(() => { measureRaf = 0; measureMain(); }); };
+  // Native, light theme: the strip above a lifted page is near-black, so the status bar goes light text past halfway.
+  let barLight = false;
+  const lightBar = (on) => {
+    if (on === barLight || !isNative() || window.matchMedia('(prefers-color-scheme: dark)').matches) return;
+    barLight = on;
+    syncStatusBar(on ? true : false);
+  };
+  const lift = () => {
+    if (liftOwner) return; // a detent sheet is already easing the page back
+    liftOwner = dlg;
+    pages = [document.getElementById('main'), document.getElementById('nav'), document.getElementById('navbar')].filter(Boolean);
+    for (const el of pages) el.style.setProperty('--lift-oy', `${-el.getBoundingClientRect().top}px`);
+    mainTop = pages[0].getBoundingClientRect().top + window.scrollY;
+    for (const el of pages) el.classList.add('lifted');
+    document.documentElement.classList.add('sheet-lift-on');
+    window.addEventListener('scroll', onScroll, { passive: true });
+  };
+  const unlift = () => {
+    if (liftOwner !== dlg) return;
+    liftOwner = null;
+    window.removeEventListener('scroll', onScroll);
+    if (measureRaf) { cancelAnimationFrame(measureRaf); measureRaf = 0; }
+    lightBar(false);
+    for (const el of pages) {
+      el.classList.remove('lifted');
+      for (const k of ['--sheet-lift', '--lift-oy', 'will-change']) el.style.removeProperty(k);
+      if (!el.getAttribute('style')) el.removeAttribute('style');
+    }
+    pages = [];
+    document.documentElement.classList.remove('sheet-lift-on');
   };
   const atRest = (to) => {
     rest = to;
@@ -93,6 +136,7 @@ export function sheet(title, render, opts = {}) {
   const settle = () => {
     anim = null;
     dlg.style.removeProperty('will-change');
+    willChange(false);
     if (rest > 0) { place(rest); return; } // parked at a lower detent: JS keeps owning the position
     dlg.classList.remove('springing');
     dlg.style.removeProperty('--sheet-y');
@@ -102,6 +146,7 @@ export function sheet(title, render, opts = {}) {
     anim?.stop();
     dlg.classList.add('springing');
     dlg.style.willChange = 'transform';
+    willChange(true);
     anim = playSpring({ el: dlg, from, to, velocity, params: SHEET, reach, relativeTo, onUpdate: place, onDone });
   };
   // Move a parked sheet up to full height (a text field got focus, or the food dock opened).
@@ -119,6 +164,7 @@ export function sheet(title, render, opts = {}) {
     if (dlg.contains(document.activeElement) && document.activeElement.matches('input, textarea, select')) toLarge(); // focused during the open
   };
   const finish = () => {
+    unlift();
     forget();
     if (dlg.open) dlg.close();
     dlg.remove();
@@ -170,6 +216,7 @@ export function sheet(title, render, opts = {}) {
         dlg.classList.add('dragging');
         dlg.classList.add('springing');
         dlg.style.willChange = 'transform';
+        willChange(true);
         place(base);
       });
       handle.addEventListener('pointermove', (e) => {
@@ -240,6 +287,7 @@ export function sheet(title, render, opts = {}) {
       ds = [0, medium];
       dlg.style.setProperty('--detent-pad', `${medium}px`); // lets the last row scroll above the screen edge at medium
       dlg.classList.add('detented');
+      lift();
       atRest(medium);
       dlg.addEventListener('focusin', (e) => {
         if (armed && e.target.closest('input, textarea, select')) toLarge();

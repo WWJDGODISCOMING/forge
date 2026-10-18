@@ -5,6 +5,8 @@
 
   /* Colour: near-black canvas, surfaces step up in small lightness increments, no outlines. */
   --bg: #0a0a0b;
+  --lift-bg: #000;
+  --lift-hi: .16; /* dark: how bright the pushed-back page's top band gets at full lift */
   --surface-1: #161618;
   --surface-2: #212124;
   --surface-3: #2d2d31;
@@ -89,6 +91,8 @@
   :root {
     --bg: #f2f2f7;
     --surface-1: #ffffff;
+    --lift-bg: #050506;
+    --lift-hi: 0;
     --surface-2: #f0f0f4;
     --surface-3: #e3e3e9;
     --separator: rgba(60, 60, 67, .16);

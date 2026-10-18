@@ -59,6 +59,18 @@ export function crossedDetent(prevOffset, offset, detents) {
   return null;
 }
 
+/**
+ * How far the page behind a detent sheet has eased back: 1 at the large detent (offset 0), 0 at the medium
+ * detent or lower, linear between, 0 with a single detent. Same `detents` as pickDetent.
+ */
+export function liftProgress(offset, detents) {
+  if (!detents || detents.length < 2) return 0;
+  const medium = Math.max(...detents);
+  const top = Math.min(...detents);
+  if (!(medium > top)) return 0;
+  return Math.min(1, Math.max(0, (medium - offset) / (medium - top)));
+}
+
 /** Dragging past the top (negative) gets stiffer the further you pull, like iOS; down is 1:1. */
 export function rubberBand(offset, limit = 80) {
   if (offset >= 0) return offset;

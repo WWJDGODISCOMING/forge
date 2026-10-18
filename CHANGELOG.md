@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.24 — Background scale-down (2026-10-18)
+
+#58 slice. When you drag Log food, or the meal plan's Recipe, Grocery list or Sunday prep, up to full height, the page behind eases back a little with rounded top corners, following your finger. Other sheets are unchanged. It is off with Reduced Motion and on wide screens. No functions or rules change.
+
+### What's new
+
+- Drag Log food up and the screen behind eases back, like Apple Music.
+
 ## 0.16.23 — Jog in place (2026-10-18)
 
 #129. Log cardio has a new activity, Jog in place, right after Run. It shows by name in History and its detail sheet. Jogging in place has no distance, so the Distance box hides for it and none is saved; minutes, calories and notes work as before. Export cardio (CSV) also has an `activity_name` column next to the stable `activity` key. No rules change: `firestore.rules` doesn't limit the activity value.
