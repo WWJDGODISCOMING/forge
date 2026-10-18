@@ -492,5 +492,5 @@ export function openMyFoods() {
       };
     };
     list();
-  });
+  }, { detents: ['medium', 'large'] });
 }

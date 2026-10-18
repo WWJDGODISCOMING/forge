@@ -409,7 +409,7 @@ function openChange(el, plan) {
       });
     };
     home();
-  });
+  }, { detents: ['medium', 'large'] });
 }
 
 function exerciseMore(el, plan, i) {

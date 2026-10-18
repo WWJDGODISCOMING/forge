@@ -167,5 +167,5 @@ export function openHowTo(id, { extra, focus } = {}) {
            <p class="small muted">Steps${hasPhotos(id) ? ' and photos' : ''} from free-exercise-db (public domain).</p>`
         : '';
     }).catch(() => { $('[data-steps]', body).innerHTML = ''; });
-  });
+  }, { detents: ['medium', 'large'] });
 }

@@ -178,5 +178,5 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
     }
 
     if (file) start(file); else paintPicker();
-  });
+  }, { detents: ['medium', 'large'] });
 }
