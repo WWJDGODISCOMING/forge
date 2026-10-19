@@ -56,7 +56,7 @@ export function previewPlan() {
   const loc = activeLocation();
   if (!loc) return null;
   const ed = editsFor(`${loc.id}|${dayOverride || ''}`);
-  const plan = planToday({ dayType: dayOverride, forced: ed.forced, avoidIds: ed.avoid, sessionMin: minOverride });
+  const plan = planToday({ dayType: dayOverride, forced: ed.forced, avoidIds: ed.avoid, sessionMin: minOverride, restSec: ed.rest });
   if (plan) {
     for (const it of plan.exercises) if (ed.rest[it.exercise_id]) it.rest_sec = ed.rest[it.exercise_id];
     plan.est_minutes = planMinutes(plan, allExercises(), restDefaultSec(state.settings)); // a rest picked in the dots menu changes the length
@@ -309,12 +309,12 @@ function openChange(el, plan) {
   const picks = pickedIds(edits);
   const tryNew = (replacePicks) => {
     const next = withSwapAvoid(edits, ids, { replacePicks });
-    const fresh = planToday({ dayType: dayOverride, forced: next.forced, avoidIds: next.avoid, sessionMin: minOverride });
+    const fresh = planToday({ dayType: dayOverride, forced: next.forced, avoidIds: next.avoid, sessionMin: minOverride, restSec: next.rest });
     const afterIds = fresh ? fresh.exercises.map((it) => it.exercise_id) : ids;
     return { next, afterIds, res: swapResult(ids, afterIds) };
   };
   const canSwap = ids.length > 0 && tryNew(false).res.state !== 'none';
-  const recommended = planToday({ dayType: null, sessionMin: minOverride });
+  const recommended = planToday({ dayType: null, sessionMin: minOverride, restSec: edits.rest });
   const usual = (state.profile && state.profile.sessionMin) || 60;
   const where = loc ? loc.name : 'this location';
   const row = (attr, title, sub, { disabled = false, check = false, one = false, wrap = false } = {}) => `
@@ -384,7 +384,7 @@ function openChange(el, plan) {
     const lengthStep = () => {
       // Each row previews the real result of picking it.
       const rows = LENGTHS.map((n) => {
-        const p = planToday({ dayType: dayOverride, forced: edits.forced, avoidIds: edits.avoid, sessionMin: n === usual ? null : n });
+        const p = planToday({ dayType: dayOverride, forced: edits.forced, avoidIds: edits.avoid, sessionMin: n === usual ? null : n, restSec: edits.rest });
         const fits = !!p && p.exercises.length > 0 && p.est_minutes <= n + 2;
         const sub = fits ? `${plural(p.exercises.length, 'exercise')}${n === usual ? ' · your usual' : ''}` : 'Too short for this workout here';
         return row(`data-v="${n}"`, `${n} min`, sub, { disabled: !fits, check: (minOverride || usual) === n, one: true });

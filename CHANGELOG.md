@@ -8,8 +8,8 @@ Pick how long the timer runs after every set. Cloud Functions and `firestore.rul
 
 - Set a default rest between sets in Settings → Workouts, like 1:00.
 - New installs start at 1:00. An exercise's own rest still wins.
-- The plan's "~NN min" now counts your rest, so a 1:00 default shows a shorter session than 3:00, and the number updates when you pick a rest in the dots menu.
-- Rest pickers show 6 or 8 even chips with no orphan, all in m:ss. The first dots-menu chip now reads "Default (1:30)".
+- Your rest now counts in the plan time, so a shorter rest means a shorter workout.
+- Rest choices sit in even rows and all read the same way, like 1:30.
 
 ## 0.16.37 — Your own protein goal (2026-10-19)
 

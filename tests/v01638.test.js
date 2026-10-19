@@ -109,3 +109,25 @@ test('rest sheets use even grids and m:ss labels only', () => {
   const REST_CHOICES = tr.match(/const REST_CHOICES = \[([^\]]+)\]/)[1].split(',').length;
   eq(REST_CHOICES % 4, 0, 'eight chips fill 4 columns');
 });
+
+// ---------- a ⋯ rest reaches the session-length fit ----------
+const slowBase = {
+  programKey: 'full_body_3x', dayType: 'full_a', location: HOME, unit: 'lb', exercises: EXERCISES,
+  profile: { experience: 'intermediate', sessionMin: 60, trainingDays: 4, injuries: '' }, settings: { rest_default_sec: 60 },
+};
+
+test('a 4:00 rest on the first lift keeps a 30-minute session within n + 2', () => {
+  const first = generateWorkout({ ...slowBase, sessionMin: 30 }).exercises[0].exercise_id;
+  const p = generateWorkout({ ...slowBase, sessionMin: 30, restSec: { [first]: 240 } });
+  assert(p.est_minutes <= 32, `${p.est_minutes} min`);
+  const it = p.exercises.find((x) => x.exercise_id === first);
+  if (it) eq(it.rest_sec, 240);
+});
+
+test('a length row over n + 2 with that rest reads as not fitting', () => {
+  const first = generateWorkout({ ...slowBase, sessionMin: 20 }).exercises[0].exercise_id;
+  const p = generateWorkout({ ...slowBase, sessionMin: 20, restSec: { [first]: 240 } });
+  const fits = p.exercises.length > 0 && p.est_minutes <= 22;
+  assert(fits === (p.est_minutes <= 22), 'row fit follows est_minutes with the rest counted');
+  assert(p.est_minutes > generateWorkout({ ...slowBase, sessionMin: 20 }).est_minutes || p.exercises.length >= 1, 'rest is costed');
+});

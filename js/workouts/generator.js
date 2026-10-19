@@ -183,6 +183,8 @@ export function generateWorkout(opts) {
     readiness = null,
     // A one-day session length in minutes (Change → Shorter or longer); otherwise the profile's.
     sessionMin: sessionMinOpt = null,
+    // Rests picked in ⋯ ({ exercise_id: sec }) so the length fit counts them.
+    restSec = {},
   } = opts;
   const sessionMin = sessionMinOpt || profile.sessionMin || 60;
   const experience = profile.experience || 'beginner';
@@ -294,7 +296,7 @@ export function generateWorkout(opts) {
     const wu = slot.role !== 'accessory' && target.weight ? warmups(ex, target.weight, { inventory: location.weight_inventory || {}, unit }) : [];
     const risky = (ex.avoid || []).filter((t) => avoid.has(t));
     const warning = risky.length ? `Heads up: this commonly stresses your ${risky.map((t) => t.replace('_', ' ')).join(', ')} (from your injury note). Swap it if it bothers you.` : null;
-    items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning });
+    items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning, ...(restSec[ex.id] ? { rest_sec: restSec[ex.id] } : {}) });
   }
 
   if (items.length < 4 && !injuryDropped) {
