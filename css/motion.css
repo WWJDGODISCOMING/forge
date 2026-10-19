@@ -47,6 +47,10 @@ html[data-vt="tab"]::view-transition-new(root), html[data-vt="fade"]::view-trans
 ::view-transition-group(score-ring) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; }
 ::view-transition-old(score-ring), ::view-transition-new(score-ring) { height: 100%; object-fit: contain; mix-blend-mode: normal; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(score-ring) { animation: none; } }
+/* Weight: the big number and the sparkline grow into the Body weight hero and chart, and back. Both images fill the group so the line stretches smoothly. */
+::view-transition-group(weight-num), ::view-transition-group(weight-chart) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; }
+::view-transition-old(weight-num), ::view-transition-new(weight-num), ::view-transition-old(weight-chart), ::view-transition-new(weight-chart) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(weight-num), ::view-transition-group(weight-chart) { animation: none; } }
 
 @keyframes vt-push-old { to { transform: translateX(-30%); filter: brightness(.6); } }
 @keyframes vt-push-new { from { transform: translateX(100%); } }

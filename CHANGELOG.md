@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.27 — Weight morph (2026-10-19)
+
+#58 slice. Tapping the Weight card on Today grows its number and sparkline into the weight hero and chart on Body, and going back shrinks them again. Off with Reduced Motion. No functions or rules change.
+
+### What's new
+
+- Tap your weight on Today and it grows into your weight chart.
+- The whole weight block on Today is now a tap target for the chart.
+
 ## 0.16.26 — Score ring morph (2026-10-18)
 
 #58 slice. Tapping the Score card on Today grows its ring into the big ring on the Score screen, and going back shrinks it into the card. Off with Reduced Motion. No functions or rules change.

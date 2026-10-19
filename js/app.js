@@ -6,7 +6,7 @@ import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
-import { viewTransition, ringMorphFor, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
+import { viewTransition, ringMorphFor, heroMorphFor, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
@@ -509,6 +509,18 @@ main.addEventListener('click', (e) => {
   scrollMemory.forget('score'); // opens at the top, so the ring is on screen
 });
 
+// Same for the Weight card: its "See chart" link or the number + sparkline block grows into the Body weight hero.
+let weightTap = false;
+let weightFromCard = false;
+const openWeight = () => { weightTap = true; location.hash = '#/body/weight'; };
+main.addEventListener('click', (e) => {
+  if (e.target.closest('.weight-card .card-link')) { weightTap = true; return; }
+  if (e.target.closest('[data-weight-open]')) openWeight();
+});
+main.addEventListener('keydown', (e) => {
+  if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-weight-open]')) { e.preventDefault(); openWeight(); }
+});
+
 window.addEventListener('hashchange', async () => {
   closeAllSheets(); // a sheet never stays on top of the new screen (navigating button, deep link, back gesture)
   const from = prevParts;
@@ -528,9 +540,11 @@ window.addEventListener('hashchange', async () => {
     return;
   }
   const kind = transitionKind(from, to);
-  const ring = ringMorphFor(from, to, { cardTap, fromCard: scoreFromCard, reduced: reducedMotion() });
+  const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, reduced: reducedMotion() });
   scoreFromCard = cardTap && from[0] !== 'score' && to[0] === 'score' && !!ring; // any other navigation forgets it
+  weightFromCard = weightTap && from[0] !== 'body' && to[0] === 'body' && !!ring;
   cardTap = false;
+  weightTap = false;
   if (kind !== 'tab') syncQL(true); // hide the + at once for a push or pop; render() brings it back on a root
   // Keep the screen we are leaving (one level) so a swipe back can show it sliding in behind.
   if (kind === 'push') snapshot = { route: from.join('/'), html: main.innerHTML, scroll: window.scrollY };
