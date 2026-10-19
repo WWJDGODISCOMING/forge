@@ -16,13 +16,14 @@ p, li { text-wrap: pretty; }
 /* ---------- Press states: everything tappable dips to 0.97 and springs back ---------- */
 .btn, .tool, .icon-btn, .chip-btn, .mini, .setcheck, .stepper button, .pl-nav button, .pl-ico, .next-card,
 a.card, .list li.tap, .choice, .chip, .seg label, .progress-seg a, .tabbar a, .nb-back, .bc-tile, .link,
-.update-capsule, .ht-seg button {
+.update-capsule, .ht-seg button, [data-weight-open] {
+  cursor: pointer;
   transition: transform var(--t-med) var(--ease-spring), opacity var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
 }
 .btn:active, .tool:active, .icon-btn:active, .chip-btn:active, .mini:active, .setcheck:active,
 .stepper button:active, .pl-nav button:active, .pl-ico:active, .next-card:active,
 a.card:active, .list li.tap:active, .choice:active, .chip:active, .seg label:active, .progress-seg a:active,
-.tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active {
+.tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, [data-weight-open]:active {
   transform: scale(.97);
   transition-duration: var(--t-fast);
 }
@@ -86,7 +87,7 @@ main.route-fade { animation: vt-fade-in var(--t-med) var(--ease-out); }
   .btn:active, .tool:active, .icon-btn:active, .chip-btn:active, .mini:active, .setcheck:active,
   .stepper button:active, .pl-nav button:active, .pl-ico:active, .next-card:active,
   a.card:active, .list li.tap:active, .choice:active, .chip:active, .seg label:active, .progress-seg a:active,
-  .tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active { transform: none; opacity: .7; }
+  .tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, [data-weight-open]:active { transform: none; opacity: .7; }
   .skeleton { animation: none; }
   .plan-list li, .pv-list > li, .sum-list li, .list.flat li { animation: none !important; }
   .restbar { transition: opacity var(--t-med) !important; transform: none !important; }

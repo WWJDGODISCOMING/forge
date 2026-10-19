@@ -80,6 +80,24 @@ test('Score results unchanged through heroMorphFor', () => {
   assert(heroMorphFor(['today'], ['score']) === null);
 });
 
+test('every incoming morph part is marked final in render(), not only rings', () => {
+  const a = read('js/app.js');
+  assert(/keepRingFinal\(main\);[\s\S]{0,160}animateCounters\(main\)/.test(a), 'render marks final before counters');
+  assert(read('js/ui/motion.js').includes("toFinal: '[data-weight-hero] .chart'"));
+});
+
+test('See chart only flags the weight morph when there is a reading', () => {
+  assert(read('js/app.js').includes("weightTap = !!main.querySelector('[data-weight-open]')"));
+});
+
+test('weight tap target: VoiceOver reads content, press feedback, pointer', () => {
+  const t = read('js/screens/today.js');
+  assert(!/aria-label="Weight chart"/.test(t), 'no label hiding the value');
+  const c = read('css/motion.css');
+  assert(c.split('[data-weight-open]:active').length - 1 >= 2, 'active in normal and reduced motion');
+  assert(/\[data-weight-open\] \{\s*cursor: pointer/.test(c));
+});
+
 test('weight morph wiring: tap target and CSS', () => {
   assert(read('js/screens/today.js').includes('data-weight-open'));
   const c = read('css/motion.css');

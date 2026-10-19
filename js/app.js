@@ -6,7 +6,7 @@ import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
-import { viewTransition, ringMorphFor, heroMorphFor, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
+import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
@@ -322,6 +322,7 @@ async function renderScreen() {
     fitCharts(main);
     syncPull(route);
     hapticSegments(main);
+    keepRingFinal(main); // every incoming morph part (ring, weight number, chart) arrives final, not drawn in from empty
     animateCounters(main);
     // A brand-new account sees the how-to tour once, on Today, right after onboarding.
     if (route === 'today' && state.profile.tour === 'pending') import('./tour/tour.js').then((m) => m.maybeStartTour());
@@ -514,7 +515,7 @@ let weightTap = false;
 let weightFromCard = false;
 const openWeight = () => { weightTap = true; location.hash = '#/body/weight'; };
 main.addEventListener('click', (e) => {
-  if (e.target.closest('.weight-card .card-link')) { weightTap = true; return; }
+  if (e.target.closest('.weight-card .card-link')) { weightTap = !!main.querySelector('[data-weight-open]'); return; } // no reading: nothing to fly
   if (e.target.closest('[data-weight-open]')) openWeight();
 });
 main.addEventListener('keydown', (e) => {
