@@ -2,7 +2,11 @@
    bottom sheets, the update capsule and toasts. Tokens (--t-*, --ease-*) live in css/motion.css. */
 
 /* ---------- Shell: behave like an app, not a web page ---------- */
-html, body { overscroll-behavior: none; background: var(--bg); }
+html, body { overscroll-behavior: none; }
+html { background: var(--bg); }
+/* The page is transparent so the one fixed ambient-light layer shows through. iOS ignores fixed attachment, so this is a real fixed layer. */
+body { background: transparent; }
+body::before { content: ''; position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--ambient-bg); }
 html { -webkit-text-size-adjust: 100%; }
 /* Chrome is not selectable and has no long-press callout. Inputs and readable text still are. */
 .navbar, .tabbar, .btn, .icon-btn, .link, .chip-btn, .mini, .tool, .seg, .seg label, .progress-seg, .progress-seg a,
@@ -101,9 +105,9 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 5;
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr));
   padding: 4px max(8px, var(--safe-right)) calc(var(--safe-bottom) + 2px) max(8px, var(--safe-left));
-  background: var(--glass);
-  -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
-  box-shadow: inset 0 .5px 0 var(--hairline);
+  background: var(--tabbar-bg);
+  -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
+  box-shadow: var(--tabbar-shadow);
 }
 .tabbar[hidden] { display: none; }
 .tabbar a {
@@ -214,10 +218,10 @@ html.sheet-lift-on body { background: transparent; }
 html, body { overflow-x: hidden; }
 @supports (overflow: clip) { html, body { overflow-x: clip; } }
 main.swiping {
-  position: relative; z-index: 1; min-height: 100dvh; background: var(--bg);
+  position: relative; z-index: 1; min-height: 100dvh; background: var(--ambient-bg), var(--bg);
   box-shadow: -12px 0 32px rgba(0, 0, 0, .5); will-change: transform;
 }
-.swipe-under { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--bg); overflow: hidden; }
+.swipe-under { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--ambient-bg), var(--bg); overflow: hidden; }
 .snap-wrap { position: absolute; inset: 0; transform: translateX(-30%); will-change: transform; overflow: hidden; }
 main.snap { position: relative; pointer-events: none; }
 .swipe-under i { position: absolute; inset: 0; background: black; opacity: .5; }

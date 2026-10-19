@@ -72,7 +72,7 @@ html[data-vt="pop"]::view-transition-old(photo-thumbs):only-child { animation: v
    The group is a solid surface that goes from the card colour to the page background and from the card radius to full screen
    (#vt-surface is a fixed full-screen element made for the morph). The card snapshot keeps its own size, top-left, and fades
    out early; the player (workout-card-content) fades in on top at its own position. */
-#vt-surface { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--bg); } /* behind the page, so the live frame still shows the screen */
+#vt-surface { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--ambient-bg), var(--bg); } /* behind the page, so the live frame still shows the screen */
 html[data-vt="card-in"]::view-transition-old(root) { animation: vt-card-dim var(--t-slow) var(--ease-spring) both; }
 html[data-vt="card-in"]::view-transition-new(root) { animation: vt-fade-in 200ms ease-out 120ms both; } /* late: never two pages at once */
 html[data-vt="card-out"]::view-transition-old(root) { animation: none; opacity: 0; } /* the surface covers it from frame 0 */
