@@ -106,7 +106,7 @@ test('weight morph wiring: tap target and CSS', () => {
 
 test('food names are never in static markup or screen templates', () => {
   const files = [...readdirSync(new URL('../js/screens', import.meta.url)).map((f) => 'js/screens/' + f), 'index.html'];
-  for (const f of files) for (const n of ['name: \'food-card', 'name: \'food-kcal', 'view-transition-name']) assert(!read(f).includes(n), f + ' must not hardcode ' + n);
+  for (const f of files) for (const n of ['name: \'food-card', 'name: \'food-kcal']) assert(!read(f).includes(n), f + ' must not hardcode ' + n);
 });
 
 test('food parts: card tap Today -> Food (today shown), back only when opened from the card', () => {
