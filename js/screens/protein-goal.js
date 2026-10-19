@@ -41,15 +41,25 @@ export function openProteinGoal({ onSave = () => {} } = {}) {
         <p class="small muted">Auto: ${a.g} g${a.perKg ? `, ${a.perKg.toFixed(1)} g/kg` : ''}</p>
         <div class="row" data-custom style="justify-content:center;gap:12px;align-items:center">
           <button type="button" class="icon-btn" data-dec aria-label="Down 5 grams" style="${STEP_BTN}">${icon('minus')}</button>
-          <label class="field" style="margin:0;display:flex;align-items:baseline;justify-content:center;gap:6px;white-space:nowrap"><input data-g inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" style="text-align:center;min-height:44px;width:3.2em;font-size:2em;font-weight:700"><b class="muted" style="font-size:1.2em">g</b></label>
+          <label class="field" style="margin:0;display:flex;flex-direction:row;align-items:baseline;justify-content:center;gap:6px;white-space:nowrap"><input data-g inputmode="numeric" pattern="[0-9]*" autocomplete="off" style="text-align:center;min-height:44px;width:3.2em;font-size:2em;font-weight:700"><b class="muted" style="font-size:1.2em">g</b></label>
           <button type="button" class="icon-btn" data-inc aria-label="Up 5 grams" style="${STEP_BTN}">${icon('plus')}</button>
         </div>
         <p class="small muted" data-carbs></p>
-        <p class="small muted" data-note>Between ${MIN} and ${MAX} g. Carbs adjust to fit your calories.</p>
+        <p class="small muted" data-note role="alert" aria-live="polite">Between ${MIN} and ${MAX} g. Carbs adjust to fit your calories.</p>
         <button class="btn" type="button" data-save>Save</button>
       </div>`;
     const box = $('[data-custom]', body), input = $('[data-g]', body), dec = $('[data-dec]', body), inc = $('[data-inc]', body);
     let typing = false; // a typed value stays on screen until it is valid, so Save can check what was really typed
+    const note = $('[data-note]', body), NOTE = note.textContent;
+    let erring = false;
+    const setError = (on, focus = true) => {
+      const was = erring; erring = on;
+      note.textContent = on ? `Pick a number from ${MIN} to ${MAX}` : NOTE;
+      note.style.color = on ? 'var(--danger)' : '';
+      note.classList.toggle('muted', !on);
+      if (on && !was) haptics.warning();
+      if (on && focus) input.focus();
+    };
     const paint = () => {
       body.querySelector(`input[name=pmode][value=${custom ? 'custom' : 'auto'}]`).checked = true;
       box.hidden = !custom;
@@ -69,18 +79,24 @@ export function openProteinGoal({ onSave = () => {} } = {}) {
       haptics.select();
       paint();
     });
-    dec.onclick = () => { typing = false; g = stepProtein(g, -1); haptics.select(); paint(); };
-    inc.onclick = () => { typing = false; g = stepProtein(g, 1); haptics.select(); paint(); };
-    input.addEventListener('input', () => { typing = true; });
+    dec.onclick = () => { typing = false; setError(false); g = stepProtein(g, -1); haptics.select(); paint(); };
+    inc.onclick = () => { typing = false; setError(false); g = stepProtein(g, 1); haptics.select(); paint(); };
+    input.addEventListener('input', () => {
+      typing = true; setError(false);
+      const d = input.value.replace(/\D/g, '').slice(0, 3);
+      if (d !== input.value) input.value = d;
+      const v = parseProteinInput(d);
+      if (v !== null) { g = v; paint(); }
+    });
     input.addEventListener('change', () => {
       const v = parseProteinInput(input.value);
-      if (v === null) toast(`Pick a number from ${MIN} to ${MAX}`);
-      else { g = v; typing = false; paint(); }
+      if (v === null) { typing = true; setError(true, false); return; }
+      setError(false); g = v; typing = false; paint();
     });
     $('[data-save]', body).onclick = () => {
       if (custom) {
         const v = parseProteinInput(input.value);
-        if (v === null) { toast(`Pick a number from ${MIN} to ${MAX}`); return; }
+        if (v === null) { setError(true); return; }
         patch('profile', 'main', { proteinGoalG: v });
       } else if (state.profile && 'proteinGoalG' in state.profile) {
         unsetField('profile', 'main', 'proteinGoalG');

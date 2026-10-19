@@ -4,6 +4,7 @@ import { state } from '../state.js';
 import { put, patch, newRecord } from '../db.js';
 import { esc, $, $$, sheet, toast, todayKey } from '../ui.js';
 import { currentTargets } from '../derived.js';
+import { customProteinG } from '../nutrition/targets.js';
 import { icon } from '../ui/icons.js';
 import { haptics } from '../ui/haptic.js';
 import { logFields } from '../food/core.js';
@@ -166,7 +167,7 @@ export function renderPlan(el, { rerender }) {
 
   const base = currentPlan(prefs);
   const aiOn = aiEnabled();
-  const aiPlan = aiOn ? cachedAiPlan(base.weekStart, prefs, state.user && state.user.uid, undefined, targets()) : null; // with AI off nothing is read, sent or shown
+  const aiPlan = aiOn ? cachedAiPlan(base.weekStart, prefs, state.user && state.user.uid, undefined, customProteinG(state.profile) ?? 'auto') : null; // with AI off nothing is read, sent or shown
   const plan = aiPlan || base;
   const today = todayKey();
   const nextWeek = plan.weekStart !== weekStartOf(today);
@@ -220,7 +221,7 @@ export function renderPlan(el, { rerender }) {
       try {
         const { call } = await import('../functions.js');
         const sent = targets();
-        saveAiPlan(await requestAiPlan({ prefs, targets: sent, weekStart: base.weekStart, call }), prefs, uid, undefined, sent);
+        saveAiPlan(await requestAiPlan({ prefs, targets: sent, weekStart: base.weekStart, call }), prefs, uid, undefined, customProteinG(state.profile) ?? 'auto');
         haptics.success();
       } catch (e) {
         aiNote = (e && e.message) || AI_FAIL;
