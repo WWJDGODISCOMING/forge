@@ -38,7 +38,11 @@ test('validateImage caps the size', () => {
 test('parseFoods keeps good rows, clamps numbers, drops junk, and copes with fences and bad JSON', () => {
   assert.equal(parseFoods(JSON.stringify(REPLY)).length, 2);
   const fenced = parseFoods('```json\n' + JSON.stringify({ foods: [{ name: '  Apple\n', kcal: 99999, protein_g: -3, confidence: 4 }, { name: '' }, null, 'x'] }) + '\n```');
-  assert.deepEqual(fenced, [{ name: 'Apple', portion: '', grams: 0, kcal: 5000, protein_g: 0, carbs_g: 0, fat_g: 0, confidence: 1 }]);
+  assert.equal(fenced.length, 1);
+  assert.equal(fenced[0].name, 'Apple');
+  assert.equal(fenced[0].kcal, 1200); // 5000 kcal is capped to one portion and flagged
+  assert.equal(fenced[0].flag, 'portion');
+  assert.equal(parseFoods(JSON.stringify({ foods: [{ name: 'Apple', kcal: 95, protein_g: -3, confidence: 4 }] }))[0].confidence, 1);
   for (const bad of ['', 'sorry', '{"foods": 3}', '{nope', null]) assert.deepEqual(parseFoods(bad), []);
   const many = { foods: Array.from({ length: 30 }, (_, i) => ({ name: `f${i}`, kcal: 10 })) };
   assert.equal(parseFoods(JSON.stringify(many)).length, MAX_FOODS);

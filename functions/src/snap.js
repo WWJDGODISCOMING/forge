@@ -56,20 +56,27 @@ export function validateImage(data) {
   return { b64, mime };
 }
 
-const PROMPT = 'You estimate the food on a plate from a photo for a calorie tracker. Reply with JSON only: '
-  + '{"foods":[{"name":"plain food name","portion":"e.g. 1 cup or 150 g","grams":number,"kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"confidence":number between 0 and 1,'
-  + '"brand":"optional, only if printed","product":"optional, only if printed","net_weight_g":number (optional, only if printed),"source":"label" or "estimate"}]}. '
-  + 'List each distinct food once (at most 12), with the numbers for the amount you can see, not per 100 g. '
+const PROMPT = 'You estimate the food a person is about to eat from a photo for a calorie tracker. Reply with JSON only: '
+  + '{"foods":[{"name":"plain food name","portion":"e.g. about 1 cup or 150 g","grams":number,"kcal":number,"protein_g":number,"carbs_g":number,"fat_g":number,"confidence":number between 0 and 1,'
+  + '"brand":"optional, only if printed","product":"optional, only if printed","net_weight_g":number (optional, only if printed),'
+  + '"serving_size":"optional, the printed serving size text, e.g. 1 Tbsp (6g)","serving_g":number (optional, grams in one printed serving),"label_kcal_per_serving":number (optional, the calories printed on the label for ONE serving),"servings_per_container":number (optional, only if printed),'
+  + '"source":"label" or "estimate"}]}. '
+  + 'List each distinct food once (at most 12). '
+  + 'PLATE AND MEAL PHOTOS: estimate ONE realistic portion per food, the amount actually on the plate or in the bowl or cup, not per 100 g. Use visible references (plate size, utensils, hands) for scale. '
+  + 'Never assume a whole pot, tray, bag, box or bottle in the background. Ignore anything clearly not being eaten: packaging, serving dishes, cookware and other people\'s plates. '
   + 'Packaged items, wrappers, bottles, cans, boxes and bars ARE food: never reply with no food just because something is wrapped. '
-  + 'For a packaged item, read the visible brand, product name and net weight (in grams; convert oz), and set grams to the total net weight of everything you can see (net weight × number of packages). '
-  + 'If a Nutrition Facts panel is visible, use its printed per-serving values, scaled to the net weight or servings you can see, and set source to "label"; otherwise set source to "estimate". '
+  + 'For a packaged item, read the visible brand, product name and net weight (in grams; convert oz). '
+  + 'If a Nutrition Facts panel is visible, set source to "label" and return its printed PER-SERVING values (kcal, protein, carbs, fat) for ONE serving, never multiplied by the container. '
+  + 'Also return label_kcal_per_serving (the printed calories for one serving), serving_size (the printed text), serving_g (grams in one serving) and servings_per_container if printed; set portion to the serving size and grams to serving_g. '
+  + 'For a single-serve package (servings per container is 1, or not printed and clearly one item such as a bar or a can), use the whole item and set grams to its net weight. '
+  + 'Otherwise set source to "estimate". '
   + 'Keep calories realistic: no food has more than 9 kcal per gram. '
   + 'Only if the picture has no food or drink at all, reply {"foods":[]}. Do not add any other text.';
 export const PROMPT_TEXT = PROMPT;
 
 export const MAX_KCAL_PER_G = 9; // pure fat is about 9 kcal/g, so nothing edible is higher
 export const FLAG_NOTE = 'Calories looked too high for the weight, so they were lowered.';
-const num = (x, hi) => { const n = Number(x); return Number.isFinite(n) ? Math.min(hi, Math.max(0, n)) : 0; };
+const num = (x, hi) => { const n = Number(typeof x === 'string' ? (/\d+(?:\.\d+)?/.exec(x.replace(/,/g, '')) || [''])[0] : x); return Number.isFinite(n) ? Math.min(hi, Math.max(0, n)) : 0; };
 const r1 = (x) => Math.round(x * 10) / 10;
 const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 
@@ -83,6 +90,97 @@ export function sanityCheck(item) {
     if (out.source === 'label') delete out.source; // no longer the label's numbers
     return out;
   }
+  return item;
+}
+
+export const CONTAINER_NOTE = 'That looked like the whole package, so it was cut to one serving.';
+export const MACRO_NOTE = 'Calories didn’t match the macros, so they were re-worked.';
+export const PORTION_NOTE = 'That looked like more than one portion, so it was scaled down.';
+const within = (a, b, tol) => a > 0 && b > 0 && Math.abs(a - b) <= tol * Math.max(a, b);
+
+/** Scales an item's weight, calories and macros by k (macros shrink with calories so they still add up). */
+function scaled(item, k, extra = {}) {
+  return { ...item, grams: Math.round(item.grams * k), kcal: Math.round(item.kcal * k), protein_g: r1(item.protein_g * k), carbs_g: r1(item.carbs_g * k), fat_g: r1(item.fat_g * k), ...extra };
+}
+
+/** A label answer that is the whole container (per-serving × servings) goes back to ONE serving. Single-serve packages are untouched.
+ *  When the label's per-serving calories are known (`label_kcal`) one serving is that, and the calories and the macros are each
+ *  checked on their own; otherwise the weight (or kcal per gram) decides. */
+export function unwrapContainer(item) {
+  if (item.source !== 'label') return item;
+  const n = item.servings_per_container, sg = item.serving_g, L = item.label_kcal;
+  if (L > 0) {
+    const out = { ...item };
+    let changed = false;
+    if (!within(item.kcal, L, 0.15)) { out.kcal = Math.round(L); changed = true; }
+    const calc = 4 * item.protein_g + 4 * item.carbs_g + 9 * item.fat_g;
+    // Only macros that were clearly multiplied are scaled down. Printed macros that merely don't add up (fibre, sugar alcohols) are kept.
+    const multiplied = calc > L && (
+      (item.kcal >= 1.5 * L && within(calc, item.kcal, 0.25))
+      || (n > 1 && within(calc, L * n, 0.25))
+      || (calc > 3 * L && calc - L > 50));
+    if (multiplied) {
+      const k = L / calc;
+      out.protein_g = r1(item.protein_g * k); out.carbs_g = r1(item.carbs_g * k); out.fat_g = r1(item.fat_g * k);
+      changed = true;
+    }
+    if (sg > 0) out.grams = Math.round(sg);
+    if (item.serving_size) out.portion = item.serving_size;
+    if (changed) { out.note = CONTAINER_NOTE; out.flag = 'container'; }
+    return out;
+  }
+  if (!(n > 1)) return item;
+  // The weight is about serving_g × n (or the printed net weight when that is n servings), or the calories per gram only fit the whole.
+  const whole = (sg > 0 && within(item.grams, sg * n, 0.15))
+    || (item.net_weight_g > 0 && within(item.grams, item.net_weight_g, 0.15) && (!(sg > 0) || within(item.net_weight_g, sg * n, 0.2)))
+    || (sg > 0 && item.kcal / sg > MAX_KCAL_PER_G && item.kcal / n / sg <= MAX_KCAL_PER_G);
+  if (!whole) return item.serving_size ? { ...item, portion: item.serving_size } : item;
+  const out = scaled(item, 1 / n, { note: CONTAINER_NOTE, flag: 'container' });
+  if (sg > 0) out.grams = Math.round(sg);
+  if (item.serving_size) out.portion = item.serving_size;
+  return out;
+}
+
+// Single-portion ceilings by food type (kcal). The larger ceiling wins when several match.
+const SAUCE = [/\b(sauce|dressing|ketchup|mayo|mayonnaise|gravy|syrup|dip|condiment|salsa|mustard|jam|jelly|hummus|aioli|vinaigrette)\b/i, 200];
+const DRINK = [/\b(coffee|latte|cappuccino|espresso|tea|juice|soda|cola|smoothie|shake|water|drink|beer|wine|cocktail|lemonade|milk|kombucha|cider)\b/i, 400];
+const BOUNDS = [
+  [/\b(chicken|beef|steak|pork|ham|fish|salmon|tuna|turkey|lamb|bacon|sausage|shrimp|meat|ribs|brisket|cod|tilapia)\b/i, 800],
+  [/\b(rice|pasta|spaghetti|noodles?|macaroni|couscous|quinoa|oatmeal|porridge|grits|risotto)\b/i, 700],
+];
+// A name that joins foods ("with", "and", a comma) or names a dish is a meal, not a sauce or a drink.
+const DISH = /\b(with|and|w\/)\b|[,&+]|-(battered|braised)\b|\b(sandwich|pancakes?|biscuits?|nachos?|tacos?|wraps?|salad|bowl|pizza|fries|burger|burrito|casserole|stew|soup)\b/i;
+export const DEFAULT_MAX_KCAL = 1200; // any other single food
+export const maxKcalFor = (name) => {
+  const dish = DISH.test(name);
+  const hits = (dish ? BOUNDS : [SAUCE, DRINK, ...BOUNDS]).filter(([re]) => re.test(name)).map(([, k]) => k);
+  if (dish) hits.push(DEFAULT_MAX_KCAL);
+  return hits.length ? Math.max(...hits) : DEFAULT_MAX_KCAL;
+};
+const ALCOHOL = /\b(beer|ale|lager|stout|ipa|wine|champagne|prosecco|cocktail|margarita|martini|mojito|spirits?|vodka|whiskey|whisky|bourbon|rum|gin|tequila|liquor|seltzer|cider|sangria|mimosa|sake)\b/i;
+const DRINKISH = /\b(coffee|latte|tea|juice|soda|cola|smoothie|shake|water|drink|lemonade|milk|kombucha)\b/i;
+
+/** One food is one portion: past its ceiling it is scaled down to the ceiling and flagged. Label numbers are the printed ones, so they are left alone. */
+export function boundPortion(item) {
+  if (item.source === 'label') return item;
+  const max = maxKcalFor(item.name);
+  if (!(item.kcal > max)) return item;
+  return scaled(item, max / item.kcal, { portion: '1 portion', confidence: Math.min(item.confidence, 0.4), note: PORTION_NOTE, flag: 'portion' });
+}
+
+export const MAX_KCAL = 5000; // the most one food_logs entry may hold (firestore.rules)
+
+/** kcal should be about 4P + 4C + 9F. More than 20% apart: the macros win and the calories are recomputed (never for a label's printed
+ *  calories, and never down for alcohol); with no macros, they are derived from the calories (not for labels and drinks). */
+export function fixMacros(item) {
+  const calc = 4 * item.protein_g + 4 * item.carbs_g + 9 * item.fat_g;
+  if (item.source === 'label') return item;
+  if (calc > 0) {
+    if (Math.abs(item.kcal - calc) <= Math.max(0.2 * calc, 10)) return item; // a little slack for tiny items and fibre
+    if (ALCOHOL.test(item.name) && item.kcal >= calc) return item; // alcohol is about 7 kcal/g and is not in the macros
+    return { ...item, kcal: Math.min(MAX_KCAL, Math.round(calc)), confidence: Math.min(item.confidence, 0.4), note: item.note || MACRO_NOTE, flag: item.flag || 'macros' };
+  }
+  if (item.kcal > 0 && !ALCOHOL.test(item.name) && !DRINKISH.test(item.name)) return { ...item, protein_g: r1((item.kcal * 0.2) / 4), carbs_g: r1((item.kcal * 0.45) / 4), fat_g: r1((item.kcal * 0.35) / 9) }; // a middling split of the energy
   return item;
 }
 
@@ -110,7 +208,15 @@ export function parseFoods(text) {
     if (product) item.product = product;
     if (net > 0) item.net_weight_g = net;
     if (f.source === 'label' || f.source === 'estimate') item.source = f.source;
-    out.push(sanityCheck(item));
+    const servingSize = clean(f.serving_size, 40), servingG = r1(num(f.serving_g, 5000)), per = r1(num(f.servings_per_container, 1000));
+    if (servingSize) item.serving_size = servingSize;
+    if (servingG > 0) item.serving_g = servingG;
+    if (per > 0) item.servings_per_container = per;
+    const lk = r1(num(f.label_kcal_per_serving, 5000));
+    if (lk > 0) item.label_kcal = lk;
+    const fixed = boundPortion(fixMacros(unwrapContainer(item)));
+    delete fixed.label_kcal;
+    out.push(sanityCheck(fixed));
     if (out.length >= MAX_FOODS) break;
   }
   return out;
