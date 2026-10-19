@@ -136,3 +136,11 @@ main.route-fade { animation: vt-fade-in var(--t-med) var(--ease-out); }
   .restbar { transition: opacity var(--t-med) !important; transform: none !important; }
   main.route-fade { animation: none; }
 }
+
+/* Checkmark that draws itself (js/ui/checkdraw.js): ~280 ms ease-out. Reduced motion: already drawn. */
+.ck-draw path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .ck-draw path { stroke-dashoffset: 1; animation: ck-draw 280ms var(--ease-out, cubic-bezier(.2, .8, .2, 1)) var(--ck-delay, 60ms) forwards; }
+  @keyframes ck-draw { to { stroke-dashoffset: 0; } }
+}
+[data-tick] { font-variant-numeric: tabular-nums; }

@@ -12,6 +12,7 @@ import { createFlow } from '../food/flow.js';
 import { search, createOnlineSearch } from '../food/search.js';
 import { SERVING_CHOICES, amountLabel, gramsFromAmount, gramsToOz, measureServing, portionItem, servingsLabel } from '../food/portion.js';
 import { haptics } from '../ui/haptic.js';
+import { settleTicks } from '../ui/motion.js';
 import { renderPlan } from './food-plan.js';
 
 let foodView = 'log'; // 'log' or 'plan' (the Plan segment), kept while the app is open
@@ -53,8 +54,8 @@ function meter(label, value, target, unit, { big = false } = {}) {
   const over = p && p.pct > 110;
   return `<div class="meter-row ${big ? 'meter-row--big' : ''}">
     <div class="row between"><span class="label">${label}</span>
-      <span class="${big ? 'meter-val' : 'small'}"><b>${unit === 'kcal' ? Math.round(value).toLocaleString('en-US') : grams(value)}</b>${target ? ` <span class="muted">of ${unit === 'kcal' ? target.toLocaleString('en-US') + ' kcal' : grams(target)}</span>` : ''}</span></div>
-    <div class="meter ${over ? 'over' : ''}" role="img" aria-label="${esc(label)}: ${p ? `${p.pct}% of your target` : 'no target'}"><i style="width:${pct}%"></i></div>
+      <span class="${big ? 'meter-val' : 'small'}"><b data-tick="meal-${esc(label)}">${unit === 'kcal' ? Math.round(value).toLocaleString('en-US') : grams(value)}</b>${target ? ` <span class="muted">of ${unit === 'kcal' ? target.toLocaleString('en-US') + ' kcal' : grams(target)}</span>` : ''}</span></div>
+    <div class="meter ${over ? 'over' : ''}" role="img" aria-label="${esc(label)}: ${p ? `${p.pct}% of your target` : 'no target'}"><i data-fill="meter-${esc(label)}" style="width:${pct}%"></i></div>
   </div>`;
 }
 
@@ -135,6 +136,7 @@ export function renderFood(el) {
       </div>
     </section>`;
 
+  settleTicks(el); // totals roll to the new numbers after an add or delete
   bindViewSeg(el);
   $('[data-prev]', el).onclick = () => { viewDay = dayBefore(day); renderFood(el); };
   $('[data-next]', el).onclick = () => {
@@ -393,7 +395,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       put('food_logs', newRecord(fields));
       haptics.success();
       close();
-      toast(`Added to ${MEAL_LABEL[fields.meal].toLowerCase()} · ${Math.round(fields.kcal * fields.servings).toLocaleString('en-US')} kcal`);
+      toast(`Added to ${MEAL_LABEL[fields.meal].toLowerCase()} · ${Math.round(fields.kcal * fields.servings).toLocaleString('en-US')} kcal`, 2600, { icon: 'check' });
     };
 
     const quick = $('[data-quick]', body);
@@ -407,7 +409,8 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       if (!fields) { $('.error', quick).textContent = 'Enter the calories (1 to 5000).'; return; }
       put('food_logs', newRecord(fields));
       close();
-      toast(`Added ${fields.kcal} kcal to ${MEAL_LABEL[fields.meal].toLowerCase()}`);
+      haptics.success();
+      toast(`Added ${fields.kcal} kcal to ${MEAL_LABEL[fields.meal].toLowerCase()}`, 2600, { icon: 'check' });
     });
     paintResults();
   }, { detents: ['medium', 'large'] });

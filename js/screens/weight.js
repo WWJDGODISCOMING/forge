@@ -80,8 +80,8 @@ export function weightHeroHtml() {
   }
   return `<div class="card" data-weight-hero>
       <div class="stats stats-2">
-        <div><span>${reading ? esc(reading.day === todayKey() ? 'Today' : readingLabel(reading, todayKey())) : 'Latest'}</span><b data-count>${formatWeight(reading ? reading.kg : latest.kg, u)}</b></div>
-        <div><span>Trend</span><b data-count>${formatWeight(latest.trend, u)}</b></div>
+        <div><span>${reading ? esc(reading.day === todayKey() ? 'Today' : readingLabel(reading, todayKey())) : 'Latest'}</span><b data-count data-tick="body-latest">${formatWeight(reading ? reading.kg : latest.kg, u)}</b></div>
+        <div><span>Trend</span><b data-count data-tick="body-trend">${formatWeight(latest.trend, u)}</b></div>
         <div><span>7 days</span><b data-count>${change7 == null ? '—' : `${change7 > 0 ? '+' : ''}${weightToDisplay(change7, u).toFixed(1)}`}</b></div>
         <div><span>Per week</span><b data-count>${rate == null ? '—' : `${rate > 0 ? '+' : ''}${weightToDisplay(rate, u).toFixed(2)}`}</b></div>
       </div>

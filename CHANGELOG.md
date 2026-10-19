@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.34 — Live numbers and checkmarks (2026-10-19)
+
+Numbers you change now roll to their new value, and ticks draw themselves. No functions or rules change.
+
+### What's new
+
+- Numbers roll to their new value when you log food or weigh in.
+- Food bars grow smoothly after you add or remove something.
+- Checkmarks now draw themselves when you add food or finish a set.
+
 ## 0.16.33 — Workout card morph (2026-10-19)
 
 Starting or resuming a workout from Today grows the card into the player, and leaving it shrinks back. No functions or rules change.

@@ -20,6 +20,7 @@ import { openPaused, openAway, openComplete, saveAndSummarize, closeOverlays } f
 import { openHowTo } from './session.js';
 import { COMBOS } from './timer.js';
 import { icon } from '../ui/icons.js';
+import { checkSvg } from '../ui/checkdraw.js';
 import { shouldAskEffort, setEffort, EFFORT_CHOICES, effortLabel } from '../workouts/effort.js';
 
 const BOXING = new Set(['shadowboxing', 'heavy_bag_rounds', 'db_shadowboxing', 'boxing_footwork', 'slip_and_roll']);
@@ -451,7 +452,8 @@ function doneSet(el, ex, i, j, repsOverride) {
   }
   const label = $('[data-done-label]', el);
   const txt = $('[data-done-text]', el);
-  if (txt) txt.innerHTML = icon('check');
+  if (txt) txt.innerHTML = checkSvg({ size: 24 });
+  haptics.success();
   label && label.classList.add('is-done');
   powerUp({
     button: label, hero: $('[data-hero]', el), shakeEl: $('[data-player]', el), segment: segment && segment.parentElement,

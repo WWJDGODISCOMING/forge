@@ -59,7 +59,7 @@ function foodRow(t) {
     ${foodRingSvg(tot, t, aria)}
     <a class="food-card-text" href="#/food" aria-label="Food: ${n(tot.kcal)} of ${n(t.calories)} kcal. See meals">
       <p class="label">Food</p>
-      <p class="food-card-kcal"><b>${n(tot.kcal)}</b> <small>of ${n(t.calories)} kcal</small></p>
+      <p class="food-card-kcal"><b data-tick="today-kcal">${n(tot.kcal)}</b> <small>of ${n(t.calories)} kcal</small></p>
       <p class="small ${sum.over ? 'over' : 'muted'}"><span class="nb">${esc(sum.note)}</span> · <span class="nb">${esc(sum.protein)}</span></p>
     </a>
     <button class="btn small food-log-btn" data-food-log aria-label="Log food"><span class="fl-plus" aria-hidden="true">+</span><span class="fl-txt">Log food</span></button>
@@ -302,7 +302,7 @@ export function renderToday(el) {
         <div class="row between center weight-main" ${reading ? 'role="link" tabindex="0" data-weight-open' : ''}>
           <div class="weight-text">
             <p class="small muted" data-weight-when>${reading ? esc(readingLabel(reading, todayKey())) : ''}</p>
-            <p class="hero-num">${reading ? `<span data-count>${weightToDisplay(reading.kg, u).toFixed(1)}</span> <small>${weightUnit(u)}</small>` : '—'}</p>
+            <p class="hero-num">${reading ? `<span data-count data-tick="today-weight">${weightToDisplay(reading.kg, u).toFixed(1)}</span> <small>${weightUnit(u)}</small>` : '—'}</p>
             <p class="small ${tone}" data-weight-trend>${!latest || change == null ? 'Log a few days to see your trend' : `<span class="nw">Trend ${weightToDisplay(latest.trend, u).toFixed(1)}</span> · <span class="nw">${arrow} ${Math.abs(weightToDisplay(change, u)).toFixed(1)} this week</span>`}</p>
           </div>
           ${sparklineSVG(series)}
