@@ -522,6 +522,17 @@ main.addEventListener('keydown', (e) => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[data-weight-open]')) { e.preventDefault(); openWeight(); }
 });
 
+// And the Food card: its text link or small ring grows into the Food totals card. Log food never sets it.
+let foodTap = false;
+let foodFromCard = false;
+main.addEventListener('click', (e) => {
+  if (!e.target.closest('.food-card-text, .food-card-ring')) return;
+  foodTap = true;
+  scrollMemory.forget('food'); // opens at the top, so the totals card is on screen
+  import('./screens/food.js').then((m) => m.showFoodToday());
+  if (!e.target.closest('a')) location.hash = '#/food';
+});
+
 window.addEventListener('hashchange', async () => {
   closeAllSheets(); // a sheet never stays on top of the new screen (navigating button, deep link, back gesture)
   const from = prevParts;
@@ -541,7 +552,11 @@ window.addEventListener('hashchange', async () => {
     return;
   }
   const kind = transitionKind(from, to);
-  const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, reduced: reducedMotion() });
+  let foodToday = true; // Food on another day would not match the Today card
+  if (foodFromCard && from[0] === 'food') foodToday = await import('./screens/food.js').then((m) => m.foodShowsToday());
+  const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, foodTap, foodFromCard, foodToday, reduced: reducedMotion() });
+  foodFromCard = foodTap && from[0] !== 'food' && to[0] === 'food' && !!ring;
+  foodTap = false;
   scoreFromCard = cardTap && from[0] !== 'score' && to[0] === 'score' && !!ring; // any other navigation forgets it
   weightFromCard = weightTap && from[0] !== 'body' && to[0] === 'body' && !!ring;
   cardTap = false;

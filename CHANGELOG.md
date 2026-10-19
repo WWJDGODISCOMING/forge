@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.28 — Food morph (2026-10-19)
+
+#58 slice. Tapping the Food card on Today grows it into the totals card on the Food tab, with today's calories flying into the big Calories number, and going back shrinks it again. Off with Reduced Motion. No functions or rules change.
+
+### What's new
+
+- Tap Food on Today and the card grows into your Food totals.
+- Tapping the small ring opens Food the same way.
+
 ## 0.16.27 — Weight morph (2026-10-19)
 
 #58 slice. Tapping the Weight card on Today grows its number and sparkline into the weight hero and chart on Body, and going back shrinks them again. Off with Reduced Motion. No functions or rules change.

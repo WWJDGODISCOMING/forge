@@ -26,6 +26,7 @@
 .food-minor { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-4); }
 @media (prefers-reduced-motion: no-preference) {
   .meter i { transition: width .35s ease; }
+  .sc-final .meter i { transition: none; }
 }
 
 .food-meal { display: flex; flex-direction: column; gap: var(--s-2); }
