@@ -17,6 +17,9 @@ import { renderPlan } from './food-plan.js';
 let foodView = 'log'; // 'log' or 'plan' (the Plan segment), kept while the app is open
 let viewDay = null; // the day shown; null = today
 const dayShown = () => (viewDay && viewDay <= todayKey() ? viewDay : todayKey());
+/** For the Today card morph: is Food showing today? Opening from the Today card resets to today so the numbers match. */
+export const foodShowsToday = () => dayShown() === todayKey();
+export const showFoodToday = () => { viewDay = null; };
 const fmtNum = (n) => Math.round(n * 100) / 100;
 const grams = (n) => `${Math.round(n)} g`;
 let lastUnit = 'serv'; // the portion unit you used last (servings, oz or g), kept while the app is open

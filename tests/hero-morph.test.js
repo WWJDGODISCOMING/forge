@@ -103,3 +103,35 @@ test('weight morph wiring: tap target and CSS', () => {
   const c = read('css/motion.css');
   assert(c.includes('group(weight-num)') && c.includes('group(weight-chart)'));
 });
+
+test('food names are never in static markup or screen templates', () => {
+  const files = [...readdirSync(new URL('../js/screens', import.meta.url)).map((f) => 'js/screens/' + f), 'index.html'];
+  for (const f of files) for (const n of ['name: \'food-card', 'name: \'food-kcal', 'view-transition-name']) assert(!read(f).includes(n), f + ' must not hardcode ' + n);
+});
+
+test('food parts: card tap Today -> Food (today shown), back only when opened from the card', () => {
+  const go = heroMorphFor(['today'], ['food'], { foodTap: true });
+  assert(go && go.length === 2 && go[0].name === 'food-card' && go[1].name === 'food-kcal', 'card tap');
+  assert(heroMorphFor(['today'], ['food']) === null, 'tab bar / deep link / Log food');
+  assert(heroMorphFor(['today'], ['food'], { foodTap: true, foodToday: false }) === null, 'another day shown');
+  assert(heroMorphFor(['train'], ['food'], { foodTap: true }) === null, 'other route');
+  assert(heroMorphFor(['today'], ['food'], { foodTap: true, reduced: true }) === null, 'reduced motion');
+  const back = heroMorphFor(['food'], ['today'], { foodFromCard: true });
+  assert(back && back[0].to.includes('data-food-card') && back[1].to.includes('food-card-kcal'), 'return');
+  assert(heroMorphFor(['food'], ['today']) === null, 'return after other visit');
+  assert(heroMorphFor(['food'], ['today'], { foodFromCard: true, foodToday: false }) === null, 'day changed on Food');
+  assert(heroMorphFor(['food'], ['today'], { foodFromCard: true, reduced: true }) === null, 'back reduced');
+});
+
+test('Score and Weight unchanged with food flags set', () => {
+  assert(heroMorphFor(['today'], ['score'], { cardTap: true, foodTap: true })[0].name === 'score-ring');
+  assert(heroMorphFor(['today'], ['body', 'weight'], { weightTap: true, foodTap: true })[0].name === 'weight-num');
+});
+
+test('food morph wiring: tap flags, Log food excluded, CSS', () => {
+  const a = read('js/app.js');
+  assert(a.includes("closest('.food-card-text, .food-card-ring')") && !a.includes('data-food-log') );
+  assert(/foodTap = true;\s*scrollMemory\.forget\('food'\)/.test(a));
+  const c = read('css/motion.css');
+  assert(c.includes('group(food-card)') && c.includes('group(food-kcal)') && /food-kcal\) \{[^}]*z-index: 11/.test(c));
+});

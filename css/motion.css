@@ -52,6 +52,11 @@ html[data-vt="tab"]::view-transition-new(root), html[data-vt="fade"]::view-trans
 ::view-transition-group(weight-num), ::view-transition-group(weight-chart) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; }
 ::view-transition-old(weight-num), ::view-transition-new(weight-num), ::view-transition-old(weight-chart), ::view-transition-new(weight-chart) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(weight-num), ::view-transition-group(weight-chart) { animation: none; } }
+/* Food: the card grows into the Food totals card, and today's calories fly into the big Calories number. The number sits above the card. */
+::view-transition-group(food-card) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; overflow: hidden; border-radius: var(--r-lg, 16px); }
+::view-transition-group(food-kcal) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 11; }
+::view-transition-old(food-card), ::view-transition-new(food-card), ::view-transition-old(food-kcal), ::view-transition-new(food-kcal) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(food-card), ::view-transition-group(food-kcal) { animation: none; } }
 
 @keyframes vt-push-old { to { transform: translateX(-30%); filter: brightness(.6); } }
 @keyframes vt-push-new { from { transform: translateX(100%); } }

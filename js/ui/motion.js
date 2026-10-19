@@ -175,7 +175,7 @@ export function sharedRingFor(from, to) {
  * the Body tab root, so Today to Body is a 'tab' change: it morphs only when the Weight card was tapped (`weightTap`),
  * and back when Body was opened that way (`weightFromCard`). Returns an array of parts, or null. Pure.
  */
-export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weightTap = false, weightFromCard = false, reduced = false } = {}) {
+export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weightTap = false, weightFromCard = false, foodTap = false, foodFromCard = false, foodToday = true, reduced = false } = {}) {
   if (reduced) return null;
   const ring = ringMorphFor(from, to, { cardTap, fromCard, reduced });
   if (ring) return [ring];
@@ -192,6 +192,19 @@ export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weig
     return [
       { name: 'weight-num', from: '#main [data-weight-hero] .stats > div:first-child b', to: '#main .weight-card .hero-num', toFinal: '.weight-card .hero-num' },
       { name: 'weight-chart', from: '#main [data-weight-hero] .chart', to: '#main .weight-card .spark', toFinal: '.weight-card .spark' },
+    ];
+  }
+  // Food: the card grows into the Food totals card (and back). Only when Food shows today, so the numbers match.
+  if (foodToday && f === 'today' && !from[1] && t === 'food' && !to[1] && foodTap) {
+    return [
+      { name: 'food-card', from: '#main [data-food-card]', to: '#main [data-food-totals]', toFinal: '[data-food-totals]' },
+      { name: 'food-kcal', from: '#main .food-card-kcal b', to: '#main [data-food-totals] .meter-row--big .meter-val b', toFinal: '[data-food-totals] .meter-row--big .meter-val b' },
+    ];
+  }
+  if (foodToday && f === 'food' && !from[1] && t === 'today' && !to[1] && foodFromCard) {
+    return [
+      { name: 'food-card', from: '#main [data-food-totals]', to: '#main [data-food-card]', toFinal: '[data-food-card]' },
+      { name: 'food-kcal', from: '#main [data-food-totals] .meter-row--big .meter-val b', to: '#main .food-card-kcal b', toFinal: '.food-card-kcal b' },
     ];
   }
   return null;
