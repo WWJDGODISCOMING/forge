@@ -13,6 +13,8 @@ import { search, createOnlineSearch } from '../food/search.js';
 import { SERVING_CHOICES, amountLabel, gramsFromAmount, gramsToOz, measureServing, portionItem, servingsLabel } from '../food/portion.js';
 import { haptics } from '../ui/haptic.js';
 import { settleTicks } from '../ui/motion.js';
+import { bindSwipeRows } from '../ui/swiperow.js';
+import { createPendingDelete } from '../ui/pendingdelete.js';
 import { renderPlan } from './food-plan.js';
 
 let foodView = 'log'; // 'log' or 'plan' (the Plan segment), kept while the app is open
@@ -23,6 +25,20 @@ export const foodShowsToday = () => dayShown() === todayKey();
 export const showFoodToday = () => { viewDay = null; };
 const fmtNum = (n) => Math.round(n * 100) / 100;
 const grams = (n) => `${Math.round(n)} g`;
+// Swiped-away entries wait here for the Undo toast; they are written when it ends, the app is hidden, or you leave Food.
+// Only one Undo toast at a time, and it goes the moment its delete is written, so a visible Undo always works.
+let undoFor = null, undoHide = null;
+const pend = createPendingDelete({
+  commit: (id) => {
+    softDelete('food_logs', id);
+    if (undoFor === id) { undoHide?.(); undoFor = null; undoHide = null; }
+  },
+});
+if (typeof document !== 'undefined') {
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pend.flush(); });
+  window.addEventListener('hashchange', () => pend.flush());
+}
+const liveLogs = () => state.food_logs.filter((e) => !pend.has(e.id));
 let lastUnit = 'serv'; // the portion unit you used last (servings, oz or g), kept while the app is open
 
 function itemLine(it) {
@@ -74,10 +90,11 @@ export function renderFood(el) {
   const day = dayShown();
   const isToday = day === todayKey();
   const t = currentTargets();
-  const tot = dayTotals(state.food_logs, day);
-  const groups = groupByMeal(state.food_logs, day);
+  const logs = liveLogs();
+  const tot = dayTotals(logs, day);
+  const groups = groupByMeal(logs, day);
   const yesterday = dayBefore(day);
-  const yGroups = groupByMeal(state.food_logs, yesterday);
+  const yGroups = groupByMeal(logs, yesterday);
   const anything = groups.some((g) => g.entries.length);
 
   el.innerHTML = `
@@ -167,6 +184,19 @@ export function renderFood(el) {
       if (e) openEditEntry(e);
     };
   });
+  $$('.food-meal .list', el).forEach((ul) => bindSwipeRows(ul, {
+    onDelete: () => true, // Undo covers mistakes, so no confirm
+    onRemoved: (li) => {
+      const id = li.dataset.entry;
+      const e = state.food_logs.find((x) => x.id === id);
+      pend.queue(id);
+      if (el.isConnected) renderFood(el);
+      undoFor = id;
+      undoHide = toast(`Removed ${e ? e.name : 'entry'}`, 4200, {
+        action: { label: 'Undo', onClick: () => { undoFor = null; undoHide = null; if (pend.undo(id) && el.isConnected) renderFood(el); } },
+      });
+    },
+  }));
 }
 
 /** The Log food sheet. Tap 1 opens it (caller), tap 2 picks a food, tap 3 adds it. */

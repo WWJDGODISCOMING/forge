@@ -46,6 +46,7 @@ export function toast(message, ms = 2600, { icon: name = '', action = null } = {
     el.classList.remove('show');
     setTimeout(() => el.remove(), DUR.med + 20);
   };
+  return hide; // dismiss early (e.g. an Undo whose delete is already written)
 }
 
 let sheetCount = 0;

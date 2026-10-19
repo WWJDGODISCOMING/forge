@@ -42,6 +42,7 @@ import './lime.test.js';
 import './illustrations.test.js';
 import './typescale.test.js';
 import './ticker.test.js';
+import './swipe-rows.test.js';
 import './health.test.js';
 import './shell.test.js';
 import './restyle.test.js';

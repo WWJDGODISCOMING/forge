@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.35 — Swipe to delete (2026-10-19)
+
+Swipe a row left to delete it, like Mail. No functions or rules change.
+
+### What's new
+
+- Swipe a food entry left to remove it. Tap Undo if you slipped.
+- Swipe a weigh-in left to delete it. You still get the usual check first.
+
 ## 0.16.34 — Live numbers and checkmarks (2026-10-19)
 
 Numbers you change now roll to their new value, and ticks draw themselves. No functions or rules change.

@@ -2,6 +2,7 @@ import { state, units as getUnits } from '../state.js';
 import { put, newRecord, softDelete, tombstone } from '../db.js';
 import { esc, $, $$, sheet, toast, todayKey, formatDay, confirmSheet } from '../ui.js';
 import { haptics } from '../ui/haptic.js';
+import { bindSwipeRows } from '../ui/swiperow.js';
 import { weightToDisplay, weightFromInput, weightUnit, formatWeight } from '../units.js';
 import { trendChange, weeklyRate, dayKey } from '../weight/smoothing.js';
 import { weightChartSVG } from '../weight/chart.js';
@@ -129,17 +130,26 @@ export function bindWeight(el, rerender) {
       if (from) morphChart($('svg.chart', el), from);
     })
   );
+  const confirmDelete = (id, fromScale) => confirmSheet({
+    title: 'Delete weigh-in?',
+    message: fromScale ? 'This removes it from Forge on all devices. It stays in the Withings app, and Forge won’t bring it back.' : 'This removes it from your history on all devices.',
+    confirmLabel: 'Delete', danger: true,
+  });
+  const remove = (id, fromScale) => {
+    softDelete('weights', id);
+    if (fromScale && state.body_measures.some((d) => d.id === id)) tombstone('body_measures', id);
+  };
   $$('[data-del]', el).forEach((b) =>
     b.addEventListener('click', async () => {
       const fromScale = b.dataset.src === 'withings';
-      const ok = await confirmSheet({
-        title: 'Delete weigh-in?',
-        message: fromScale ? 'This removes it from Forge on all devices. It stays in the Withings app, and Forge won’t bring it back.' : 'This removes it from your history on all devices.',
-        confirmLabel: 'Delete', danger: true,
-      });
-      if (!ok) return;
-      softDelete('weights', b.dataset.del);
-      if (fromScale && state.body_measures.some((d) => d.id === b.dataset.del)) tombstone('body_measures', b.dataset.del);
+      if (await confirmDelete(b.dataset.del, fromScale)) remove(b.dataset.del, fromScale);
     })
   );
+  const wl = $('[data-weigh-ins] .list', el);
+  if (wl) bindSwipeRows(wl, {
+    buzz: false,
+    // same confirm as the trash button; cancelling springs the row closed
+    onDelete: (li) => { const b = $('[data-del]', li); return confirmDelete(b.dataset.del, b.dataset.src === 'withings'); },
+    onRemoved: (li) => { const b = $('[data-del]', li); remove(b.dataset.del, b.dataset.src === 'withings'); },
+  });
 }
