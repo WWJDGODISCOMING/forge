@@ -183,7 +183,7 @@ async function shareCard(n, streak) {
   c.width = W;
   c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#172430';
+  g.fillStyle = '#040B0E';
   g.fillRect(0, 0, W, H);
   const rg = g.createRadialGradient(W / 2, H * 0.45, 40, W / 2, H * 0.45, 800);
   rg.addColorStop(0, '#3EC8F066');

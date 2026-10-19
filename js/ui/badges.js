@@ -1,5 +1,5 @@
-// Badge art: code-drawn SVG medals in the Forge style. The tier sets the metal (ember bronze → steel →
-// gold → white heat), the family sets the shape (hexagon: workouts, shield: records, medallion: tonnage,
+// Badge art: code-drawn SVG medals in the Forge style. The tier sets the metal (cobalt → steel →
+// volt → white heat), the family sets the shape (hexagon: workouts, shield: records, medallion: tonnage,
 // flame: streaks, diamond: everything else) and every badge has its own engraved icon. Locked badges are
 // grey silhouettes; a new one gets a shine sweep. Gradients and clip shapes live once per page in a hidden
 // sprite (like the muscle map), so a grid of 22 stays light.
@@ -37,7 +37,7 @@ const ICONS = {
   strike: `<g transform="rotate(-32 11 12) translate(-2 -1)"><path d="${HAMMER}"/></g><path d="M18.5 16.5l1.1 2.3 2.4 1.1-2.4 1.1-1.1 2.4-1.1-2.4-2.3-1.1 2.3-1.1z M21.5 10.5l.7 1.4 1.4.7-1.4.7-.7 1.4-.7-1.4-1.4-.7 1.4-.7z"/>`,
 };
 
-// ---------- per badge: tier (1 ember, 2 steel, 3 gold, 4 white heat), shape, icon, optional number ----------
+// ---------- per badge: tier (1 cobalt, 2 steel, 3 volt, 4 white heat), shape, icon, optional number ----------
 export const BADGE_ART = {
   first: { tier: 1, shape: 'hex', icon: 'spark' },
   w10: { tier: 1, shape: 'hex', icon: 'hammer', n: '10' },
@@ -73,7 +73,7 @@ export const BADGE_ART = {
   pg_recomp8: { tier: 3, shape: 'hex', icon: 'barbell', n: '8 wk' },
   pg_maintain4: { tier: 2, shape: 'round', icon: 'return', n: '4 wk' },
 };
-export const TIER_NAMES = { 1: 'Ember', 2: 'Steel', 3: 'Gold', 4: 'White heat' };
+export const TIER_NAMES = { 1: 'Cobalt', 2: 'Steel', 3: 'Volt', 4: 'White heat' };
 
 // Shapes in a 64 × 64 box.
 const SHAPES = {

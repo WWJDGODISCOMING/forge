@@ -33,6 +33,21 @@ test('lime only appears in win/success places', () => {
   assert(bad.length === 0, 'lime outside the allow-list: ' + bad.map(rel).join(', '));
 });
 
+test('fx.js win colours are lime-family, no amber', () => {
+  const src = readFileSync(join(root, 'js/ui/fx.js'), 'utf8');
+  assert(!/ffb547/i.test(src), 'fx.js still has amber #FFB547');
+  const m = src.match(/gold:\s*'(#[0-9a-f]{6})'/i);
+  assert(m, 'fx.js COLORS.gold not found');
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(m[1].slice(i, i + 2), 16));
+  assert(g > 200 && g > b + 60 && r > b + 60, 'COLORS.gold is not lime-family: ' + m[1]);
+});
+
+test('badge tier names do not name colours the badges are not', () => {
+  const src = readFileSync(join(root, 'js/ui/badges.js'), 'utf8');
+  const line = src.match(/TIER_NAMES\s*=\s*\{[^}]*\}/)[0];
+  assert(!/Ember|Gold/.test(line), 'stale tier name: ' + line);
+});
+
 test('no old orange or near-black left in js/ and css/', () => {
   const bad = files.filter((f) => /^(js|css)\//.test(rel(f)) && /e0663f|ff6a2b|0a0a0b/i.test(readFileSync(f, 'utf8')));
   assert(bad.length === 0, 'old colours in: ' + bad.map(rel).join(', '));

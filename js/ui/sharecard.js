@@ -42,7 +42,7 @@ export async function renderShareCard(card) {
   c.width = W;
   c.height = H;
   const ctx = c.getContext('2d');
-  // Background: deep navy with an cyan glow rising from the bottom.
+  // Background: deep navy with a cyan glow rising from the bottom.
   ctx.fillStyle = '#040B0E';
   ctx.fillRect(0, 0, W, H);
   const g = ctx.createRadialGradient(W / 2, H + 120, 40, W / 2, H + 120, 900);
