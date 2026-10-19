@@ -7,7 +7,7 @@
 ### What's new
 
 - Tap your Score on Today and the ring grows into the Score screen.
-- The ring carries its value while it flies (no redraw from empty), Score opens at the top from the card, and the morph is skipped if a ring is off screen.
+- The ring keeps its score as it grows, and Score opens at the top.
 
 ## 0.16.25 — Detents on tall sheets (2026-10-18)
 
