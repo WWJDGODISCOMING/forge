@@ -72,10 +72,10 @@ html[data-vt="pop"]::view-transition-old(photo-thumbs):only-child { animation: v
    The group is a solid surface that goes from the card colour to the page background and from the card radius to full screen
    (#vt-surface is a fixed full-screen element made for the morph). The card snapshot keeps its own size, top-left, and fades
    out early; the player (workout-card-content) fades in on top at its own position. */
-#vt-surface { position: fixed; inset: 0; pointer-events: none; background: var(--bg); }
+#vt-surface { position: fixed; inset: 0; z-index: -1; pointer-events: none; background: var(--bg); } /* behind the page, so the live frame still shows the screen */
 html[data-vt="card-in"]::view-transition-old(root) { animation: vt-card-dim var(--t-slow) var(--ease-spring) both; }
-html[data-vt="card-in"]::view-transition-new(root) { animation: vt-fade-in var(--t-slow) var(--ease-out) both; }
-html[data-vt="card-out"]::view-transition-old(root) { animation: none; }
+html[data-vt="card-in"]::view-transition-new(root) { animation: vt-fade-in 200ms ease-out 120ms both; } /* late: never two pages at once */
+html[data-vt="card-out"]::view-transition-old(root) { animation: none; opacity: 0; } /* the surface covers it from frame 0 */
 html[data-vt="card-out"]::view-transition-new(root) { animation: vt-card-undim var(--t-slow) var(--ease-spring) both; }
 ::view-transition-group(workout-card) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; }
 ::view-transition-image-pair(workout-card) { overflow: hidden; background: var(--surface); animation: vt-card-surface var(--t-slow) var(--ease-spring) both; }
@@ -86,11 +86,11 @@ html[data-vt="card-in"]::view-transition-new(workout-card), html[data-vt="card-o
 html[data-vt="card-out"]::view-transition-new(workout-card) { animation: vt-fade-in 160ms ease-out calc(var(--t-slow) - 160ms) both; }
 ::view-transition-group(workout-card-content) { z-index: 11; animation-duration: var(--t-slow); }
 ::view-transition-old(workout-card-content), ::view-transition-new(workout-card-content) { mix-blend-mode: normal; }
-html[data-vt="card-in"]::view-transition-new(workout-card-content) { animation: vt-fade-in var(--t-slow) var(--ease-spring) both; }
+html[data-vt="card-in"]::view-transition-new(workout-card-content) { animation: vt-fade-in 200ms ease-out 120ms both; }
 html[data-vt="card-out"]::view-transition-old(workout-card-content) { animation: vt-fade-out 160ms ease-out both; }
 html[data-vt^="card"]::view-transition-group(navbar), html[data-vt^="card"]::view-transition-group(tabbar) { z-index: 12; }
 @keyframes vt-card-dim { to { filter: brightness(.7); } }
-@keyframes vt-card-undim { from { filter: brightness(.7); opacity: 0; } }
+@keyframes vt-card-undim { from { filter: brightness(.7); } }
 @keyframes vt-card-surface { from { border-radius: var(--r-xl); background-color: var(--surface); } to { border-radius: 0; background-color: var(--bg); } }
 @keyframes vt-card-surface-back { from { border-radius: 0; background-color: var(--bg); } to { border-radius: var(--r-xl); background-color: var(--surface); } }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(photo-thumbs), ::view-transition-group(workout-card), ::view-transition-group(workout-card-content) { animation: none; } }

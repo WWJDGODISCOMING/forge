@@ -49,3 +49,12 @@ test('workout card morph: hero names hidden, own page kind, full-screen surface,
   assert(/view-transition-new\(workout-card\)[^{]*\{[^}]*object-fit: none; object-position: left top/.test(c), 'snapshot keeps its size');
   assert(c.includes('vt-card-surface') && c.includes('border-radius: 0') && c.includes('#vt-surface'), 'surface to full screen');
 });
+
+test('workout card morph: surface behind the page, never two full pages at once', () => {
+  const c = read('css/motion.css');
+  assert(/#vt-surface \{[^}]*z-index: -1/.test(c), 'surface sits behind the live page');
+  assert(/card-in"\]::view-transition-new\(root\) \{ animation: vt-fade-in 200ms ease-out 120ms both/.test(c), 'player page fades in late');
+  assert(/card-out"\]::view-transition-old\(root\) \{[^}]*opacity: 0/.test(c), 'old page hidden on the way back');
+  const undim = c.match(/@keyframes vt-card-undim \{[^}]*\}/)[0];
+  assert(!undim.includes('opacity'), 'Today never starts transparent');
+});
