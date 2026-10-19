@@ -758,3 +758,12 @@ html { overflow-anchor: auto; }
 
 /* Two-column Today (Duo, iPad): the hero sits beside its legend so the left column stays no taller than before. */
 @media (min-width: 840px) { .rings { flex-direction: row; align-items: center; gap: var(--s-3); padding-block: 0; } .rings-legend { gap: var(--s-2); } .rings-hero { margin: 0; flex: none; width: 164px; } .rings-svg { width: 164px; } .rings-hub b { font-size: calc(30px * var(--ts)); } .rings-legend { flex: 1 1 0; grid-template-columns: 1fr; } }
+
+/* Swipe-to-delete rows (v0.16.35): content slides left over a red Delete panel; transform only. */
+.list li.swipe-row { touch-action: pan-y; user-select: none; -webkit-user-select: none; }
+.list li.swipe-row > :not(.swipe-act) { will-change: auto; }
+.list li.swiping > :not(.swipe-act) { will-change: transform; }
+.swipe-act { display: none; position: absolute; inset: 0; z-index: 1; align-items: center; justify-content: flex-end; padding: 0 22px 0 0; border: 0; border-radius: 0; background: var(--danger); color: white; font: inherit; font-weight: 600; pointer-events: none; transform: translateX(100%); -webkit-tap-highlight-color: transparent; }
+.swipe-act span { display: inline-flex; align-items: center; gap: 8px; min-height: 44px; }
+.swipe-act:focus-visible { outline: 2px solid white; outline-offset: -4px; }
+.list li.swiping > .swipe-act { display: flex; }
