@@ -59,6 +59,15 @@ html[data-vt="tab"]::view-transition-new(root), html[data-vt="fade"]::view-trans
 /* The card snapshots keep their own size (no stretching); the clipped group reveals the totals card as it grows. The old image fades out fast so the ring and + are gone before the card settles. */
 ::view-transition-old(food-card), ::view-transition-new(food-card) { width: 100%; height: auto; object-fit: none; object-position: top; }
 ::view-transition-old(food-card) { animation-duration: 160ms; animation-timing-function: ease-out; }
+/* Photos: the Body thumb strip grows into the first set on Progress photos, and back. The strip travels as one piece. */
+::view-transition-group(photo-thumbs) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; }
+::view-transition-old(photo-thumbs), ::view-transition-new(photo-thumbs) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
+/* The nav bar and tab bar stay above the flying strip on push and pop (the tab-path morphs are unchanged). */
+html[data-vt="push"]::view-transition-group(navbar), html[data-vt="push"]::view-transition-group(tabbar),
+html[data-vt="pop"]::view-transition-group(navbar), html[data-vt="pop"]::view-transition-group(tabbar) { z-index: 11; }
+/* No partner on the other screen (the Body card has not filled in): the strip leaves with its page, no ghost. */
+html[data-vt="pop"]::view-transition-old(photo-thumbs):only-child { animation: vt-pop-old var(--t-slow) var(--ease-spring) both; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(photo-thumbs) { animation: none; } }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(food-card), ::view-transition-group(food-kcal) { animation: none; } }
 
 @keyframes vt-push-old { to { transform: translateX(-30%); filter: brightness(.6); } }

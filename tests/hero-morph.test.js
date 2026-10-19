@@ -144,3 +144,51 @@ test('food card snapshots are not stretched; ring and text links get press feedb
   assert(c.split('.food-card-ring:active').length - 1 >= 2, 'active in normal and reduced motion');
   assert(/\.food-card-text, \.food-card-ring, \[data-weight-open\] \{\s*cursor: pointer/.test(c), 'cursor');
 });
+
+test('photo-thumbs: push and pop only from the filled card; never in static markup', () => {
+  for (const f of [...readdirSync(new URL('../js/screens', import.meta.url)).map((x) => 'js/screens/' + x), 'index.html', 'js/photos/cards.js'])
+    assert(!read(f).includes('photo-thumbs'), f + ' must not hardcode photo-thumbs');
+  const go = heroMorphFor(['body'], ['photos'], { photosTap: true });
+  assert(go && go.length === 1 && go[0].name === 'photo-thumbs', 'push from card');
+  const back = heroMorphFor(['photos'], ['body'], { photosFromCard: true });
+  assert(back && back[0].name === 'photo-thumbs' && back[0].from.includes('.pp-session'), 'pop back');
+  assert(heroMorphFor(['body'], ['photos']) === null, 'no flag (tab bar, deep link)');
+  assert(heroMorphFor(['photos'], ['body']) === null, 'back without flag');
+  assert(heroMorphFor(['body'], ['photos', 'take'], { photosTap: true }) === null, 'Take photos');
+  assert(heroMorphFor(['today'], ['photos'], { photosTap: true }) === null, 'reminder / other route');
+  assert(heroMorphFor(['body'], ['photos'], { photosTap: true, reduced: true }) === null, 'reduced');
+  assert(heroMorphFor(['photos'], ['body'], { photosFromCard: true, reduced: true }) === null, 'back reduced');
+  assert(heroMorphFor(['today'], ['score'], { cardTap: true, photosTap: true })[0].name === 'score-ring');
+  assert(heroMorphFor(['today'], ['body', 'weight'], { weightTap: true, photosTap: true })[0].name === 'weight-num');
+  assert(heroMorphFor(['today'], ['food'], { foodTap: true, photosTap: true })[0].name === 'food-card');
+});
+
+test('photo morph wiring: only the filled card sets the flag; CSS', () => {
+  const a = read('js/app.js');
+  assert(a.includes("closest('[data-photos-card]')") && !a.includes('data-photos-empty') && !a.includes('data-photo-reminder-card'));
+  const c = read('css/motion.css');
+  assert(c.includes('group(photo-thumbs)') && c.includes('animation: none'));
+});
+
+test('photo morph: waits for the Body card, no ghost, partial sets line up, tab bar forgets', async () => {
+  const { whenFound } = await import('../js/ui/motion.js');
+  assert((await whenFound(() => 'x', { subscribe: () => () => {} })) === 'x', 'found at once');
+  let el = null, fire = null, off = 0;
+  const p = whenFound(() => el, { timeout: 200, subscribe: (cb) => { fire = cb; return () => { off++; }; } });
+  el = 'card'; fire();
+  assert((await p) === 'card' && off === 1, 'found after waiting, unsubscribed');
+  const t0 = Date.now();
+  const none = await whenFound(() => null, { timeout: 40, subscribe: () => () => {} });
+  assert(none === null && Date.now() - t0 < 500, 'gives up');
+  const m = read('js/ui/motion.js');
+  assert(m.includes('wait: true') && m.includes('p.wait'), 'photo parts wait for their partner');
+  const c = read('css/motion.css');
+  assert(c.includes('view-transition-old(photo-thumbs):only-child'), 'no ghost fallback');
+  assert(/view-transition-group\(tabbar\)[^}]*z-index: 11/.test(c) && c.includes('data-vt="pop"]::view-transition-group(navbar)'), 'bars above the strip');
+  assert(!/view-transition-group\(photo-thumbs\)[^}]*overflow/.test(c), 'group does not clip');
+  const k = read('js/photos/cards.js');
+  assert(k.includes('POSES.map') && k.includes('pp-thumb empty'), 'Body card keeps all three slots like Photos');
+  const a = read('js/app.js');
+  assert(/photosFromCard = false;[^\n]*\n\s*location\.hash = href;/.test(a), 'tab-bar tap forgets the flag');
+  assert(a.includes("onScreen(document.querySelector('#main [data-photos-card] .pp-thumbs'))"), 'off-screen strip never sets the flag');
+});

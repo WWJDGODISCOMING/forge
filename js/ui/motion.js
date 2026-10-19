@@ -69,7 +69,7 @@ let finalRing = null; // comma-joined selectors of every incoming morph part
 export function keepRingFinal(root) {
   if (finalRing) root.querySelectorAll(finalRing).forEach((el) => el.classList.add('sc-final'));
 }
-const onScreen = (el) => {
+export const onScreen = (el) => {
   if (!el) return false;
   const r = el.getBoundingClientRect();
   return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
@@ -111,6 +111,30 @@ export function countUp(el, to, { from = 0, dur = 900, format = (v) => Math.roun
 }
 
 /**
+ * Resolve with `find()` as soon as it returns something, or null after `timeout` ms. `subscribe(cb)` calls cb whenever
+ * the page may have changed and returns an unsubscribe function (a MutationObserver on #main in the app). Pure of the DOM,
+ * so it can be tested with a fake.
+ */
+export function whenFound(find, { timeout = 300, subscribe } = {}) {
+  const now = find();
+  if (now || !subscribe) return Promise.resolve(now || null);
+  return new Promise((resolve) => {
+    let off = () => {};
+    let timer = null;
+    const done = (v) => { clearTimeout(timer); off(); resolve(v); };
+    off = subscribe(() => { const el = find(); if (el) done(el); });
+    timer = setTimeout(() => done(find() || null), timeout);
+  });
+}
+const watchMain = (cb) => {
+  const main = document.getElementById('main');
+  if (!main) return () => {};
+  const mo = new MutationObserver(cb);
+  mo.observe(main, { childList: true, subtree: true });
+  return () => mo.disconnect();
+};
+
+/**
  * Run a DOM update as a View Transition when supported (Safari 18+), tagged with a direction so CSS can
  * slide tabs or push/pop detail screens. Falls back to an instant update. Reduced motion → crossfade (CSS).
  */
@@ -138,10 +162,14 @@ export function viewTransition(update, kind = 'fade', shared = null) {
   const vt = document.startViewTransition(async () => {
     if (parts.length) untag(); // the old screen is already captured; keep the names unique on the page
     await update();
-    parts.forEach((p) => {
-      const el = document.querySelector(p.to);
+    for (const p of parts) {
+      // A part marked `wait` has an incoming element that fills in after the screen draws (e.g. the Body photos card
+      // reads from IndexedDB): give it a moment. If it never shows, the outgoing one leaves with its page (CSS :only-child).
+      const el = p.wait
+        ? await whenFound(() => { const e = document.querySelector(p.to); return onScreen(e) ? e : null; }, { timeout: 300, subscribe: watchMain })
+        : document.querySelector(p.to);
       if (onScreen(el)) el.style.viewTransitionName = p.name;
-    });
+    }
   });
   return vt.finished.catch(() => {}).finally(() => {
     delete document.documentElement.dataset.vt;
@@ -175,11 +203,19 @@ export function sharedRingFor(from, to) {
  * the Body tab root, so Today to Body is a 'tab' change: it morphs only when the Weight card was tapped (`weightTap`),
  * and back when Body was opened that way (`weightFromCard`). Returns an array of parts, or null. Pure.
  */
-export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weightTap = false, weightFromCard = false, foodTap = false, foodFromCard = false, foodToday = true, reduced = false } = {}) {
+export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weightTap = false, weightFromCard = false, foodTap = false, foodFromCard = false, foodToday = true, photosTap = false, photosFromCard = false, reduced = false } = {}) {
   if (reduced) return null;
+  // Photos is a push/pop (Body to Progress photos), so it is decided before the tab-only parts below.
+  const kind = transitionKind(from, to);
+  if (kind === 'push' && photosTap && from[0] === 'body' && !from[1] && to[0] === 'photos' && !to[1]) {
+    return [{ name: 'photo-thumbs', from: '#main [data-photos-card] .pp-thumbs', to: '#main .pp-session .pp-thumbs', toFinal: '.pp-session .pp-thumbs', wait: true }];
+  }
+  if (kind === 'pop' && photosFromCard && from[0] === 'photos' && !from[1] && to[0] === 'body' && !to[1]) {
+    return [{ name: 'photo-thumbs', from: '#main .pp-session .pp-thumbs', to: '#main [data-photos-card] .pp-thumbs', toFinal: '[data-photos-card] .pp-thumbs', wait: true }];
+  }
   const ring = ringMorphFor(from, to, { cardTap, fromCard, reduced });
   if (ring) return [ring];
-  if (transitionKind(from, to) !== 'tab') return null;
+  if (kind !== 'tab') return null;
   const f = from[0] || 'today';
   const t = to[0] || 'today';
   if (f === 'today' && !from[1] && t === 'body' && to[1] === 'weight' && weightTap) {
