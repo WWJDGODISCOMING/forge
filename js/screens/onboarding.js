@@ -4,7 +4,7 @@ import { put, patch, newRecord } from '../db.js';
 import { tourFieldsForSave } from '../tour/steps.js';
 import { esc, $, $$, toast, todayKey } from '../ui.js';
 import {
-  GOALS, ACTIVITY_LEVELS, computeTargets, FLOOR_SOURCE, MAX_LOSS_PCT, MAX_LOSS_PCT_OVERRIDE,
+  GOALS, ACTIVITY_LEVELS, computeTargets, applyProteinGoal, FLOOR_SOURCE, MAX_LOSS_PCT, MAX_LOSS_PCT_OVERRIDE,
 } from '../nutrition/targets.js';
 import { weightToDisplay, weightFromInput, weightUnit, feetInchesToCm, cmToFeetInches, formatWeight } from '../units.js';
 import { LOCATION_PRESETS, presetDescription, locationFromPreset } from '../workouts/equipment.js';
@@ -231,7 +231,8 @@ const stepLocations = {
 };
 
 function targetsFromDraft() {
-  return computeTargets({ ...draft, pacePct: draft.pacePct ?? undefined });
+  const t = computeTargets({ ...draft, pacePct: draft.pacePct ?? undefined });
+  return state.profile ? applyProteinGoal(t, state.profile) : t; // editing: keep the own protein goal
 }
 
 const stepTargets = {

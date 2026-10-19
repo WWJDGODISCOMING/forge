@@ -166,7 +166,7 @@ export function renderPlan(el, { rerender }) {
 
   const base = currentPlan(prefs);
   const aiOn = aiEnabled();
-  const aiPlan = aiOn ? cachedAiPlan(base.weekStart, prefs, state.user && state.user.uid) : null; // with AI off nothing is read, sent or shown
+  const aiPlan = aiOn ? cachedAiPlan(base.weekStart, prefs, state.user && state.user.uid, undefined, targets()) : null; // with AI off nothing is read, sent or shown
   const plan = aiPlan || base;
   const today = todayKey();
   const nextWeek = plan.weekStart !== weekStartOf(today);
@@ -219,7 +219,8 @@ export function renderPlan(el, { rerender }) {
       rerender();
       try {
         const { call } = await import('../functions.js');
-        saveAiPlan(await requestAiPlan({ prefs, targets: targets(), weekStart: base.weekStart, call }), prefs, uid);
+        const sent = targets();
+        saveAiPlan(await requestAiPlan({ prefs, targets: sent, weekStart: base.weekStart, call }), prefs, uid, undefined, sent);
         haptics.success();
       } catch (e) {
         aiNote = (e && e.message) || AI_FAIL;

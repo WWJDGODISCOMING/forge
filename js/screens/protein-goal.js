@@ -3,16 +3,19 @@
 import { state } from '../state.js';
 import { patch, unsetField } from '../db.js';
 import { $, sheet, toast } from '../ui.js';
+import { icon } from '../ui/icons.js';
 import { haptics } from '../ui/haptic.js';
-import { computeTargets, customProteinG, stepProtein, parseProteinInput, startProteinG, PROTEIN_GOAL_MIN_G as MIN, PROTEIN_GOAL_MAX_G as MAX } from '../nutrition/targets.js';
+import { computeTargets, GOALS, customProteinG, stepProtein, parseProteinInput, startProteinG, PROTEIN_GOAL_MIN_G as MIN, PROTEIN_GOAL_MAX_G as MAX } from '../nutrition/targets.js';
 import { currentWeightKg } from '../derived.js';
+
+const STEP_BTN = 'min-width:48px;min-height:48px;padding:0;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;background:var(--accent);color:var(--accent-ink);border:2px solid var(--accent)';
 
 function autoProtein() {
   const p = state.profile;
   if (!p) return null;
   const kg = currentWeightKg() || p.weightKg;
   const t = computeTargets({ ...p, weightKg: kg });
-  return { g: t.proteinG, perKg: kg ? Math.round((t.proteinG / kg) * 10) / 10 : null };
+  return { g: t.proteinG, perKg: GOALS[p.goal] ? GOALS[p.goal].proteinPerKg : null, fatG: t.fatG, calories: t.calories };
 }
 
 /** One-line summary for the Settings row. */
@@ -37,18 +40,23 @@ export function openProteinGoal({ onSave = () => {} } = {}) {
         </div>
         <p class="small muted">Auto: ${a.g} g${a.perKg ? `, ${a.perKg.toFixed(1)} g/kg` : ''}</p>
         <div class="row" data-custom style="justify-content:center;gap:12px;align-items:center">
-          <button type="button" class="icon-btn" data-dec style="min-width:44px;min-height:44px">−</button>
-          <label class="field" style="margin:0;text-align:center"><input data-g inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" style="text-align:center;min-height:44px;width:5.5em;font-size:1.4em"> <small class="muted">g</small></label>
-          <button type="button" class="icon-btn" data-inc style="min-width:44px;min-height:44px">+</button>
+          <button type="button" class="icon-btn" data-dec aria-label="Down 5 grams" style="${STEP_BTN}">${icon('minus')}</button>
+          <label class="field" style="margin:0;display:flex;align-items:baseline;justify-content:center;gap:6px;white-space:nowrap"><input data-g inputmode="numeric" pattern="[0-9]*" maxlength="3" autocomplete="off" style="text-align:center;min-height:44px;width:3.2em;font-size:2em;font-weight:700"><b class="muted" style="font-size:1.2em">g</b></label>
+          <button type="button" class="icon-btn" data-inc aria-label="Up 5 grams" style="${STEP_BTN}">${icon('plus')}</button>
         </div>
+        <p class="small muted" data-carbs></p>
         <p class="small muted" data-note>Between ${MIN} and ${MAX} g. Carbs adjust to fit your calories.</p>
         <button class="btn" type="button" data-save>Save</button>
       </div>`;
     const box = $('[data-custom]', body), input = $('[data-g]', body), dec = $('[data-dec]', body), inc = $('[data-inc]', body);
+    let typing = false; // a typed value stays on screen until it is valid, so Save can check what was really typed
     const paint = () => {
       body.querySelector(`input[name=pmode][value=${custom ? 'custom' : 'auto'}]`).checked = true;
       box.hidden = !custom;
-      input.value = String(g);
+      if (document.activeElement !== input || !typing) input.value = String(g);
+      const carbs = $('[data-carbs]', body);
+      carbs.hidden = !custom;
+      carbs.textContent = `Carbs become ${Math.max(0, Math.round((a.calories - g * 4 - a.fatG * 9) / 4))} g`;
       input.setAttribute('aria-label', `Protein goal, ${g} grams, ${custom ? 'custom' : 'auto'}`);
       dec.setAttribute('aria-label', 'Down 5 grams');
       inc.setAttribute('aria-label', 'Up 5 grams');
@@ -61,18 +69,18 @@ export function openProteinGoal({ onSave = () => {} } = {}) {
       haptics.select();
       paint();
     });
-    dec.onclick = () => { g = stepProtein(g, -1); haptics.select(); paint(); };
-    inc.onclick = () => { g = stepProtein(g, 1); haptics.select(); paint(); };
+    dec.onclick = () => { typing = false; g = stepProtein(g, -1); haptics.select(); paint(); };
+    inc.onclick = () => { typing = false; g = stepProtein(g, 1); haptics.select(); paint(); };
+    input.addEventListener('input', () => { typing = true; });
     input.addEventListener('change', () => {
       const v = parseProteinInput(input.value);
       if (v === null) toast(`Pick a number from ${MIN} to ${MAX}`);
-      else g = v;
-      paint();
+      else { g = v; typing = false; paint(); }
     });
     $('[data-save]', body).onclick = () => {
       if (custom) {
         const v = parseProteinInput(input.value);
-        if (v === null) { toast(`Pick a number from ${MIN} to ${MAX}`); paint(); return; }
+        if (v === null) { toast(`Pick a number from ${MIN} to ${MAX}`); return; }
         patch('profile', 'main', { proteinGoalG: v });
       } else if (state.profile && 'proteinGoalG' in state.profile) {
         unsetField('profile', 'main', 'proteinGoalG');

@@ -48,22 +48,22 @@ export function checkAiPlan(plan, prefs, weekStart) {
 }
 
 const PREFIX = 'forge.mealai.';
-/** What the week was made for: the same five preferences the server gets. A change to any of them makes the saved week stale. */
-const fingerprint = (prefs) => JSON.stringify([prefs.diets, prefs.avoid, prefs.leftovers, prefs.cooking, prefs.snacks]);
+/** What the week was made for: the same five preferences and the calorie and protein targets the server gets. A change to any of them makes the saved week stale. */
+const fingerprint = (prefs, targets) => JSON.stringify([prefs.diets, prefs.avoid, prefs.leftovers, prefs.cooking, prefs.snacks, targets ? targets.calories : null, targets ? targets.proteinG : null]);
 
 /** The saved AI week for this week start, if it was made for this account and these preferences and still passes the skip list; otherwise null (and it is forgotten). */
-export function cachedAiPlan(weekStart, prefs, uid, store = globalThis.localStorage) {
+export function cachedAiPlan(weekStart, prefs, uid, store = globalThis.localStorage, targets) {
   try {
     const raw = store && store.getItem(KEY(weekStart));
     if (!raw) return null;
     const saved = JSON.parse(raw);
-    const ok = saved && uid && saved.uid === uid && saved.fp === fingerprint(prefs) ? checkAiPlan(saved.plan, prefs, weekStart) : null;
+    const ok = saved && uid && saved.uid === uid && saved.fp === fingerprint(prefs, targets) ? checkAiPlan(saved.plan, prefs, weekStart) : null;
     if (!ok) store.removeItem(KEY(weekStart));
     return ok;
   } catch { return null; }
 }
-export function saveAiPlan(plan, prefs, uid, store = globalThis.localStorage) {
-  try { store.setItem(KEY(plan.weekStart), JSON.stringify({ uid, fp: fingerprint(prefs), plan })); } catch { /* private mode: the week still shows this time */ }
+export function saveAiPlan(plan, prefs, uid, store = globalThis.localStorage, targets) {
+  try { store.setItem(KEY(plan.weekStart), JSON.stringify({ uid, fp: fingerprint(prefs, targets), plan })); } catch { /* private mode: the week still shows this time */ }
 }
 export function clearAiPlan(weekStart, store = globalThis.localStorage) {
   try { store.removeItem(KEY(weekStart)); } catch { /* nothing saved */ }

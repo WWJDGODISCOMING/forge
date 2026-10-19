@@ -174,3 +174,11 @@ test('grocery list: an AI meal’s own amounts are not scaled twice and Unicode 
 test('digits-only skip terms are dropped by the app’s own cleaning too', () => {
   eq(JSON.stringify(cleanPrefs({ avoid: ['8,532', '532', 'tomatoes', '12 oz'] }).avoid), JSON.stringify(['tomatoes', '12 oz']));
 });
+
+test('a saved AI week is dropped when the calorie or protein target changes (custom protein goal)', () => {
+  const s = store(), T = { calories: 2000, proteinG: 187 };
+  saveAiPlan(checkAiPlan(week(), cleanPrefs({}), WEEK), cleanPrefs({}), 'u1', s, T);
+  assert(cachedAiPlan(WEEK, cleanPrefs({}), 'u1', s, { ...T }), 'same targets keep it');
+  eq(cachedAiPlan(WEEK, cleanPrefs({}), 'u1', s, { ...T, proteinG: 145 }), null);
+  eq(s.size(), 0, 'key removed');
+});

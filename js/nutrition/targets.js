@@ -247,7 +247,12 @@ export function applyProteinGoal(targets, profile) {
     autoProteinG: targets.proteinG,
     proteinG: g,
     carbG,
-    reasoning: [...targets.reasoning, `Protein: your own goal, ${g} g/day.`],
+    reasoning: [
+      ...targets.reasoning.map((r) =>
+        r.startsWith('Protein: ') ? r.replace(/^Protein: /, 'Auto protein would be: ').replace(/ = (\d+) g\/day/, ' = $1 g/day') :
+        r.startsWith('Fat: ') ? r.replace(/Carbs fill the rest: \d+ g\./, `Carbs fill the rest: ${carbG} g.`) : r),
+      `Protein: your own goal, ${g} g/day.`,
+    ],
   };
 }
 

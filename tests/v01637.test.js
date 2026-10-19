@@ -1,4 +1,5 @@
 // v0.16.37: custom protein goal. Synthetic profile only.
+import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import { state } from '../js/state.js';
 import { computeTargets, applyProteinGoal, customProteinG, stepProtein, parseProteinInput, startProteinG } from '../js/nutrition/targets.js';
@@ -56,4 +57,13 @@ test('Settings stepper: 5 g steps, bounds 40–300, typed values, sensible start
   eq(stepProtein(40, -1), 40); eq(stepProtein(300, 1), 300);
   eq(parseProteinInput('147'), 147); eq(parseProteinInput('39'), null); eq(parseProteinInput('abc'), null); eq(parseProteinInput(''), null);
   eq(startProteinG(189), 190); eq(startProteinG(0), 40);
+});
+
+test('Profile targets and "Why these numbers?" agree with the custom goal', () => {
+  const t = applyProteinGoal(auto, { ...P, proteinGoalG: 145 });
+  const carbLines = t.reasoning.join(' ').match(/Carbs fill the rest: \d+ g/g);
+  eq(carbLines.join('|'), `Carbs fill the rest: ${t.carbG} g`);
+  assert(t.reasoning.some((r) => r.startsWith('Auto protein would be')), 'auto reference');
+  const src = readFileSync(new URL('../js/screens/onboarding.js', import.meta.url), 'utf8');
+  assert(src.includes('applyProteinGoal(t, state.profile)'), 'profile editor applies the goal');
 });
