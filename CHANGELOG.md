@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.26 — Score ring morph (2026-10-18)
+
+#58 slice. Tapping the Score card on Today grows its ring into the big ring on the Score screen, and going back shrinks it into the card. Off with Reduced Motion. No functions or rules change.
+
+### What's new
+
+- Tap your Score on Today and the ring grows into the Score screen.
+- The ring keeps its score as it grows, and Score opens at the top.
+
 ## 0.16.25 — Detents on tall sheets (2026-10-18)
 
 #58 slice. Snap a meal, Change workout, How to do it and My foods now open half-way and drag up to full height, with the page easing back, like Log food. Short sheets still fit their content. No functions or rules change.

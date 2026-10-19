@@ -33,6 +33,7 @@ import './spring.test.js';
 import './detents.test.js';
 import './sheet-lift.test.js';
 import './sheet-detent-coverage.test.js';
+import './hero-morph.test.js';
 import './spring-track.test.js';
 import './illustrations.test.js';
 import './typescale.test.js';

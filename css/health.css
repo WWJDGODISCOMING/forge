@@ -35,6 +35,7 @@
 svg.sc-hero { overflow: visible; }
 .sc-arc { fill: none; stroke-linecap: round; transition: stroke-dashoffset 1s var(--ease-out); stroke-dashoffset: var(--off); }
 .sc-pre .sc-arc { stroke-dashoffset: var(--c); transition: none; }
+.sc-pre .sc-final .sc-arc { stroke-dashoffset: var(--off); }
 .score-hero { position: relative; isolation: isolate; width: 212px; height: 212px; margin: 4px auto 0; }
 .score-hero::before { content: ''; position: absolute; inset: -12%; z-index: -1; border-radius: 50%; background: radial-gradient(closest-side, var(--hero-glow), transparent); pointer-events: none; }
 .score-hero .num { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
