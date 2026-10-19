@@ -78,3 +78,13 @@
 .pp-promo-text b { font-size: calc(17px * var(--ts)); }
 .pp-promo-text span { color: var(--text-2); font-size: calc(15px * var(--ts)); line-height: calc(20px * var(--ts)); }
 .pp-cta { width: 100%; justify-content: center; pointer-events: none; }
+
+/* Full-screen photo viewer (js/photos/viewer.js) */
+.pv { position: fixed; inset: 0; z-index: 60; overflow: hidden; }
+.pv-bg { position: absolute; inset: 0; background: var(--bg); opacity: 0; }
+.pv-stage { position: absolute; left: 0; right: 0; top: calc(var(--safe-top) + 56px); bottom: calc(var(--safe-bottom) + 84px); pointer-events: none; }
+.pv-img { position: absolute; object-fit: contain; touch-action: pinch-zoom; user-select: none; -webkit-user-drag: none; transform-origin: 50% 50%; }
+.pv-bar { position: absolute; left: 0; right: 0; top: var(--safe-top); height: 56px; display: flex; align-items: center; gap: 4px; padding: 0 8px; }
+.pv-close { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; color: var(--text-1); background: none; border: 0; }
+.pv-title { margin: 0; font-weight: 600; color: var(--text-1); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv-foot { position: absolute; left: 16px; right: 16px; bottom: calc(var(--safe-bottom) + 16px); }

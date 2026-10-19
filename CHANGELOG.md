@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.32 — Photo viewer (2026-10-19)
+
+Tapping a progress photo opens it full screen, growing out of its thumbnail. Dragging it down shrinks it back. No functions or rules change.
+
+### What's new
+
+- Tap a progress photo to see it full screen. Swipe down to close.
+- Photos open and close more smoothly, and are easier to grab.
+
 ## 0.16.31 — Photos card morph (2026-10-19)
 
 Tapping the Progress photos card on Body grows its thumbnails into the Progress photos screen, and Back shrinks them again. No functions or rules change.
