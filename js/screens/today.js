@@ -86,21 +86,21 @@ function workoutCard() {
   if (active) {
     // Every set done but not saved yet (the app was closed on the Workout complete card): go straight back to it.
     const allDone = (active.exercises || []).some((x) => x.sets.length) && active.exercises.every((x) => x.sets.every((s) => s.done));
-    return `<a class="card resume" data-tour="workout" href="${allDone ? '#/play' : playerRoute()}"><p class="label">${allDone ? 'All sets done' : 'Workout in progress'}</p>
+    return `<a class="card resume" data-tour="workout" data-workout-card="resume" href="${allDone ? '#/play' : playerRoute()}"><p class="label">${allDone ? 'All sets done' : 'Workout in progress'}</p>
       <p class="big-title">${esc(active.label)}</p><span class="btn">${allDone ? 'Finish' : 'Resume'}</span></a>`;
   }
   const doneToday = historyIndex().done.filter((w) => dayKey(w.started_at) === todayKey());
   if (doneToday.length) {
     const w = doneToday[0];
     const sets = (w.exercises || []).reduce((n, it) => n + it.sets.filter((x) => x.done && !x.warmup).length, 0);
-    return `<div class="card" data-tour="workout"><p class="label">Today’s workout</p>
+    return `<div class="card" data-tour="workout" data-workout-card="done"><p class="label">Today’s workout</p>
       <p class="big-title">${icon('check', { filled: true })} ${esc(w.label)}</p>
       <p class="small muted">${sets} sets${(w.prs || []).length ? ` · ${w.prs.length} PR${w.prs.length === 1 ? '' : 's'} ${icon('trophy', { filled: true })}` : ''}. Recovery starts now.</p>
       <a class="btn ghost" href="#/history">See history</a></div>`;
   }
   const plan = previewPlan(); // with any edits you made on Train
   if (!plan || !plan.exercises.length) return '';
-  return `<div class="card" data-tour="workout"><div class="row between center card-head"><p class="label">Today’s workout${plan.deload ? ' · deload' : ''}</p><a class="card-link" href="#/train">See plan${icon('chev', { size: 14 })}</a></div>
+  return `<div class="card" data-tour="workout" data-workout-card="start"><div class="row between center card-head"><p class="label">Today’s workout${plan.deload ? ' · deload' : ''}</p><a class="card-link" href="#/train">See plan${icon('chev', { size: 14 })}</a></div>
     <div class="row between center gap"><div class="grow-min"><p class="big-title">${esc(plan.label)}</p>
     <p class="small muted">${plan.exercises.length} exercises · ${plan.est_minutes} min</p>
     <p class="small muted one-line" data-layout-ok data-workout-place>${esc(plan.location.name)}</p></div><button class="btn small" data-start>Start</button></div>
