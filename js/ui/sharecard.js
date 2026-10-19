@@ -42,31 +42,31 @@ export async function renderShareCard(card) {
   c.width = W;
   c.height = H;
   const ctx = c.getContext('2d');
-  // Background: deep charcoal with an ember glow rising from the bottom.
-  ctx.fillStyle = '#0e1116';
+  // Background: deep navy with an cyan glow rising from the bottom.
+  ctx.fillStyle = '#040B0E';
   ctx.fillRect(0, 0, W, H);
   const g = ctx.createRadialGradient(W / 2, H + 120, 40, W / 2, H + 120, 900);
-  g.addColorStop(0, '#ff6a2b55');
-  g.addColorStop(0.5, '#c6ff3d14');
-  g.addColorStop(1, '#0e111600');
+  g.addColorStop(0, '#3EC8F055');
+  g.addColorStop(0.5, '#3EC8F014');
+  g.addColorStop(1, '#040B0E00');
   ctx.fillStyle = g;
   ctx.fillRect(0, 0, W, H);
 
   ctx.textBaseline = 'alphabetic';
-  ctx.fillStyle = '#c6ff3d';
+  ctx.fillStyle = '#3EC8F0';
   ctx.font = `900 40px ${FONT}`;
   ctx.fillText('FORGE', 72, 110);
-  ctx.fillStyle = '#9aa4b0';
+  ctx.fillStyle = '#9AA1AB';
   ctx.font = `600 32px ${FONT}`;
   ctx.textAlign = 'right';
   ctx.fillText(card.date, W - 72, 110);
   ctx.textAlign = 'left';
 
-  ctx.fillStyle = '#f2f5f8';
+  ctx.fillStyle = '#DADDE4';
   ctx.font = `900 112px ${FONT}`;
   ctx.fillText(`Workout #${card.number}`, 72, 250);
   if (card.label) {
-    ctx.fillStyle = '#9aa4b0';
+    ctx.fillStyle = '#9AA1AB';
     ctx.font = `600 38px ${FONT}`;
     ctx.fillText(card.label, 72, 308);
   }
@@ -77,12 +77,12 @@ export async function renderShareCard(card) {
     const x = 72 + (i % 2) * 476;
     const y = 360 + Math.floor(i / 2) * 170;
     roundRect(ctx, x, y, 460, 150, 32);
-    ctx.fillStyle = i === 3 && card.prs.length ? '#2a2312' : '#171b21';
+    ctx.fillStyle = i === 3 && card.prs.length ? 'rgba(198,255,61,.14)' : '#172430';
     ctx.fill();
-    ctx.fillStyle = '#9aa4b0';
+    ctx.fillStyle = '#9AA1AB';
     ctx.font = `700 30px ${FONT}`;
     ctx.fillText(k.toUpperCase(), x + 32, y + 52);
-    ctx.fillStyle = i === 3 && card.prs.length ? '#ffc94a' : '#f2f5f8';
+    ctx.fillStyle = i === 3 && card.prs.length ? '#C6FF3D' : '#DADDE4';
     ctx.font = `900 60px ${FONT}`;
     ctx.fillText(v, x + 32, y + 120);
   });
@@ -92,14 +92,14 @@ export async function renderShareCard(card) {
     const img = await loadSvg(bodyMapStandalone(card.muscles));
     ctx.drawImage(img, 120, 715, 420, 420);
   } catch { /* map is optional */ }
-  ctx.fillStyle = '#9aa4b0';
+  ctx.fillStyle = '#9AA1AB';
   ctx.font = `700 28px ${FONT}`;
   ctx.fillText('MUSCLES WORKED', 160, 1160);
 
   // PRs, level, streak.
   let y = 760;
   ctx.font = `800 34px ${FONT}`;
-  ctx.fillStyle = '#ffc94a';
+  ctx.fillStyle = '#C6FF3D';
   // Each PR: the exercise (white) over what you beat (gold), each wrapped to the column, never cut mid-word.
   const wrap = (text, max, lines = 2) => {
     const out = [];
@@ -128,30 +128,30 @@ export async function renderShareCard(card) {
     if (y > 960) break; // leave room for the level
     if (p.name) {
       ctx.font = `700 28px ${FONT}`;
-      ctx.fillStyle = '#f2f5f8';
+      ctx.fillStyle = '#DADDE4';
       for (const l of wrap(p.name, 460, 1)) { ctx.fillText(l, 580, y); y += 36; }
     }
     ctx.font = `800 ${tight ? 28 : 32}px ${FONT}`;
-    ctx.fillStyle = '#ffc94a';
+    ctx.fillStyle = '#C6FF3D';
     for (const l of wrap(`🏆 ${p.what}`, 460, tight ? 1 : 2)) { ctx.fillText(l, 580, y); y += tight ? 34 : 40; }
     y += tight ? 12 : 18;
     shown++;
   }
   if (shown < prs.length) {
     ctx.font = `700 28px ${FONT}`;
-    ctx.fillStyle = '#9aa4b0';
+    ctx.fillStyle = '#9AA1AB';
     ctx.fillText(`+${prs.length - shown} more record${prs.length - shown === 1 ? '' : 's'}`, 580, y);
     y += 40;
   }
   y = Math.max(y + 20, 1000);
-  ctx.fillStyle = '#9aa4b0';
+  ctx.fillStyle = '#9AA1AB';
   ctx.font = `700 28px ${FONT}`;
   ctx.fillText(`LEVEL ${card.level.level}`, 580, y);
-  ctx.fillStyle = '#c6ff3d';
+  ctx.fillStyle = '#3EC8F0';
   ctx.font = `900 48px ${FONT}`;
   ctx.fillText(card.level.name, 580, y + 56);
   if (card.streak > 0) {
-    ctx.fillStyle = '#f2f5f8';
+    ctx.fillStyle = '#DADDE4';
     ctx.font = `800 36px ${FONT}`;
     ctx.fillText(`🔥 ${card.streak}-week streak`, 580, y + 120);
   }

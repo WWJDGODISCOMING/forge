@@ -9,8 +9,8 @@
 import { T } from './poses-lib.js';
 import { solve } from './rig.js';
 
-const PAD = ['#4a3a32', '#2c231e', '#3a2e27'];
-const FRAME = ['#2f363f', '#1f242a', '#282e35'];
+const PAD = ['#2A3F54', '#172430', '#1F3142'];
+const FRAME = ['#2a3a4a', '#18232e', '#223140'];
 
 // ---------------- leg press: 45° sled ----------------
 export const SLED_DIR = 45;

@@ -85,10 +85,10 @@ const SHAPES = {
 };
 // rim (outer) and face (inner) gradient stops, and the engraving colour, per tier
 const METAL = {
-  1: { rim: ['#ffc48a', '#c2672a', '#6e2c0c'], face: ['#ffb36a', '#d9702c', '#8d3a12'], ink: '#3a1505', glow: 'rgba(255,106,43,.35)' },
+  1: { rim: ['#8FE6FF', '#077CA5', '#054668'], face: ['#6fd8f7', '#0a8fbd', '#07587f'], ink: '#021a26', glow: 'rgba(62,200,240,.35)' },
   2: { rim: ['#f4f7fa', '#9aa6b2', '#454e58'], face: ['#e3e9ef', '#a9b4bf', '#5f6a76'], ink: '#1b222a', glow: 'rgba(170,200,230,.3)' },
-  3: { rim: ['#fff1b8', '#e3a72e', '#7d4f0c'], face: ['#ffe58a', '#f0b43a', '#a8691a'], ink: '#4a2c04', glow: 'rgba(255,201,77,.45)' },
-  4: { rim: ['#ffffff', '#ffd59a', '#ff6a2b'], face: ['#fffdf6', '#ffe7bd', '#ffb067'], ink: '#7a2a06', glow: 'rgba(255,140,60,.7)' },
+  3: { rim: ['#e6ff9a', '#c6ff3d', '#5f8a00'], face: ['#dcff7a', '#c6ff3d', '#7aa800'], ink: '#1d2a00', glow: 'rgba(198,255,61,.45)' },
+  4: { rim: ['#ffffff', '#a8e8ff', '#3EC8F0'], face: ['#f6fdff', '#cdf3ff', '#8FE6FF'], ink: '#054668', glow: 'rgba(62,200,240,.7)' },
 };
 
 let sprite = false;

@@ -5,7 +5,7 @@
   "scripts": {
     "test": "node tests/run.js",
     "native:build": "node scripts/build-www.mjs",
-    "native:assets": "node scripts/make-assets.mjs && npx capacitor-assets generate --ios --iconBackgroundColor '#0a0a0b' --splashBackgroundColor '#0a0a0b' --splashBackgroundColorDark '#0a0a0b'",
+    "native:assets": "node scripts/make-assets.mjs && npx capacitor-assets generate --ios --iconBackgroundColor '#040B0E' --splashBackgroundColor '#040B0E' --splashBackgroundColorDark '#040B0E'",
     "native:setup": "bash scripts/ios-setup.sh",
     "native:sync": "node scripts/build-www.mjs && npx cap sync ios",
     "native:open": "npx cap open ios"

@@ -110,7 +110,7 @@ export function bodyMap(values, { mode = 'intensity', tappable = false, size = '
     const fill = (slug) => {
       const v = rv[slug];
       if (v == null || (mode === 'intensity' && v <= 0)) return null;
-      return mode === 'recovery' ? { color: recoveryColor(v), opacity: 0.9 } : { color: '#ff6a2b', opacity: Math.max(0.2, Math.min(1, v)) };
+      return mode === 'recovery' ? { color: recoveryColor(v), opacity: 0.9 } : { color: '#3EC8F0', opacity: Math.max(0.2, Math.min(1, v)) };
     };
     return `<figure class="bm-side">${bodySide(side, { fill, tappable, label: `Muscle map, ${side}` })}${caption ? `<figcaption>${side === 'front' ? 'Front' : 'Back'}</figcaption>` : ''}</figure>`;
   });
@@ -129,7 +129,7 @@ export function exerciseValues(ex) {
  * Front and back as one self-contained SVG string (no sprite references), for drawing into a canvas
  * (the share card). values/mode as for bodyMap().
  */
-export function bodyMapStandalone(values, { mode = 'intensity', base = '#2b323b', muscle = '#3a434e' } = {}) {
+export function bodyMapStandalone(values, { mode = 'intensity', base = '#1F3142', muscle = '#2A3F54' } = {}) {
   const side = (parts, sd) => {
     const rv = regionValues(values, sd, mode === 'recovery' ? Math.min : Math.max);
     return parts.map(([slug, paths]) => {
@@ -137,10 +137,10 @@ export function bodyMapStandalone(values, { mode = 'intensity', base = '#2b323b'
       let op = 1;
       const v = rv[slug];
       if (!NON_MUSCLE.has(slug) && v != null && !(mode === 'intensity' && v <= 0)) {
-        fill = mode === 'recovery' ? recoveryColor(v) : '#ff6a2b';
+        fill = mode === 'recovery' ? recoveryColor(v) : '#3EC8F0';
         op = mode === 'recovery' ? 0.9 : Math.max(0.25, Math.min(1, v));
       }
-      return paths.map((d) => `<path d="${d}" fill="${fill}" fill-opacity="${op}" stroke="#0e1116" stroke-width="2"/>`).join('');
+      return paths.map((d) => `<path d="${d}" fill="${fill}" fill-opacity="${op}" stroke="#172430" stroke-width="2"/>`).join('');
     }).join('');
   };
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1448 1448" width="1448" height="1448">${side(FRONT, 'front')}${side(BACK, 'back')}</svg>`;

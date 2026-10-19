@@ -183,11 +183,11 @@ async function shareCard(n, streak) {
   c.width = W;
   c.height = H;
   const g = c.getContext('2d');
-  g.fillStyle = '#0e1116';
+  g.fillStyle = '#172430';
   g.fillRect(0, 0, W, H);
   const rg = g.createRadialGradient(W / 2, H * 0.45, 40, W / 2, H * 0.45, 800);
-  rg.addColorStop(0, '#c6ff3d66');
-  rg.addColorStop(1, '#0e111600');
+  rg.addColorStop(0, '#3EC8F066');
+  rg.addColorStop(1, '#17243000');
   g.fillStyle = rg;
   g.fillRect(0, 0, W, H);
   g.textAlign = 'center';
@@ -207,7 +207,7 @@ async function shareCard(n, streak) {
   g.fillStyle = VOLT;
   g.font = `900 200px ${font}`;
   g.fillText(`#${n}`, W / 2, 1330);
-  g.fillStyle = '#9aa4b0';
+  g.fillStyle = '#9AA1AB';
   g.font = `600 44px ${font}`;
   g.fillText('Every mission, 7 days in a row', W / 2, 1430);
   if (streak > 1) g.fillText(`${streak} weeks running`, W / 2, 1500);
@@ -307,7 +307,7 @@ function playPerfectWeek({ n, streak }) {
     aura(cx, cy, { size: 360, scale: 3.4, dur: 900, colors: [VOLT, '#8BE000'] });
     aura(cx, cy, { size: 240, scale: 4.2, dur: 1100, colors: ['#FFFFFF', VOLT] });
     burst(cx, cy, { count: 120, colors: COLORS, speed: 13, gravity: 0.14, size: 3.2, life: 60 });
-    confetti({ duration: 1600, colors: [VOLT, '#FFFFFF', '#FFC94D'] });
+    confetti({ duration: 1600, colors: [VOLT, '#FFFFFF', '#3EC8F0', '#8FE6FF'] });
     const ring = run.layer('pw-ring');
     Object.assign(ring.style, { left: `${cx - 60}px`, top: `${cy - 60}px` });
     run.anim(ring, [{ transform: 'scale(.2)', opacity: 0.95 }, { transform: 'scale(14)', opacity: 0 }], { duration: 1000, easing: EASE.out });

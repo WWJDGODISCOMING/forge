@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.30 — New look, part 2 (2026-10-19)
+
+Whole-app palette, part 2 of 2: the canvas, SVG and inline colours. Confetti, share card, badges, muscle maps, exercise figures and the Withings page now match the navy and cyan look; lime stays for wins. No functions or rules change.
+
+### What's new
+
+- Workout figures, badges and celebrations now match the new navy and cyan look.
+- Share cards got the new look too.
+- Muscles you worked light up in cyan.
+
 ## 0.16.29 — New look, part 1 (2026-10-19)
 
 Whole-app palette, part 1 of 2: deep navy surfaces with a glowing cyan accent; lime is kept for wins only. Today rings, light mode, launch colours and the lock screen are done; confetti, share card, badges and exercise figures follow in the next release. No functions or rules change.
