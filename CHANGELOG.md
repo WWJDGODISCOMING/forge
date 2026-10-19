@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.36 — One serving, not the whole package (2026-10-19)
+
+Snap a meal now sizes one portion, and label scans start at one serving. Cloud Functions changed (snapMealPhoto); `firestore.rules` did not.
+
+### What's new
+
+- Label scans now start at one serving, not the whole package.
+- Tap "Whole package" if you ate it all. Portions step in halves.
+- Each food shows what one portion means, like "1 × about 1 cup (180 g)".
+- Big items and big meals get a gentle "check the portion" hint.
+
 ## 0.16.35 — Swipe to delete (2026-10-19)
 
 Swipe a row left to delete it, like Mail. No functions or rules change.

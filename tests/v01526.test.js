@@ -34,7 +34,7 @@ test('portion stepper scales calories and macros, and totals add up', () => {
   eq(rowMacros(rows[0]).kcal, 345);
   near(rowMacros(rows[0]).protein_g, 64.5, 1e-9);
   eq(totalsOfRows(rows).kcal, 581);
-  eq(stepRow(stepRow({ ...rows[1], qty: 0.25 }, -1), -1).qty, 0.25, 'never below a quarter');
+  eq(stepRow({ ...rows[1], qty: 0.5 }, -1).qty, 0.5, 'never below a half');
 });
 
 test('remove drops a row; low confidence is flagged', () => {

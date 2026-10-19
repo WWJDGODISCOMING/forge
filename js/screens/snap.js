@@ -7,7 +7,7 @@ import { icon } from '../ui/icons.js';
 import { MEALS, MEAL_LABEL, mealForHour } from '../food/core.js';
 import { servingsLabel } from '../food/portion.js';
 import { createOnlineSearch } from '../food/search.js';
-import { ESTIMATE_NOTE, estimateMeal, matchQuery, upstreamTag, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
+import { ESTIMATE_NOTE, MEAL_HINT, ROW_HINT, bigMeal, bigRow, canWhole, portionText, toggleWhole, wholeLabel, estimateMeal, matchQuery, upstreamTag, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
 
 /** A heading for the real cause, so a busy server never reads as a bad photo. */
 export function errorHeading(message = '', code = '') {
@@ -82,13 +82,15 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
 
     const rowHtml = (r) => {
       const m = rowMacros(r);
-      const portion = r.portion ? (r.qty === 1 ? r.portion : `${servingsLabel(r.qty)} × ${r.portion}`) : `${servingsLabel(r.qty)} ${r.qty === 1 ? 'serving' : 'servings'}`;
+      const portion = `${servingsLabel(r.qty)} × ${portionText(r)}`;
       return `<li class="snap-row" data-row="${r.id}">
         <div class="snap-row-top">
           <div class="food-row"><b class="clamp2">${esc(r.name)}</b>
             <small class="food-sub"><span class="food-kcal">${num(m.kcal)} kcal</span><span class="food-kcal">${Math.round(m.protein_g)} g protein</span><span class="food-serv">${esc(portion)}</span></small>
             ${r.source === 'label' || (r.kind === 'photo' && matchQuery(r)) ? `<span class="snap-tags">${r.source === 'label' ? '<small class="snap-label">From label</small>' : ''}${r.kind === 'photo' && matchQuery(r) ? `<button type="button" class="btn ghost snap-match" data-match aria-label="Find exact match for ${esc(r.name)}">${icon('search')}<span>Find exact match</span></button>` : ''}</span>` : ''}
-            ${isUnsure(r) ? `<small class="snap-unsure">${esc(r.note || 'Not sure about this one. Check it.')}</small>` : ''}</div>
+            ${isUnsure(r) ? `<small class="snap-unsure">${esc(r.note || 'Not sure about this one. Check it.')}</small>` : ''}
+            ${bigRow(r) ? `<small class="snap-unsure" data-big-row>${esc(ROW_HINT)}</small>` : ''}
+            ${canWhole(r) ? `<button type="button" class="snap-whole" data-whole role="switch" aria-checked="${!!r.whole}">${esc(wholeLabel(r))}</button>` : ''}</div>
         </div>
         <div class="snap-row-bar">
           <span class="serv-stepper"><button type="button" class="icon-btn" data-minus aria-label="Smaller portion of ${esc(r.name)}">${icon('minus')}</button><output aria-live="polite">${esc(servingsLabel(r.qty))}×</output><button type="button" class="icon-btn" data-plus aria-label="Bigger portion of ${esc(r.name)}">${icon('plus')}</button></span>
@@ -107,6 +109,7 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
       root.innerHTML = `
         <div class="snap-top">${thumb()}<div class="snap-head"><b>${rows.length} ${rows.length === 1 ? 'food' : 'foods'} spotted</b><small class="muted">${ESTIMATE_NOTE}</small></div>
           <label class="btn ghost snap-again">${icon('camera')}<span class="snap-again-t">Retake photo</span>${photoInput()}</label></div>
+        ${bigMeal(rows) ? `<p class="snap-unsure snap-meal-hint" role="status" data-big-meal>${esc(MEAL_HINT)}: that’s a big total.</p>` : ''}
         ${rows.length ? `<ul class="list snap-rows">${rows.map(rowHtml).join('')}</ul>` : '<p class="small muted">Everything is removed. Take another photo or close this.</p>'}
         <div class="snap-foot">
           <p class="small muted macro-line"><span class="nb">${num(t.kcal)} kcal</span> <span class="nb">· ${t.protein_g} g protein</span> <span class="nb">· ${t.carbs_g} g carbs</span> <span class="nb">· ${t.fat_g} g fat</span></p>
@@ -131,6 +134,8 @@ export function openSnapMeal({ file = null, day = todayKey(), meal } = {}) {
         $('[data-plus]', li).onclick = () => edit((r) => stepRow(r, 1));
         $('[data-remove]', li).onclick = () => { if (online) online.cancel(); swapping = null; rows = removeRow(rows, id); paintResults(); };
         $('[data-swap]', li).onclick = () => { if (online) online.cancel(); swapQuery = ''; swapping = swapping === id ? null : id; paintResults(); };
+        const whole = $('[data-whole]', li);
+        if (whole) whole.onclick = () => edit(toggleWhole);
         const match = $('[data-match]', li);
         if (match) match.onclick = () => { if (online) online.cancel(); swapQuery = matchQuery(rows.find((r) => r.id === id)); swapping = id; paintResults(); };
       });

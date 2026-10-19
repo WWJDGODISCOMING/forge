@@ -3,9 +3,9 @@
 // food, remove) and finally food_logs fields. No DOM, no Firestore, tested (tests/v01526.test.js).
 // Every row keeps the estimate as ONE serving (`portion`, e.g. "5 oz") and a `qty` multiplier, so the logged entry
 // reads "1½ × 5 oz" like any other food and editing it later works the same way.
-import { logFields, stepServings } from './core.js';
+import { logFields, LIMITS } from './core.js';
 import { capQuery } from './search.js';
-import { macrosFor, portionItem, MAX_GRAMS } from './portion.js';
+import { macrosFor, portionItem, servingsLabel, MAX_GRAMS } from './portion.js';
 
 export const MAX_SIDE = 1024; // the longest side the photo is shrunk to before it leaves the phone
 export const JPEG_QUALITY = 0.8;
@@ -23,7 +23,11 @@ export function snapRows(foods) {
     ...(f.brand ? { brand: String(f.brand).slice(0, 60) } : {}), ...(f.product ? { product: String(f.product).slice(0, 80) } : {}),
     ...(f.source === 'label' || f.source === 'estimate' ? { source: f.source } : {}),
     ...(f.note ? { note: String(f.note).slice(0, 120) } : {}),
-  }));
+    ...(f.serving_size ? { serving_size: String(f.serving_size).slice(0, 40) } : {}),
+    ...(num(f.serving_g) > 0 ? { serving_g: num(f.serving_g) } : {}),
+    ...(num(f.servings_per_container) > 1 ? { servings_per_container: num(f.servings_per_container) } : {}),
+    ...(f.flag ? { flag: String(f.flag).slice(0, 20) } : {}),
+  })).map((r) => (r.source === 'label' && r.serving_size ? { ...r, portion: r.serving_size.slice(0, 40) } : r));
 }
 
 /** "brand product" for the USDA search, or '' when the label wasn't read. Not repeated if the product already starts with the brand; at most 60 characters (what the USDA search accepts). */
@@ -36,11 +40,39 @@ export function matchQuery(r) {
   return capQuery(has ? product : `${brand} ${product}`);
 }
 
+/** A multi-serving label row can be switched to the whole package: one "serving" is then all of it. */
+export const canWhole = (r) => r.source === 'label' && num(r.servings_per_container) > 1;
+const servingsIn = (r) => (r.whole && canWhole(r) ? r.servings_per_container : 1);
+export const wholeLabel = (r) => `Whole package (${servingsLabel(r.servings_per_container)} servings)`;
+export const toggleWhole = (r) => (canWhole(r) ? { ...r, whole: !r.whole } : r);
+
+/** Calories and macros for ONE step of the row's stepper (a serving, or the whole package when that is on). */
+export function unitMacros(r) {
+  const k = servingsIn(r);
+  return { kcal: Math.round(r.kcal * k), protein_g: Math.round(r.protein_g * k * 10) / 10, carbs_g: Math.round(r.carbs_g * k * 10) / 10, fat_g: Math.round(r.fat_g * k * 10) / 10 };
+}
+
+/** What one portion means, e.g. "1 Tbsp (6 g)" or "about 1 cup (180 g)": the grams are added when the words don't already say them. */
+export function portionText(r) {
+  if (r.whole && canWhole(r)) return wholeLabel(r);
+  const p = String(r.portion || '').trim();
+  const g = num(r.grams) > 0 ? Math.round(r.grams) : 0;
+  if (!p) return g ? `${g} g` : 'serving';
+  return g && !/\d\s*(g|gram|grams|oz|ml)\b/i.test(p) ? `${p} (${g} g)` : p;
+}
+
 /** Calories and macros for a row at its current portion. */
 export function rowMacros(r) {
-  const q = num(r.qty) || 1;
-  return { kcal: Math.round(r.kcal * q), protein_g: Math.round(r.protein_g * q * 10) / 10, carbs_g: Math.round(r.carbs_g * q * 10) / 10, fat_g: Math.round(r.fat_g * q * 10) / 10 };
+  const q = num(r.qty) || 1, k = servingsIn(r);
+  return { kcal: Math.round(r.kcal * k * q), protein_g: Math.round(r.protein_g * k * q * 10) / 10, carbs_g: Math.round(r.carbs_g * k * q * 10) / 10, fat_g: Math.round(r.fat_g * k * q * 10) / 10 };
 }
+
+export const BIG_ROW_KCAL = 1000; // one item over this gets a gentle "check the portion"
+export const BIG_MEAL_KCAL = 1500; // a whole snap over this gets "Double-check portions"
+export const ROW_HINT = 'That’s a lot for one item, check the portion.';
+export const MEAL_HINT = 'Double-check portions';
+export const bigRow = (r) => rowMacros(r).kcal > BIG_ROW_KCAL;
+export const bigMeal = (rows) => totalsOfRows(rows).kcal > BIG_MEAL_KCAL;
 
 export function totalsOfRows(rows) {
   const t = { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 };
@@ -48,7 +80,8 @@ export function totalsOfRows(rows) {
   return { kcal: t.kcal, protein_g: Math.round(t.protein_g), carbs_g: Math.round(t.carbs_g), fat_g: Math.round(t.fat_g) };
 }
 
-export const stepRow = (r, dir) => ({ ...r, qty: stepServings(r.qty, dir) });
+/** Portions go in halves: ½, 1, 1½, 2, 2½ … (at least ½). */
+export const stepRow = (r, dir) => ({ ...r, qty: Math.min(LIMITS.servings, Math.max(0.5, Math.round(((num(r.qty) || 1) + dir * 0.5) * 2) / 2)) });
 export const removeRow = (rows, id) => rows.filter((r) => r.id !== id);
 
 /** "Not sure" for a shaky guess, so the row asks for a second look. */
@@ -71,7 +104,7 @@ export function swapRow(r, usda) {
 /** food_logs fields for every row (rows with no calories are skipped). One entry per food, same meal and day. */
 export function mealFields(rows, { meal, day }) {
   return rows.filter((r) => r.kcal > 0 || r.protein_g > 0).map((r) => logFields({
-    item: { name: r.name, kcal: r.kcal, protein_g: r.protein_g, carbs_g: r.carbs_g, fat_g: r.fat_g, portion: r.portion, brand: r.brand, food_id: r.food_id },
+    item: { name: r.name, ...unitMacros(r), portion: r.whole && canWhole(r) ? wholeLabel(r) : r.portion, brand: r.brand, food_id: r.food_id },
     servings: r.qty, meal, day,
   }));
 }
