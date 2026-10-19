@@ -1,6 +1,7 @@
 // "Today's missions" card for the Today screen, and the week dots for Awards.
 import { esc } from '../ui.js';
 import { icon } from '../ui/icons.js';
+import { checkSvg } from '../ui/checkdraw.js';
 import { badgeSVG } from '../ui/badges.js';
 import { units as getUnits } from '../state.js';
 import { rememberBadges } from '../workouts/awards-store.js';
@@ -25,7 +26,7 @@ export function missionsCard() {
     const sub = x.waiting ? 'Updates when Apple Health syncs' : progressText(x.progress);
     const pop = x.done && !seen.has(x.id);
     return `<li class="ms-row ${x.done ? 'done' : ''}" data-mission="${x.id}" aria-label="${esc(x.label)}: ${x.done ? 'done' : 'not done yet'}">
-      <span class="ms-check ${pop ? 'ms-pop' : ''}" aria-hidden="true">${x.done ? icon('check', { filled: true }) : '<i class="ms-ring"></i>'}</span>
+      <span class="ms-check ${pop ? 'ms-pop' : ''}" aria-hidden="true">${x.done ? (pop ? checkSvg({ size: 28 }) : icon('check', { filled: true })) : '<i class="ms-ring"></i>'}</span>
       <span class="ms-text"><span>${esc(x.label)}</span>${sub ? `<small class="muted">${esc(sub)}</small>` : ''}</span>
       <small class="ms-xp ${x.done ? '' : 'muted'}">+${MISSION_XP} XP</small>
     </li>`;

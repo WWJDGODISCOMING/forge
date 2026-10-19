@@ -75,7 +75,7 @@ export const onScreen = (el) => {
   return r.width > 0 && r.bottom > 0 && r.top < window.innerHeight && r.right > 0 && r.left < window.innerWidth;
 };
 /** Call when you move to another screen, so its numbers count up again on the next visit. */
-export const resetCounters = () => counted.clear();
+export const resetCounters = () => { counted.clear(); resetTicks(); };
 
 /**
  * Count up every [data-count] element (plain text only) under root, once per screen visit. Re-renders on the
@@ -107,6 +107,49 @@ export function countUp(el, to, { from = 0, dur = 900, format = (v) => Math.roun
     const p = Math.min(1, Math.max(0, (t - start) / dur));
     el.textContent = format(from + (to - from) * ease.out(p));
     return p < 1;
+  });
+}
+
+/**
+ * Roll a number to a new value, reusing countUp. Starts from `from` (default: the number now shown in `el`), keeps the
+ * shown format (grouping, decimals, prefix/suffix) and does nothing when the value is unchanged. Reduced motion: instant.
+ */
+export function tickTo(el, to, { from, format, dur = 600 } = {}) {
+  if (!el) return false;
+  const cur = parseCountText(el.textContent);
+  const start = from ?? (cur ? cur.value : null);
+  const fmt = format || (cur ? (v) => formatCount(cur, v) : undefined);
+  if (start == null || !Number.isFinite(start) || !Number.isFinite(to) || start === to) return false;
+  countUp(el, to, { from: start, dur, format: fmt });
+  return true;
+}
+
+const shown = new Map(); // data-tick key -> the text last shown, cleared when you move to another screen
+const shownFill = new Map(); // data-fill key -> last bar width (%)
+export const resetTicks = () => { shown.clear(); shownFill.clear(); };
+/**
+ * After a render: every [data-tick="key"] whose text differs from what that key showed last rolls from the old number
+ * to the new one; every [data-fill="key"] bar grows from its old width. First sight of a key only records it, so
+ * navigation and first paint never animate.
+ */
+export function settleTicks(root) {
+  root.querySelectorAll('[data-tick]').forEach((el) => {
+    const key = el.dataset.tick;
+    const text = el.textContent;
+    const prev = shown.get(key);
+    shown.set(key, text);
+    if (prev === undefined || prev === text || el.children.length) return;
+    const a = parseCountText(prev);
+    const b = parseCountText(text);
+    if (a && b) tickTo(el, b.value, { from: a.value, format: (v) => formatCount(b, v) });
+  });
+  root.querySelectorAll('[data-fill]').forEach((el) => {
+    const key = el.dataset.fill;
+    const w = parseFloat(el.style.width) || 0;
+    const prev = shownFill.get(key);
+    shownFill.set(key, w);
+    if (prev === undefined || prev === w || reducedMotion() || !el.animate) return;
+    el.animate([{ width: `${prev}%` }, { width: `${w}%` }], { duration: 450, easing: EASE.out });
   });
 }
 

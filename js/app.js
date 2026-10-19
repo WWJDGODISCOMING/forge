@@ -6,7 +6,7 @@ import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
-import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCounters, resetCounters, reducedMotion, onScreen } from './ui/motion.js';
+import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCounters, settleTicks, resetCounters, reducedMotion, onScreen } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments, haptics } from './ui/haptic.js';
@@ -324,6 +324,7 @@ async function renderScreen() {
     hapticSegments(main);
     keepRingFinal(main); // every incoming morph part (ring, weight number, chart) arrives final, not drawn in from empty
     animateCounters(main);
+    settleTicks(main); // numbers the user just changed (food, weight, rings) roll instead of snapping
     // A brand-new account sees the how-to tour once, on Today, right after onboarding.
     if (route === 'today' && state.profile.tour === 'pending') import('./tour/tour.js').then((m) => m.maybeStartTour());
     // The Face ID lock is offered once in the iPhone app, after the tour is out of the way.

@@ -78,7 +78,7 @@ export function ringsHtml(rings) {
         stroke-dasharray="${C.toFixed(1)}" style="color:${col};stroke:url(#rg-${r.key});--c:${C.toFixed(1)};--off:${(C * (1 - v)).toFixed(1)}"/>${lap}`;
   }).join('');
   const t = rings.find((r) => r.key === 'training');
-  const hub = t ? `<div class="rings-hub" aria-hidden="true"><b>${t.done}<i>/${t.goal}</i></b><small>training days</small></div>` : '';
+  const hub = t ? `<div class="rings-hub" aria-hidden="true"><b data-tick="rings-days">${t.done}<i>/${t.goal}</i></b><small>training days</small></div>` : '';
   const legend = rings.map((r) => `
     <li style="--rc:${r.over ? 'var(--warn)' : COLORS[r.key]}"><span class="ring-dot" aria-hidden="true"></span>
       <span><b>${esc(r.label)}${r.value >= 1 && !r.over ? ` <span class="ring-done">${icon('check', { size: 14 })}</span>` : ''}</b>${(r.lines || [r.text]).map((l) => `<small class="muted">${esc(l)}</small>`).join("")}${r.over && r.extra ? `<small class="warn">${esc(r.extra)}</small>` : ''}</span></li>`).join('');

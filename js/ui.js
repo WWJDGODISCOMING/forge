@@ -3,6 +3,7 @@
 import { isNative, syncStatusBar } from './native/bridge.js';
 import { reducedMotion, DUR } from './ui/motion.js';
 import { icon } from './ui/icons.js';
+import { checkSvg } from './ui/checkdraw.js';
 import { shouldDismiss, rubberBand, dragProgress, velocityOf, pickDetent, crossedDetent, liftProgress } from './ui/gesture.js';
 import { registerSheet } from './ui/sheets.js';
 import { haptics } from './ui/haptic.js';
@@ -22,7 +23,7 @@ export function toast(message, ms = 2600, { icon: name = '', action = null } = {
   const el = document.createElement('div');
   el.className = 'toast';
   el.setAttribute('role', 'status');
-  if (name) el.insertAdjacentHTML('afterbegin', icon(name));
+  if (name) el.insertAdjacentHTML('afterbegin', name === 'check' ? checkSvg({ size: 18 }) : icon(name));
   const msg = document.createElement('span');
   msg.className = 'toast-msg';
   msg.textContent = message;
