@@ -175,11 +175,19 @@ export function sharedRingFor(from, to) {
  * the Body tab root, so Today to Body is a 'tab' change: it morphs only when the Weight card was tapped (`weightTap`),
  * and back when Body was opened that way (`weightFromCard`). Returns an array of parts, or null. Pure.
  */
-export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weightTap = false, weightFromCard = false, foodTap = false, foodFromCard = false, foodToday = true, reduced = false } = {}) {
+export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weightTap = false, weightFromCard = false, foodTap = false, foodFromCard = false, foodToday = true, photosTap = false, photosFromCard = false, reduced = false } = {}) {
   if (reduced) return null;
+  // Photos is a push/pop (Body to Progress photos), so it is decided before the tab-only parts below.
+  const kind = transitionKind(from, to);
+  if (kind === 'push' && photosTap && from[0] === 'body' && !from[1] && to[0] === 'photos' && !to[1]) {
+    return [{ name: 'photo-thumbs', from: '#main [data-photos-card] .pp-thumbs', to: '#main .pp-session .pp-thumbs', toFinal: '.pp-session .pp-thumbs' }];
+  }
+  if (kind === 'pop' && photosFromCard && from[0] === 'photos' && !from[1] && to[0] === 'body' && !to[1]) {
+    return [{ name: 'photo-thumbs', from: '#main .pp-session .pp-thumbs', to: '#main [data-photos-card] .pp-thumbs', toFinal: '[data-photos-card] .pp-thumbs' }];
+  }
   const ring = ringMorphFor(from, to, { cardTap, fromCard, reduced });
   if (ring) return [ring];
-  if (transitionKind(from, to) !== 'tab') return null;
+  if (kind !== 'tab') return null;
   const f = from[0] || 'today';
   const t = to[0] || 'today';
   if (f === 'today' && !from[1] && t === 'body' && to[1] === 'weight' && weightTap) {

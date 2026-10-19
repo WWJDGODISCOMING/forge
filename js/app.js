@@ -533,6 +533,16 @@ main.addEventListener('click', (e) => {
   if (!e.target.closest('a')) location.hash = '#/food';
 });
 
+// And the filled Progress photos card on Body: its thumb strip grows into the Photos screen. The empty promo and the
+// Today reminder go to Take photos and never set it.
+let photosTap = false;
+let photosFromCard = false;
+main.addEventListener('click', (e) => {
+  if (!e.target.closest('[data-photos-card]')) return;
+  photosTap = true;
+  scrollMemory.forget('photos'); // opens at the top, so the first set is on screen
+});
+
 window.addEventListener('hashchange', async () => {
   closeAllSheets(); // a sheet never stays on top of the new screen (navigating button, deep link, back gesture)
   const from = prevParts;
@@ -554,7 +564,9 @@ window.addEventListener('hashchange', async () => {
   const kind = transitionKind(from, to);
   let foodToday = true; // Food on another day would not match the Today card
   if (foodFromCard && from[0] === 'food') foodToday = await import('./screens/food.js').then((m) => m.foodShowsToday());
-  const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, foodTap, foodFromCard, foodToday, reduced: reducedMotion() });
+  const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, foodTap, foodFromCard, foodToday, photosTap, photosFromCard, reduced: reducedMotion() });
+  photosFromCard = photosTap && from[0] === 'body' && to[0] === 'photos' && !!ring;
+  photosTap = false;
   foodFromCard = foodTap && from[0] !== 'food' && to[0] === 'food' && !!ring;
   foodTap = false;
   scoreFromCard = cardTap && from[0] !== 'score' && to[0] === 'score' && !!ring; // any other navigation forgets it

@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.31 — Photos card morph (2026-10-19)
+
+Tapping the Progress photos card on Body grows its thumbnails into the Progress photos screen, and Back shrinks them again. No functions or rules change.
+
+### What's new
+
+- Tap Progress photos on Body and the thumbs grow into your photos.
+
 ## 0.16.30 — New look, part 2 (2026-10-19)
 
 Whole-app palette, part 2 of 2: the canvas, SVG and inline colours. Confetti, share card, badges, muscle maps, exercise figures and the Withings page now match the navy and cyan look; lime stays for wins. No functions or rules change.

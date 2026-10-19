@@ -23,7 +23,7 @@ export async function renderPhotos(el, sub) {
   const bytes = photos.reduce((n, p) => n + (p.blob ? p.blob.size : 0), 0);
   const redraw = () => renderPhotos(el);
 
-  const sessionCard = (s) => {
+  const sessionCard = (s, i = 0) => {
     const b = bodyOn(s.day);
     return `<div class="card stack pp-session" data-day="${s.day}">
       <div class="row between center">
@@ -32,7 +32,7 @@ export async function renderPhotos(el, sub) {
         <button class="icon-btn" data-more="${s.day}" aria-label="More for ${esc(formatDay(s.day))}">${icon('more', { size: 20 })}</button>
       </div>
       <div class="pp-thumbs">${POSES.map((p) => (s.poses[p.key]
-        ? `<button class="pp-thumb" data-open="${s.poses[p.key].id}" aria-label="${p.label}, ${esc(formatDay(s.day))}"><img src="${photoUrl(s.poses[p.key])}" alt="" loading="lazy"><span>${p.label}</span></button>`
+        ? `<button class="pp-thumb" data-open="${s.poses[p.key].id}" aria-label="${p.label}, ${esc(formatDay(s.day))}"><img src="${photoUrl(s.poses[p.key])}" alt="" loading="${i === 0 ? 'eager' : 'lazy'}"><span>${p.label}</span></button>`
         : `<div class="pp-thumb empty" aria-hidden="true"><span>${p.label}</span></div>`)).join('')}</div>
       ${s.note ? `<p class="small">${esc(s.note)}</p>` : ''}
     </div>`;
@@ -49,7 +49,7 @@ export async function renderPhotos(el, sub) {
           <button class="btn ghost grow" data-lapse ${sessions.length < 2 ? 'disabled' : ''}>${icon('play')}Time-lapse</button>
         </div>
         ${sessions.length < 2 ? '<p class="small muted center-text">Take photos on two different days to compare them.</p>' : ''}
-        ${sessions.map(sessionCard).join('')}`
+        ${sessions.map((s, i) => sessionCard(s, i)).join('')}`
         : `<div class="card">${emptyState({ art: 'photos', icon: 'camera', title: 'Track how you look, not just what you weigh', text: 'The scale can’t show everything. Take a few photos each week and watch the change. They stay on this phone.', action: ok ? { attr: 'data-take', label: 'Take first photos' } : null })}</div>`}
       <div class="card stack small">
         <p class="label">Privacy</p>

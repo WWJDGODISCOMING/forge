@@ -144,3 +144,28 @@ test('food card snapshots are not stretched; ring and text links get press feedb
   assert(c.split('.food-card-ring:active').length - 1 >= 2, 'active in normal and reduced motion');
   assert(/\.food-card-text, \.food-card-ring, \[data-weight-open\] \{\s*cursor: pointer/.test(c), 'cursor');
 });
+
+test('photo-thumbs: push and pop only from the filled card; never in static markup', () => {
+  for (const f of [...readdirSync(new URL('../js/screens', import.meta.url)).map((x) => 'js/screens/' + x), 'index.html', 'js/photos/cards.js'])
+    assert(!read(f).includes('photo-thumbs'), f + ' must not hardcode photo-thumbs');
+  const go = heroMorphFor(['body'], ['photos'], { photosTap: true });
+  assert(go && go.length === 1 && go[0].name === 'photo-thumbs', 'push from card');
+  const back = heroMorphFor(['photos'], ['body'], { photosFromCard: true });
+  assert(back && back[0].name === 'photo-thumbs' && back[0].from.includes('.pp-session'), 'pop back');
+  assert(heroMorphFor(['body'], ['photos']) === null, 'no flag (tab bar, deep link)');
+  assert(heroMorphFor(['photos'], ['body']) === null, 'back without flag');
+  assert(heroMorphFor(['body'], ['photos', 'take'], { photosTap: true }) === null, 'Take photos');
+  assert(heroMorphFor(['today'], ['photos'], { photosTap: true }) === null, 'reminder / other route');
+  assert(heroMorphFor(['body'], ['photos'], { photosTap: true, reduced: true }) === null, 'reduced');
+  assert(heroMorphFor(['photos'], ['body'], { photosFromCard: true, reduced: true }) === null, 'back reduced');
+  assert(heroMorphFor(['today'], ['score'], { cardTap: true, photosTap: true })[0].name === 'score-ring');
+  assert(heroMorphFor(['today'], ['body', 'weight'], { weightTap: true, photosTap: true })[0].name === 'weight-num');
+  assert(heroMorphFor(['today'], ['food'], { foodTap: true, photosTap: true })[0].name === 'food-card');
+});
+
+test('photo morph wiring: only the filled card sets the flag; CSS', () => {
+  const a = read('js/app.js');
+  assert(a.includes("closest('[data-photos-card]')") && !a.includes('data-photos-empty') && !a.includes('data-photo-reminder-card'));
+  const c = read('css/motion.css');
+  assert(c.includes('group(photo-thumbs)') && c.includes('animation: none'));
+});
