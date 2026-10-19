@@ -110,6 +110,7 @@ export function restAfter(queue, exercises, k, ex, { deload = false, defaultSec 
 /**
  * The rest an exercise gets when it has no rest of its own: the Settings default if there is one
  * (never cut down for a deload week, you picked it), otherwise by exercise type (× 0.8 in a deload week).
+ * The app always passes restDefaultSec(), so the by-type branch is only reached in tests.
  */
 export function autoRest(it, ex, { deload = false, defaultSec = null } = {}) {
   if (REST_DEFAULT_CHOICES.includes(defaultSec)) return defaultSec;

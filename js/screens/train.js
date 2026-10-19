@@ -3,7 +3,7 @@ import { state } from '../state.js';
 import { cachePhotos, hasPhotos, photoUrls, loadPhotoIndex } from '../ui/photos.js';
 import { hasFigure, mountFigure } from '../ui/figure.js';
 import { expandEquipment, canDo } from '../workouts/equipment.js';
-import { autoRest, restDefaultSec } from '../workouts/session-core.js';
+import { autoRest, restDefaultSec, fmtClock } from '../workouts/session-core.js';
 import { planBlocks, planMuscles } from '../workouts/preview.js';
 import { openHowTo } from './howto.js';
 import { bodyMap, exerciseValues } from '../ui/bodymap.js';
@@ -13,8 +13,8 @@ import {
   currentRecovery, stalledMainLifts, startDeload, unit,
 } from '../workouts/plan.js';
 import { PROGRAMS, DAY_TYPES, smartDayTypes } from '../workouts/programs.js';
-import { deloadInfo } from '../workouts/generator.js';
-import { exerciseById } from '../workouts/library.js';
+import { deloadInfo, planMinutes } from '../workouts/generator.js';
+import { exerciseById, allExercises } from '../workouts/library.js';
 import { openPlateCalculator, openCardioLog } from './tools.js';
 import { openExercisePicker } from './picker.js';
 import { patch } from '../db.js';
@@ -57,7 +57,10 @@ export function previewPlan() {
   if (!loc) return null;
   const ed = editsFor(`${loc.id}|${dayOverride || ''}`);
   const plan = planToday({ dayType: dayOverride, forced: ed.forced, avoidIds: ed.avoid, sessionMin: minOverride });
-  if (plan) for (const it of plan.exercises) if (ed.rest[it.exercise_id]) it.rest_sec = ed.rest[it.exercise_id];
+  if (plan) {
+    for (const it of plan.exercises) if (ed.rest[it.exercise_id]) it.rest_sec = ed.rest[it.exercise_id];
+    plan.est_minutes = planMinutes(plan, allExercises(), restDefaultSec(state.settings)); // a rest picked in the dots menu changes the length
+  }
   return plan;
 }
 
@@ -75,7 +78,6 @@ export function startPlan(plan) {
 }
 
 const REST_CHOICES = [30, 45, 60, 90, 120, 150, 180, 240];
-const fmtRest = (sec) => (sec % 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : `${sec / 60} min`);
 
 
 export function targetText(t, u, ex) {
@@ -194,7 +196,7 @@ function previewCard(plan, { d, loc, program, u }) {
   const warm = plan.exercises.filter((it) => it.warmups.length);
   const row = ({ it, i }, label) => {
     const ex = exerciseById(it.exercise_id);
-    const rest = it.rest_sec ? ` · rest ${fmtRest(it.rest_sec)}` : '';
+    const rest = it.rest_sec ? ` · rest ${fmtClock(it.rest_sec)}` : '';
     return `<li class="pv-ex${flash.has(ex.id) ? ' flash' : ''}">
       <div class="pv-thumb" data-thumb="${esc(ex.id)}" aria-hidden="true"></div>
       <div class="pv-txt">${label ? `<span class="pv-tag">${label}</span>` : ''}<b>${esc(ex.name)}</b>
@@ -424,9 +426,9 @@ function exerciseMore(el, plan, i) {
         <button class="btn ghost" data-a="history">History &amp; how-to</button>
         <div>
           <p class="label">Rest timer</p>
-          <div class="chips" role="radiogroup" aria-label="Rest after each set">
-            <label class="chip"><input type="radio" name="rest" value="" ${it.rest_sec ? '' : 'checked'}><span>Auto (${fmtRest(auto)})</span></label>
-            ${REST_CHOICES.map((sec) => `<label class="chip"><input type="radio" name="rest" value="${sec}" ${it.rest_sec === sec ? 'checked' : ''}><span>${fmtRest(sec)}</span></label>`).join('')}
+          <div class="chips chips--grid chips--grid-4" role="radiogroup" aria-label="Rest after each set">
+            <label class="chip chip-wide"><input type="radio" name="rest" value="" ${it.rest_sec ? '' : 'checked'}><span>Default (${fmtClock(auto)})</span></label>
+            ${REST_CHOICES.map((sec) => `<label class="chip"><input type="radio" name="rest" value="${sec}" ${it.rest_sec === sec ? 'checked' : ''}><span>${fmtClock(sec)}</span></label>`).join('')}
           </div>
         </div>
       </div>`;

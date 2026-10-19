@@ -13,7 +13,7 @@ export function openRestDefault({ onSave = () => {} } = {}) {
     const cur = restDefaultSec(state.settings);
     body.innerHTML = `
       <div class="stack">
-        <div class="chips" role="radiogroup" aria-label="Rest between sets">
+        <div class="chips chips--grid chips--grid-6" role="radiogroup" aria-label="Rest between sets">
           ${REST_DEFAULT_CHOICES.map((sec) => `<label class="chip"><input type="radio" name="restdef" value="${sec}" ${sec === cur ? 'checked' : ''}><span>${fmtClock(sec)}</span></label>`).join('')}
         </div>
         <p class="small muted">The timer starts after every set. An exercise with its own rest (set from its dots menu on the Train tab) keeps it.</p>
