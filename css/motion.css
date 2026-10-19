@@ -16,14 +16,14 @@ p, li { text-wrap: pretty; }
 /* ---------- Press states: everything tappable dips to 0.97 and springs back ---------- */
 .btn, .tool, .icon-btn, .chip-btn, .mini, .setcheck, .stepper button, .pl-nav button, .pl-ico, .next-card,
 a.card, .list li.tap, .choice, .chip, .seg label, .progress-seg a, .tabbar a, .nb-back, .bc-tile, .link,
-.update-capsule, .ht-seg button, [data-weight-open] {
+.update-capsule, .ht-seg button, .food-card-text, .food-card-ring, [data-weight-open] {
   cursor: pointer;
   transition: transform var(--t-med) var(--ease-spring), opacity var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
 }
 .btn:active, .tool:active, .icon-btn:active, .chip-btn:active, .mini:active, .setcheck:active,
 .stepper button:active, .pl-nav button:active, .pl-ico:active, .next-card:active,
 a.card:active, .list li.tap:active, .choice:active, .chip:active, .seg label:active, .progress-seg a:active,
-.tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, [data-weight-open]:active {
+.tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, .food-card-text:active, .food-card-ring:active, [data-weight-open]:active {
   transform: scale(.97);
   transition-duration: var(--t-fast);
 }
@@ -55,7 +55,10 @@ html[data-vt="tab"]::view-transition-new(root), html[data-vt="fade"]::view-trans
 /* Food: the card grows into the Food totals card, and today's calories fly into the big Calories number. The number sits above the card. */
 ::view-transition-group(food-card) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; overflow: hidden; border-radius: var(--r-lg, 16px); }
 ::view-transition-group(food-kcal) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 11; }
-::view-transition-old(food-card), ::view-transition-new(food-card), ::view-transition-old(food-kcal), ::view-transition-new(food-kcal) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
+::view-transition-old(food-kcal), ::view-transition-new(food-kcal) { width: 100%; height: 100%; object-fit: fill; mix-blend-mode: normal; }
+/* The card snapshots keep their own size (no stretching); the clipped group reveals the totals card as it grows. The old image fades out fast so the ring and + are gone before the card settles. */
+::view-transition-old(food-card), ::view-transition-new(food-card) { width: 100%; height: auto; object-fit: none; object-position: top; }
+::view-transition-old(food-card) { animation-duration: 160ms; animation-timing-function: ease-out; }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(food-card), ::view-transition-group(food-kcal) { animation: none; } }
 
 @keyframes vt-push-old { to { transform: translateX(-30%); filter: brightness(.6); } }
@@ -92,7 +95,7 @@ main.route-fade { animation: vt-fade-in var(--t-med) var(--ease-out); }
   .btn:active, .tool:active, .icon-btn:active, .chip-btn:active, .mini:active, .setcheck:active,
   .stepper button:active, .pl-nav button:active, .pl-ico:active, .next-card:active,
   a.card:active, .list li.tap:active, .choice:active, .chip:active, .seg label:active, .progress-seg a:active,
-  .tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, [data-weight-open]:active { transform: none; opacity: .7; }
+  .tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, .food-card-text:active, .food-card-ring:active, [data-weight-open]:active { transform: none; opacity: .7; }
   .skeleton { animation: none; }
   .plan-list li, .pv-list > li, .sum-list li, .list.flat li { animation: none !important; }
   .restbar { transition: opacity var(--t-med) !important; transform: none !important; }

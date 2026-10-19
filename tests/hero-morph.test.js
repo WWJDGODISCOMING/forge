@@ -135,3 +135,12 @@ test('food morph wiring: tap flags, Log food excluded, CSS', () => {
   const c = read('css/motion.css');
   assert(c.includes('group(food-card)') && c.includes('group(food-kcal)') && /food-kcal\) \{[^}]*z-index: 11/.test(c));
 });
+
+test('food card snapshots are not stretched; ring and text links get press feedback', () => {
+  const c = read('css/motion.css');
+  const rule = c.split('\n').find(l => l.startsWith('::view-transition-old(food-card), ::view-transition-new(food-card)'));
+  assert(rule && !/height: 100%|object-fit: fill/.test(rule) && rule.includes('object-fit: none'), 'food-card sizing');
+  assert(/view-transition-old\(food-card\) \{[^}]*animation-duration: 160ms/.test(c), 'old fade');
+  assert(c.split('.food-card-ring:active').length - 1 >= 2, 'active in normal and reduced motion');
+  assert(/\.food-card-text, \.food-card-ring, \[data-weight-open\] \{\s*cursor: pointer/.test(c), 'cursor');
+});
