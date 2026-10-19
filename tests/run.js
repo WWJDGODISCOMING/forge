@@ -34,6 +34,7 @@ import './detents.test.js';
 import './sheet-lift.test.js';
 import './sheet-detent-coverage.test.js';
 import './hero-morph.test.js';
+import './photo-viewer.test.js';
 import './spring-track.test.js';
 import './palette.test.js';
 import './lime.test.js';

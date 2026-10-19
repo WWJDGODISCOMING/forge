@@ -9,6 +9,7 @@ import { isNative } from '../native/bridge.js';
 import { myStore, mySessions } from '../photos/access.js';
 import { bodyOn, fmtKg, photoUrl, revokeAll } from '../photos/metrics.js';
 import { openCapture } from '../photos/capture.js';
+import { openViewer } from '../photos/viewer.js';
 
 const ago = (day) => {
   const n = daysBetween(day, todayKey());
@@ -84,17 +85,18 @@ export async function renderPhotos(el, sub) {
     b.onclick = () => {
       const p = byId.get(b.dataset.open);
       if (!p) return;
-      sheet(`${poseLabel(p.pose)} · ${formatDay(p.day, { month: 'short', day: 'numeric', year: 'numeric' })}`, (body, close) => {
-        body.innerHTML = `<div class="stack"><img class="pp-full" src="${photoUrl(p)}" alt="${esc(poseLabel(p.pose))} photo from ${esc(formatDay(p.day))}">
-          <button class="btn danger-ghost" data-del-one>Delete this photo</button></div>`;
-        $('[data-del-one]', body).onclick = async () => {
-          close();
+      openViewer({
+        src: photoUrl(p),
+        title: `${poseLabel(p.pose)} · ${formatDay(p.day, { month: 'short', day: 'numeric', year: 'numeric' })}`,
+        thumb: b,
+        findThumb: () => el.querySelector(`[data-open="${p.id}"]`),
+        onDelete: async () => {
           const yes = await confirmSheet({ title: 'Delete this photo?', message: 'It is removed from this phone. There is no backup.', confirmLabel: 'Delete photo', danger: true });
           if (!yes) return;
           await store.remove(p.id);
           toast('Deleted');
           redraw();
-        };
+        },
       });
     };
   });
