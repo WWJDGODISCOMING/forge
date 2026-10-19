@@ -225,3 +225,28 @@ export function computeTargets(p) {
     reasoning,
   };
 }
+
+export const PROTEIN_GOAL_MIN_G = 40;
+export const PROTEIN_GOAL_MAX_G = 300;
+
+/** The custom protein goal in whole grams, or null (Auto) when the field is missing or not a usable number. */
+export function customProteinG(profile) {
+  const v = profile && profile.proteinGoalG;
+  if (typeof v !== 'number' || !Number.isFinite(v)) return null;
+  const g = Math.round(v);
+  return g >= PROTEIN_GOAL_MIN_G && g <= PROTEIN_GOAL_MAX_G ? g : null;
+}
+
+/** Applies the optional own protein goal to computeTargets output. Carbs refill from the calories left; calories and fat stay. */
+export function applyProteinGoal(targets, profile) {
+  const g = customProteinG(profile);
+  if (!targets || g === null) return targets;
+  const carbG = Math.max(0, Math.round((targets.calories - g * 4 - targets.fatG * 9) / 4));
+  return {
+    ...targets,
+    autoProteinG: targets.proteinG,
+    proteinG: g,
+    carbG,
+    reasoning: [...targets.reasoning, `Protein: your own goal, ${g} g/day.`],
+  };
+}

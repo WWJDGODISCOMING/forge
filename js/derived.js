@@ -2,7 +2,7 @@
 import { state } from './state.js';
 import { dailyWeights, smooth } from './weight/smoothing.js';
 import { pickLatest } from './weight/reading.js';
-import { computeTargets } from './nutrition/targets.js';
+import { computeTargets, applyProteinGoal } from './nutrition/targets.js';
 import { suspectIds } from './withings/review.js';
 
 /** Weigh-ins that are probably someone else's (see js/withings/review.js), started from your profile weight. */
@@ -38,7 +38,7 @@ export function currentWeightKg(series = weightSeries()) {
 export function currentTargets() {
   const p = state.profile;
   if (!p) return null;
-  return computeTargets({ ...p, weightKg: currentWeightKg() || p.weightKg });
+  return applyProteinGoal(computeTargets({ ...p, weightKg: currentWeightKg() || p.weightKg }), p);
 }
 
 /** The two targets the Forge Score and the weekly report judge food against, or null before a profile exists. */
