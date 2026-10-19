@@ -3,7 +3,7 @@ import { state } from '../state.js';
 import { cachePhotos, hasPhotos, photoUrls, loadPhotoIndex } from '../ui/photos.js';
 import { hasFigure, mountFigure } from '../ui/figure.js';
 import { expandEquipment, canDo } from '../workouts/equipment.js';
-import { REST } from '../workouts/session-core.js';
+import { autoRest, restDefaultSec } from '../workouts/session-core.js';
 import { planBlocks, planMuscles } from '../workouts/preview.js';
 import { openHowTo } from './howto.js';
 import { bodyMap, exerciseValues } from '../ui/bodymap.js';
@@ -74,7 +74,7 @@ export function startPlan(plan) {
   location.hash = playerRoute();
 }
 
-const REST_CHOICES = [60, 90, 120, 150, 180, 240];
+const REST_CHOICES = [30, 45, 60, 90, 120, 150, 180, 240];
 const fmtRest = (sec) => (sec % 60 ? `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}` : `${sec / 60} min`);
 
 
@@ -416,7 +416,7 @@ function exerciseMore(el, plan, i) {
   const it = plan.exercises[i];
   const ex = exerciseById(it.exercise_id);
   const ed = edits;
-  const auto = it.superset ? REST.accessory : REST[it.role] || 90;
+  const auto = autoRest(it, ex, { deload: !!deloadInfo(activeProgram(), state.profile.experience).deload, defaultSec: restDefaultSec(state.settings) });
   sheet(ex.name, (body, close) => {
     body.innerHTML = `
       <div class="stack">

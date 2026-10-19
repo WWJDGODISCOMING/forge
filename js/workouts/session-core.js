@@ -5,6 +5,21 @@ import { detectPRs, toUnit } from './progression.js';
 
 export const REST = { main: 150, secondary: 120, accessory: 75, warmup: 45, timed: 60 };
 
+/** Default rest choices in Settings (seconds), and what new installs get. */
+export const REST_DEFAULT_CHOICES = [30, 45, 60, 90, 120, 180];
+export const REST_DEFAULT_SEC = 60;
+
+export const fmtClock = (sec) => `${Math.floor(sec / 60)}:${String(sec % 60).padStart(2, '0')}`;
+
+/** Settings row title, e.g. "Rest between sets · 1:00". */
+export const restDefaultTitle = (settings) => `Rest between sets · ${fmtClock(restDefaultSec(settings))}`;
+
+/** The saved default rest (settings/main.rest_default_sec), or 1:00 when missing or not one of the choices. */
+export function restDefaultSec(settings) {
+  const v = settings && settings.rest_default_sec;
+  return REST_DEFAULT_CHOICES.includes(v) ? v : REST_DEFAULT_SEC;
+}
+
 const working = (sets) => sets.map((s, j) => [s, j]).filter(([s]) => !s.warmup);
 const warm = (sets) => sets.map((s, j) => [s, j]).filter(([s]) => s.warmup);
 
@@ -75,7 +90,7 @@ export function supersetTag(exercises, i) {
  * Rest after completing step k (null = go straight to the next set, e.g. mid-superset).
  * ex: library entry for the exercise just done.
  */
-export function restAfter(queue, exercises, k, ex, { deload = false } = {}) {
+export function restAfter(queue, exercises, k, ex, { deload = false, defaultSec = null } = {}) {
   const { i, j } = queue[k];
   const it = exercises[i];
   const s = it.sets[j];
@@ -86,19 +101,20 @@ export function restAfter(queue, exercises, k, ex, { deload = false } = {}) {
     const nextSet = exercises[next.i].sets[next.j];
     if (!nextSet.warmup && setLabel(exercises[next.i], next.j).n === round) return null;
   }
-  let sec;
-  let label = 'Rest';
-  if (s.warmup) {
-    sec = REST.warmup;
-    label = 'Warm-up rest';
-  } else if (it.rest_sec) return { sec: it.rest_sec, label: it.superset ? 'Rest (superset)' : 'Rest' }; // set in the preview's ⋯ menu
-  else if (ex && ex.timed) sec = REST.timed;
-  else if (it.superset) {
-    sec = REST.accessory;
-    label = 'Rest (superset)';
-  } else sec = REST[it.role] || 90;
-  if (deload) sec = Math.round(sec * 0.8);
-  return { sec, label };
+  const custom = REST_DEFAULT_CHOICES.includes(defaultSec) ? defaultSec : null;
+  if (s.warmup) return { sec: custom ? Math.min(REST.warmup, custom) : Math.round(REST.warmup * (deload ? 0.8 : 1)), label: 'Warm-up rest' };
+  if (it.rest_sec) return { sec: it.rest_sec, label: it.superset ? 'Rest (superset)' : 'Rest' }; // set in the preview's ⋯ menu
+  return { sec: autoRest(it, ex, { deload, defaultSec: custom }), label: it.superset ? 'Rest (superset)' : 'Rest' };
+}
+
+/**
+ * The rest an exercise gets when it has no rest of its own: the Settings default if there is one
+ * (never cut down for a deload week, you picked it), otherwise by exercise type (× 0.8 in a deload week).
+ */
+export function autoRest(it, ex, { deload = false, defaultSec = null } = {}) {
+  if (REST_DEFAULT_CHOICES.includes(defaultSec)) return defaultSec;
+  const sec = ex && ex.timed ? REST.timed : it.superset ? REST.accessory : REST[it.role] || 90;
+  return deload ? Math.round(sec * 0.8) : sec;
 }
 
 /** True when every working set of exercise i is done (used for the "last set" escalation). */
