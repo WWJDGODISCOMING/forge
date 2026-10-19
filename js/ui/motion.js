@@ -93,6 +93,7 @@ export function animateCounters(root) {
   });
 }
 
+const finalText = new WeakMap(); // el -> the text a running count-up ends on, so a second settleTicks pass never reads a mid-roll value
 /** Animate a number in an element from 0 (or `from`) to `to`. */
 export function countUp(el, to, { from = 0, dur = 900, format = (v) => Math.round(v).toLocaleString(), delay = 0 } = {}) {
   if (!el) return;
@@ -101,11 +102,13 @@ export function countUp(el, to, { from = 0, dur = 900, format = (v) => Math.roun
     return;
   }
   el.textContent = format(from);
+  finalText.set(el, format(to));
   const start = performance.now() + delay;
   onFrame((t) => {
-    if (!el.isConnected) return false;
+    if (!el.isConnected) { finalText.delete(el); return false; }
     const p = Math.min(1, Math.max(0, (t - start) / dur));
     el.textContent = format(from + (to - from) * ease.out(p));
+    if (p >= 1) finalText.delete(el);
     return p < 1;
   });
 }
@@ -135,7 +138,7 @@ export const resetTicks = () => { shown.clear(); shownFill.clear(); };
 export function settleTicks(root) {
   root.querySelectorAll('[data-tick]').forEach((el) => {
     const key = el.dataset.tick;
-    const text = el.textContent;
+    const text = finalText.get(el) ?? el.textContent;
     const prev = shown.get(key);
     shown.set(key, text);
     if (prev === undefined || prev === text || el.children.length) return;
