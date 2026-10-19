@@ -4,50 +4,61 @@
   color-scheme: dark light;
 
   /* Colour: near-black canvas, surfaces step up in small lightness increments, no outlines. */
-  --bg: #0a0a0b;
+  --bg: #040b0e;
   --lift-bg: #000;
   --lift-hi: .16; /* dark: how bright the pushed-back page's top band gets at full lift */
-  --surface-1: #161618;
-  --surface-2: #212124;
-  --surface-3: #2d2d31;
-  --separator: rgba(255, 255, 255, .1);
-  --text-1: #f5f5f7;
-  --text-2: #a3a3ab;
-  --text-3: #7d7d86;
-  --on-bright: #0e1013;        /* ink on bright fills (gold, white pills) */
+  --surface-1: #172430;
+  --surface-2: #1f3142;
+  --surface-3: #2a3f54;
+  --separator: rgba(130, 135, 144, .18);
+  --text-1: #dadde4;
+  --text-2: #9aa1ab;
+  --text-3: #828790;           /* meta and large text only (4.37:1 on cards) */
+  --on-bright: #040b0e;        /* ink on bright fills (white pills) */
+  --deep-fill: #054668;        /* pressed states, selected chips, launch splash base */
 
-  /* One restrained accent */
-  --accent: #c6ff3d;
-  --accent-ink: #11160a;
-  --accent-text: #c6ff3d;      /* accent used as text/icons on --bg */
-  --accent-2: #4fe08f;
-  --accent-gradient: linear-gradient(135deg, #d4ff5c 0%, #8be86a 55%, #4fe08f 100%);
-  --accent-tint: rgba(198, 255, 61, .14);
-  --accent-glow: rgba(198, 255, 61, .38);
+  /* One restrained accent: glow cyan. Lime is kept for wins only (--good, --gold, --ring-win). */
+  --accent: #3ec8f0;
+  --accent-ink: #040b0e;
+  --accent-text: #3ec8f0;      /* accent used as text/icons on --bg */
+  --accent-2: #077ca5;         /* never for text */
+  --accent-gradient: linear-gradient(135deg, #8fe6ff 0%, #3ec8f0 50%, #1a9ccb 100%);
+  --accent-tint: rgba(62, 200, 240, .14);
+  --accent-glow: rgba(62, 200, 240, .38);
 
   /* Semantic */
-  --good: #5be49b;
+  --good: #c6ff3d;
   --warn: #ffb547;
   --danger: #ff5d6c;
-  --ember: #ff6a2b;
-  --gold: #ffc94d;
-  --info: #6cb4ff;
+  --ember: #3ec8f0;
+  --gold: #c6ff3d;
+  --info: #2bd3b4;
   /* Food: calories and protein rings (Today and the Food card). --warn is only for going over. */
-  --food-kcal: #ff7ac6;
-  --food-protein: #a58bff;
+  --food-kcal: #dadde4;
+  --food-protein: #7fa6bd;
   --warn-deep: #b86e00;
-  --good-tint: rgba(91, 228, 155, .14);
+  --good-tint: rgba(198, 255, 61, .14);
   --warn-tint: rgba(255, 181, 71, .14);
   --danger-tint: rgba(255, 93, 108, .14);
-  --ember-tint: rgba(255, 106, 43, .16);
-  --gold-tint: rgba(255, 201, 77, .14);
-  --info-tint: rgba(108, 180, 255, .14);
+  --ember-tint: rgba(62, 200, 240, .16);
+  --gold-tint: rgba(198, 255, 61, .14);
+  --info-tint: rgba(43, 211, 180, .16);
+
+  /* Today rings: own vars so the rings never depend on --ember/--info/--accent-text */
+  --ring-training: #3ec8f0;
+  --ring-recovery: #2bd3b4;
+  --ring-kcal: #dadde4;
+  --ring-protein: #7fa6bd;
+  --ring-sets: #3ec8f0;
+  --ring-win: #c6ff3d;         /* done check, streak flame */
+  --ring-glow: #c6ff3d;        /* non-text lime: closed-ring rim, mission celebrations */
+  --ring-halo: drop-shadow(0 0 .75px var(--ring-glow)) drop-shadow(0 0 2.5px color-mix(in srgb, var(--ring-glow) 55%, transparent)); /* crisp rim, gaps stay navy */
 
   /* Glass + overlays */
-  --glass: rgba(10, 10, 11, .84);
-  --glass-sheet: rgba(24, 24, 27, .86);
-  --glass-float: rgba(44, 44, 49, .72);
-  --hairline: rgba(255, 255, 255, .14);
+  --glass: rgba(4, 11, 14, .84);
+  --glass-sheet: rgba(23, 36, 48, .88);
+  --glass-float: rgba(42, 63, 84, .74);
+  --hairline: rgba(130, 135, 144, .24);
   --scrim: rgba(0, 0, 0, .55);
   --top-light: linear-gradient(180deg, rgba(255, 255, 255, .045), rgba(255, 255, 255, 0));
 
@@ -65,7 +76,7 @@
   --elev-1: var(--elev-raised);
   --elev-2: var(--elev-floating);
   --elev-3: 0 20px 60px rgba(0, 0, 0, .6);
-  --hero-glow: color-mix(in srgb, var(--accent) 16%, transparent);
+  --hero-glow: color-mix(in srgb, #3ec8f0 16%, transparent);
 
   /* Type */
   --font: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif;
@@ -83,51 +94,62 @@
   --gutter: 20px;
 
   /* Heatmap + plate colours */
-  --heat-1: rgba(198, 255, 61, .24); --heat-2: rgba(198, 255, 61, .48); --heat-3: rgba(198, 255, 61, .74); --heat-4: var(--accent);
+  --heat-1: rgba(62, 200, 240, .24); --heat-2: rgba(62, 200, 240, .48); --heat-3: rgba(62, 200, 240, .74); --heat-4: var(--accent);
   --plate-blue: #3b82f6; --plate-yellow: #eab308; --plate-green: #22c55e;
 }
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f2f2f7;
+    --bg: #eef1f5;
     --surface-1: #ffffff;
     --lift-bg: #050506;
     --lift-hi: 0;
-    --surface-2: #f0f0f4;
-    --surface-3: #e3e3e9;
-    --separator: rgba(60, 60, 67, .16);
-    --text-1: #0d0d10;
-    --text-2: #55555d;
-    --text-3: #6d6d76;
+    --surface-2: #e3e8ee;
+    --surface-3: #d6dde5;
+    --separator: rgba(60, 70, 85, .16);
+    --text-1: #040b0e;
+    --text-2: #4a525c;
+    --text-3: #5f6670;
+    --on-bright: #040b0e;
+    --deep-fill: rgba(7, 124, 165, .14); /* light: a cyan tint, text stays --text-1 */
 
-    --accent: #4f8a00;
+    --accent: #0a6f94;
     --accent-ink: #ffffff;
-    --accent-text: #3f7000;
-    --accent-2: #12905a;
-    --accent-gradient: linear-gradient(135deg, #5d9a00 0%, #2f9a4a 55%, #12905a 100%);
-    --accent-tint: rgba(79, 138, 0, .12);
-    --accent-glow: rgba(79, 138, 0, .28);
+    --accent-text: #0a6f94;
+    --accent-2: #077ca5;
+    --accent-gradient: linear-gradient(135deg, #1a8fb5 0%, #0a6f94 55%, #07587a 100%);
+    --accent-tint: rgba(10, 111, 148, .12);
+    --accent-glow: rgba(10, 111, 148, .28);
 
-    --good: #12875a;
+    --good: #4c7a00;   /* lime is a fill and glow only; text needs this darker green */
     --warn: #a05a00;
     --danger: #c9283a;
-    --ember: #c8460a;
-    --gold: #946500;
-    --info: #1b64c4;
-    --food-kcal: #b3237a;
-    --food-protein: #5b3fd0;
+    --ember: #0a6f94;
+    --gold: #4c7a00;
+    --info: #0e8f7a;
+    --food-kcal: #4a525c;
+    --food-protein: #3f6b85;
     --warn-deep: #5e3400;
-    --good-tint: rgba(18, 135, 90, .12);
+    --good-tint: rgba(76, 122, 0, .12);
     --warn-tint: rgba(160, 90, 0, .12);
     --danger-tint: rgba(201, 40, 58, .1);
-    --ember-tint: rgba(200, 70, 10, .1);
-    --gold-tint: rgba(148, 101, 0, .12);
-    --info-tint: rgba(27, 100, 196, .1);
+    --ember-tint: rgba(10, 111, 148, .1);
+    --gold-tint: rgba(76, 122, 0, .12);
+    --info-tint: rgba(14, 143, 122, .1);
 
-    --glass: rgba(242, 242, 247, .88);
+    --ring-training: #0a6f94;
+    --ring-recovery: #0e8f7a;
+    --ring-kcal: #4a525c;
+    --ring-protein: #3f6b85;
+    --ring-sets: #0a6f94;
+    --ring-win: #4c7a00;         /* light-mode check icon only */
+    --ring-glow: #c6ff3d;
+    --ring-halo: drop-shadow(0 0 1px #8fd400) drop-shadow(0 0 3px rgba(198, 255, 61, .9));
+
+    --glass: rgba(238, 241, 245, .88);
     --glass-sheet: rgba(250, 250, 253, .88);
     --glass-float: rgba(255, 255, 255, .78);
-    --hairline: rgba(60, 60, 67, .2);
+    --hairline: rgba(60, 70, 85, .2);
     --scrim: rgba(0, 0, 0, .32);
     --top-light: linear-gradient(180deg, rgba(255, 255, 255, .6), rgba(255, 255, 255, 0));
 
@@ -138,7 +160,7 @@
     --elev-2: var(--elev-floating);
     --elev-3: 0 20px 50px rgba(0, 0, 0, .2);
     --hero-glow: color-mix(in srgb, var(--accent) 8%, transparent);
-    --heat-1: rgba(79, 138, 0, .2); --heat-2: rgba(79, 138, 0, .42); --heat-3: rgba(79, 138, 0, .7);
+    --heat-1: rgba(10, 111, 148, .2); --heat-2: rgba(10, 111, 148, .42); --heat-3: rgba(10, 111, 148, .7);
   }
 }
 
@@ -148,7 +170,7 @@
   --line: var(--separator);
   --text: var(--text-1);
   --muted: var(--text-2);
-  --volt: var(--accent);
+  --volt: var(--ring-glow); /* mission celebrations are wins: lime */
   --radius: var(--r-xl);
   --rec-red: var(--danger);
   --rec-amber: var(--warn);

@@ -71,7 +71,7 @@ test('rings: over the calorie target is flagged, says how far over, and draws a 
   assert(css.includes('.ring-arc.ring-over { transition-delay: 1s; }'), 'second lap waits for the first');
   assert(css.includes('.ring-arc.ring-over { transition: none; transition-delay: 0s; }'), 'second lap is instant under reduced motion');
   const ok = ringsHtml(todayRings({ workouts: [], profile: {}, exerciseById: byId, now: NOW, food: { ...food, kcal: 1270 } }));
-  assert(!ok.includes('calories-over') && ok.includes('var(--food-kcal)') && !ok.includes('var(--warn)'), 'normal eating is not warn');
+  assert(!ok.includes('calories-over') && ok.includes('var(--ring-kcal)') && !ok.includes('var(--warn)'), 'normal eating is not warn');
   // The Food card: same rules, and number and unit never split.
   const s = foodSummary({ kcal: 3380, protein_g: 123 }, { calories: 2070, proteinG: 181 });
   eq(s.over, true);
@@ -81,7 +81,7 @@ test('rings: over the calorie target is flagged, says how far over, and draws a 
   const svg = foodRingSvg({ kcal: 3380, protein_g: 123 }, { calories: 2070, proteinG: 181 }, 'x');
   assert(svg.includes('data-over') && svg.includes('var(--warn)'), 'card ring shows the over lap');
   const calm = foodRingSvg({ kcal: 1270, protein_g: 110 }, { calories: 2070, proteinG: 181 }, 'x');
-  assert(!calm.includes('data-over') && !calm.includes('var(--warn)') && calm.includes('var(--food-protein)'), 'card ring is calm under target');
+  assert(!calm.includes('data-over') && !calm.includes('var(--warn)') && calm.includes('var(--ring-protein)'), 'card ring is calm under target');
 });
 
 test('rings: cardio counts as a training day', () => {
@@ -99,4 +99,15 @@ import { pillarDelay } from '../js/health/ui.js';
 test('pillar cascade: 60 ms steps, trails the ring on entry, immediate when scrolled to', () => {
   eq(pillarDelay(0, true), 240); eq(pillarDelay(4, true), 480);
   eq(pillarDelay(0, false), 0); eq(pillarDelay(3, false), 180);
+});
+
+test('rings: only a ring closed on target (not over) glows lime and gets the check', async () => {
+  const { ringsHtml } = await import('../js/ui/rings.js');
+  const food = { kcal: 2070, protein_g: 100, targetKcal: 2070, targetProtein: 181 };
+  const on = ringsHtml(todayRings({ workouts: [], profile: {}, exerciseById: byId, now: NOW, food }));
+  assert(/data-ring="calories"/.test(on) && /ring-closed" data-ring="calories"/.test(on), 'exactly on target glows');
+  assert(/Calories[^<]*<span class="ring-done">/.test(on), 'exactly on target gets the check');
+  const over = ringsHtml(todayRings({ workouts: [], profile: {}, exerciseById: byId, now: NOW, food: { ...food, kcal: 8532 } }));
+  assert(!/ring-closed" data-ring="calories"/.test(over), 'over target does not glow lime');
+  assert(!/Calories[^<]*<span class="ring-done">/.test(over), 'over target gets no check');
 });

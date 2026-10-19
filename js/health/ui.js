@@ -1,8 +1,8 @@
 // Shared bits for the score rings (Today card, Score screen). The ring fills from empty unless reduced motion is on.
 import { reducedMotion, keepRingFinal } from '../ui/motion.js';
 
-/** Colour token for a 0–100 value: good when strong, accent when fine, warn when middling, ember when low. */
-export const scoreColor = (v) => (v == null ? 'var(--surface-3)' : v >= 80 ? 'var(--good)' : v >= 60 ? 'var(--accent-text)' : v >= 40 ? 'var(--warn)' : 'var(--ember)');
+/** Colour token for a 0–100 value: good when strong, accent when fine, warn when middling, danger when low. */
+export const scoreColor = (v) => (v == null ? 'var(--surface-3)' : v >= 80 ? 'var(--good)' : v >= 60 ? 'var(--accent-text)' : v >= 40 ? 'var(--warn)' : 'var(--danger)');
 
 let gradId = 0;
 /** A ring as SVG. value 0–100 (or null for an empty ring). A strong ring gets the accent gradient stroke and a soft glow. */

@@ -59,7 +59,7 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
 .nb-status::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
 .nb-status.saving { color: var(--warn); }
 .nb-status.saving::before { animation: pulse 1s infinite; }
-.nb-status.offline { color: var(--ember); }
+.nb-status.offline { color: var(--warn); }
 .nb-status[hidden] { display: none; }
 
 .large-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 48px; padding-top: 2px; }
@@ -90,7 +90,7 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
 .offline-banner {
   position: fixed; z-index: 6; left: 50%; top: calc(var(--safe-top) + 48px); translate: -50% 0;
   max-width: calc(100% - 32px); padding: 8px 14px; border-radius: 999px; text-align: center;
-  font-size: calc(13px * var(--ts)); font-weight: 600; color: var(--ember);
+  font-size: calc(13px * var(--ts)); font-weight: 600; color: var(--warn);
   background: var(--glass-float); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%);
   animation: vt-fade-in var(--t-med) var(--ease-out);
 }
