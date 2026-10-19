@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.38 — Default rest between sets (2026-10-19)
+
+Pick how long the timer runs after every set. Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- Set a default rest between sets in Settings → Workouts, like 1:00.
+- New installs start at 1:00. An exercise's own rest still wins.
+- Your rest now counts in the plan time, so a shorter rest means a shorter workout.
+- Rest choices sit in even rows and all read the same way, like 1:30.
+
 ## 0.16.37 — Your own protein goal (2026-10-19)
 
 Pick your own daily protein goal instead of the calculated one. Cloud Functions and `firestore.rules` did not change.

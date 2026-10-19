@@ -247,6 +247,14 @@ input[type=date] { -webkit-appearance: none; appearance: none; }
 }
 .chip input:checked + span { background: var(--deep-fill); color: var(--text-1); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 55%, transparent); }
 .focus-chips .chip span { padding-inline: 14px; }
+/* Even grids so no chip is ever alone on a row: rest sheets are 3 columns × 2 rows (6 across when wide),
+   the ⋯ rest sheet is a full-width first chip then 4 × 2. */
+.chips--grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.chips--grid-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.chips--grid .chip { width: 100%; }
+.chips--grid .chip span { width: 100%; padding-inline: 4px; text-align: center; }
+.chips--grid .chip.chip-wide { grid-column: 1 / -1; }
+@media (min-width: 460px) { .chips--grid-6 { grid-template-columns: repeat(6, minmax(0, 1fr)); } }
 .focus-row { margin-top: var(--s-2); width: 100%; min-height: 44px; display: grid; grid-template-columns: 1fr auto; column-gap: var(--s-2); align-items: center; text-align: left; background: none; border: 0; padding: 4px 0; font: inherit; color: inherit; cursor: pointer; }
 .focus-row .focus-val { grid-column: 1 / 3; font-size: calc(15px * var(--ts)); font-weight: 600; }
 .focus-row > .muted { grid-column: 1; grid-row: 1; }

@@ -5,6 +5,7 @@ import { expandEquipment, canDo } from './equipment.js';
 import { averageRecovery } from './recovery.js';
 import { activeFocus, cleanFocus, focusLabel, FOCUS_GROUPS, FOCUS_MAX_ADDED, dayFocusBonus } from './focus.js';
 import { nextTarget, warmups, defaultSets } from './progression.js';
+import { restDefaultSec, REST_DEFAULT_SEC } from './session-core.js';
 
 const INJURY_WORDS = {
   shoulder: /shoulder|rotator|labrum|ac joint/i,
@@ -147,9 +148,17 @@ export function pickExercise(slot, all, ctx) {
   return null;
 }
 
-function minutesFor(ex, sets, role, target) {
-  if (ex.timed) return sets * ((target?.reps || ex.reps[1]) / 60 + 1);
-  return sets * (role === 'main' ? 3.5 : role === 'secondary' ? 3 : 2);
+// Minutes per set = time under load + the rest after it. Work: ~1 min main/secondary, 0.75 accessory, reps/60 for holds.
+// restSec is the exercise's own rest, else your Settings default. (At the old 2:30 / 2:00 / 1:15 rests this is the old 3.5 / 3 / 2.)
+export function minutesFor(ex, sets, role, target, restSec = REST_DEFAULT_SEC) {
+  const work = ex.timed ? (target?.reps || ex.reps[1]) / 60 : role === 'accessory' ? 0.75 : 1;
+  return sets * (work + restSec / 60);
+}
+
+/** Session minutes for a plan's items (each may carry its own rest_sec), including the warm-up. */
+export function planMinutes(plan, exercises, defaultSec = REST_DEFAULT_SEC) {
+  const sum = plan.exercises.reduce((m, it) => m + minutesFor(exercises.find((e) => e.id === it.exercise_id), it.target.sets, it.role, it.target, it.rest_sec || defaultSec), 0);
+  return Math.round(sum + (plan.warm_min || 0));
 }
 
 /**
@@ -174,6 +183,8 @@ export function generateWorkout(opts) {
     readiness = null,
     // A one-day session length in minutes (Change → Shorter or longer); otherwise the profile's.
     sessionMin: sessionMinOpt = null,
+    // Rests picked in ⋯ ({ exercise_id: sec }) so the length fit counts them.
+    restSec = {},
   } = opts;
   const sessionMin = sessionMinOpt || profile.sessionMin || 60;
   const experience = profile.experience || 'beginner';
@@ -285,7 +296,7 @@ export function generateWorkout(opts) {
     const wu = slot.role !== 'accessory' && target.weight ? warmups(ex, target.weight, { inventory: location.weight_inventory || {}, unit }) : [];
     const risky = (ex.avoid || []).filter((t) => avoid.has(t));
     const warning = risky.length ? `Heads up: this commonly stresses your ${risky.map((t) => t.replace('_', ' ')).join(', ')} (from your injury note). Swap it if it bothers you.` : null;
-    items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning });
+    items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning, ...(restSec[ex.id] ? { rest_sec: restSec[ex.id] } : {}) });
   }
 
   if (items.length < 4 && !injuryDropped) {
@@ -296,8 +307,9 @@ export function generateWorkout(opts) {
   // A 20-minute session gets a shorter warm-up and only one lighter-set ramp.
   const warmMin = sessionMin <= 20 ? 3 : 5;
   if (sessionMin <= 20) for (const it of items) it.warmups = it.warmups.slice(0, items.indexOf(it) === 0 ? 1 : 0);
+  const defaultRest = restDefaultSec(settings);
   const budget = sessionMin - warmMin;
-  const total = () => items.reduce((m, it) => m + minutesFor(exercises.find((e) => e.id === it.exercise_id), it.target.sets, it.role, it.target), 0);
+  const total = () => items.reduce((m, it) => m + minutesFor(exercises.find((e) => e.id === it.exercise_id), it.target.sets, it.role, it.target, it.rest_sec || defaultRest), 0);
   while (total() > budget) {
     const idx = items.map((it) => it.role).lastIndexOf('accessory');
     if (idx === -1) break;
@@ -322,7 +334,7 @@ export function generateWorkout(opts) {
     const chosen = new Set(cleanFocus(profile.focus_muscles).flatMap((k) => FOCUS_GROUPS[k].muscles));
     const trainsFocus = (it) => it.primary.some((m) => chosen.has(m));
     const rank = { main: 0, secondary: 1, accessory: 2 };
-    const cost = (it, sets) => minutesFor(exercises.find((e) => e.id === it.exercise_id), sets, it.role, it.target);
+    const cost = (it, sets) => minutesFor(exercises.find((e) => e.id === it.exercise_id), sets, it.role, it.target, it.rest_sec || defaultRest);
     for (const key of activeFocus(profile.focus_muscles, recovery)) {
       if (added >= FOCUS_MAX_ADDED) break;
       const ms = FOCUS_GROUPS[key].muscles;

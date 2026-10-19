@@ -59,7 +59,7 @@ export function currentRecovery(now = Date.now()) {
 }
 
 /** Plan for today (not saved). dayType overrides the program's choice. */
-export function planToday({ dayType, locationId, forced, avoidIds, sessionMin } = {}) {
+export function planToday({ dayType, locationId, forced, avoidIds, sessionMin, restSec } = {}) {
   const location = locationId ? state.locations.find((l) => l.id === locationId) : activeLocation();
   const program = activeProgram();
   if (!location || !state.profile) return null;
@@ -86,6 +86,7 @@ export function planToday({ dayType, locationId, forced, avoidIds, sessionMin } 
       forced: forced || {},
       avoidIds: avoidIds || [],
       sessionMin: sessionMin || null,
+      restSec: restSec || {},
       readiness: readinessForGenerator(),
     }),
   };

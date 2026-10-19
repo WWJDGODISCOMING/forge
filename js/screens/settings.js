@@ -14,6 +14,7 @@ import { unlockAudio, coach, sfx, beep } from '../ui/sound.js';
 import { hapticSupport, haptics } from '../ui/haptic.js';
 import { icon } from '../ui/icons.js';
 import { openProteinGoal, proteinSummary } from './protein-goal.js';
+import { openRestDefault, restDefaultTitle } from './rest-default.js';
 import { openFoodPrefs, prefsSummary } from './food-prefs.js';
 import { photoSettingsHtml, bindPhotoSettings } from '../photos/settings.js';
 import { missionSettings, setMissionSetting } from '../missions/store.js';
@@ -79,6 +80,7 @@ export function renderSettings(el) {
             <label><input type="radio" name="player" value="list" ${pl === 'list' ? 'checked' : ''}><span>List</span></label>
           </div>
         </div>
+        <button type="button" class="g-row" data-rest-default><span class="g-text"><span>${esc(restDefaultTitle(st))}</span><small>Timer after every set. Change one exercise from its dots menu.</small></span><span class="chev">${icon('chev')}</span></button>
         <div class="g-row col static"><span>Coach audio</span>
           <div class="seg" role="radiogroup" aria-label="Coach audio">
             <label><input type="radio" name="coach" value="off" ${coachMode === 'off' ? 'checked' : ''}><span>Off</span></label>
@@ -249,6 +251,7 @@ export function renderSettings(el) {
       if (btn && btn.isConnected) { btn.disabled = false; if (lab) lab.textContent = label; }
     }
   };
+  $('[data-rest-default]', el).onclick = () => openRestDefault({ onSave: () => renderSettings(el) });
   $('[data-protein-goal]', el).onclick = () => openProteinGoal({ onSave: () => renderSettings(el) });
   $('[data-food-prefs]', el).onclick = () => openFoodPrefs({ onSave: () => renderSettings(el) });
   $('[data-export-json]', el).onclick = run(exportJSON);
