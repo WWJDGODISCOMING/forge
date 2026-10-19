@@ -66,8 +66,16 @@ html[data-vt="tab"]::view-transition-new(root), html[data-vt="fade"]::view-trans
 html[data-vt="push"]::view-transition-group(navbar), html[data-vt="push"]::view-transition-group(tabbar),
 html[data-vt="pop"]::view-transition-group(navbar), html[data-vt="pop"]::view-transition-group(tabbar) { z-index: 11; }
 /* No partner on the other screen (the Body card has not filled in): the strip leaves with its page, no ghost. */
-html[data-vt="pop"]::view-transition-old(photo-thumbs):only-child { animation: vt-pop-old var(--t-slow) var(--ease-spring) both; }
-@media (prefers-reduced-motion: reduce) { ::view-transition-group(photo-thumbs) { animation: none; } }
+html[data-vt="pop"]::view-transition-old(photo-thumbs):only-child { animation: vt-pop-old-full var(--t-slow) var(--ease-spring) both; }
+@keyframes vt-pop-old-full { to { transform: translateX(100vw); } }
+/* Workout: the card grows into the player (and back). The card's own content fades out early, the player fades in. */
+::view-transition-group(workout-card) { animation-duration: var(--t-slow); animation-timing-function: var(--ease-spring); z-index: 10; overflow: hidden; border-radius: var(--r-lg, 16px); }
+::view-transition-old(workout-card), ::view-transition-new(workout-card) { width: 100%; height: 100%; object-fit: cover; object-position: top; mix-blend-mode: normal; }
+::view-transition-old(workout-card) { animation: vt-fade-out 160ms ease-out both; }
+::view-transition-new(workout-card) { animation: vt-fade-in var(--t-slow) var(--ease-spring) both; }
+html[data-vt="pop"]::view-transition-old(workout-card) { animation: none; }
+html[data-vt="pop"]::view-transition-new(workout-card) { animation: vt-fade-in 160ms ease-out both; }
+@media (prefers-reduced-motion: reduce) { ::view-transition-group(photo-thumbs), ::view-transition-group(workout-card) { animation: none; } }
 @media (prefers-reduced-motion: reduce) { ::view-transition-group(food-card), ::view-transition-group(food-kcal) { animation: none; } }
 
 @keyframes vt-push-old { to { transform: translateX(-30%); filter: brightness(.6); } }

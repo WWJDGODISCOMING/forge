@@ -605,6 +605,7 @@ function onTab(link) {
     }
     scrollMemory.forget(target);
   }
+  workoutTap = false; workoutFromCard = false;
   photosFromCard = false; // a tab-bar tap forgets the card; only Back morphs home
   location.hash = href;
 }

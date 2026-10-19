@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.33 — Workout card morph (2026-10-19)
+
+Starting or resuming a workout from Today grows the card into the player, and leaving it shrinks back. No functions or rules change.
+
+### What's new
+
+- Starting a workout now grows the card into the player.
+- Resume a workout and the card opens straight into it.
+
 ## 0.16.32 — Photo viewer (2026-10-19)
 
 Tapping a progress photo opens it full screen, growing out of its thumbnail. Dragging it down shrinks it back. No functions or rules change.

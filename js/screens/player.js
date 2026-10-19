@@ -122,7 +122,10 @@ export function renderPlayer(el) {
   const counted = sessionStorage.getItem(`forge.counted.${w.id}`);
   if (!counted && !w.exercises.some((x) => x.sets.some((s) => s.done))) {
     sessionStorage.setItem(`forge.counted.${w.id}`, '1');
-    countdown(() => renderPlayer(el));
+    // Draw the player first so a card morph lands on it, then count in once the morph has finished.
+    drawSet(el);
+    const go = () => (document.documentElement.dataset.vt ? requestAnimationFrame(go) : countdown(() => renderPlayer(el)));
+    go();
     return;
   }
 
