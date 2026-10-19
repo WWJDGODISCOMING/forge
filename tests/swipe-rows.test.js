@@ -73,3 +73,15 @@ test('swipe rows are wired to food and weigh-ins, keeping the existing delete pa
   assert(row.includes('haptics.select') && row.includes('haptics.warning') && row.includes('reducedMotion'));
   assert(row.includes('swipeAxis') && row.includes('velocityOf') && row.includes('animateSpring'));
 });
+
+test('a .tap swipe row keeps touch-action: pan-y (beats nav.css .list li.tap)', () => {
+  const css = src('css/app.css');
+  const rule = css.split('\n').find((l) => /^\.list li\.swipe-row,/.test(l));
+  assert(rule && /\.list li\.tap\.swipe-row/.test(rule) && /touch-action: pan-y/.test(rule), 'tap+swipe-row rule needs higher specificity');
+});
+
+test('food: the Undo toast is dismissed when its delete is written', () => {
+  const food = src('js/screens/food.js');
+  assert(/undoHide\?\.\(\)/.test(food) && /undoHide = toast\(/.test(food));
+  assert(/return hide;/.test(src('js/ui.js')));
+});

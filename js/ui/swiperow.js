@@ -34,7 +34,7 @@ function settle(li, from, to, velocity = 0, onDone) {
 
 function setOpen(li, open) {
   const act = li.querySelector('.swipe-act');
-  if (act) act.tabIndex = open ? 0 : -1;
+  if (act) { act.tabIndex = open ? 0 : -1; act.setAttribute('aria-hidden', open ? 'false' : 'true'); }
   li.classList.toggle('swipe-open', open);
 }
 
@@ -75,11 +75,11 @@ function collapse(li, done) {
   });
 }
 
-export function bindSwipeRows(root, { rows = 'li', onDelete, onRemoved, label = 'Delete' }) {
+export function bindSwipeRows(root, { rows = 'li', onDelete, onRemoved, label = 'Delete', buzz = true }) {
   const rowW = (li) => li.offsetWidth;
 
   async function remove(li) {
-    haptics.warning();
+    if (buzz) haptics.warning(); // a confirm sheet buzzes on its own Delete
     const w = rowW(li);
     li._anim?.stop();
     li._busy = true;

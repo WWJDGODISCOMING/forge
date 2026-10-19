@@ -26,7 +26,14 @@ export const showFoodToday = () => { viewDay = null; };
 const fmtNum = (n) => Math.round(n * 100) / 100;
 const grams = (n) => `${Math.round(n)} g`;
 // Swiped-away entries wait here for the Undo toast; they are written when it ends, the app is hidden, or you leave Food.
-const pend = createPendingDelete({ commit: (id) => softDelete('food_logs', id) });
+// Only one Undo toast at a time, and it goes the moment its delete is written, so a visible Undo always works.
+let undoFor = null, undoHide = null;
+const pend = createPendingDelete({
+  commit: (id) => {
+    softDelete('food_logs', id);
+    if (undoFor === id) { undoHide?.(); undoFor = null; undoHide = null; }
+  },
+});
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pend.flush(); });
   window.addEventListener('hashchange', () => pend.flush());
@@ -184,8 +191,9 @@ export function renderFood(el) {
       const e = state.food_logs.find((x) => x.id === id);
       pend.queue(id);
       if (el.isConnected) renderFood(el);
-      toast(`Removed ${e ? e.name : 'entry'}`, 4200, {
-        action: { label: 'Undo', onClick: () => { if (pend.undo(id) && el.isConnected) renderFood(el); } },
+      undoFor = id;
+      undoHide = toast(`Removed ${e ? e.name : 'entry'}`, 4200, {
+        action: { label: 'Undo', onClick: () => { undoFor = null; undoHide = null; if (pend.undo(id) && el.isConnected) renderFood(el); } },
       });
     },
   }));

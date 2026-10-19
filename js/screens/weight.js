@@ -147,6 +147,7 @@ export function bindWeight(el, rerender) {
   );
   const wl = $('[data-weigh-ins] .list', el);
   if (wl) bindSwipeRows(wl, {
+    buzz: false,
     // same confirm as the trash button; cancelling springs the row closed
     onDelete: (li) => { const b = $('[data-del]', li); return confirmDelete(b.dataset.del, b.dataset.src === 'withings'); },
     onRemoved: (li) => { const b = $('[data-del]', li); remove(b.dataset.del, b.dataset.src === 'withings'); },
