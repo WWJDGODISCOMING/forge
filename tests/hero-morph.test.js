@@ -169,3 +169,26 @@ test('photo morph wiring: only the filled card sets the flag; CSS', () => {
   const c = read('css/motion.css');
   assert(c.includes('group(photo-thumbs)') && c.includes('animation: none'));
 });
+
+test('photo morph: waits for the Body card, no ghost, partial sets line up, tab bar forgets', async () => {
+  const { whenFound } = await import('../js/ui/motion.js');
+  assert((await whenFound(() => 'x', { subscribe: () => () => {} })) === 'x', 'found at once');
+  let el = null, fire = null, off = 0;
+  const p = whenFound(() => el, { timeout: 200, subscribe: (cb) => { fire = cb; return () => { off++; }; } });
+  el = 'card'; fire();
+  assert((await p) === 'card' && off === 1, 'found after waiting, unsubscribed');
+  const t0 = Date.now();
+  const none = await whenFound(() => null, { timeout: 40, subscribe: () => () => {} });
+  assert(none === null && Date.now() - t0 < 500, 'gives up');
+  const m = read('js/ui/motion.js');
+  assert(m.includes('wait: true') && m.includes('p.wait'), 'photo parts wait for their partner');
+  const c = read('css/motion.css');
+  assert(c.includes('view-transition-old(photo-thumbs):only-child'), 'no ghost fallback');
+  assert(/view-transition-group\(tabbar\)[^}]*z-index: 11/.test(c) && c.includes('data-vt="pop"]::view-transition-group(navbar)'), 'bars above the strip');
+  assert(!/view-transition-group\(photo-thumbs\)[^}]*overflow/.test(c), 'group does not clip');
+  const k = read('js/photos/cards.js');
+  assert(k.includes('POSES.map') && k.includes('pp-thumb empty'), 'Body card keeps all three slots like Photos');
+  const a = read('js/app.js');
+  assert(/photosFromCard = false;[^\n]*\n\s*location\.hash = href;/.test(a), 'tab-bar tap forgets the flag');
+  assert(a.includes("onScreen(document.querySelector('#main [data-photos-card] .pp-thumbs'))"), 'off-screen strip never sets the flag');
+});

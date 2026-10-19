@@ -6,7 +6,7 @@ import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
-import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCounters, resetCounters, reducedMotion } from './ui/motion.js';
+import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCounters, resetCounters, reducedMotion, onScreen } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments } from './ui/haptic.js';
@@ -565,7 +565,8 @@ window.addEventListener('hashchange', async () => {
   let foodToday = true; // Food on another day would not match the Today card
   if (foodFromCard && from[0] === 'food') foodToday = await import('./screens/food.js').then((m) => m.foodShowsToday());
   const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, foodTap, foodFromCard, foodToday, photosTap, photosFromCard, reduced: reducedMotion() });
-  photosFromCard = photosTap && from[0] === 'body' && to[0] === 'photos' && !!ring;
+  // Only when the strip is really on screen to fly from; otherwise there is nothing to fly back to either.
+  photosFromCard = photosTap && from[0] === 'body' && to[0] === 'photos' && !!ring && onScreen(document.querySelector('#main [data-photos-card] .pp-thumbs'));
   photosTap = false;
   foodFromCard = foodTap && from[0] !== 'food' && to[0] === 'food' && !!ring;
   foodTap = false;
@@ -594,6 +595,7 @@ function onTab(link) {
     }
     scrollMemory.forget(target);
   }
+  photosFromCard = false; // a tab-bar tap forgets the card; only Back morphs home
   location.hash = href;
 }
 nav.addEventListener('click', (e) => {
