@@ -1,7 +1,7 @@
 // v0.16.36: one serving, not the whole package. Synthetic mushroom-coffee label, bar and plates.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { snapRows, rowMacros, stepRow, mealFields, canWhole, toggleWhole, portionText, unitMacros, bigRow, bigMeal } from '../js/food/snap.js';
+import { snapRows, rowMacros, stepRow, mealFields, canWhole, toggleWhole, portionText, unitMacros, bigRow, bigMeal, wholeAsk } from '../js/food/snap.js';
 
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const COFFEE = { name: 'Organic mushroom blend powder', portion: '1 Tbsp (6g)', serving_size: '1 Tbsp (6g)', serving_g: 6, servings_per_container: 30, grams: 6, kcal: 25, protein_g: 0, carbs_g: 3, fat_g: 1.5, confidence: 0.9, source: 'label' };
@@ -35,7 +35,7 @@ test('whole package is off by default; on, one step is the whole container and i
   const w = toggleWhole(r);
   eq(rowMacros(w).kcal, 750);
   eq(unitMacros(w).kcal, 750);
-  eq(portionText(w), 'Whole package (30 servings)');
+  eq(portionText(w), 'whole package');
   const f = mealFields([w], { meal: 'lunch', day: '2026-10-19' })[0];
   eq(f.kcal, 750);
   eq(rowMacros(toggleWhole(w)).kcal, 25);
@@ -63,4 +63,21 @@ test('hints: a row over 1,000 kcal; a snap over 1,500 kcal', () => {
 test('the screen shows the hints and the whole-package switch', () => {
   const s = src('js/screens/snap.js');
   assert(s.includes('data-whole') && s.includes('data-big-row') && s.includes('data-big-meal'));
+});
+
+test('R1-5: Whole package is only offered when one entry fits the rules', () => {
+  const [ok] = snapRows([COFFEE]);
+  eq(canWhole(ok), true);
+  const [whey] = snapRows([{ ...COFFEE, name: 'Whey', kcal: 120, protein_g: 24, carbs_g: 3, fat_g: 1.5, servings_per_container: 74 }]);
+  eq(canWhole(whey), false);
+  const [pb] = snapRows([{ ...COFFEE, name: 'Peanut butter', kcal: 190, protein_g: 7, carbs_g: 7, fat_g: 16, servings_per_container: 28 }]);
+  eq(canWhole(pb), false);
+  eq(toggleWhole(pb).whole, undefined);
+});
+
+test('R1-7: whole-package line is short; the switch says the servings', () => {
+  const [r] = snapRows([COFFEE]);
+  eq(portionText(toggleWhole(r)), 'whole package');
+  assert(wholeAsk(r).includes('30 servings'));
+  assert(src('js/screens/snap.js').includes('snap-switch'));
 });

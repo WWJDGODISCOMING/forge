@@ -96,3 +96,51 @@ test('the prompt asks for per-serving label values and one plated portion', () =
   assert.match(PROMPT_TEXT, /ONE realistic portion/);
   assert.match(PROMPT_TEXT, /Ignore anything clearly not being eaten/);
 });
+
+// R1 review fixes
+const kc = (name, kcal, extra = {}) => one({ name, portion: '1 plate', grams: 300, kcal, protein_g: 0, carbs_g: 0, fat_g: 0, confidence: 0.8, ...extra });
+const fed = (name, kcal) => kc(name, kcal, { protein_g: kcal / 16, carbs_g: kcal / 8, fat_g: kcal / 36 });
+
+test('R1-1: dishes with a sauce or drink word keep their calories; a bare dressing is still clamped', () => {
+  for (const [n, k] of [['Spaghetti with meat sauce', 650], ['Grilled chicken with BBQ sauce', 420], ['Pancakes with syrup', 620], ['Peanut butter and jelly sandwich', 380], ['Biscuits and gravy', 650], ['Nachos with salsa', 800], ['Beer-battered fish and chips', 1000]]) {
+    assert.equal(fed(n, k).kcal, k, n);
+  }
+  assert.equal(fed('Ranch dressing', 1100).kcal, 200);
+});
+
+test('R1-2: alcohol calories and printed label calories are not recomputed', () => {
+  assert.equal(kc('Red wine', 125, { carbs_g: 4 }).kcal, 125);
+  assert.equal(kc('Beer', 150, { carbs_g: 13, protein_g: 1.5 }).kcal, 150);
+  const bar = one({ name: 'Protein bar', portion: '1 bar', grams: 60, kcal: 190, protein_g: 21, carbs_g: 22, fat_g: 8, confidence: 0.9, source: 'label' });
+  assert.equal(bar.kcal, 190);
+  assert.equal(bar.confidence, 0.9);
+  assert.equal('note' in bar, false);
+  assert.equal(kc('Cola', 140).protein_g, 0);
+});
+
+test('R1-3: the clamp cannot be bypassed and the recompute is capped', () => {
+  const c = kc('Chicken', 1000, { protein_g: 100, carbs_g: 100, fat_g: 100 });
+  assert.ok(c.kcal <= 800, String(c.kcal));
+  const g = kc('Gravy', 300, { fat_g: 100 });
+  assert.ok(g.kcal <= 200, String(g.kcal));
+  assert.ok(kc('Mystery', 100, { protein_g: 500, carbs_g: 500, fat_g: 500 }).kcal <= 5000);
+});
+
+test('R1-4: the label calories decide whether grams were multiplied', () => {
+  const a = one({ ...COFFEE, grams: 180, kcal: 25, label_kcal_per_serving: 25, protein_g: 0, carbs_g: 3, fat_g: 1.5 });
+  assert.equal(a.kcal, 25);
+  assert.equal(a.carbs_g, 3);
+  assert.equal(a.grams, 6);
+  assert.equal(a.source, 'label');
+  const b = one({ ...COFFEE, grams: 6, kcal: 750, label_kcal_per_serving: 25, protein_g: 0, carbs_g: 90, fat_g: 45 });
+  assert.equal(b.kcal, 25);
+  assert.equal(b.source, 'label');
+  assert.equal('label_kcal' in b, false);
+});
+
+test('R1-8: a scaled-down row reads as one portion', () => {
+  const c = one({ name: 'Chili', portion: '1 pot', grams: 667, kcal: 1600, protein_g: 80, carbs_g: 160, fat_g: 60, confidence: 0.8 });
+  assert.equal(c.kcal <= 1200, true);
+  assert.equal(c.portion, '1 portion');
+  assert.equal(one({ name: 'Rice', grams: 100, kcal: '1,100', protein_g: 0, carbs_g: 0, fat_g: 0, confidence: 0.8 }).kcal > 0, true);
+});

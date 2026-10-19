@@ -10,6 +10,8 @@ Snap a meal now sizes one portion, and label scans start at one serving. Cloud F
 - Tap "Whole package" if you ate it all. Portions step in halves.
 - Each food shows what one portion means, like "1 × about 1 cup (180 g)".
 - Big items and big meals get a gentle "check the portion" hint.
+- "Whole package" is now a real on/off switch ("I ate the whole package (30 servings)"), and is only offered when the entry can be saved.
+- Dishes like "Spaghetti with meat sauce" are no longer cut down; wine, beer and printed label calories are left alone; a resized food reads "1 portion".
 
 ## 0.16.35 — Swipe to delete (2026-10-19)
 

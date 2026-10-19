@@ -41,9 +41,13 @@ export function matchQuery(r) {
 }
 
 /** A multi-serving label row can be switched to the whole package: one "serving" is then all of it. */
-export const canWhole = (r) => r.source === 'label' && num(r.servings_per_container) > 1;
+export const canWhole = (r) => {
+  const n = num(r.servings_per_container);
+  return r.source === 'label' && n > 1 && r.kcal * n <= LIMITS.kcal && [r.protein_g, r.carbs_g, r.fat_g].every((v) => num(v) * n <= LIMITS.macro); // one entry must fit the rules
+};
 const servingsIn = (r) => (r.whole && canWhole(r) ? r.servings_per_container : 1);
 export const wholeLabel = (r) => `Whole package (${servingsLabel(r.servings_per_container)} servings)`;
+export const wholeAsk = (r) => `I ate the whole package (${servingsLabel(r.servings_per_container)} servings)`;
 export const toggleWhole = (r) => (canWhole(r) ? { ...r, whole: !r.whole } : r);
 
 /** Calories and macros for ONE step of the row's stepper (a serving, or the whole package when that is on). */
@@ -54,7 +58,7 @@ export function unitMacros(r) {
 
 /** What one portion means, e.g. "1 Tbsp (6 g)" or "about 1 cup (180 g)": the grams are added when the words don't already say them. */
 export function portionText(r) {
-  if (r.whole && canWhole(r)) return wholeLabel(r);
+  if (r.whole && canWhole(r)) return 'whole package'; // the switch already says how many servings
   const p = String(r.portion || '').trim();
   const g = num(r.grams) > 0 ? Math.round(r.grams) : 0;
   if (!p) return g ? `${g} g` : 'serving';
