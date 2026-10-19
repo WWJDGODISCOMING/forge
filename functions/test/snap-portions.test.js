@@ -185,3 +185,15 @@ test('R2-3: numbers with words or units parse', () => {
   assert.equal(one({ name: 'Rice', grams: 100, kcal: 'abc', protein_g: 0, carbs_g: 0, fat_g: 0, confidence: 0.8 }).kcal, 0);
   assert.equal(one({ ...COFFEE, servings_per_container: '53 servings', grams: 6, kcal: 25, carbs_g: 3 }).servings_per_container, 53);
 });
+
+test('R3-1: printed label macros that do not add up (fibre, sugar alcohols, tiny items) are kept', () => {
+  const tort = one({ name: 'Carb Balance tortilla', source: 'label', serving_size: '1 tortilla (43g)', serving_g: 43, servings_per_container: 8, label_kcal_per_serving: 70, grams: 43, kcal: 70, protein_g: 5, carbs_g: 19, fat_g: 3, confidence: 0.9 });
+  assert.deepEqual([tort.kcal, tort.protein_g, tort.carbs_g, tort.fat_g], [70, 5, 19, 3]); assert.equal('flag' in tort, false);
+  assert.equal(one({ name: 'Keto bread', source: 'label', serving_g: 28, label_kcal_per_serving: 35, grams: 28, kcal: 35, protein_g: 5, carbs_g: 9, fat_g: 1.5, confidence: 0.9 }).protein_g, 5);
+  const ice = one({ name: 'Light ice cream', source: 'label', serving_g: 88, servings_per_container: 3, label_kcal_per_serving: 70, grams: 88, kcal: 70, protein_g: 5, carbs_g: 14, fat_g: 2, confidence: 0.9 });
+  assert.equal(ice.protein_g, 5); assert.equal(ice.carbs_g, 14);
+  const jello = one({ name: 'Sugar free gelatin', source: 'label', serving_g: 100, servings_per_container: 4, label_kcal_per_serving: 10, grams: 100, kcal: 10, protein_g: 1, carbs_g: 0, fat_g: 0, confidence: 0.9 });
+  assert.equal(jello.protein_g, 1); assert.equal('flag' in jello, false);
+  const pb2 = one({ name: 'PBfit', source: 'label', serving_g: 16, servings_per_container: 53, label_kcal_per_serving: 60, grams: 32, kcal: 120, protein_g: 14, carbs_g: 10, fat_g: 3, confidence: 0.9 });
+  assert.equal(pb2.kcal, 60); assert.ok(Math.abs(pb2.protein_g - 7) <= 0.6);
+});

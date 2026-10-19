@@ -114,7 +114,12 @@ export function unwrapContainer(item) {
     let changed = false;
     if (!within(item.kcal, L, 0.15)) { out.kcal = Math.round(L); changed = true; }
     const calc = 4 * item.protein_g + 4 * item.carbs_g + 9 * item.fat_g;
-    if (calc > 0 && !within(calc, L, 0.25)) {
+    // Only macros that were clearly multiplied are scaled down. Printed macros that merely don't add up (fibre, sugar alcohols) are kept.
+    const multiplied = calc > L && (
+      (item.kcal >= 1.5 * L && within(calc, item.kcal, 0.25))
+      || (n > 1 && within(calc, L * n, 0.25))
+      || (calc > 3 * L && calc - L > 50));
+    if (multiplied) {
       const k = L / calc;
       out.protein_g = r1(item.protein_g * k); out.carbs_g = r1(item.carbs_g * k); out.fat_g = r1(item.fat_g * k);
       changed = true;
