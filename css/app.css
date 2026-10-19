@@ -495,24 +495,24 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .rings { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: var(--s-4); align-items: center; }
 .rings-svg { display: block; overflow: visible; width: min(240px, 100%); height: auto; aspect-ratio: 1; }
 .ring-track, .ring-arc { fill: none; stroke-width: 20; }
-.ring-track { opacity: 0.14; }
+.ring-track { opacity: 0.17; } /* each track is its own ring's hue, unfilled */
 .ring-arc { stroke-linecap: round; stroke-dashoffset: var(--off); transition: stroke-dashoffset 1s var(--ease-out); }
 .ring-arc.ring-over { transition-delay: 1s; } /* the second lap draws after the first closes */
 .rings-pre .ring-arc { stroke-dashoffset: var(--c); transition: none; }
-.rings-hero { position: relative; isolation: isolate; --hero-glow: color-mix(in srgb, var(--text-1) 7%, transparent); width: min(240px, 100%); margin-inline: auto; }
-.rings-hero::before { content: ''; position: absolute; inset: -10%; z-index: -1; border-radius: 50%; background: radial-gradient(closest-side, var(--hero-glow), transparent); pointer-events: none; } /* neutral bloom: the rings are orange, blue and pink */
+.rings-hero { position: relative; isolation: isolate; --hero-glow: color-mix(in srgb, var(--ring-training) 9%, transparent); width: min(240px, 100%); margin-inline: auto; }
+.rings-hero::before { content: ''; position: absolute; inset: -10%; z-index: -1; border-radius: 50%; background: radial-gradient(closest-side, var(--hero-glow), transparent); pointer-events: none; } /* faint cyan bloom */
 @media (prefers-color-scheme: light) { .rings-hero { --hero-glow: transparent; } } /* a neutral bloom can only darken the white card */
 .rings-hub { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; pointer-events: none; }
 .rings-hub b { font-size: calc(44px * var(--ts)); line-height: 1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rings-hub b i { font-style: normal; font-size: calc(22px * var(--ts)); font-weight: 600; color: var(--muted); }
 .rings-hub small { margin-top: 4px; font-size: calc(12px * var(--ts)); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
-.ring-arc { filter: drop-shadow(0 0 4px color-mix(in srgb, currentColor 35%, transparent)); }
-.ring-arc.ring-closed { filter: drop-shadow(0 0 7px color-mix(in srgb, currentColor 55%, transparent)); }
+.ring-arc { filter: none; }
+.ring-arc.ring-closed { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ring-win) 60%, transparent)); } /* any ring at 100% or more glows lime */
 .rings-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
 .rings-legend li { display: grid; grid-template-columns: 10px 1fr; gap: var(--s-2); align-items: start; }
 .rings-legend li > span:last-child { display: flex; flex-direction: column; min-width: 0; }
 .ring-dot { width: 10px; height: 10px; border-radius: 50%; background: var(--rc); margin-top: 6px; }
-.ring-done { color: var(--rc); display: inline-flex; vertical-align: -2px; }
+.ring-done { color: var(--ring-win); display: inline-flex; vertical-align: -2px; }
 .ring-done svg { width: 14px; height: 14px; }
 @media (prefers-reduced-motion: reduce) { .ring-arc, .ring-arc.ring-over { transition: none; transition-delay: 0s; } }
 
