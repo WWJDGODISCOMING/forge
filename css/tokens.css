@@ -98,45 +98,54 @@
 
 @media (prefers-color-scheme: light) {
   :root {
-    --bg: #f2f2f7;
+    --bg: #eef1f5;
     --surface-1: #ffffff;
     --lift-bg: #050506;
     --lift-hi: 0;
-    --surface-2: #f0f0f4;
-    --surface-3: #e3e3e9;
-    --separator: rgba(60, 60, 67, .16);
-    --text-1: #0d0d10;
-    --text-2: #55555d;
-    --text-3: #6d6d76;
+    --surface-2: #e3e8ee;
+    --surface-3: #d6dde5;
+    --separator: rgba(60, 70, 85, .16);
+    --text-1: #040b0e;
+    --text-2: #4a525c;
+    --text-3: #5f6670;
+    --on-bright: #040b0e;
+    --deep-fill: rgba(7, 124, 165, .14); /* light: a cyan tint, text stays --text-1 */
 
-    --accent: #4f8a00;
+    --accent: #0a6f94;
     --accent-ink: #ffffff;
-    --accent-text: #3f7000;
-    --accent-2: #12905a;
-    --accent-gradient: linear-gradient(135deg, #5d9a00 0%, #2f9a4a 55%, #12905a 100%);
-    --accent-tint: rgba(79, 138, 0, .12);
-    --accent-glow: rgba(79, 138, 0, .28);
+    --accent-text: #0a6f94;
+    --accent-2: #077ca5;
+    --accent-gradient: linear-gradient(135deg, #1a8fb5 0%, #0a6f94 55%, #07587a 100%);
+    --accent-tint: rgba(10, 111, 148, .12);
+    --accent-glow: rgba(10, 111, 148, .28);
 
-    --good: #12875a;
+    --good: #4c7a00;   /* lime is a fill and glow only; text needs this darker green */
     --warn: #a05a00;
     --danger: #c9283a;
-    --ember: #c8460a;
-    --gold: #946500;
-    --info: #1b64c4;
-    --food-kcal: #b3237a;
-    --food-protein: #5b3fd0;
+    --ember: #0a6f94;
+    --gold: #4c7a00;
+    --info: #0e8f7a;
+    --food-kcal: #4a525c;
+    --food-protein: #3f6b85;
     --warn-deep: #5e3400;
-    --good-tint: rgba(18, 135, 90, .12);
+    --good-tint: rgba(76, 122, 0, .12);
     --warn-tint: rgba(160, 90, 0, .12);
     --danger-tint: rgba(201, 40, 58, .1);
-    --ember-tint: rgba(200, 70, 10, .1);
-    --gold-tint: rgba(148, 101, 0, .12);
-    --info-tint: rgba(27, 100, 196, .1);
+    --ember-tint: rgba(10, 111, 148, .1);
+    --gold-tint: rgba(76, 122, 0, .12);
+    --info-tint: rgba(14, 143, 122, .1);
 
-    --glass: rgba(242, 242, 247, .88);
+    --ring-training: #0a6f94;
+    --ring-recovery: #0e8f7a;
+    --ring-kcal: #4a525c;
+    --ring-protein: #3f6b85;
+    --ring-sets: #0a6f94;
+    --ring-win: #4c7a00;
+
+    --glass: rgba(238, 241, 245, .88);
     --glass-sheet: rgba(250, 250, 253, .88);
     --glass-float: rgba(255, 255, 255, .78);
-    --hairline: rgba(60, 60, 67, .2);
+    --hairline: rgba(60, 70, 85, .2);
     --scrim: rgba(0, 0, 0, .32);
     --top-light: linear-gradient(180deg, rgba(255, 255, 255, .6), rgba(255, 255, 255, 0));
 
@@ -147,7 +156,7 @@
     --elev-2: var(--elev-floating);
     --elev-3: 0 20px 50px rgba(0, 0, 0, .2);
     --hero-glow: color-mix(in srgb, var(--accent) 8%, transparent);
-    --heat-1: rgba(79, 138, 0, .2); --heat-2: rgba(79, 138, 0, .42); --heat-3: rgba(79, 138, 0, .7);
+    --heat-1: rgba(10, 111, 148, .2); --heat-2: rgba(10, 111, 148, .42); --heat-3: rgba(10, 111, 148, .7);
   }
 }
 

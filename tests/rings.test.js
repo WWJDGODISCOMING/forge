@@ -71,7 +71,7 @@ test('rings: over the calorie target is flagged, says how far over, and draws a 
   assert(css.includes('.ring-arc.ring-over { transition-delay: 1s; }'), 'second lap waits for the first');
   assert(css.includes('.ring-arc.ring-over { transition: none; transition-delay: 0s; }'), 'second lap is instant under reduced motion');
   const ok = ringsHtml(todayRings({ workouts: [], profile: {}, exerciseById: byId, now: NOW, food: { ...food, kcal: 1270 } }));
-  assert(!ok.includes('calories-over') && ok.includes('var(--food-kcal)') && !ok.includes('var(--warn)'), 'normal eating is not warn');
+  assert(!ok.includes('calories-over') && ok.includes('var(--ring-kcal)') && !ok.includes('var(--warn)'), 'normal eating is not warn');
   // The Food card: same rules, and number and unit never split.
   const s = foodSummary({ kcal: 3380, protein_g: 123 }, { calories: 2070, proteinG: 181 });
   eq(s.over, true);
@@ -81,7 +81,7 @@ test('rings: over the calorie target is flagged, says how far over, and draws a 
   const svg = foodRingSvg({ kcal: 3380, protein_g: 123 }, { calories: 2070, proteinG: 181 }, 'x');
   assert(svg.includes('data-over') && svg.includes('var(--warn)'), 'card ring shows the over lap');
   const calm = foodRingSvg({ kcal: 1270, protein_g: 110 }, { calories: 2070, proteinG: 181 }, 'x');
-  assert(!calm.includes('data-over') && !calm.includes('var(--warn)') && calm.includes('var(--food-protein)'), 'card ring is calm under target');
+  assert(!calm.includes('data-over') && !calm.includes('var(--warn)') && calm.includes('var(--ring-protein)'), 'card ring is calm under target');
 });
 
 test('rings: cardio counts as a training day', () => {

@@ -2,17 +2,17 @@
    away, for the app-switcher snapshot). js/lock-boot.js sets .app-locked before the first paint, so nothing flashes. */
 #lock { display: none; position: fixed; inset: 0; width: 100%; height: 100%; max-width: none; max-height: none; margin: 0; border: 0; box-sizing: border-box; z-index: 2147483000; flex-direction: column; align-items: center; justify-content: center;
   gap: 16px; padding: max(24px, env(safe-area-inset-top)) 24px max(24px, env(safe-area-inset-bottom)); text-align: center;
-  background: radial-gradient(120% 70% at 50% 28%, rgba(198, 255, 61, .16), rgba(198, 255, 61, 0) 60%), var(--bg); color: var(--text-1); }
+  background: radial-gradient(120% 70% at 50% 28%, var(--accent-tint), transparent 60%), var(--bg); color: var(--text-1); }
 html.app-locked #lock, html.app-shield #lock { display: flex; }
 #lock::backdrop { background: transparent; }
 html.app-shield:not(.app-locked) #lock { background: rgba(10, 10, 11, .72); -webkit-backdrop-filter: blur(40px) saturate(1.4); backdrop-filter: blur(40px) saturate(1.4); }
 html.app-locked body > :not(#lock):not(script), html.app-shield body > :not(#lock):not(script) { visibility: hidden !important; }
 html.app-locked, html.app-shield { overflow: hidden; }
-#lock .lk-mark { width: 88px; height: 88px; border-radius: 22px; box-shadow: 0 0 0 1px rgba(198, 255, 61, .28), 0 12px 48px rgba(198, 255, 61, .3); }
+#lock .lk-mark { width: 88px; height: 88px; border-radius: 22px; box-shadow: 0 0 0 1px var(--accent-glow), 0 12px 48px var(--accent-glow); }
 #lock h1 { margin: 0; font-size: calc(26px * var(--ts, 1)); line-height: 1.2; font-weight: 800; letter-spacing: -.01em; }
 #lock .lk-sub { margin: 0; max-width: 28ch; color: var(--text-2); font-size: calc(16px * var(--ts, 1)); line-height: 1.4; }
 #lock .lk-btn { min-height: 56px; width: min(320px, 100%); border: 0; border-radius: 16px; background: var(--accent-gradient); color: var(--accent-ink);
-  font: 700 calc(18px * var(--ts, 1)) var(--font, inherit); cursor: pointer; box-shadow: 0 8px 28px rgba(198, 255, 61, .28); touch-action: manipulation; }
+  font: 700 calc(18px * var(--ts, 1)) var(--font, inherit); cursor: pointer; box-shadow: 0 8px 28px var(--accent-glow); touch-action: manipulation; }
 #lock .lk-btn:focus:not(:focus-visible) { outline: none; }
 #lock .lk-btn:active { transform: scale(.98); }
 #lock .lk-err { margin: 0; min-height: 1.4em; color: var(--danger); font-size: calc(15px * var(--ts, 1)); }

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.29 — New look, part 1 (2026-10-19)
+
+Whole-app palette, part 1 of 2: deep navy surfaces with a glowing cyan accent; lime is kept for wins only. Today rings, light mode, launch colours and the lock screen are done; confetti, share card, badges and exercise figures follow in the next release. No functions or rules change.
+
+### What's new
+
+- Forge has a new look: deep navy with a glowing cyan accent.
+- Today's rings are easier to tell apart, each with its own colour.
+- Rings glow lime when you close them.
+- Light mode is a cooler, softer white to match.
+
 ## 0.16.28 — Food morph (2026-10-19)
 
 #58 slice. Tapping the Food card on Today grows it into the totals card on the Food tab, with today's calories flying into the big Calories number, and going back shrinks it again. Off with Reduced Motion. No functions or rules change.

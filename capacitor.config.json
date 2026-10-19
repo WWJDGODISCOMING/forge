@@ -2,12 +2,12 @@
   "appId": "com.christianeverett.forge",
   "appName": "Forge",
   "webDir": "www",
-  "backgroundColor": "#0a0a0b",
+  "backgroundColor": "#040B0E",
   "ios": {
     "contentInset": "never",
     "scrollEnabled": true,
     "allowsLinkPreview": false,
-    "backgroundColor": "#0a0a0b",
+    "backgroundColor": "#040B0E",
     "preferredContentMode": "mobile"
   },
   "plugins": {
@@ -18,7 +18,7 @@
       "launchAutoHide": false,
       "launchShowDuration": 0,
       "launchFadeOutDuration": 200,
-      "backgroundColor": "#0a0a0b",
+      "backgroundColor": "#040B0E",
       "showSpinner": false
     },
     "Keyboard": {
