@@ -7,7 +7,7 @@ import { icon } from '../ui/icons.js';
 import { MEALS, MEAL_LABEL, mealForHour } from '../food/core.js';
 import { servingsLabel } from '../food/portion.js';
 import { createOnlineSearch } from '../food/search.js';
-import { ESTIMATE_NOTE, MEAL_HINT, ROW_HINT, bigMeal, bigRow, canWhole, portionText, toggleWhole, wholeLabel, estimateMeal, matchQuery, upstreamTag, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
+import { ESTIMATE_NOTE, MEAL_HINT, ROW_HINT, bigMeal, bigRow, canWhole, portionText, toggleWhole, wholeAsk, wholeLabel, estimateMeal, matchQuery, upstreamTag, isUnsure, mealFields, prepareImage, removeRow, rowMacros, stepRow, swapRow, totalsOfRows } from '../food/snap.js';
 
 /** A heading for the real cause, so a busy server never reads as a bad photo. */
 export function errorHeading(message = '', code = '') {

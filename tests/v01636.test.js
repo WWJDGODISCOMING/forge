@@ -81,3 +81,11 @@ test('R1-7: whole-package line is short; the switch says the servings', () => {
   assert(wholeAsk(r).includes('30 servings'));
   assert(src('js/screens/snap.js').includes('snap-switch'));
 });
+
+test('R2-1: every ../food/snap.js name the screen calls is imported', () => {
+  const s = src('js/screens/snap.js');
+  const imp = /import \{([^}]*)\} from '\.\.\/food\/snap\.js'/.exec(s)[1].split(',').map((x) => x.trim());
+  const exported = [...src('js/food/snap.js').matchAll(/export (?:async )?(?:const|function) (\w+)/g)].map((m) => m[1]);
+  const body = s.replace(/^import [^\n]*\n/gm, '');
+  for (const name of exported) if (new RegExp(`\\b${name}\\(`).test(body)) assert(imp.includes(name), `${name} is used but not imported`);
+});

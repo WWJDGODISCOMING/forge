@@ -144,3 +144,44 @@ test('R1-8: a scaled-down row reads as one portion', () => {
   assert.equal(c.portion, '1 portion');
   assert.equal(one({ name: 'Rice', grams: 100, kcal: '1,100', protein_g: 0, carbs_g: 0, fat_g: 0, confidence: 0.8 }).kcal > 0, true);
 });
+
+// PBfit: 2 Tbsp (16 g), 60 kcal / 7 P / 5 C / 1.5 F per serving, 53 servings.
+const PB = { name: 'Powdered peanut butter', portion: '2 Tbsp (16g)', serving_size: '2 Tbsp (16g)', serving_g: 16, servings_per_container: 53, label_kcal_per_serving: 60, source: 'label', confidence: 0.9 };
+const near = (a, b, t = 0.6) => assert.ok(Math.abs(a - b) <= t, `${a} vs ${b}`);
+
+test('R2-2: PBfit mixed answers all come out as one serving', () => {
+  for (const f of [
+    { grams: 16, kcal: 3180, protein_g: 7, carbs_g: 5, fat_g: 1.5 },
+    { grams: 16, kcal: 60, protein_g: 371, carbs_g: 265, fat_g: 79.5 },
+    { grams: 848, kcal: 3180, protein_g: 371, carbs_g: 265, fat_g: 79.5 },
+    { grams: 16, kcal: 120, protein_g: 7, carbs_g: 5, fat_g: 1.5 },
+  ]) {
+    const c = one({ ...PB, ...f });
+    near(c.kcal, 60, 1); near(c.protein_g, 7); assert.equal(c.grams, 16); assert.equal(c.source, 'label');
+  }
+  const noN = { ...PB, servings_per_container: undefined, grams: 16, kcal: 3180, protein_g: 7, carbs_g: 5, fat_g: 1.5 };
+  near(one(noN).kcal, 60, 1);
+});
+
+test('R2-2: coffee mixes give 25 kcal / 3 g carbs / 1.5 g fat', () => {
+  for (const f of [
+    { grams: 6, kcal: 750, protein_g: 0, carbs_g: 3, fat_g: 1.5 },
+    { grams: 6, kcal: 25, protein_g: 0, carbs_g: 90, fat_g: 45 },
+  ]) {
+    const c = one({ ...COFFEE, label_kcal_per_serving: 25, ...f });
+    near(c.kcal, 25, 1); near(c.carbs_g, 3); near(c.fat_g, 1.5);
+  }
+});
+
+test('R2-2: without the printed calories, kcal per gram spots the whole container', () => {
+  const c = one({ ...PB, label_kcal_per_serving: undefined, grams: 16, kcal: 3180, protein_g: 371, carbs_g: 265, fat_g: 79.5 });
+  near(c.kcal, 60, 1); near(c.protein_g, 7); assert.equal(c.source, 'label');
+});
+
+test('R2-3: numbers with words or units parse', () => {
+  const c = one({ ...PB, servings_per_container: 'About 53', serving_g: '16g', grams: 16, kcal: '3180 kcal', protein_g: 7, carbs_g: 5, fat_g: 1.5 });
+  near(c.kcal, 60, 1); near(c.protein_g, 7);
+  assert.equal(one({ name: 'Rice', grams: 100, kcal: '25 kcal', protein_g: 1, carbs_g: 4, fat_g: 0, confidence: 0.8 }).kcal, 25);
+  assert.equal(one({ name: 'Rice', grams: 100, kcal: 'abc', protein_g: 0, carbs_g: 0, fat_g: 0, confidence: 0.8 }).kcal, 0);
+  assert.equal(one({ ...COFFEE, servings_per_container: '53 servings', grams: 6, kcal: 25, carbs_g: 3 }).servings_per_container, 53);
+});

@@ -76,7 +76,7 @@ export const PROMPT_TEXT = PROMPT;
 
 export const MAX_KCAL_PER_G = 9; // pure fat is about 9 kcal/g, so nothing edible is higher
 export const FLAG_NOTE = 'Calories looked too high for the weight, so they were lowered.';
-const num = (x, hi) => { const n = Number(typeof x === 'string' ? x.replace(/,/g, '') : x); return Number.isFinite(n) ? Math.min(hi, Math.max(0, n)) : 0; };
+const num = (x, hi) => { const n = Number(typeof x === 'string' ? (/\d+(?:\.\d+)?/.exec(x.replace(/,/g, '')) || [''])[0] : x); return Number.isFinite(n) ? Math.min(hi, Math.max(0, n)) : 0; };
 const r1 = (x) => Math.round(x * 10) / 10;
 const clean = (s, n) => String(s == null ? '' : s).replace(/[\u0000-\u001f\u007f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, n);
 
@@ -104,22 +104,31 @@ function scaled(item, k, extra = {}) {
 }
 
 /** A label answer that is the whole container (per-serving × servings) goes back to ONE serving. Single-serve packages are untouched.
- *  The calories decide when the label's per-serving calories are known (`label_kcal`); otherwise the weight does. */
+ *  When the label's per-serving calories are known (`label_kcal`) one serving is that, and the calories and the macros are each
+ *  checked on their own; otherwise the weight (or kcal per gram) decides. */
 export function unwrapContainer(item) {
-  const n = item.servings_per_container;
-  if (item.source !== 'label' || !(n > 1)) return item;
-  const sg = item.serving_g, L = item.label_kcal;
-  let whole;
-  if (L > 0 && within(item.kcal, L * n, 0.15)) whole = true; // the model multiplied
-  else if (L > 0 && within(item.kcal, L, 0.15)) { // right calories; only the weight may be the package's
+  if (item.source !== 'label') return item;
+  const n = item.servings_per_container, sg = item.serving_g, L = item.label_kcal;
+  if (L > 0) {
     const out = { ...item };
+    let changed = false;
+    if (!within(item.kcal, L, 0.15)) { out.kcal = Math.round(L); changed = true; }
+    const calc = 4 * item.protein_g + 4 * item.carbs_g + 9 * item.fat_g;
+    if (calc > 0 && !within(calc, L, 0.25)) {
+      const k = L / calc;
+      out.protein_g = r1(item.protein_g * k); out.carbs_g = r1(item.carbs_g * k); out.fat_g = r1(item.fat_g * k);
+      changed = true;
+    }
     if (sg > 0) out.grams = Math.round(sg);
     if (item.serving_size) out.portion = item.serving_size;
+    if (changed) { out.note = CONTAINER_NOTE; out.flag = 'container'; }
     return out;
-  } else {
-    // The weight is about serving_g × n (or the printed net weight when that is n servings).
-    whole = (sg > 0 && within(item.grams, sg * n, 0.15)) || (item.net_weight_g > 0 && within(item.grams, item.net_weight_g, 0.15) && (!(sg > 0) || within(item.net_weight_g, sg * n, 0.2)));
   }
+  if (!(n > 1)) return item;
+  // The weight is about serving_g × n (or the printed net weight when that is n servings), or the calories per gram only fit the whole.
+  const whole = (sg > 0 && within(item.grams, sg * n, 0.15))
+    || (item.net_weight_g > 0 && within(item.grams, item.net_weight_g, 0.15) && (!(sg > 0) || within(item.net_weight_g, sg * n, 0.2)))
+    || (sg > 0 && item.kcal / sg > MAX_KCAL_PER_G && item.kcal / n / sg <= MAX_KCAL_PER_G);
   if (!whole) return item.serving_size ? { ...item, portion: item.serving_size } : item;
   const out = scaled(item, 1 / n, { note: CONTAINER_NOTE, flag: 'container' });
   if (sg > 0) out.grams = Math.round(sg);
