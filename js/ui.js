@@ -23,7 +23,7 @@ export function toast(message, ms = 2600, { icon: name = '', action = null } = {
   const el = document.createElement('div');
   el.className = 'toast';
   el.setAttribute('role', 'status');
-  if (name) el.insertAdjacentHTML('afterbegin', name === 'check' ? checkSvg({ size: 18 }) : icon(name));
+  if (name) el.insertAdjacentHTML('afterbegin', name === 'check' ? checkSvg({ size: 18, delay: 150 }) : icon(name));
   const msg = document.createElement('span');
   msg.className = 'toast-msg';
   msg.textContent = message;

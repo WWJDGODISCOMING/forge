@@ -82,13 +82,32 @@ test('settleTicks: count-up, settle, then a redraw with the same value does not 
   assert(b.textContent === '190.7', b.textContent);
 });
 
+test('settleTicks: a ring-centre number (a span inside <b>) rolls when it changes', () => {
+  reduced = false; stub();
+  resetTicks();
+  const e = { dataset: { tick: 'rings-days' }, textContent: '2', children: [], isConnected: true };
+  const root = { querySelectorAll: (s) => (s === '[data-tick]' ? [e] : []) };
+  settleTicks(root);
+  e.textContent = '3';
+  settleTicks(root);
+  assert(e.textContent === '2', 'starts the roll from the old number: ' + e.textContent);
+});
+
+test('checkmark: mission row keeps the filled disc and draws after the sheet closes', async () => {
+  const { checkSvg } = await import('../js/ui/checkdraw.js');
+  const svg = checkSvg({ size: 28, disc: true, delay: 360 });
+  assert(svg.includes('<circle') && svg.includes('--ck-delay:360ms'));
+  assert(src('js/missions/ui.js').includes('disc: true'));
+  assert(src('css/motion.css').includes('var(--ck-delay, 60ms)'));
+});
+
 test('ticker: every wired spot carries data-tick and the screens call settleTicks', () => {
   const food = src('js/screens/food.js');
   assert(food.includes('data-tick="meal-') && food.includes('settleTicks(el)') && food.includes('data-fill="meter-'));
   assert(src('js/screens/today.js').includes('data-tick="today-kcal"'));
   assert(src('js/screens/today.js').includes('data-tick="today-weight"'));
   assert(src('js/screens/weight.js').includes('data-tick="body-latest"'));
-  assert(src('js/ui/rings.js').includes('data-tick="rings-days"'));
+  assert(src('js/ui/rings.js').includes('<b><span data-tick="rings-days">${t.done}</span><i>/${t.goal}</i></b>'));
   assert(src('js/app.js').includes('settleTicks(main)'));
   assert(src('css/motion.css').includes('[data-tick] { font-variant-numeric: tabular-nums; }'));
 });
