@@ -64,8 +64,8 @@ export function formatCount(parsed, v) {
 
 const counted = new Set();
 /** While a ring morph runs: selector of the incoming ring, which shows its final arc and number from the first frame. */
-let finalRing = null;
-/** Mark the incoming morph ring under `root` as final, so its arc is not drawn in from empty. */
+let finalRing = null; // comma-joined selectors of every incoming morph part
+/** Mark the incoming morph parts under `root` as final, so they are not drawn in from empty. */
 export function keepRingFinal(root) {
   if (finalRing) root.querySelectorAll(finalRing).forEach((el) => el.classList.add('sc-final'));
 }
@@ -126,26 +126,26 @@ export function viewTransition(update, kind = 'fade', shared = null) {
     });
   }
   document.documentElement.dataset.vt = kind;
-  // Shared element: the outgoing element gets the name now (so the old screen is captured with it), the incoming
-  // one right after the update. Only one element holds the name at a time, and both lose it when the morph ends.
-  // The outgoing ring must be on screen before capture and the incoming one after render, else plain crossfade.
-  const sharedOn = shared && !reducedMotion() && onScreen(document.querySelector(shared.from));
-  const untag = () => document.querySelectorAll(shared.from + ',' + shared.to).forEach((el) => { el.style.viewTransitionName = ''; });
-  if (sharedOn) {
-    document.querySelector(shared.from).style.viewTransitionName = shared.name;
-    finalRing = shared.toFinal;
+  // Shared parts ({ name, from, to, toFinal }): each outgoing element gets its name now (so the old screen is captured
+  // with it), the incoming one right after the update. A name is held by one element at a time, and all are cleared
+  // when the morph ends. A part whose outgoing element is off screen, or whose incoming one is, just crossfades.
+  const parts = (shared ? [].concat(shared) : []).filter((p) => !reducedMotion() && onScreen(document.querySelector(p.from)));
+  const untag = () => parts.forEach((p) => document.querySelectorAll(p.from + ',' + p.to).forEach((el) => { el.style.viewTransitionName = ''; }));
+  if (parts.length) {
+    parts.forEach((p) => { document.querySelector(p.from).style.viewTransitionName = p.name; });
+    finalRing = parts.map((p) => p.toFinal).join(',');
   }
   const vt = document.startViewTransition(async () => {
-    if (sharedOn) untag(); // the old screen is already captured; keep the name unique on the page
+    if (parts.length) untag(); // the old screen is already captured; keep the names unique on the page
     await update();
-    if (sharedOn) {
-      const el = document.querySelector(shared.to);
-      if (onScreen(el)) el.style.viewTransitionName = shared.name;
-    }
+    parts.forEach((p) => {
+      const el = document.querySelector(p.to);
+      if (onScreen(el)) el.style.viewTransitionName = p.name;
+    });
   });
   return vt.finished.catch(() => {}).finally(() => {
     delete document.documentElement.dataset.vt;
-    if (sharedOn) { untag(); finalRing = null; }
+    if (parts.length) { untag(); finalRing = null; }
   });
 }
 
@@ -167,5 +167,32 @@ export function sharedRingFor(from, to) {
   const t = to[0] || 'today';
   if (f === 'today' && t === 'score' && !from[1]) return { name: 'score-ring', from: '#main .score-mini', to: '#main .score-hero', toFinal: '.score-hero' };
   if (f === 'score' && t === 'today' && !to[1]) return { name: 'score-ring', from: '#main .score-hero', to: '#main .score-mini', toFinal: '.score-mini' };
+  return null;
+}
+
+/**
+ * Every shared part for a route change: the Score ring (see ringMorphFor) or the Weight number and chart. Weight is
+ * the Body tab root, so Today to Body is a 'tab' change: it morphs only when the Weight card was tapped (`weightTap`),
+ * and back when Body was opened that way (`weightFromCard`). Returns an array of parts, or null. Pure.
+ */
+export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weightTap = false, weightFromCard = false, reduced = false } = {}) {
+  if (reduced) return null;
+  const ring = ringMorphFor(from, to, { cardTap, fromCard, reduced });
+  if (ring) return [ring];
+  if (transitionKind(from, to) !== 'tab') return null;
+  const f = from[0] || 'today';
+  const t = to[0] || 'today';
+  if (f === 'today' && !from[1] && t === 'body' && to[1] === 'weight' && weightTap) {
+    return [
+      { name: 'weight-num', from: '#main .weight-card .hero-num', to: '#main [data-weight-hero] .stats > div:first-child b', toFinal: '[data-weight-hero] .stats > div:first-child b' },
+      { name: 'weight-chart', from: '#main .weight-card .spark', to: '#main [data-weight-hero] .chart', toFinal: '[data-weight-hero] .chart' },
+    ];
+  }
+  if (f === 'body' && from[1] === 'weight' && t === 'today' && !to[1] && weightFromCard) {
+    return [
+      { name: 'weight-num', from: '#main [data-weight-hero] .stats > div:first-child b', to: '#main .weight-card .hero-num', toFinal: '.weight-card .hero-num' },
+      { name: 'weight-chart', from: '#main [data-weight-hero] .chart', to: '#main .weight-card .spark', toFinal: '.weight-card .spark' },
+    ];
+  }
   return null;
 }

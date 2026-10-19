@@ -1,6 +1,6 @@
 import { readFileSync, readdirSync } from 'node:fs';
 import { test, assert } from './harness.js';
-import { sharedRingFor, ringMorphFor } from '../js/ui/motion.js';
+import { sharedRingFor, ringMorphFor, heroMorphFor } from '../js/ui/motion.js';
 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
@@ -11,13 +11,13 @@ test('score-ring is never in static markup or screen templates', () => {
 
 test('the name is set around the transition and cleared after', () => {
   const m = read('js/ui/motion.js');
-  assert(m.includes('style.viewTransitionName = shared.name'), 'sets the name');
+  assert(m.includes('style.viewTransitionName = p.name'), 'sets the name');
   assert(m.includes("el.style.viewTransitionName = ''"), 'clears the name');
   assert(/finally\([\s\S]*untag\(\)/.test(m), 'clears when the transition finishes');
 });
 
 test('reduced motion skips the morph', () => {
-  assert(read('js/ui/motion.js').includes('shared && !reducedMotion()'));
+  assert(read('js/ui/motion.js').includes('!reducedMotion() && onScreen('));
   assert(read('css/motion.css').includes('group(score-ring)'));
 });
 
@@ -41,7 +41,7 @@ test('Score card tap morphs even though Score is a tab root; tab bar and deep li
 
 test('the hashchange handler uses ringMorphFor, and a card tap forgets Score scroll', () => {
   const a = read('js/app.js');
-  assert(a.includes('ringMorphFor(from, to'));
+  assert(a.includes('heroMorphFor(from, to'));
   assert(/data-score[\s\S]{0,160}scrollMemory\.forget\('score'\)/.test(a));
 });
 
@@ -53,6 +53,53 @@ test('the morph target ring skips the draw-in and the count-up', () => {
 
 test('the morph is skipped when a ring is off screen', () => {
   const m = read('js/ui/motion.js');
-  assert(m.includes('onScreen(document.querySelector(shared.from))'));
-  assert(m.includes('if (onScreen(el)) el.style.viewTransitionName'));
+  assert(m.includes('onScreen(document.querySelector(p.from))'));
+  assert(m.includes('if (onScreen(el)) el.style.viewTransitionName = p.name'));
+});
+
+test('weight names are never in static markup or screen templates', () => {
+  const files = [...readdirSync(new URL('../js/screens', import.meta.url)).map((f) => 'js/screens/' + f), 'index.html'];
+  for (const f of files) for (const n of ['weight-num', 'weight-chart']) assert(!read(f).includes(n), f + ' must not hardcode ' + n);
+});
+
+test('weight parts: card tap Today -> Body, and back only when opened from the card', () => {
+  const go = heroMorphFor(['today'], ['body', 'weight'], { weightTap: true });
+  assert(go && go.length === 2 && go[0].name === 'weight-num' && go[1].name === 'weight-chart', 'card tap');
+  assert(heroMorphFor(['today'], ['body', 'weight']) === null, 'tab bar / deep link');
+  assert(heroMorphFor(['train'], ['body', 'weight'], { weightTap: true }) === null, 'other route');
+  assert(heroMorphFor(['today'], ['body', 'weight'], { weightTap: true, reduced: true }) === null, 'reduced motion');
+  const back = heroMorphFor(['body', 'weight'], ['today'], { weightFromCard: true });
+  assert(back && back[0].to.includes('weight-card') && back[1].to.includes('spark'), 'return');
+  assert(heroMorphFor(['body', 'weight'], ['today']) === null, 'return after other visit');
+  assert(heroMorphFor(['body', 'weight'], ['today'], { weightFromCard: true, reduced: true }) === null, 'back reduced');
+});
+
+test('Score results unchanged through heroMorphFor', () => {
+  const r = heroMorphFor(['today'], ['score'], { cardTap: true });
+  assert(r && r.length === 1 && r[0].name === 'score-ring');
+  assert(heroMorphFor(['today'], ['score']) === null);
+});
+
+test('every incoming morph part is marked final in render(), not only rings', () => {
+  const a = read('js/app.js');
+  assert(/keepRingFinal\(main\);[\s\S]{0,160}animateCounters\(main\)/.test(a), 'render marks final before counters');
+  assert(read('js/ui/motion.js').includes("toFinal: '[data-weight-hero] .chart'"));
+});
+
+test('See chart only flags the weight morph when there is a reading', () => {
+  assert(read('js/app.js').includes("weightTap = !!main.querySelector('[data-weight-open]')"));
+});
+
+test('weight tap target: VoiceOver reads content, press feedback, pointer', () => {
+  const t = read('js/screens/today.js');
+  assert(!/aria-label="Weight chart"/.test(t), 'no label hiding the value');
+  const c = read('css/motion.css');
+  assert(c.split('[data-weight-open]:active').length - 1 >= 2, 'active in normal and reduced motion');
+  assert(/\[data-weight-open\] \{\s*cursor: pointer/.test(c));
+});
+
+test('weight morph wiring: tap target and CSS', () => {
+  assert(read('js/screens/today.js').includes('data-weight-open'));
+  const c = read('css/motion.css');
+  assert(c.includes('group(weight-num)') && c.includes('group(weight-chart)'));
 });

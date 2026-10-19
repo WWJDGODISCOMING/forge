@@ -334,7 +334,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
   .chart.chart-morph .dot, .chart.chart-morph .prev, .chart.chart-morph .bar, .chart.chart-morph .goal, .chart.chart-morph .goal-label, .chart.chart-morph .proj { animation: chart-in .3s var(--ease-out) .12s backwards; }
 }
 /* A range change morphs the existing line (see morphChart()) instead of drawing it in again. */
-.chart.chart-morph .trend[pathLength], .chart.chart-morph .area, .chart.chart-morph .area-clip { animation: none; }
+.chart.chart-morph .trend[pathLength], .chart.chart-morph .area, .chart.chart-morph .area-clip, .chart.sc-final .trend[pathLength], .chart.sc-final .area, .chart.sc-final .area-clip { animation: none; }
 @keyframes chart-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
 @keyframes chart-in { from { opacity: 0; } }
 @keyframes chart-reveal { from { transform: scaleX(0); } to { transform: scaleX(1); } }
