@@ -379,7 +379,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .rec-bar { height: 8px; border-radius: 6px; background: var(--surface-2); overflow: hidden; }
 .rec-bar i { display: block; height: 100%; border-radius: 6px; background: var(--good); transition: width var(--t-slow) var(--ease-out); }
 .rec-bar i.mid { background: var(--warn); }
-.rec-bar i.low { background: var(--ember); }
+.rec-bar i.low { background: var(--danger); }
 
 .tools { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-3); }
 .tool {
@@ -507,7 +507,7 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .rings-hub b i { font-style: normal; font-size: calc(22px * var(--ts)); font-weight: 600; color: var(--muted); }
 .rings-hub small { margin-top: 4px; font-size: calc(12px * var(--ts)); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
 .ring-arc { filter: none; }
-.ring-arc.ring-closed { filter: drop-shadow(0 0 6px color-mix(in srgb, var(--ring-win) 60%, transparent)); } /* any ring at 100% or more glows lime */
+.ring-arc.ring-closed { filter: var(--ring-halo); } /* any ring closed on target glows lime; a crisp rim so neighbouring gaps stay clear */
 .rings-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
 .rings-legend li { display: grid; grid-template-columns: 10px 1fr; gap: var(--s-2); align-items: start; }
 .rings-legend li > span:last-child { display: flex; flex-direction: column; min-width: 0; }

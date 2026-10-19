@@ -50,7 +50,9 @@
   --ring-kcal: #dadde4;
   --ring-protein: #7fa6bd;
   --ring-sets: #3ec8f0;
-  --ring-win: #c6ff3d;         /* done check, closed-ring glow, streak flame */
+  --ring-win: #c6ff3d;         /* done check, streak flame */
+  --ring-glow: #c6ff3d;        /* non-text lime: closed-ring rim, mission celebrations */
+  --ring-halo: drop-shadow(0 0 .75px var(--ring-glow)) drop-shadow(0 0 2.5px color-mix(in srgb, var(--ring-glow) 55%, transparent)); /* crisp rim, gaps stay navy */
 
   /* Glass + overlays */
   --glass: rgba(4, 11, 14, .84);
@@ -140,7 +142,9 @@
     --ring-kcal: #4a525c;
     --ring-protein: #3f6b85;
     --ring-sets: #0a6f94;
-    --ring-win: #4c7a00;
+    --ring-win: #4c7a00;         /* light-mode check icon only */
+    --ring-glow: #c6ff3d;
+    --ring-halo: drop-shadow(0 0 1px #8fd400) drop-shadow(0 0 3px rgba(198, 255, 61, .9));
 
     --glass: rgba(238, 241, 245, .88);
     --glass-sheet: rgba(250, 250, 253, .88);
@@ -166,7 +170,7 @@
   --line: var(--separator);
   --text: var(--text-1);
   --muted: var(--text-2);
-  --volt: var(--accent);
+  --volt: var(--ring-glow); /* mission celebrations are wins: lime */
   --radius: var(--r-xl);
   --rec-red: var(--danger);
   --rec-amber: var(--warn);

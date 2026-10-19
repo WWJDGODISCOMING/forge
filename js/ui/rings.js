@@ -74,14 +74,14 @@ export function ringsHtml(rings) {
     const lap = over ? `<circle class="ring-arc ring-over" data-ring="${r.key}-over" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}"
         stroke-dasharray="${C.toFixed(1)}" style="stroke:var(--warn-deep);--c:${C.toFixed(1)};--off:${(C * (1 - over)).toFixed(1)}"/>` : '';
     return `<circle class="ring-track" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}" style="stroke:${col}"/>
-      <circle class="ring-arc${v >= 1 ? ' ring-closed' : ''}" data-ring="${r.key}" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}"
+      <circle class="ring-arc${v >= 1 && !r.over ? ' ring-closed' : ''}" data-ring="${r.key}" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}"
         stroke-dasharray="${C.toFixed(1)}" style="color:${col};stroke:url(#rg-${r.key});--c:${C.toFixed(1)};--off:${(C * (1 - v)).toFixed(1)}"/>${lap}`;
   }).join('');
   const t = rings.find((r) => r.key === 'training');
   const hub = t ? `<div class="rings-hub" aria-hidden="true"><b>${t.done}<i>/${t.goal}</i></b><small>training days</small></div>` : '';
   const legend = rings.map((r) => `
     <li style="--rc:${r.over ? 'var(--warn)' : COLORS[r.key]}"><span class="ring-dot" aria-hidden="true"></span>
-      <span><b>${esc(r.label)}${r.value >= 1 && r.key !== 'calories' ? ` <span class="ring-done">${icon('check', { size: 14 })}</span>` : ''}</b>${(r.lines || [r.text]).map((l) => `<small class="muted">${esc(l)}</small>`).join("")}${r.over && r.extra ? `<small class="warn">${esc(r.extra)}</small>` : ''}</span></li>`).join('');
+      <span><b>${esc(r.label)}${r.value >= 1 && !r.over ? ` <span class="ring-done">${icon('check', { size: 14 })}</span>` : ''}</b>${(r.lines || [r.text]).map((l) => `<small class="muted">${esc(l)}</small>`).join("")}${r.over && r.extra ? `<small class="warn">${esc(r.extra)}</small>` : ''}</span></li>`).join('');
   const aria = rings.map((r) => `${r.label}: ${r.text}${r.extra ? `, ${r.extra}` : ''}`).join('; ');
   return `<div class="rings" role="img" aria-label="${esc(aria)}">
     <div class="rings-hero"><svg class="rings-svg" viewBox="0 0 ${SIZE} ${SIZE}" width="${SIZE}" height="${SIZE}" aria-hidden="true"><defs>${defs}</defs><g transform="rotate(-90 ${SIZE / 2} ${SIZE / 2})">${arcs}</g></svg>${hub}</div>

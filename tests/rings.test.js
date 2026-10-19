@@ -100,3 +100,14 @@ test('pillar cascade: 60 ms steps, trails the ring on entry, immediate when scro
   eq(pillarDelay(0, true), 240); eq(pillarDelay(4, true), 480);
   eq(pillarDelay(0, false), 0); eq(pillarDelay(3, false), 180);
 });
+
+test('rings: only a ring closed on target (not over) glows lime and gets the check', async () => {
+  const { ringsHtml } = await import('../js/ui/rings.js');
+  const food = { kcal: 2070, protein_g: 100, targetKcal: 2070, targetProtein: 181 };
+  const on = ringsHtml(todayRings({ workouts: [], profile: {}, exerciseById: byId, now: NOW, food }));
+  assert(/data-ring="calories"/.test(on) && /ring-closed" data-ring="calories"/.test(on), 'exactly on target glows');
+  assert(/Calories[^<]*<span class="ring-done">/.test(on), 'exactly on target gets the check');
+  const over = ringsHtml(todayRings({ workouts: [], profile: {}, exerciseById: byId, now: NOW, food: { ...food, kcal: 8532 } }));
+  assert(!/ring-closed" data-ring="calories"/.test(over), 'over target does not glow lime');
+  assert(!/Calories[^<]*<span class="ring-done">/.test(over), 'over target gets no check');
+});
