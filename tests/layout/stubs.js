@@ -23,7 +23,7 @@ const firestore = `
 export const persistentLocalCache = () => ({}), persistentMultipleTabManager = () => ({}), initializeFirestore = () => ({});
 export const collection = (db, ...p) => ({ col: p[p.length - 1] });
 export const doc = (db, ...p) => ({ col: p[p.length - 2], id: p[p.length - 1] });
-export const setDoc = async () => {}, updateDoc = async () => {}, terminate = async () => {}, clearIndexedDbPersistence = async () => {};
+export const setDoc = async () => {}, updateDoc = async () => {}, deleteField = () => ({}), terminate = async () => {}, clearIndexedDbPersistence = async () => {};
 export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: async () => {} });
 const rows = (col) => ((window.__SEED || {})[col] || []);
 const snap = (col) => ({ metadata: { hasPendingWrites: false }, docChanges: () => [1], docs: rows(col).map((r) => ({ id: r.id, data: () => r })) });

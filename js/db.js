@@ -5,6 +5,7 @@ import {
   doc,
   setDoc,
   updateDoc,
+  deleteField,
   collection,
   onSnapshot,
   getDocs,
@@ -70,6 +71,12 @@ export function put(col, record) {
 export function patch(col, id, changes) {
   readOnly(col);
   updateDoc(doc(db, 'users', uid(), col, id), { ...changes, updated_at: now() }).catch(reportWriteError);
+}
+
+/** Removes one field from a record (the profile's own protein goal going back to Auto). */
+export function unsetField(col, id, field) {
+  readOnly(col);
+  updateDoc(doc(db, 'users', uid(), col, id), { [field]: deleteField(), updated_at: now() }).catch(reportWriteError);
 }
 
 export function softDelete(col, id) {

@@ -250,3 +250,24 @@ export function applyProteinGoal(targets, profile) {
     reasoning: [...targets.reasoning, `Protein: your own goal, ${g} g/day.`],
   };
 }
+
+export const PROTEIN_STEP_G = 5;
+
+/** One tap of − / +: moves by 5 g, stays inside 40–300 g. */
+export function stepProtein(g, dir) {
+  const v = Math.round(Number(g) || 0) + dir * PROTEIN_STEP_G;
+  return Math.min(PROTEIN_GOAL_MAX_G, Math.max(PROTEIN_GOAL_MIN_G, v));
+}
+
+/** A typed value as whole grams inside 40–300, or null when it isn't usable. */
+export function parseProteinInput(text) {
+  const n = Number(String(text).trim());
+  if (!String(text).trim() || !Number.isFinite(n) || n < PROTEIN_GOAL_MIN_G || n > PROTEIN_GOAL_MAX_G) return null;
+  return Math.round(n);
+}
+
+/** Where Custom starts: the auto value rounded to 5 g, kept in range. */
+export function startProteinG(autoG) {
+  const v = Math.round((Number(autoG) || 0) / PROTEIN_STEP_G) * PROTEIN_STEP_G;
+  return Math.min(PROTEIN_GOAL_MAX_G, Math.max(PROTEIN_GOAL_MIN_G, v));
+}

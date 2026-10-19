@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.37 — Your own protein goal (2026-10-19)
+
+Pick your own daily protein goal instead of the calculated one. Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- Set your own daily protein goal in Settings.
+- Auto or Custom, with plus and minus in 5 g steps.
+- Your goal shows everywhere: Today, Food, meal plans and the weekly report.
+- Carbs adjust to fit your calories. Switch back to Auto any time.
+
 ## 0.16.36 — One serving, not the whole package (2026-10-19)
 
 Snap a meal now sizes one portion, and label scans start at one serving. Cloud Functions changed (snapMealPhoto); `firestore.rules` did not.
