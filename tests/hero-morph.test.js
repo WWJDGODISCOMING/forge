@@ -53,7 +53,7 @@ test('the morph target ring skips the draw-in and the count-up', () => {
 
 test('the morph is skipped when a ring is off screen', () => {
   const m = read('js/ui/motion.js');
-  assert(m.includes('onScreen(document.querySelector(p.from))'));
+  assert(m.includes('onScreen(document.querySelector(p.gate || p.from))'));
   assert(m.includes('if (onScreen(el)) el.style.viewTransitionName = p.name'));
 });
 

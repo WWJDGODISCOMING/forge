@@ -576,7 +576,7 @@ window.addEventListener('hashchange', async () => {
   // Only when the strip is really on screen to fly from; otherwise there is nothing to fly back to either.
   photosFromCard = photosTap && from[0] === 'body' && to[0] === 'photos' && !!ring && onScreen(document.querySelector('#main [data-photos-card] .pp-thumbs'));
   photosTap = false;
-  workoutFromCard = workoutTap && from[0] === 'today' && !from[1] && !!ring && (to[0] === 'play' || to[0] === 'session');
+  workoutFromCard = workoutTap && (from[0] || 'today') === 'today' && !from[1] && !!ring && (to[0] === 'play' || to[0] === 'session');
   workoutTap = false;
   foodFromCard = foodTap && from[0] !== 'food' && to[0] === 'food' && !!ring;
   foodTap = false;
@@ -590,7 +590,7 @@ window.addEventListener('hashchange', async () => {
   viewTransition(async () => {
     await render();
     afterRoute(to);
-  }, reducedMotion() ? 'fade' : kind, ring);
+  }, reducedMotion() ? 'fade' : ring && ring.some((p) => p.name === 'workout-card') ? (kind === 'push' ? 'card-in' : 'card-out') : kind, ring);
 });
 
 // Tapping a tab: switch to it; tapping the tab you're on scrolls to the top, or pops a detail screen back to its root.

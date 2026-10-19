@@ -153,27 +153,53 @@ export function viewTransition(update, kind = 'fade', shared = null) {
   // Shared parts ({ name, from, to, toFinal }): each outgoing element gets its name now (so the old screen is captured
   // with it), the incoming one right after the update. A name is held by one element at a time, and all are cleared
   // when the morph ends. A part whose outgoing element is off screen, or whose incoming one is, just crossfades.
-  const parts = (shared ? [].concat(shared) : []).filter((p) => !reducedMotion() && onScreen(document.querySelector(p.from)));
-  const untag = () => parts.forEach((p) => document.querySelectorAll(p.from + ',' + p.to).forEach((el) => { el.style.viewTransitionName = ''; }));
+  // Optional keys: `gate` (selector that must be on screen, default `from`), `hide` (elements that carry their own
+  // name, cleared while the part runs so they travel inside its snapshot), and `surface` (one side is a full-screen
+  // surface made here; `content` is the player on the other side, named `${name}-content`, `contentSide` is 'to' or 'from').
+  const parts = (shared ? [].concat(shared) : []).filter((p) => !reducedMotion() && onScreen(document.querySelector(p.gate || p.from)));
+  const contentName = (p) => p.name + '-content';
+  const hidden = [];
+  const hide = () => parts.forEach((p) => p.hide && document.querySelectorAll(p.hide).forEach((el) => {
+    if (!hidden.some((h) => h[0] === el)) hidden.push([el, el.style.viewTransitionName]);
+    el.style.viewTransitionName = 'none';
+  }));
+  const makeSurface = () => {
+    let s = document.getElementById('vt-surface');
+    if (!s) { s = document.createElement('div'); s.id = 'vt-surface'; document.body.appendChild(s); }
+    return s;
+  };
+  const untag = () => parts.forEach((p) => document.querySelectorAll([p.from, p.to, p.content].filter(Boolean).join(',')).forEach((el) => { el.style.viewTransitionName = ''; }));
   if (parts.length) {
-    parts.forEach((p) => { document.querySelector(p.from).style.viewTransitionName = p.name; });
+    hide();
+    parts.forEach((p) => {
+      if (p.surface && p.from === '#vt-surface') makeSurface(); // the way back starts from the full-screen surface
+      document.querySelector(p.from).style.viewTransitionName = p.name;
+      if (p.content && p.contentSide === 'from') { const c = document.querySelector(p.content); if (c) c.style.viewTransitionName = contentName(p); }
+    });
     finalRing = parts.map((p) => p.toFinal).join(',');
   }
   const vt = document.startViewTransition(async () => {
-    if (parts.length) untag(); // the old screen is already captured; keep the names unique on the page
+    if (parts.length) { untag(); document.getElementById('vt-surface')?.remove(); } // the old screen is already captured; keep the names unique on the page
     await update();
+    hide();
     for (const p of parts) {
+      if (p.surface && p.to === '#vt-surface') makeSurface();
       // A part marked `wait` has an incoming element that fills in after the screen draws (e.g. the Body photos card
       // reads from IndexedDB): give it a moment. If it never shows, the outgoing one leaves with its page (CSS :only-child).
       const el = p.wait
         ? await whenFound(() => { const e = document.querySelector(p.to); return onScreen(e) ? e : null; }, { timeout: 300, subscribe: watchMain })
         : document.querySelector(p.to);
       if (onScreen(el)) el.style.viewTransitionName = p.name;
+      if (p.content && p.contentSide === 'to') { const c = document.querySelector(p.content); if (onScreen(c)) c.style.viewTransitionName = contentName(p); }
     }
   });
   return vt.finished.catch(() => {}).finally(() => {
     delete document.documentElement.dataset.vt;
-    if (parts.length) { untag(); finalRing = null; }
+    if (parts.length) {
+      untag(); finalRing = null;
+      document.getElementById('vt-surface')?.remove();
+      hidden.forEach(([el, v]) => { if (el.isConnected) el.style.viewTransitionName = v; });
+    }
   });
 }
 
@@ -217,11 +243,12 @@ export function heroMorphFor(from, to, { cardTap = false, fromCard = false, weig
   // Finishing goes to the summary, and a finished workout has a 'done' card, so neither morphs.
   const isPlayer = (r) => (r[0] === 'play' || r[0] === 'session') && !r[1];
   const PLAYER = '#main [data-player], #main [data-list]';
+  const WORKOUT_HIDE = '[data-hero], .rest-ring'; // these carry their own pl-hero name; inside the card morph they travel with it
   if (kind === 'push' && workoutTap && (from[0] || 'today') === 'today' && !from[1] && isPlayer(to)) {
-    return [{ name: 'workout-card', from: '#main [data-workout-card]:not([data-workout-card="done"])', to: PLAYER, toFinal: '[data-player], [data-list]' }];
+    return [{ name: 'workout-card', from: '#main [data-workout-card]:not([data-workout-card="done"])', to: '#vt-surface', toFinal: '#vt-surface', surface: true, content: PLAYER, contentSide: 'to', hide: WORKOUT_HIDE }];
   }
   if (kind === 'pop' && workoutFromCard && isPlayer(from) && (to[0] || 'today') === 'today' && !to[1]) {
-    return [{ name: 'workout-card', from: PLAYER, to: '#main [data-workout-card="resume"]', toFinal: '[data-workout-card="resume"]' }];
+    return [{ name: 'workout-card', from: '#vt-surface', gate: PLAYER, to: '#main [data-workout-card="resume"]', toFinal: '[data-workout-card="resume"]', surface: true, content: PLAYER, contentSide: 'from', hide: WORKOUT_HIDE }];
   }
   const ring = ringMorphFor(from, to, { cardTap, fromCard, reduced });
   if (ring) return [ring];

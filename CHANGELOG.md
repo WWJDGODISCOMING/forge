@@ -8,6 +8,7 @@ Starting or resuming a workout from Today grows the card into the player, and le
 
 - Starting a workout now grows the card into the player.
 - Resume a workout and the card opens straight into it.
+- The card now grows into a full-screen surface while the page behind stays still, and the numbers travel inside the card.
 
 ## 0.16.32 — Photo viewer (2026-10-19)
 
