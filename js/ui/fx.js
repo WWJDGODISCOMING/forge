@@ -11,7 +11,7 @@ import { tick, haptics } from './haptic.js';
 import { icon } from './icons.js';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 
-const COLORS = { ember: '#FF6A2B', volt: '#C6FF3D', gold: '#FFC94D', white: '#FFFFFF', hot: '#FFB547' };
+const COLORS = { ember: '#3EC8F0', volt: '#C6FF3D', gold: '#E6FF9A', white: '#FFFFFF', hot: '#8BE000' };
 
 // ---------- canvas particles ----------
 let canvas = null;

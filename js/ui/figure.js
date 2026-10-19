@@ -123,14 +123,14 @@ const HEAD = [
 const FOOT = [[0.0, 0.015], [0.015, 0.06], [0.06, 0.095], [0.12, 0.06], [0.205, 0.028], [0.225, 0.005], [0.15, -0.006], [0.03, -0.006]];
 
 // ---------- colours ----------
-// Lighter greys than the app background (#0e1116 / #15191f) so the body reads clearly; far limbs darker.
+// Lighter greys than the app background (#040B0E / #172430) so the body reads clearly; far limbs darker.
 const C = {
-  nearBack: '#3b444f', nearFront: '#8a96a4',
-  farBack: '#232930', farFront: '#4d5662',
-  torsoBack: '#3d4652', torsoFront: '#929eac',
-  outline: '#0b0e12',
-  rim: '#c6ff3d',
-  steel: '#b9c1cb', steelDark: '#6b7480', plate: '#2b3139', plateEdge: '#5a636e',
+  nearBack: '#2f4152', nearFront: '#8493a6',
+  farBack: '#1c2a38', farFront: '#46576a',
+  torsoBack: '#33465a', torsoFront: '#8d9db0',
+  outline: '#040B0E',
+  rim: '#8FE6FF',
+  steel: '#b9c1cb', steelDark: '#6b7480', plate: '#1F3142', plateEdge: '#54687c',
 };
 
 const NS = 'http://www.w3.org/2000/svg';
@@ -172,9 +172,9 @@ export function mountFigure(container, ex, { isPaused = () => false, slow = fals
   lin('f', C.farBack, C.farFront);
   lin('t', C.torsoBack, C.torsoFront);
   const rg = el('radialGradient', { id: `${id}g` }, defs);
-  el('stop', { offset: 0, 'stop-color': '#ffb15e', 'stop-opacity': 1 }, rg);
-  el('stop', { offset: 0.45, 'stop-color': '#ff6a2b', 'stop-opacity': 0.85 }, rg);
-  el('stop', { offset: 1, 'stop-color': '#ff4d1a', 'stop-opacity': 0 }, rg);
+  el('stop', { offset: 0, 'stop-color': '#8FE6FF', 'stop-opacity': 1 }, rg);
+  el('stop', { offset: 0.45, 'stop-color': '#3EC8F0', 'stop-opacity': 0.85 }, rg);
+  el('stop', { offset: 1, 'stop-color': '#077CA5', 'stop-opacity': 0 }, rg);
   const sg = el('radialGradient', { id: `${id}s` }, defs);
   el('stop', { offset: 0, 'stop-color': '#000', 'stop-opacity': 0.6 }, sg);
   el('stop', { offset: 1, 'stop-color': '#000', 'stop-opacity': 0 }, sg);
@@ -327,11 +327,11 @@ export function mountFigure(container, ex, { isPaused = () => false, slow = fals
       }
     } else if (/^(cable|band)[NF]$/.test(name)) {
       const band = name.startsWith('band');
-      g._line = el('line', { stroke: band ? '#e0663f' : '#c3cad3', 'stroke-width': (band ? 0.022 : 0.008) * s, 'stroke-linecap': 'round', opacity: name.endsWith('F') ? 0.6 : 1 }, g);
+      g._line = el('line', { stroke: band ? '#3EC8F0' : '#c3cad3', 'stroke-width': (band ? 0.022 : 0.008) * s, 'stroke-linecap': 'round', opacity: name.endsWith('F') ? 0.6 : 1 }, g);
     } else if (name === 'towel' || /^strap[NF]$/.test(name)) {
       g._line = el('line', { stroke: name === 'strapF' ? '#a9b3c2' : '#d7dee9', 'stroke-width': 0.034 * s, 'stroke-linecap': 'round', opacity: name === 'strapF' ? 0.7 : 1 }, g);
     } else if (name === 'loop') {
-      g._line = el('line', { stroke: '#e0663f', 'stroke-width': 0.026 * s, 'stroke-linecap': 'round' }, g);
+      g._line = el('line', { stroke: '#3EC8F0', 'stroke-width': 0.026 * s, 'stroke-linecap': 'round' }, g);
     } else if (name === 'sled') {
       // The carriage plate the feet press: a dark back face under a lighter front face.
       g._back = el('path', { fill: '#1f252c', stroke: C.outline, 'stroke-width': 0.8, 'stroke-linejoin': 'round' }, g);
@@ -341,7 +341,7 @@ export function mountFigure(container, ex, { isPaused = () => false, slow = fals
       g._pad = el('line', { stroke: name === 'padN' ? '#a8453d' : '#7a322d', 'stroke-width': 0.075 * s, 'stroke-linecap': 'round' }, g);
     } else if (name === 'cuff') {
       g._edge = el('line', { stroke: C.outline, 'stroke-width': 0.068 * s, 'stroke-linecap': 'round' }, g);
-      g._line = el('line', { stroke: '#e0663f', 'stroke-width': 0.052 * s, 'stroke-linecap': 'round' }, g);
+      g._line = el('line', { stroke: '#3EC8F0', 'stroke-width': 0.052 * s, 'stroke-linecap': 'round' }, g);
     } else if (name === 'cuffcable') {
       g._line = el('line', { stroke: '#c3cad3', 'stroke-width': 0.012 * s, 'stroke-linecap': 'round' }, g);
     } else if (name === 'pulley') {

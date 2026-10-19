@@ -18,12 +18,12 @@ const bump = (m, c, w) => { const d = Math.abs(mod(m - c + 180, 360) - 180); ret
 const SOLE = 0.068; // ankle → sole (flat foot)
 const sgn = (S) => (S === 'N' ? -1 : 1);
 
-const METAL = '#4a5460';
-const DARK = '#2a3038';
-const EDGE = '#6a737e';
-const LIGHT = '#9aa4b0';
-const PAD = '#4a3a32';
-const ACCENT = '#e0663f';
+const METAL = '#4a5a6a';
+const DARK = '#1F3142';
+const EDGE = '#7189a0';
+const LIGHT = '#9AA1AB';
+const PAD = '#2A3F54';
+const ACCENT = '#3EC8F0';
 const ln = (a, b, w, c) => ({ k: 'line', a, b, w, c });
 
 /** Ankle world point → the pose numbers that put it there (rig.js: ankle height = ankleY + fy). */

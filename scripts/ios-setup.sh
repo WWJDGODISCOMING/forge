@@ -79,7 +79,7 @@ fi
 run "Building the app’s copy of Forge and downloading Firebase" npm run native:build
 if [ ! -d ios ]; then
   run "Creating the Xcode project (first time only)" npx cap add ios
-  run "Making the app icon and launch screen" npx capacitor-assets generate --ios --iconBackgroundColor '#0a0a0b' --splashBackgroundColor '#0a0a0b' --splashBackgroundColorDark '#0a0a0b'
+  run "Making the app icon and launch screen" npx capacitor-assets generate --ios --iconBackgroundColor '#040B0E' --splashBackgroundColor '#040B0E' --splashBackgroundColorDark '#040B0E'
   say "  ! The ios folder was missing, so it was made from scratch. In Xcode you must also add HealthKit by hand:"
   say "    App target → Signing & Capabilities → + Capability → HealthKit, and set the app to portrait only. (docs/ios-setup.md has the details.)"
 fi

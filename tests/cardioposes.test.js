@@ -259,7 +259,7 @@ test('rower: the body sits on the sliding seat (on the rail), the knees clear th
   for (const j of poses(tpl, 72)) {
     const gap = j.pelvis[1] - C.ROW.seatY;
     assert(gap > 0.05 && gap < 0.14, `rower pelvis is ${gap.toFixed(3)} above the seat`);
-    const seat = cardioProps(tpl, j).back.find((q) => q.k === 'line' && q.c === '#4a3a32');
+    const seat = cardioProps(tpl, j).back.find((q) => q.k === 'line' && q.c === '#2A3F54');
     assert(seat && Math.abs((seat.a[0] + seat.b[0]) / 2 - j.pelvis[0]) < 1e-9, 'the seat is under the pelvis');
     assert(seat.a[0] > -0.95 && seat.b[0] < 0.98, 'the seat rides the rail');
     for (const S of SIDES) {
@@ -296,9 +296,9 @@ test('rower: the hands stay on the handle, which is on a chain to the flywheel',
   for (const j of poses(tpl, 72)) {
     for (const S of SIDES) assert(dist(j['wrist' + S], j['grip' + S]) < BODY.hand * 0.55 + 0.01, `rower arm ${S} reaches the handle (${dist(j['wrist' + S], j['grip' + S]).toFixed(3)})`);
     const lines = cardioProps(tpl, j).back.filter((q) => q.k === 'line');
-    const handle = lines.find((q) => q.c === '#e0663f');
+    const handle = lines.find((q) => q.c === '#3EC8F0');
     assert(near(handle.a, j.gripN, 1e-9) && near(handle.b, j.gripF, 1e-9), 'the handle is between the hands');
-    const chain = lines.find((q) => q.c === '#9aa4b0' && q.b[0] === C.ROW.chainEnd[0]);
+    const chain = lines.find((q) => q.c === '#9AA1AB' && q.b[0] === C.ROW.chainEnd[0]);
     assert(chain && near(chain.b, [...C.ROW.chainEnd, 0], 1e-9), 'the chain ends at the flywheel');
     const fw = cardioProps(tpl, j).back.find((q) => q.k === 'circle' && q.r === C.ROW.fwR);
     assert(dist([C.ROW.chainEnd[0], C.ROW.chainEnd[1], 0], fw.c) <= fw.r + 1e-9, 'on the flywheel housing');
@@ -563,7 +563,7 @@ test('heavy bag: a bag hangs from a chain; the punches reach it and never go thr
   const lines = cardioProps(tpl, j).back.filter((q) => q.k === 'line');
   assert(lines.some((q) => q.a[1] === C.BAG.top && q.b[1] === C.BAG.top), 'a mount at the top');
   assert(lines.some((q) => q.c === '#6a5342' && Math.abs(q.w - 2 * C.BAG.r) < 1e-9), 'a bag');
-  assert(lines.some((q) => q.c === '#9aa4b0' && q.a[1] === C.BAG.top && q.b[1] < C.BAG.y1 + C.BAG.r + 0.001), 'a chain from the mount to the bag');
+  assert(lines.some((q) => q.c === '#9AA1AB' && q.a[1] === C.BAG.top && q.b[1] < C.BAG.y1 + C.BAG.r + 0.001), 'a chain from the mount to the bag');
   for (const jj of poses(tpl, 72)) assert(cardioProps(tpl, jj).back.find((q) => q.c === '#6a5342').a[1] > 0.5, 'the bag hangs clear of the floor');
 });
 
@@ -574,9 +574,9 @@ test('cardio figures: no body point passes through a machine bar, rail, plate or
     for (const j of poses(tpl, 72)) {
       const cp = cardioProps(tpl, j);
       for (const q of [...cp.back, ...cp.front]) {
-        if (q.k !== 'line' || q.c === '#e0663f') continue;
+        if (q.k !== 'line' || q.c === '#3EC8F0') continue;
         for (const key of JOINTS) {
-          const slack = key === 'pelvis' && q.c === '#4a3a32' ? 0.04 : 0;
+          const slack = key === 'pelvis' && q.c === '#2A3F54' ? 0.04 : 0;
           assert(distToSegment(j[key], q.a, q.b) > q.w / 2 + slack, `${name} ${key} is inside a ${q.w} bar at ${j[key].map((x) => x.toFixed(2))}`);
         }
       }

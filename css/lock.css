@@ -5,7 +5,7 @@
   background: radial-gradient(120% 70% at 50% 28%, var(--accent-tint), transparent 60%), var(--bg); color: var(--text-1); }
 html.app-locked #lock, html.app-shield #lock { display: flex; }
 #lock::backdrop { background: transparent; }
-html.app-shield:not(.app-locked) #lock { background: rgba(10, 10, 11, .72); -webkit-backdrop-filter: blur(40px) saturate(1.4); backdrop-filter: blur(40px) saturate(1.4); }
+html.app-shield:not(.app-locked) #lock { background: rgba(4, 11, 14, .72); -webkit-backdrop-filter: blur(40px) saturate(1.4); backdrop-filter: blur(40px) saturate(1.4); }
 html.app-locked body > :not(#lock):not(script), html.app-shield body > :not(#lock):not(script) { visibility: hidden !important; }
 html.app-locked, html.app-shield { overflow: hidden; }
 #lock .lk-mark { width: 88px; height: 88px; border-radius: 22px; box-shadow: 0 0 0 1px var(--accent-glow), 0 12px 48px var(--accent-glow); }
