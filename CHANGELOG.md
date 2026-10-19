@@ -7,6 +7,7 @@ Tapping a progress photo opens it full screen, growing out of its thumbnail. Dra
 ### What's new
 
 - Tap a progress photo to see it full screen. Swipe down to close.
+- The photo now opens and closes smoothly all the way, grabbing it mid-motion never shrinks it, and leaving the screen closes it.
 
 ## 0.16.31 — Photos card morph (2026-10-19)
 

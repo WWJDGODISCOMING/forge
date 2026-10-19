@@ -2,6 +2,7 @@
 
 export const DISMISS_DISTANCE = 120; // px dragged down
 export const DISMISS_SPEED = 0.8; // px/ms downward
+export const PX = 1000; // p (0..1) is sprung as p * PX because the solver's stop rule is sized for pixels
 export const MIN_SCALE = 0.85; // how small a dragged photo gets
 
 /** Which way a drag is going once it has moved a few px: 'v', 'h' or null (undecided). */
@@ -42,7 +43,7 @@ export function containRect(w, h, box) {
  * Returns { tx, ty, scale, insetX, insetY, radius }: a translate from the full rect's centre, a uniform scale,
  * and clip-path insets in the image's own (unscaled) space.
  */
-export function morphFrame(thumb, full, p, thumbRadius = 12) {
+export function morphFrame(thumb, full, p, thumbRadius = 14) {
   const s0 = Math.max(thumb.width / full.width, thumb.height / full.height);
   const scale = s0 + (1 - s0) * p;
   const tcx = thumb.left + thumb.width / 2;

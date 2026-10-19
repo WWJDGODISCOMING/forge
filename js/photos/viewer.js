@@ -5,8 +5,9 @@ import { esc } from '../ui.js';
 import { icon } from '../ui/icons.js';
 import { haptics } from '../ui/haptic.js';
 import { animateSpring, SHEET } from '../ui/spring.js';
+import { registerSheet } from '../ui/sheets.js';
 import { velocityOf } from '../ui/gesture.js';
-import { containRect, morphFrame, dragAxis, shouldClosePhoto, pastThreshold, dragOffset, dragScale } from './viewmath.js';
+import { PX, containRect, morphFrame, dragAxis, shouldClosePhoto, pastThreshold, dragOffset, dragScale } from './viewmath.js';
 
 const reduced = () => !!globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
 const rectOf = (el) => { const r = el.getBoundingClientRect(); return { left: r.left, top: r.top, width: r.width, height: r.height }; };
@@ -48,20 +49,35 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
     Object.assign(img.style, { left: `${full.left}px`, top: `${full.top}px`, width: `${full.width}px`, height: `${full.height}px` });
   };
   layout();
+  img.addEventListener('load', () => { if (!done) { layout(); draw(); } });
 
   let from = visibleRect(thumb); // where the photo grows from / returns to; null = just fade
   let p = calm ? 1 : 0; // 0 at the thumbnail, 1 full screen
   let dy = 0; // current drag offset
   let dyAtRelease = 0;
-  let spring = null;
+  let openSpring = null; // moves p (0 thumb, 1 full)
+  let dragSpring = null; // moves dy back to 0
+  let unregister = null;
+  let thumbRadius = 14;
+  const hidden = new Set(); // thumbs hidden under the flying photo
+  const hideThumb = (el) => { if (el && !calm) { el.style.visibility = 'hidden'; hidden.add(el); } };
+  const stopSprings = () => {
+    if (openSpring) { p = openSpring.stop().value / PX; openSpring = null; }
+    if (dragSpring) { dy = dragSpring.stop().value; dragSpring = null; }
+  };
   let closing = false;
   let done = false;
+
+  if (from && !calm) {
+    hideThumb(thumb);
+    thumbRadius = parseFloat(getComputedStyle(thumb).borderTopLeftRadius) || thumbRadius;
+  }
 
   const draw = () => {
     const open = Math.min(1, Math.max(0, p));
     const ds = dragScale(dy);
     if (from && !calm) {
-      const f = morphFrame(from, full, open);
+      const f = morphFrame(from, full, open, thumbRadius);
       img.style.transform = `translate3d(${f.tx}px, ${f.ty + dy}px, 0) scale(${f.scale * ds})`;
       img.style.clipPath = `inset(${f.insetY}px ${f.insetX}px round ${f.radius}px)`;
       img.style.opacity = '1';
@@ -71,7 +87,7 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
     }
     bg.style.opacity = String(open * (1 - Math.min(1, Math.max(0, dy) / 300)));
     const chromeOpacity = String(Math.max(0, 1 - Math.max(0, dy) / 120) * open);
-    chrome.forEach((c) => { c.style.opacity = chromeOpacity; });
+    chrome.forEach((c) => { c.style.opacity = chromeOpacity; c.style.pointerEvents = closing || +chromeOpacity < 0.5 ? 'none' : ''; });
   };
 
   function teardown() {
@@ -79,14 +95,16 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
     done = true;
     document.removeEventListener('keydown', onKey, true);
     removeEventListener('resize', onResize);
+    if (unregister) unregister();
     root.remove();
+    hidden.forEach((el) => { el.style.visibility = ''; });
     const back = (findThumb && findThumb()) || thumb;
     if (back && back.isConnected) back.focus({ preventScroll: true });
   }
 
   // Moves p to `target` on a spring (reduced motion: a plain fade). `then` runs once it settles.
   function go(target, velocity, then) {
-    if (spring) spring.stop();
+    if (openSpring) openSpring.stop();
     if (calm) {
       root.style.transition = 'opacity .15s linear';
       root.style.opacity = String(target);
@@ -95,9 +113,10 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
       if (then) setTimeout(then, 150);
       return;
     }
-    spring = animateSpring({
-      from: p, to: target, velocity, params: SHEET,
-      onUpdate: (v) => { p = v; if (closing) dy = dyAtRelease * Math.min(1, Math.max(0, p)); draw(); },
+    // The solver's stop rule is sized for pixels (0.4), so spring in px-sized units (p * PX) and divide.
+    openSpring = animateSpring({
+      from: p * PX, to: target * PX, velocity: velocity * PX, params: SHEET,
+      onUpdate: (v) => { p = v / PX; if (closing) dy = dyAtRelease * Math.min(1, Math.max(0, p)); draw(); },
       onDone: then,
     });
   }
@@ -105,11 +124,20 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
   function close(velocity = 0) {
     if (closing) return;
     closing = true;
-    from = visibleRect(findThumb && findThumb()); // null: the thumb is gone or off-screen, so it just fades
+    stopSprings();
+    const back = findThumb && findThumb();
+    from = visibleRect(back); // null: the thumb is gone or off-screen, so it just fades
+    if (from) hideThumb(back);
     dyAtRelease = dy;
     const travel = Math.max(120, full.height * 0.4);
     go(0, -Math.max(0, velocity) / travel, teardown);
   }
+
+  // A route change closes the viewer straight away (no morph onto the wrong screen).
+  function dismissNow() { stopSprings(); closing = true; teardown(); }
+  unregister = registerSheet(dismissNow);
+  // Keep the edge swipe-back from reaching the page underneath.
+  root.addEventListener('touchstart', (e) => e.stopPropagation(), { passive: true });
 
   function onKey(e) { if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); close(); } }
   function onResize() { if (!done) { layout(); draw(); } }
@@ -119,9 +147,7 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
   root.querySelector('.pv-close').onclick = () => close();
   bg.onclick = () => close();
   root.querySelector('[data-del-one]').onclick = () => {
-    if (spring) spring.stop();
-    closing = true;
-    teardown();
+    dismissNow();
     if (onDelete) onDelete();
   };
 
@@ -129,7 +155,7 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
   let drag = null;
   img.addEventListener('pointerdown', (e) => {
     if (closing) return;
-    if (spring) { const held = spring.stop(); p = held.value; }
+    stopSprings();
     drag = { y: e.clientY - dy, x0: e.clientX, axis: null, samples: [{ t: e.timeStamp, v: e.clientY }], over: pastThreshold(dy) };
     if (img.setPointerCapture) img.setPointerCapture(e.pointerId);
   });
@@ -148,12 +174,14 @@ export function openViewer({ src, title, thumb, findThumb, onDelete }) {
     if (!drag) return;
     const d = drag;
     drag = null;
-    if (d.axis !== 'v') return;
-    const velocity = velocityOf(d.samples);
-    if (shouldClosePhoto({ dx: e.clientX - d.x0, dy, velocity })) { close(velocity); return; }
-    if (spring) spring.stop();
+    const vertical = d.axis === 'v';
+    const velocity = vertical ? velocityOf(d.samples) : 0;
+    if (vertical && shouldClosePhoto({ dx: e.clientX - d.x0, dy, velocity })) { close(velocity); return; }
+    // Anything that doesn't close settles back to full size and rest, even a tap or a sideways move mid-flight.
+    stopSprings();
     if (calm) { dy = 0; draw(); return; }
-    spring = animateSpring({ from: dy, to: 0, velocity, params: SHEET, onUpdate: (v) => { dy = v; draw(); } });
+    if (p !== 1) go(1, 0);
+    if (dy !== 0) dragSpring = animateSpring({ from: dy, to: 0, velocity, params: SHEET, onUpdate: (v) => { dy = v; draw(); } });
   };
   img.addEventListener('pointerup', release);
   img.addEventListener('pointercancel', release);

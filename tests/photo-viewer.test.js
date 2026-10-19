@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { test, assert } from './harness.js';
-import { dragAxis, shouldClosePhoto, pastThreshold, dragOffset, dragScale, containRect, morphFrame } from '../js/photos/viewmath.js';
+import { step } from '../js/ui/spring.js';
+import { PX, dragAxis, shouldClosePhoto, pastThreshold, dragOffset, dragScale, containRect, morphFrame } from '../js/photos/viewmath.js';
 
 const viewer = readFileSync(new URL('../js/photos/viewer.js', import.meta.url), 'utf8');
 const screen = readFileSync(new URL('../js/screens/photos.js', import.meta.url), 'utf8');
@@ -51,7 +52,7 @@ test('morphFrame: starts on the thumb, ends exactly full, never squashes', () =>
   const h = (full.height - 2 * a.insetY) * a.scale;
   assert(near(w, 100, 0.05) && near(h, 100, 0.05), 'visible size = thumb size');
   assert(near(full.left + full.width / 2 + a.tx, 70) && near(full.top + full.height / 2 + a.ty, 450), 'centred on the thumb');
-  assert(near(a.radius * a.scale, 12), 'thumb radius');
+  assert(near(a.radius * a.scale, 14), 'thumb radius');
   const b = morphFrame(thumb, full, 1);
   assert(b.scale === 1 && b.tx === 0 && b.ty === 0 && b.insetX === 0 && b.insetY === 0 && b.radius === 0, 'ends full, square');
   const mid = morphFrame(thumb, full, 0.5);
@@ -72,4 +73,31 @@ test('photos screen: opens the viewer, and Delete still needs the confirm', () =
   const del = screen.slice(screen.indexOf('onDelete'));
   assert(del.indexOf('confirmSheet') > -1 && del.indexOf('confirmSheet') < del.indexOf('store.remove'), 'confirm comes before remove');
   assert(/if \(!yes\) return;/.test(del), 'declining stops the delete');
+});
+
+function lastBeforeDone(from, to) {
+  let st = { value: from * PX, velocity: 0 };
+  let prev = st.value;
+  for (let i = 0; i < 2000; i++) {
+    const r = step(st, to * PX, 8);
+    if (r.done) return prev / PX;
+    prev = r.value;
+    st = r;
+  }
+  return NaN;
+}
+
+test('open/close spring runs in px-sized units and only settles right at the target', () => {
+  assert(Math.abs(lastBeforeDone(0, 1) - 1) < 0.005, 'open: last frame within 0.5% of full');
+  assert(Math.abs(lastBeforeDone(1, 0)) < 0.005, 'close: last frame within 0.5% of the thumb');
+  assert(/from: p \* PX/.test(viewer) && /to: target \* PX/.test(viewer), 'viewer springs p * PX');
+});
+
+test('viewer: separate open and drag springs, every release settles, route change closes it', () => {
+  assert(/let openSpring/.test(viewer) && /let dragSpring/.test(viewer), 'two springs');
+  assert(/p = openSpring\.stop\(\)\.value \/ PX/.test(viewer) && /dy = dragSpring\.stop\(\)\.value/.test(viewer), 'grab reads each from its own spring');
+  const rel = viewer.slice(viewer.indexOf('const release'), viewer.indexOf("addEventListener('pointerup'"));
+  assert(!/axis !== 'v'\) return/.test(rel) && /go\(1, 0\)/.test(rel) && /to: 0/.test(rel), 'tap or sideways release springs back to full');
+  assert(/registerSheet\(dismissNow\)/.test(viewer) && /unregister\(\)/.test(viewer), 'closed by closeAllSheets, forgotten on teardown');
+  assert(/addEventListener\('touchstart', \(e\) => e\.stopPropagation\(\), \{ passive: true \}\)/.test(viewer), 'edge swipe stays inside');
 });
