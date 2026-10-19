@@ -87,7 +87,7 @@ html[data-vt="card-out"]::view-transition-new(workout-card) { animation: vt-fade
 ::view-transition-group(workout-card-content) { z-index: 11; animation-duration: var(--t-slow); }
 ::view-transition-old(workout-card-content), ::view-transition-new(workout-card-content) { mix-blend-mode: normal; }
 html[data-vt="card-in"]::view-transition-new(workout-card-content) { animation: vt-fade-in 200ms ease-out 120ms both; }
-html[data-vt="card-out"]::view-transition-old(workout-card-content) { animation: vt-fade-out 160ms ease-out both; }
+html[data-vt="card-out"]::view-transition-old(workout-card-content) { animation: vt-fade-out 80ms ease-out both; }
 html[data-vt^="card"]::view-transition-group(navbar), html[data-vt^="card"]::view-transition-group(tabbar) { z-index: 12; }
 @keyframes vt-card-dim { to { filter: brightness(.7); } }
 @keyframes vt-card-undim { from { filter: brightness(.7); } }
