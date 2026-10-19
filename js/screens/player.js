@@ -122,7 +122,10 @@ export function renderPlayer(el) {
   const counted = sessionStorage.getItem(`forge.counted.${w.id}`);
   if (!counted && !w.exercises.some((x) => x.sets.some((s) => s.done))) {
     sessionStorage.setItem(`forge.counted.${w.id}`, '1');
-    countdown(() => renderPlayer(el));
+    // Draw the player first so a card morph lands on it, then count in once the morph has finished.
+    drawSet(el);
+    const go = () => (document.documentElement.dataset.vt ? requestAnimationFrame(go) : countdown(() => renderPlayer(el)));
+    go();
     return;
   }
 
@@ -160,7 +163,7 @@ function countdown(done) {
     if (!reducedMotion()) n.animate([{ transform: 'scale(1.8)', opacity: 0 }, { transform: 'scale(1)', opacity: 1, offset: 0.35 }, { transform: 'scale(.9)', opacity: 0.9 }], { duration: 800, easing: EASE.out });
     i++;
     if (i < seq.length) setTimeout(show, 800);
-    else setTimeout(() => { ov.remove(); counting = false; done(); }, 650);
+    else setTimeout(() => { ov.remove(); counting = false; if (/^#\/(play|session)/.test(location.hash)) done(); }, 650); // left during the 3-2-1: don't draw the player over another screen
   };
   show();
 }

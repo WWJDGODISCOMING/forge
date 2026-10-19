@@ -9,7 +9,7 @@ import { stopRest, restRemaining } from './timer.js';
 import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCounters, resetCounters, reducedMotion, onScreen } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
-import { hapticTabs, hapticSegments } from './ui/haptic.js';
+import { hapticTabs, hapticSegments, haptics } from './ui/haptic.js';
 import { mountQuickLog, syncQuickLog, placeQuickLog } from './ui/quicklog.js';
 import { setupTextSize } from './ui/textsize.js';
 import { setupResizeAnchor } from './ui/anchor.js';
@@ -543,6 +543,14 @@ main.addEventListener('click', (e) => {
   scrollMemory.forget('photos'); // opens at the top, so the first set is on screen
 });
 
+// And the Today workout card: its Start button or the Resume/Finish card grows into the player. See plan never sets it.
+let workoutTap = false;
+let workoutFromCard = false;
+main.addEventListener('click', (e) => {
+  if (e.target.closest('[data-workout-card="resume"]')) { workoutTap = true; haptics.light(); return; }
+  if (e.target.closest('[data-workout-card="start"] [data-start]')) workoutTap = true;
+});
+
 window.addEventListener('hashchange', async () => {
   closeAllSheets(); // a sheet never stays on top of the new screen (navigating button, deep link, back gesture)
   const from = prevParts;
@@ -564,10 +572,12 @@ window.addEventListener('hashchange', async () => {
   const kind = transitionKind(from, to);
   let foodToday = true; // Food on another day would not match the Today card
   if (foodFromCard && from[0] === 'food') foodToday = await import('./screens/food.js').then((m) => m.foodShowsToday());
-  const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, foodTap, foodFromCard, foodToday, photosTap, photosFromCard, reduced: reducedMotion() });
+  const ring = heroMorphFor(from, to, { cardTap, fromCard: scoreFromCard, weightTap, weightFromCard, foodTap, foodFromCard, foodToday, photosTap, photosFromCard, workoutTap, workoutFromCard, reduced: reducedMotion() });
   // Only when the strip is really on screen to fly from; otherwise there is nothing to fly back to either.
   photosFromCard = photosTap && from[0] === 'body' && to[0] === 'photos' && !!ring && onScreen(document.querySelector('#main [data-photos-card] .pp-thumbs'));
   photosTap = false;
+  workoutFromCard = workoutTap && (from[0] || 'today') === 'today' && !from[1] && !!ring && (to[0] === 'play' || to[0] === 'session');
+  workoutTap = false;
   foodFromCard = foodTap && from[0] !== 'food' && to[0] === 'food' && !!ring;
   foodTap = false;
   scoreFromCard = cardTap && from[0] !== 'score' && to[0] === 'score' && !!ring; // any other navigation forgets it
@@ -580,7 +590,7 @@ window.addEventListener('hashchange', async () => {
   viewTransition(async () => {
     await render();
     afterRoute(to);
-  }, reducedMotion() ? 'fade' : kind, ring);
+  }, reducedMotion() ? 'fade' : ring && ring.some((p) => p.name === 'workout-card') ? (kind === 'push' ? 'card-in' : 'card-out') : kind, ring);
 });
 
 // Tapping a tab: switch to it; tapping the tab you're on scrolls to the top, or pops a detail screen back to its root.
@@ -595,6 +605,7 @@ function onTab(link) {
     }
     scrollMemory.forget(target);
   }
+  workoutTap = false; workoutFromCard = false;
   photosFromCard = false; // a tab-bar tap forgets the card; only Back morphs home
   location.hash = href;
 }
