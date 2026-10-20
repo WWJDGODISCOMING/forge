@@ -23,12 +23,21 @@ const firestore = `
 export const persistentLocalCache = () => ({}), persistentMultipleTabManager = () => ({}), initializeFirestore = () => ({});
 export const collection = (db, ...p) => ({ col: p[p.length - 1] });
 export const doc = (db, ...p) => ({ col: p[p.length - 2], id: p[p.length - 1] });
-export const setDoc = async () => {}, updateDoc = async () => {}, deleteField = () => ({}), terminate = async () => {}, clearIndexedDbPersistence = async () => {};
+// window.__LIVE (opt-in, set by a test) makes writes land in the seed and reach the listeners, like the real SDK's local cache.
+const live = []; // [{ col, next }]
+const apply = (ref, changes) => {
+  if (!window.__LIVE) return;
+  const list = ((window.__SEED = window.__SEED || {})[ref.col] = (window.__SEED || {})[ref.col] || []);
+  const row = list.find((r) => r.id === ref.id);
+  if (row) Object.assign(row, changes); else list.push({ id: ref.id, ...changes });
+  live.filter((l) => l.col === ref.col).forEach((l) => setTimeout(() => l.next(snap(ref.col)), 0));
+};
+export const setDoc = async (ref, data) => apply(ref, data), updateDoc = async (ref, data) => apply(ref, data), deleteField = () => ({}), terminate = async () => {}, clearIndexedDbPersistence = async () => {};
 export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: async () => {} });
 const rows = (col) => ((window.__SEED || {})[col] || []);
 const snap = (col) => ({ metadata: { hasPendingWrites: false }, docChanges: () => [1], docs: rows(col).map((r) => ({ id: r.id, data: () => r })) });
 export const getDocs = async (ref) => snap(ref.col);
-export const onSnapshot = (ref, ...rest) => { const next = rest.find((x) => typeof x === 'function'); setTimeout(() => next(snap(ref.col)), 0); return () => {}; };
+export const onSnapshot = (ref, ...rest) => { const next = rest.find((x) => typeof x === 'function'); live.push({ col: ref.col, next }); setTimeout(() => next(snap(ref.col)), 0); return () => {}; };
 `;
 
 const functions = `

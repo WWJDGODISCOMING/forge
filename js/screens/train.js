@@ -40,6 +40,7 @@ export const playerRoute = () => (state.settings && state.settings.player === 'l
 
 let dayOverride = null;
 let minOverride = null; // "Shorter or longer" for today only; never written to the profile
+let flashAll = false; // a gym switch re-plans every row: highlight them all once
 let flash = new Set(); // exercises that just changed, so the card can highlight them once
 
 // Edits made in the preview before Start: ⋯ → Replace, ⋯ → Rest timer, and Change. They belong to one
@@ -147,7 +148,7 @@ export function renderTrain(el) {
 
       ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
       ${whyCardHtml(plan ? plan.notes : [], stalled.map((id) => exerciseById(id)?.name || id))}
-      ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
+      ${!loc ? '<div class="notice warn">Add a gym in Settings → Locations first.</div>' : ''}
 
       <div class="card">
         <div class="row between center">
@@ -178,8 +179,9 @@ export function renderTrain(el) {
     </section>`;
 
   flash = new Set(); // the highlight plays once, on this render
+  flashAll = false;
   const gym = $('[data-gym]', el);
-  if (gym) gym.onclick = () => openGymPicker(!!active);
+  if (gym) gym.onclick = () => openGymPicker(el, !!active);
   bindRecoveryCard(el, rec);
   if (plan) wirePreview(el, plan);
   bindProtect(el, (list, key) => {
@@ -248,7 +250,7 @@ function previewCard(plan, { d, loc, program, u }) {
   const row = ({ it, i }, label) => {
     const ex = exerciseById(it.exercise_id);
     const rest = it.rest_sec ? ` · rest ${fmtClock(it.rest_sec)}` : '';
-    return `<li class="pv-ex${flash.has(ex.id) ? ' flash' : ''}">
+    return `<li class="pv-ex${flash.has(ex.id) || flashAll ? ' flash' : ''}">
       <div class="pv-hit" role="button" tabindex="0" data-preview="${i}" aria-label="Preview demo: ${esc(ex.name)}">
       <div class="pv-thumb" data-thumb="${esc(ex.id)}" aria-hidden="true"></div>
       <div class="pv-txt">${label ? `<span class="pv-tag">${label}</span>` : ''}<b>${esc(ex.name)}</b>
@@ -289,7 +291,7 @@ function previewCard(plan, { d, loc, program, u }) {
         </div>
         <ol class="pv-list">${blocks.join('')}</ol>
         ${protectRowHtml()}
-        <button class="btn" data-start>Start workout</button>` : '<p class="muted">Nothing fits this location. Add equipment in Settings → Locations.</p>'}
+        <button class="btn" data-start>Start workout</button>` : '<p class="muted">Nothing fits this gym. Add equipment in Settings → Locations.</p>'}
       </div>`;
 }
 
@@ -356,7 +358,7 @@ function changed(el, before, message, flashIds = []) {
 }
 
 /** The gym chip's picker: saved gyms (current one ticked) and a shortcut to add or edit them in Settings. */
-function openGymPicker(inProgress) {
+function openGymPicker(el, inProgress) {
   tick('light');
   const cur = activeLocation();
   sheet('Switch gym', (body, close) => {
@@ -365,7 +367,7 @@ function openGymPicker(inProgress) {
         ${gymChoices(state.locations, cur && cur.id).map((g) => `
           <button class="gym-row" role="radio" aria-checked="${g.current}" data-gym-id="${esc(g.id)}"><span>${esc(g.name)}</span>${g.current ? `<span class="gym-tick" aria-hidden="true">${icon('check')}</span>` : ''}</button>`).join('')}
       </div>
-      <p class="small muted">Switching re-plans today for that gym’s equipment. Your Knees and Lower back settings stay on.</p>
+      <p class="small muted gym-note">Switching re-plans today for that gym’s equipment. Your Knees and Lower back settings stay the same.</p>
       <a class="btn ghost" href="#/locations" data-gym-edit>Add or edit gyms in Settings</a>`;
     $('[data-gym-edit]', body).onclick = () => { tick('light'); close(); };
     $$('[data-gym-id]', body).forEach((b) => (b.onclick = async () => {
@@ -374,12 +376,22 @@ function openGymPicker(inProgress) {
       close();
       if (act === 'none') return;
       if (act === 'confirm' && !(await confirmSheet(SWITCH_CONFIRM))) return;
+      const before = snap();
       dayOverride = null;
       restoringTo = null;
+      flashAll = true;
       setActiveLocation(id);
       tick('success');
       const to = state.locations.find((l) => l.id === id);
-      toast(`Now at ${to ? to.name : 'a new gym'}`);
+      toast(`Now at ${to ? to.name : 'a new gym'}`, 6000, { action: { label: 'Undo', onClick: () => undoTo(el, before) } });
+    }));
+    // Arrow keys move between the gyms, like any radio group.
+    const rows = $$('[data-gym-id]', body);
+    rows.forEach((b, i) => (b.onkeydown = (e) => {
+      const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      rows[(i + d + rows.length) % rows.length].focus();
     }));
   });
 }
@@ -487,7 +499,7 @@ function openChange(el, plan) {
     };
     const placeStep = () => {
       const rows = state.locations.map((l) => row(`data-v="${esc(l.id)}"`, esc(l.name), '', { check: loc && l.id === loc.id }));
-      listStep('Location', rows.join(''), (v) => {
+      listStep('Gym', rows.join(''), (v) => {
         if (loc && v === loc.id) { close(); return; }
         const before = snap();
         dayOverride = null;
@@ -496,7 +508,7 @@ function openChange(el, plan) {
         const to = state.locations.find((l) => l.id === v);
         flash = new Set();
         tick('success');
-        toast(`Now at ${to ? to.name : 'a new location'}`, 6000, { action: { label: 'Undo', onClick: () => undoTo(el, before) } });
+        toast(`Now at ${to ? to.name : 'a new gym'}`, 6000, { action: { label: 'Undo', onClick: () => undoTo(el, before) } });
       });
     };
     home();

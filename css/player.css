@@ -450,6 +450,9 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .gym-chev { transform: rotate(90deg); color: var(--text-2); }
 .gym-pin svg, .gym-chev svg, .gym-tick svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .gym-chip:focus-visible, .gym-row:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.gym-note { margin: var(--s-3) 0; }
+.gym-chip:active { transform: scale(.97); }
+@media (prefers-reduced-motion: reduce) { .gym-chip:active { transform: none; } }
 .gym-list { display: grid; gap: var(--s-2); }
 .gym-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 52px; padding: 0 var(--s-4); border-radius: var(--r-md); border: 1px solid var(--border, rgba(255, 255, 255, .16)); background: var(--surface-2); color: var(--text-1); font: inherit; font-size: calc(16px * var(--ts)); font-weight: 600; text-align: left; cursor: pointer; }
 .gym-row[aria-checked="true"] { border-color: var(--accent-text); background: var(--deep-fill); }

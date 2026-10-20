@@ -1827,6 +1827,94 @@ if (standalone && (!only || only.includes('train'))) {
   });
 }
 
+if (standalone && (!only || only.includes('train'))) {
+  const GYM_SEED = (extra = {}) => { const d = seed(extra); d.profile[0].protectJoints = ['knee', 'lower_back']; d.settings[0].last_location_id = 'l1'; return d; };
+  const gwait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const read = `(async () => { const { state } = await import('/js/state.js'); return { loc: state.settings.last_location_id, joints: state.profile.protectJoints, chip: (document.querySelector('[data-gym]') || {}).textContent, ex: [...document.querySelectorAll('.pv-ex')].map((e) => e.textContent.trim().slice(0, 40)).join('|'), toasts: document.querySelectorAll('.toast').length, wLoc: (state.workouts.find((w) => w.status === 'active') || {}).location_id || null }; })()`;
+  const pick = (id) => browser.eval(`document.querySelector('dialog.sheet [data-gym-id="${id}"]').click()`);
+  const openPicker = async () => { await browser.eval("document.querySelector('[data-gym]').click()"); await gwait(900); };
+
+  test('layout: every tour target on the Train route is drawn by Train', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const { TOUR_STEPS } = await import('../js/tour/steps.js');
+    await browser.viewport(390, 844, true, { motion: true });
+    await browser.open('train', seed());
+    const bad = [];
+    for (const st of TOUR_STEPS.filter((x) => x.route === 'train' && x.target)) {
+      const ok = await browser.eval(`!!document.querySelector(${JSON.stringify(st.target)})`);
+      if (!ok) bad.push(`${st.id}: ${st.target} is not on Train`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+
+  test('layout: Train gym chip switches gyms, asks mid-workout, and the Resume card toggles joints', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    for (const [w, h] of [[390, 844], [466, 678]]) {
+      const at = `${w}x${h}`;
+      await browser.viewport(w, h, true, { motion: true }); // Reduce Motion off
+      // 1. idle: open the picker, switch, then pick the current gym
+      await browser.open('train', GYM_SEED(), 'window.__LIVE = true;');
+      const before = await browser.eval(read);
+      await openPicker();
+      const rows = await browser.eval(`[...document.querySelectorAll('dialog.sheet [data-gym-id]')].map((b) => b.dataset.gymId + ':' + b.getAttribute('aria-checked') + ':' + b.textContent.trim())`);
+      if (!rows || rows.join() !== 'l1:true:Home gym,l2:false:Travel') bad.push(`${at}: picker rows were ${JSON.stringify(rows)}`);
+      await pick('l2');
+      await gwait(900);
+      const after = await browser.eval(read);
+      if (after.loc !== 'l2') bad.push(`${at}: last_location_id is ${after.loc}, not l2`);
+      if (after.chip === before.chip) bad.push(`${at}: chip text did not change (${after.chip})`);
+      if (after.ex === before.ex) bad.push(`${at}: the exercise list did not change`);
+      if (JSON.stringify(after.joints) !== JSON.stringify(['knee', 'lower_back'])) bad.push(`${at}: joints changed to ${JSON.stringify(after.joints)}`);
+      await browser.eval("document.querySelectorAll('.toast').forEach((t) => t.remove())");
+      await openPicker();
+      await pick('l2');
+      await gwait(700);
+      const same = await browser.eval(read);
+      if (same.loc !== 'l2' || same.toasts !== 0) bad.push(`${at}: picking the current gym wrote or toasted (${same.loc}, ${same.toasts} toasts)`);
+
+      // 2. workout in progress: confirm first; Cancel and Escape keep the gym; Switch gym switches
+      await browser.open('train', GYM_SEED({ active: true }), 'window.__LIVE = true;');
+      const tag = await browser.eval("(() => { const c = document.querySelector('.card.resume'); return c ? c.tagName : null; })()");
+      if (tag !== 'DIV') bad.push(`${at}: the Resume card is a ${tag}, not a plain card`);
+      for (const how of ['cancel', 'escape']) {
+        await openPicker();
+        await pick('l2');
+        await gwait(900);
+        const asked = await browser.eval("/Switch gym\\?/.test((document.querySelector('dialog.sheet') || {}).textContent || '')");
+        if (!asked) bad.push(`${at}: no "Switch gym?" question`);
+        if (how === 'cancel') await browser.eval("document.querySelector('dialog.sheet [data-no]').click()");
+        else await browser.eval("(() => { const d = document.querySelector('dialog.sheet'); d.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true })); d.dispatchEvent(new Event('cancel', { cancelable: false })); if (d.isConnected) d.close(); })()");
+        await gwait(900);
+        const kept = await browser.eval(read);
+        if (kept.loc !== 'l1') bad.push(`${at}: ${how} still switched to ${kept.loc}`);
+      }
+      await openPicker();
+      await pick('l2');
+      await gwait(900);
+      await browser.eval("document.querySelector('dialog.sheet [data-yes]').click()");
+      await gwait(900);
+      const sw = await browser.eval(read);
+      if (sw.loc !== 'l2') bad.push(`${at}: "Switch gym" left the gym at ${sw.loc}`);
+      if (sw.wLoc !== 'l1') bad.push(`${at}: the workout in progress moved to ${sw.wLoc}`);
+
+      // 3. Resume card: tap Knees, keep both switches and the note
+      await browser.open('train', GYM_SEED({ active: true }), 'window.__LIVE = true;');
+      await browser.eval(`document.querySelector('.card.resume [data-protect="knee"]').click()`);
+      await gwait(900);
+      const rc = await browser.eval(`(async () => { const { state } = await import('/js/state.js'); const c = document.querySelector('.card.resume'); return { joints: state.profile.protectJoints, pills: c ? c.querySelectorAll('[data-protect]').length : 0, note: c ? /Changes apply to your next plan/.test(c.textContent) : false, anchor: !!(c && c.closest('a')) }; })()`);
+      if (rc.pills !== 2) bad.push(`${at}: Resume card has ${rc.pills} switches after a tap`);
+      if (!rc.note) bad.push(`${at}: Resume card lost its "Changes apply to your next plan" line`);
+      if (rc.anchor) bad.push(`${at}: the Resume card is inside a link`);
+      if (JSON.stringify(rc.joints) !== JSON.stringify(['lower_back'])) bad.push(`${at}: tapping Knees saved ${JSON.stringify(rc.joints)}`);
+      if (shots) await browser.screenshot(`${shots}/train-gym-${at}.png`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;
