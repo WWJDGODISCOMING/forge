@@ -8,7 +8,7 @@ A CSS-only look change. Cloud Functions and `firestore.rules` did not change.
 
 - A new look with depth: cards float over soft light and buttons glow.
 - Cards get a cyan top edge, rings glow on recessed tracks, and the tab bar is glass.
-- Reduce Transparency turns off the soft light and makes cards solid.
+- With Increase Contrast on, the soft light turns off and card edges get stronger.
 
 ## 0.16.38 — Default rest between sets (2026-10-19)
 

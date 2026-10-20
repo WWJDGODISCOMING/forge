@@ -218,7 +218,7 @@
   :root { --t-hero: 64px; }
 }
 
-/* Reduced transparency (system setting, or html.reduce-transparency set by the native bridge): no ambient light, opaque surfaces. */
+/* Reduced transparency (system setting where the browser supports it; html.reduce-transparency is a hook for a future native bridge): no ambient light, opaque surfaces. */
 @media (prefers-reduced-transparency: reduce) {
   :root { --ambient-bg: linear-gradient(transparent, transparent); --glass-card: var(--top-light), var(--surface-1); --tabbar-bg: var(--bg); --hub-glow: none; }
 }

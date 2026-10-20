@@ -194,7 +194,15 @@ html.sheet-lift-on body { background: transparent; }
   transform-origin: 50% var(--lift-oy, 0px);
   transform: translateY(calc((var(--safe-top) + 8px) * var(--sheet-lift))) scale(calc(1 - .06 * var(--sheet-lift)));
 }
-#main.lifted { background: linear-gradient(rgba(255, 255, 255, calc(var(--lift-hi) * var(--sheet-lift))) calc(var(--lift-oy, 0px) + 4px), transparent calc(var(--lift-oy, 0px) + 140px)) no-repeat, var(--bg); min-height: 100dvh; clip-path: inset(var(--lift-oy, 0px) 0 0 0 round calc(12px * var(--sheet-lift))); } /* rounds the top of what is on screen, wherever the page is scrolled */
+#main.lifted { background: var(--bg); min-height: 100dvh; clip-path: inset(var(--lift-oy, 0px) 0 0 0 round calc(12px * var(--sheet-lift))); } /* rounds the top of what is on screen, wherever the page is scrolled */
+/* The light stays pinned to the screen (not the full-height page) while the page is lifted or swiping; the lift highlight draws on top of it. */
+main.swiping::before, #main.lifted::before {
+  content: ''; position: absolute; left: 0; right: 0; top: var(--amb-top, var(--lift-oy, 0px)); height: 100lvh; z-index: -1; pointer-events: none;
+  background: var(--ambient-bg), var(--bg);
+}
+#main.lifted::before {
+  background: linear-gradient(rgba(255, 255, 255, calc(var(--lift-hi) * var(--sheet-lift))) 4px, transparent 140px) no-repeat, var(--ambient-bg), var(--bg);
+}
 #nav.lifted { border-radius: calc(12px * var(--sheet-lift)); }
 #navbar.lifted { border-radius: calc(12px * var(--sheet-lift)) calc(12px * var(--sheet-lift)) 0 0; overflow: hidden; }
 
@@ -218,7 +226,7 @@ html.sheet-lift-on body { background: transparent; }
 html, body { overflow-x: hidden; }
 @supports (overflow: clip) { html, body { overflow-x: clip; } }
 main.swiping {
-  position: relative; z-index: 1; min-height: 100dvh; background: var(--ambient-bg), var(--bg);
+  position: relative; z-index: 1; min-height: 100dvh; background: var(--bg);
   box-shadow: -12px 0 32px rgba(0, 0, 0, .5); will-change: transform;
 }
 .swipe-under { position: fixed; inset: 0; z-index: 0; pointer-events: none; background: var(--ambient-bg), var(--bg); overflow: hidden; }

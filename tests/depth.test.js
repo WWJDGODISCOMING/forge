@@ -64,7 +64,10 @@ test('depth: ambient light is one fixed layer under a transparent body', () => {
   assert(/body::before \{[^}]*position: fixed[^}]*var\(--ambient-bg\)/.test(nav));
   assert(!/background-attachment/.test(nav + read('css/app.css')));
   assert(/#vt-surface \{[^}]*var\(--ambient-bg\), var\(--bg\)/.test(read('css/motion.css')));
-  assert(/main\.swiping \{[^}]*var\(--ambient-bg\), var\(--bg\)/.test(nav));
+  assert(/main\.swiping::before, #main\.lifted::before \{[^}]*height: 100lvh[^}]*var\(--ambient-bg\), var\(--bg\)/.test(nav));
+  assert(/main\.swiping \{[^}]*background: var\(--bg\)/.test(nav) && /#main\.lifted \{ background: var\(--bg\)/.test(nav));
+  assert(/#main\.lifted::before \{[^}]*--lift-hi[^}]*var\(--ambient-bg\)/.test(nav));
+  assert(/--amb-top/.test(read('js/ui/swipeback.js')));
   assert(/\.swipe-under \{[^}]*var\(--ambient-bg\), var\(--bg\)/.test(nav));
 });
 
