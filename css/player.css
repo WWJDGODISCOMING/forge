@@ -281,7 +281,10 @@ body.playing .navbar { display: none; }
 .pv-thumb { position: relative; }
 .pv-thumb.has-demo::after { content: ""; position: absolute; right: 4px; bottom: 4px; width: 20px; height: 20px; border-radius: 50%; pointer-events: none;
   background: rgba(10, 18, 32, .78) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M8 6.2v7.6l6-3.8z' fill='%23fff'/%3E%3C/svg%3E") center / 100% no-repeat; box-shadow: 0 0 0 1px rgba(255, 255, 255, .5); }
-.demo-prev .ht-demo { border-radius: 16px; overflow: hidden; }
+.demo-prev .ht-demo { border-radius: 16px; overflow: hidden; transition: height .25s ease; }
+/* Resting at the medium detent only the lower half shows: shrink the demo so Swap and Replace clear the home indicator. */
+dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 200px - var(--safe-bottom, 0px)), 300px); }
+@media (prefers-reduced-motion: reduce) { .demo-prev .ht-demo { transition: none; } }
 .demo-joints p { margin: 0 0 4px; }
 .demo-joints .stress { color: var(--warn, var(--text)); font-weight: 600; }
 .demo-actions .btn { min-height: 52px; }

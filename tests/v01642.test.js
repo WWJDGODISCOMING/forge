@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import { EXERCISES } from '../js/workouts/exercises.js';
 import { LOCATION_PRESETS, expandEquipment, canDo } from '../js/workouts/equipment.js';
-import { jointFriendly, jointPickerPatterns } from '../js/workouts/generator.js';
+import { jointFriendly, jointPickerPatterns, generateWorkout } from '../js/workouts/generator.js';
 import { jointNotes, swapCandidate, originTransform, openKeyframes, restingRect } from '../js/workouts/demo-preview-core.js';
 
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -87,8 +87,28 @@ test('grow-from-thumbnail is measured at the sheet resting spot, not mid-slide',
   eq(restingRect(rect, dlg(0), 844).top, 900, 'already resting');
 });
 
-test('swap changes only the swapped slot; Swap sits under the demo; toast has Undo', () => {
-  assert(src('js/workouts/generator.js').includes('{ ctx.used.add(ex.id); ex = swapTo; }'), 'the replaced pick counts as used');
+for (const protect of [['knee', 'lower_back'], []]) {
+  test(`swap changes only the swapped slot (Protect ${protect.length ? 'on' : 'off'}): the rest of the plan stays put, in order`, () => {
+    const gen = (forced = {}) => generateWorkout({
+      programKey: 'smart', dayType: 'full_a', location: { equipment: [...GYM.equipment], weight_inventory: {} },
+      profile: { experience: 'intermediate', sessionMin: 60, trainingDays: 4, injuries: '', protectJoints: protect },
+      unit: 'lb', exercises: EXERCISES, forced,
+    });
+    const before = gen();
+    const ids = before.exercises.map((e) => e.exercise_id);
+    assert(ids.length > 3, 'fixture builds a plan');
+    const first = byId(ids[0]);
+    const avoid = new Set(protect);
+    const swap = swapCandidate(first, first, ctx(avoid, new Set(ids), first));
+    assert(swap, 'a swap exists for the first slot');
+    const after = gen({ [ids[0]]: swap.id }).exercises.map((e) => e.exercise_id);
+    eq(after.length, ids.length, 'same length');
+    eq(after[0], swap.id, 'the tapped slot changed');
+    eq(JSON.stringify(after.slice(1)), JSON.stringify(ids.slice(1)), 'every other slot is identical and in the same order');
+  });
+}
+
+test('Swap sits under the demo; toast has Undo', () => {
   const d = src('js/screens/demo-preview.js');
   assert(d.indexOf('data-a="swap"') < d.indexOf('Form cues'), 'Swap/Replace sit right under the demo');
   assert(src('js/screens/train.js').includes("label: 'Undo'"), 'Swap toast has Undo');

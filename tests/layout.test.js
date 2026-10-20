@@ -1803,10 +1803,11 @@ if (standalone && (!only || only.includes('train'))) {
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const bad = [];
-    for (const c of [{ w: 390, h: 844, dark: true }, { w: 626, h: 890, dark: false }, { w: 890, h: 626, dark: true }]) {
+    for (const c of [{ w: 390, h: 844, dark: true }, { w: 466, h: 678, dark: false }, { w: 626, h: 890, dark: false }, { w: 890, h: 626, dark: true }]) {
       const at = `${c.w}x${c.h}`;
-      await browser.viewport(c.w, c.h, c.dark);
+      await browser.viewport(c.w, c.h, c.dark, { motion: true }); // Reduce Motion off: the sheet opens at the medium detent
       await browser.open('train', seed());
+      await browser.eval("document.documentElement.style.setProperty('--safe-bottom', '34px')");
       const opened = await browser.eval("(() => { const h = document.querySelector('[data-preview]'); if (!h) return false; h.click(); return true; })()");
       if (!opened) { bad.push(`${at}: no tappable exercise row on Train`); continue; }
       await wait(900);
@@ -1814,11 +1815,11 @@ if (standalone && (!only || only.includes('train'))) {
         const d = document.querySelector('dialog.demo-sheet'); if (!d) return null;
         const r = (s) => { const e = d.querySelector(s); return e && e.getBoundingClientRect(); };
         const sw = r('[data-a="swap"]'), rp = r('[data-a="replace"]'), head = r('.sheet-head');
-        return { sw: sw && [sw.top, sw.bottom], rp: rp && [rp.top, rp.bottom], headTop: head && head.top, vh: innerHeight, safe: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0 };
+        return { sw: sw && [sw.top, sw.bottom], rp: rp && [rp.top, rp.bottom], headTop: head && head.top, vh: innerHeight, safeBottom: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-bottom')) || 0, safe: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--safe-top')) || 0 };
       })()`);
       if (!m) { bad.push(`${at}: the preview did not open`); continue; }
       if (!m.sw || !m.rp) { bad.push(`${at}: Swap or Replace missing`); continue; }
-      if (m.sw[1] > m.vh || m.rp[1] > m.vh) bad.push(`${at}: Swap/Replace sit below the visible area (bottom ${Math.round(Math.max(m.sw[1], m.rp[1]))} of ${m.vh})`);
+      if (Math.max(m.sw[1], m.rp[1]) > m.vh - m.safeBottom) bad.push(`${at}: Swap/Replace sit below the visible area (bottom ${Math.round(Math.max(m.sw[1], m.rp[1]))} of ${m.vh - m.safeBottom})`);
       if (c.w >= 600 && m.headTop < m.safe - 1) bad.push(`${at}: side panel header (${Math.round(m.headTop)}) is under the status bar (${m.safe})`);
       if (shots) await browser.screenshot(`${shots}/train-preview-${at}.png`);
     }

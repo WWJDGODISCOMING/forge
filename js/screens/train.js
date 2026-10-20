@@ -499,7 +499,7 @@ function applyReplace(el, ex, c) {
   toast(`Replaced with ${c.name}`, 5000, { action: { label: 'Undo', onClick: () => {
     if (prevForced === undefined) delete edits.forced[orig]; else edits.forced[orig] = prevForced;
     edits.rest = prevRest;
-    renderTrain(el);
+    if (el.isConnected) renderTrain(el);
   } } });
   renderTrain(el);
 }
