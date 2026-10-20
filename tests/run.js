@@ -25,6 +25,7 @@ import './scrubmath.test.js';
 import './pathmorph.test.js';
 import './chartmath.test.js';
 import './elevation.test.js';
+import './depth.test.js';
 import './heroglow.test.js';
 import './tabicons.test.js';
 import './icons.test.js';

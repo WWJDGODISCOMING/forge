@@ -109,7 +109,7 @@ body.playing .navbar { display: none; }
 .pl-done:active { transform: scale(.97); }
 .pl-done.is-done { background: var(--accent-tint); color: var(--accent-text); box-shadow: none; }
 /* Done set stays pinned to the bottom of the screen (clear of the home indicator), however short the phone. */
-.pl-dock { position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 8px; margin-top: auto; padding: 10px 0 calc(var(--safe-bottom) + 4px); background: linear-gradient(to top, var(--bg) 88%, transparent); }
+.pl-dock { position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 8px; margin: auto 0 0; margin-inline: calc((100% - 100vw) / 2); padding: 10px calc((100vw - 100%) / 2) calc(var(--safe-bottom) + 4px); background: var(--tabbar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); } /* full-bleed (viewport-wide even past the 560px column) glass like the tab bar, so no box shows over the glow */
 .pl-next { display: flex; justify-content: center; gap: 4px; color: var(--muted); font-size: calc(15px * var(--ts)); white-space: nowrap; }
 .pl-next-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pl-next-meta { flex: none; }
@@ -347,6 +347,7 @@ body.playing .navbar { display: none; }
 
 /* Wide canvas (iPhone Duo inner screen, landscape): demo and target on the left; steppers, effort and the set controls on the right, Done set pinned at the bottom of its column. Type and tap targets stay phone size. */
 @media (min-width: 840px) {
+  .pl-dock { position: static; margin: 0; padding: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; }
   .pl-cols { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); column-gap: 32px; flex: 1; align-items: stretch; }
   .pl-col { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
   .pl-col-a { justify-content: flex-start; }
@@ -382,7 +383,7 @@ body.playing .navbar { display: none; }
   .pl-last { min-height: 0; font-size: calc(13px * var(--ts)); }
   .pl-rir button { height: 44px; }
   .pl-done { min-height: 50px; border-radius: 16px; }
-  .pl-dock { position: static; padding: 0; background: none; margin-top: 0; gap: 4px; }
+  .pl-dock { position: static; margin: 0; padding: 0; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; gap: 4px; }
   .pl-next { font-size: calc(13px * var(--ts)); flex-wrap: wrap; white-space: normal; }
   .pl-next-name { overflow: visible; text-overflow: clip; }
   .pl-nav button { min-height: 44px; }

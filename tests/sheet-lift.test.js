@@ -38,7 +38,7 @@ test('sheet(): #navbar lifts with #main and #nav, and the page keeps its own bac
   const css = readFileSync(new URL('../css/nav.css', import.meta.url), 'utf8');
   assert(src.includes("document.getElementById('navbar')"), 'navbar joins the lifted group');
   assert(css.includes('#main.lifted, #nav.lifted, #navbar.lifted {'), 'same transform for all three');
-  assert(css.includes('#main.lifted { background: linear-gradient(') && css.includes(', var(--bg); min-height: 100dvh'), 'lifted page paints --bg');
+  assert(css.includes('#main.lifted { background: var(--bg); min-height: 100dvh') && css.includes('#main.lifted::before {'), 'lifted page paints --bg');
   assert(css.includes('html.sheet-lift-on body { background: transparent'), 'body no longer paints the lift colour');
 });
 

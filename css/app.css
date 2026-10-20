@@ -50,12 +50,20 @@ main {
 
 /* ---------- cards: borderless surface, a hint of top light, big soft corners ---------- */
 .card {
-  background: var(--top-light), var(--surface-1);
+  position: relative;
+  background: var(--glass-card);
   box-shadow: var(--elev-raised);
   border-radius: var(--r-xl);
   padding: var(--s-4) 20px;
   display: flex; flex-direction: column; gap: var(--s-3);
 }
+/* Cyan edge catching light at the top of each top-level card. Inner panels stay flat. */
+.card::after, .group::after, .pillar::after, .insight::after, .body-hero .bh-tile::after {
+  content: ''; position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
+  background: var(--glass-border);
+  -webkit-mask: linear-gradient(var(--bg) 0 0) content-box, linear-gradient(var(--bg) 0 0); -webkit-mask-composite: xor; mask-composite: exclude;
+}
+.seg, .icon-btn, .chip span, .chip-btn { box-shadow: var(--edge-highlight); }
 .card.empty { color: var(--text-2); text-align: center; padding: var(--s-6) var(--s-4); align-items: center; }
 a.card { color: inherit; text-decoration: none; }
 .nav-card .chev { color: var(--text-3); display: inline-flex; }
@@ -77,7 +85,7 @@ fieldset.card legend + * { clear: both; }
 /* ---------- iOS inset-grouped lists: header above, rows with inset separators, chevrons, switches ---------- */
 .sec-title { margin: 0 0 calc(-1 * var(--s-3)) 20px; font-size: calc(13px * var(--ts)); line-height: calc(18px * var(--ts)); font-weight: 600; color: var(--text-2); }
 .sec-foot { margin: calc(-1 * var(--s-3)) 20px 0; font-size: calc(13px * var(--ts)); line-height: calc(18px * var(--ts)); color: var(--text-2); }
-.group { background: var(--top-light), var(--surface-1); border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--elev-raised); }
+.group { position: relative; background: var(--glass-card); border-radius: var(--r-xl); overflow: hidden; box-shadow: var(--elev-raised); }
 .g-row {
   position: relative; display: flex; align-items: center; gap: var(--s-3); min-height: 56px; padding: var(--s-2) var(--s-4) var(--s-2) 20px;
   color: var(--text-1); text-decoration: none; font: inherit; width: 100%; text-align: left; background: none; border: 0; cursor: pointer;
@@ -126,6 +134,7 @@ input[switch] { accent-color: var(--accent); flex: none; width: auto; min-height
   padding: 12px 22px;
   font: 600 calc(17px * var(--ts)) var(--font);
   background: var(--text-1); color: var(--bg);
+  background-image: var(--sheen); box-shadow: var(--btn-shadow);
   display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2);
   text-decoration: none; cursor: pointer;
   white-space: normal; text-align: center; line-height: 1.2; text-wrap: balance; max-width: 100%; overflow-wrap: break-word; /* one line when it fits; at large text it wraps instead of clipping */
@@ -135,10 +144,10 @@ input[switch] { accent-color: var(--accent); flex: none; width: auto; min-height
 .btn:active { transform: scale(.97); }
 .btn:disabled { opacity: .45; }
 .btn.small { min-height: 44px; padding: 8px 16px; font-size: calc(15px * var(--ts)); }
-.btn.primary, [data-start], .sheet-body .btn:not(.ghost):not(.danger):not(.danger-ghost), .sticky-actions .btn:not(.ghost) { background: var(--accent); color: var(--accent-ink); }
-.btn.ghost { background: var(--surface-2); color: var(--text-1); }
-.btn.danger { background: var(--danger); color: white; }
-.btn.danger-ghost { background: var(--danger-tint); color: var(--danger); }
+.btn.primary, [data-start], .sheet-body .btn:not(.ghost):not(.danger):not(.danger-ghost), .sticky-actions .btn:not(.ghost) { background: var(--accent); color: var(--accent-ink); background-image: var(--sheen); box-shadow: var(--glow-accent); } /* the one primary action per screen glows */
+.btn.ghost { background: var(--surface-2); color: var(--text-1); background-image: var(--btn-ghost-sheen); box-shadow: var(--edge-highlight), 0 1px 2px rgba(0, 0, 0, .45); }
+.btn.danger { background: var(--danger); color: white; background-image: none; box-shadow: var(--edge-highlight); }
+.btn.danger-ghost { background: var(--danger-tint); color: var(--danger); background-image: none; box-shadow: none; }
 .link { background: none; border: 0; color: var(--accent-text); font: inherit; padding: 8px 0; cursor: pointer; text-align: left; text-decoration: none; min-height: 44px; display: inline-flex; align-items: center; gap: 2px; }
 .link svg { width: 16px; height: 16px; }
 .icon-btn { width: 44px; height: 44px; border: 0; border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-1); cursor: pointer; display: inline-grid; place-items: center; flex: none; }
@@ -285,7 +294,8 @@ input[type=date] { -webkit-appearance: none; appearance: none; }
 .onboard .progress span.on { background: var(--accent); }
 .sticky-actions {
   position: sticky; bottom: calc(var(--safe-bottom) + 8px);
-  padding-top: var(--s-2); background: linear-gradient(transparent, var(--bg) 30%);
+  margin-inline: calc((100% - 100vw) / 2); padding: var(--s-2) calc((100vw - 100%) / 2) 0; /* viewport-wide even past the 560px column */
+  background: var(--tabbar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
 }
 .reasons { margin: 6px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: calc(15px * var(--ts)); }
 details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: flex; align-items: center; }
@@ -401,7 +411,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 
 /* session logger */
 .excard { gap: 6px; }
-.excard.superset { box-shadow: inset 4px 0 0 var(--ember); }
+.excard.superset { box-shadow: var(--elev-1), inset 4px 0 0 var(--ember); }
 .exname { background: none; border: 0; color: var(--text-1); font: inherit; text-align: left; padding: 6px 0; cursor: pointer; font-size: calc(17px * var(--ts)); }
 .chain { text-align: left; cursor: pointer; font: inherit; color: var(--text-1); }
 .sethead, .setrow { display: grid; grid-template-columns: 30px 64px 1fr 1fr 48px 52px; gap: 6px; align-items: center; }
@@ -451,7 +461,8 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 .burst i { position: absolute; width: 10px; height: 10px; border-radius: 3px; background: var(--c); animation: burst 900ms var(--ease-out) forwards; }
 @keyframes burst { from { transform: rotate(var(--a)) translateY(0) scale(1); opacity: 1; } to { transform: rotate(var(--a)) translateY(calc(-1 * var(--d) - 90px)) scale(.4); opacity: 0; } }
 @keyframes pop { from { transform: scale(.6); opacity: 0; } }
-.card.prs { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--gold) 50%, transparent); }
+.card.prs { box-shadow: var(--elev-1), inset 0 0 0 1px color-mix(in srgb, var(--gold) 50%, transparent); }
+.card.prs::after, .ready-card.ready-card::after { content: none; } /* their status rim is the edge */
 
 /* interval timer */
 .bigtimer { text-align: center; padding: 28px 12px; border-radius: var(--r-xl); background: var(--top-light), var(--surface-1); transition: background var(--t-med) var(--ease-out); }
@@ -503,7 +514,7 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .rings { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: var(--s-4); align-items: center; }
 .rings-svg { display: block; overflow: visible; width: min(240px, 100%); height: auto; aspect-ratio: 1; }
 .ring-track, .ring-arc { fill: none; stroke-width: 20; }
-.ring-track { opacity: 0.17; } /* each track is its own ring's hue, unfilled */
+.ring-track { opacity: 1; stroke: color-mix(in srgb, currentColor 17%, transparent); } /* each track is its own ring's hue, recessed by an inline per-SVG filter */
 .ring-arc { stroke-linecap: round; stroke-dashoffset: var(--off); transition: stroke-dashoffset 1s var(--ease-out); }
 .ring-arc.ring-over { transition-delay: 1s; } /* the second lap draws after the first closes */
 .rings-pre .ring-arc { stroke-dashoffset: var(--c); transition: none; }
@@ -514,8 +525,9 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .rings-hub b { font-size: calc(44px * var(--ts)); line-height: 1; font-weight: 700; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .rings-hub b i { font-style: normal; font-size: calc(22px * var(--ts)); font-weight: 600; color: var(--muted); }
 .rings-hub small { margin-top: 4px; font-size: calc(12px * var(--ts)); color: var(--muted); letter-spacing: 0.02em; white-space: nowrap; }
-.ring-arc { filter: none; }
-.ring-arc.ring-closed { filter: var(--ring-halo); } /* any ring closed on target glows lime; a crisp rim so neighbouring gaps stay clear */
+.ring-arc:not(.ring-closed):not(.ring-over) { filter: drop-shadow(0 0 var(--glow-ring) color-mix(in srgb, currentColor var(--glow-ring-mix), transparent)); }
+.ring-arc.ring-closed { filter: var(--ring-halo) drop-shadow(0 0 8px color-mix(in srgb, var(--ring-glow) 35%, transparent)); } /* any ring closed on target glows lime; a crisp rim so neighbouring gaps stay clear */
+.rings-hub b { text-shadow: var(--hub-glow); }
 .rings-legend { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--s-3); }
 .rings-legend li { display: grid; grid-template-columns: 10px 1fr; gap: var(--s-2); align-items: start; }
 .rings-legend li > span:last-child { display: flex; flex-direction: column; min-width: 0; }
@@ -547,8 +559,8 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 .dc-cmp li { display: flex; justify-content: space-between; gap: var(--s-2); }
 .dc-cmp li.dc-lost { color: var(--danger); }
 .dc-cmp li.dc-changed { color: var(--warn); }
-.verdict.ok { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--good) 40%, transparent); }
-.verdict.warn { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--warn) 40%, transparent); }
+.verdict.ok { box-shadow: var(--elev-1), inset 0 0 0 1px color-mix(in srgb, var(--good) 40%, transparent); }
+.verdict.warn { box-shadow: var(--elev-1), inset 0 0 0 1px color-mix(in srgb, var(--warn) 40%, transparent); }
 .bc-tile.stale b { color: var(--text-2); }
 .bc-tile.stale small { color: var(--text-3); }
 .bc-tile b, .bc-tile small, .bc-tile span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -646,7 +658,7 @@ body.tour-on main { padding-bottom: 360px; } /* room to scroll the last cards ab
 html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 [data-photos-slot]:empty { min-height: 132px; } /* reserve the Progress photos card (its empty-state height) so Body does not jump when it mounts; photos.css must not hide the empty slot */
 @media (max-width: 420px) { [data-photos-slot]:empty { min-height: 152px; } } /* the invitation wraps to two lines on a phone */
-.body-hero .bh-tile { background: var(--surface); border: 0; border-radius: var(--r-xl); padding: var(--s-4); display: flex; flex-direction: column; text-align: left; font: inherit; color: inherit; text-decoration: none; min-height: 96px; cursor: pointer; box-shadow: var(--elev-raised); }
+.body-hero .bh-tile { position: relative; background: var(--glass-card); border: 0; border-radius: var(--r-xl); padding: var(--s-4); display: flex; flex-direction: column; text-align: left; font: inherit; color: inherit; text-decoration: none; min-height: 96px; cursor: pointer; box-shadow: var(--elev-raised); }
 .body-hero .bh-tile > span { overflow-wrap: normal; }
 .body-hero .bh-tap { position: relative; transition: background var(--t-fast); }
 .body-hero .bh-tap > span { padding-right: 16px; }

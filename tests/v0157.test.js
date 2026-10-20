@@ -62,7 +62,7 @@ test('button pairs wrap instead of clipping', () => {
 
 test('nav bar: stronger glass, learn-more disclosure, scroll padding', () => {
   const t = src('css/tokens.css');
-  assert(t.includes('--glass: rgba(4, 11, 14, .84)') && t.includes('--glass: rgba(238, 241, 245, .88)'));
+  assert(t.includes('--glass: rgba(4, 11, 14, .62)') && t.includes('--glass: rgba(238, 241, 245, .88)'));
   assert(src('js/health/cards.js').includes('<details class="learn-more"><summary>What is this?'));
   assert(src('js/ui/navbar.js').includes("large.querySelector('h1')"));
 });

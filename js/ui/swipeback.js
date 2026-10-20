@@ -80,6 +80,7 @@ export function attachSwipeBack({ el, canSwipe, onPop, getSnapshot = () => null 
     e.preventDefault(); // we own the gesture now: stop the page scrolling
     if (!under) {
       under = makeUnderlay(getSnapshot());
+      el.style.setProperty('--amb-top', `${-el.getBoundingClientRect().top}px`);
       el.classList.add('swiping');
     }
     setScrim(Math.max(0, dx));
@@ -110,6 +111,7 @@ export function attachSwipeBack({ el, canSwipe, onPop, getSnapshot = () => null 
       el.style.transition = '';
       el.style.transform = '';
       el.classList.remove('swiping');
+      el.style.removeProperty('--amb-top');
       if (under) under.remove();
       under = null;
     };

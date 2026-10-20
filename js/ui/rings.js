@@ -58,9 +58,13 @@ export function foodRingSvg(tot, t, aria) {
   return `<svg class="food-card-ring" viewBox="0 0 80 80" width="80" height="80" role="img" aria-label="${esc(aria)}"><g transform="rotate(-90 40 40)">${arc(35, 9, kv, over ? 'var(--warn)' : 'var(--ring-kcal)', overLap(kv))}${arc(23, 9, pv, 'var(--ring-protein)', 0)}</g></svg>`;
 }
 
+let insetSeq = 0;
 export function ringsHtml(rings) {
   const drawn = CLUSTER.map((k) => rings.find((r) => r.key === k)).filter(Boolean);
-  const defs = drawn.map((r) => {
+  // Recessed track: an inner shadow cut from the ring's own alpha. One ring SVG per page today; the id is unique per call otherwise.
+  const insetId = `ring-inset-${++insetSeq}`;
+  const inset = `<filter id="${insetId}" x="-10%" y="-10%" width="120%" height="120%"><feComponentTransfer in="SourceAlpha" result="inv"><feFuncA type="table" tableValues="1 0"/></feComponentTransfer><feGaussianBlur in="inv" stdDeviation="1.6"/><feOffset dy="1.4" result="sh"/><feFlood flood-color="black" flood-opacity=".75"/><feComposite in2="sh" operator="in"/><feComposite in2="SourceAlpha" operator="in" result="inner"/><feMerge><feMergeNode in="SourceGraphic"/><feMergeNode in="inner"/></feMerge></filter>`;
+  const defs = inset + drawn.map((r) => {
     const col = r.over ? 'var(--warn)' : COLORS[r.key];
     return `<linearGradient id="rg-${r.key}" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:color-mix(in srgb, ${col} 62%, #fff)"/><stop offset="1" style="stop-color:${col}"/></linearGradient>`;
   }).join('');
@@ -73,7 +77,7 @@ export function ringsHtml(rings) {
     const over = r.over ? overLap(r.value) : 0;
     const lap = over ? `<circle class="ring-arc ring-over" data-ring="${r.key}-over" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}"
         stroke-dasharray="${C.toFixed(1)}" style="stroke:var(--warn-deep);--c:${C.toFixed(1)};--off:${(C * (1 - over)).toFixed(1)}"/>` : '';
-    return `<circle class="ring-track" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}" style="stroke:${col}"/>
+    return `<circle class="ring-track" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}" style="color:${col};filter:url(#${insetId})"/>
       <circle class="ring-arc${v >= 1 && !r.over ? ' ring-closed' : ''}" data-ring="${r.key}" cx="${SIZE / 2}" cy="${SIZE / 2}" r="${R}"
         stroke-dasharray="${C.toFixed(1)}" style="color:${col};stroke:url(#rg-${r.key});--c:${C.toFixed(1)};--off:${(C * (1 - v)).toFixed(1)}"/>${lap}`;
   }).join('');

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.39 — Depth look: glass + glow (2026-10-19)
+
+A CSS-only look change. Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- A new look with depth: cards float over soft light and buttons glow.
+- Cards get a cyan top edge, rings glow on recessed tracks, and the tab bar is glass.
+- With Increase Contrast on, the soft light turns off and card edges get stronger.
+
 ## 0.16.38 — Default rest between sets (2026-10-19)
 
 Pick how long the timer runs after every set. Cloud Functions and `firestore.rules` did not change.
