@@ -416,3 +416,18 @@ body.playing .navbar { display: none; }
 .effort-row button.on { background: var(--text-1); color: var(--bg); }
 @media (min-width: 600px) { .pl-effort { left: 50%; right: auto; width: 480px; transform: translateX(-50%); } }
 @media (max-width: 360px) { .pl-effort { padding-inline: 12px; } .pl-effort div { gap: 4px; } .pl-effort button { padding: 0; font-size: calc(15px * var(--ts)); } .pl-effort button.skip { font-size: calc(11px * var(--ts)); } .pl-effort p { font-size: calc(11px * var(--ts)); } }
+
+/* Joints to protect (v0.16.40): Knees / Lower back switch pills above Start workout, and the swap badge. */
+.protect-row { display: grid; gap: var(--s-2); padding: var(--s-3); border-radius: var(--r-md); background: var(--glass-card); box-shadow: var(--elev-1); }
+.protect-head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2) var(--s-3); }
+.protect-head .label { margin: 0; }
+.protect-pills { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.protect-pill { min-height: 44px; min-width: 44px; padding: 0 16px; border-radius: var(--r-pill); border: 1px solid var(--border, rgba(255, 255, 255, .16)); background: var(--surface-2); color: var(--text-2); font: inherit; font-size: calc(15px * var(--ts)); font-weight: 600; cursor: pointer; transition: background-color .15s, color .15s, box-shadow .15s; -webkit-tap-highlight-color: transparent; }
+.protect-pill[aria-checked="true"] { background: var(--deep-fill); color: var(--text-1); border-color: var(--accent-text); box-shadow: var(--glow-accent); }
+.protect-pill:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.protect-note { margin: 0; }
+.protect-set .protect-pills { margin-top: var(--s-1); }
+.swap-badge { align-self: flex-start; margin-top: 2px; padding: 2px 8px; border-radius: var(--r-pill); font-size: calc(11px * var(--ts)); font-weight: 700; color: var(--accent-text); background: color-mix(in srgb, var(--accent-text) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 45%, transparent); }
+.swap-why { white-space: normal; }
+@media (prefers-reduced-motion: reduce) { .protect-pill { transition: none; } }
+@media (prefers-contrast: more) { .protect-pill { border-color: var(--text-2); } .protect-pill[aria-checked="true"] { border-width: 2px; } }

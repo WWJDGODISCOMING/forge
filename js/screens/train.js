@@ -22,6 +22,8 @@ import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
 import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
+import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
+import { jointAvoidSet, jointFriendly } from '../workouts/generator.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
@@ -179,6 +181,7 @@ export function renderTrain(el) {
   );
   bindRecoveryCard(el, rec);
   if (plan) wirePreview(el, plan);
+  bindProtect(el, () => { flash = new Set(); if (el.isConnected) renderTrain(el); });
   const start = $('[data-start]', el);
   if (start)
     start.onclick = () => startPlan(plan);
@@ -200,7 +203,8 @@ function previewCard(plan, { d, loc, program, u }) {
     return `<li class="pv-ex${flash.has(ex.id) ? ' flash' : ''}">
       <div class="pv-thumb" data-thumb="${esc(ex.id)}" aria-hidden="true"></div>
       <div class="pv-txt">${label ? `<span class="pv-tag">${label}</span>` : ''}<b>${esc(ex.name)}</b>
-        <small class="muted">${esc(targetText(it.target, u, ex))}${it.warmups.length ? ` · ${it.warmups.length} warm-up` : ''}${rest}</small></div>
+        <small class="muted">${esc(targetText(it.target, u, ex))}${it.warmups.length ? ` · ${it.warmups.length} warm-up` : ''}${rest}</small>
+        ${it.swap ? `<span class="swap-badge">${esc(it.swap.badge)}</span><small class="muted swap-why">${esc(it.swap.why)}</small>` : ''}</div>
       <button class="icon-btn pv-more" data-more="${i}" aria-label="More for ${esc(ex.name)}">${icon('more')}</button>
     </li>`;
   };
@@ -235,6 +239,7 @@ function previewCard(plan, { d, loc, program, u }) {
           </ul>
         </div>
         <ol class="pv-list">${blocks.join('')}</ol>
+        ${protectRowHtml()}
         <button class="btn" data-start>Start workout</button>` : '<p class="muted">Nothing fits this location. Add equipment in Settings → Locations.</p>'}
       </div>`;
 }
@@ -440,8 +445,8 @@ function exerciseMore(el, plan, i) {
       openExercisePicker({
         title: `Replace ${ex.name}`,
         onlyPattern: ex.pattern,
-        filter: (c) => !inPlan.has(c.id) && canDo(c, avail),
-        availableNote: 'Same movement, doable at this location.',
+        filter: (c) => !inPlan.has(c.id) && canDo(c, avail) && jointFriendly(c, jointAvoidSet(state.profile)),
+        availableNote: jointAvoidSet(state.profile).size ? 'Same movement, doable here, and easy on the joints you protect.' : 'Same movement, doable at this location.',
         onPick: (c) => {
           // Key by what the generator picks for this slot, so the swap survives re-renders.
           const orig = Object.keys(ed.forced).find((k) => ed.forced[k] === ex.id) || ex.id;

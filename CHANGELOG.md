@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.40 — Joints to protect (2026-10-20)
+
+Easier workouts for sore knees or a sore lower back. Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- Sore knee or back? Turn on Knees or Lower back on Train for easier moves.
+- Easier moves train the same muscles, so your weekly sets still count.
+- Swapped moves show a Knee-friendly or Back-friendly tag and why.
+- Turn it on or off in Settings too. Off brings your normal workout back.
+
 ## 0.16.39 — Depth look: glass + glow (2026-10-19)
 
 A CSS-only look change. Cloud Functions and `firestore.rules` did not change.
