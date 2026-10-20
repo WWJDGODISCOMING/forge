@@ -224,7 +224,7 @@ body.playing .navbar { display: none; }
 .bodymap [role="button"] { cursor: pointer; outline: none; }
 .bodymap [role="button"]:focus-visible, .bodymap [role="button"]:active { stroke: var(--volt); stroke-width: 6; }
 .bm-mini { gap: 2px; }
-.bm-mini .bodymap { max-height: 64px; }
+.bm-mini .bodymap { }
 .bm-small .bodymap { max-height: 140px; }
 .bm-legend { display: flex; gap: 14px; justify-content: center; font-size: calc(12px * var(--ts)); color: var(--muted); margin: 8px 0 4px; }
 .bm-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 5px; vertical-align: -1px; }
@@ -434,10 +434,7 @@ body.playing .navbar { display: none; }
 
 /* v0.16.41: one compact, expandable "Why this workout" card on Train */
 .why-card { padding: 0; }
-/* Phone order is map, workout, why, then Program/Tools/History; wide screens keep the two columns balanced. */
-.train-cols > .col-b > * { order: 1; }
-.train-cols > .col-a > :not(.recovery-card) { order: 2; }
-.why-head { display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 56px; max-height: 64px; padding: var(--s-2) var(--s-4); background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.why-head { display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 56px; padding: var(--s-2) var(--s-4); background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .why-text { display: grid; gap: 2px; flex: 1; min-width: 0; }
 .why-first { color: var(--muted); }
 .why-chev { display: inline-flex; flex: none; color: var(--accent-text); transition: transform .2s; }

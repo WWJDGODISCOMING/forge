@@ -72,7 +72,7 @@ test('Why card: header is a count; the single note lives in the body only', () =
   const h = whyCardHtml(['Skipping knee-heavy moves.'], []);
   const head = h.slice(0, h.indexOf('data-why-body'));
   assert(head.includes('1 note') && !head.includes('Skipping'), 'count only in header');
-  assert(whyCardHtml(['a', 'b'], ['X', 'Y']).includes('2 notes · 2 lifts stalled'), 'both counts');
+  assert(whyCardHtml(['a', 'b'], ['X', 'Y']).includes('2 notes · 2 stalled lifts'), 'both counts');
 });
 
 test('Why card: deload button only with 2 or more stalled lifts', () => {

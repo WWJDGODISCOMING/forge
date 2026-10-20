@@ -721,7 +721,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
           if (st.shown.length !== 5) bad.push(`${at}: a phone shows every section, got ${st.shown}`);
         }
       }
-      if (route === 'body' || route === 'play') { // reading order is the screen order: left column first in the DOM, and no CSS order anywhere
+      if (route === 'body' || route === 'play' || route === 'train') { // reading order is the screen order: left column first in the DOM, and no CSS order anywhere
         if (m.dom === false) bad.push(`${at}: the left column comes after the right in the DOM`);
         if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
       }
@@ -1746,6 +1746,53 @@ if (standalone) {
       }
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
+// v0.16.41: the Why card needs plan notes and stalled lifts to show up, so give Train both and render it collapsed and open.
+if (standalone && (!only || only.includes('train'))) {
+  test('layout: Train Why card: header 64px or less, nothing clips at text size 1.3, DOM order is screen order on a phone, columns balanced', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    for (const c of [{ w: 390, h: 844, ts: 1 }, { w: 890, h: 626, ts: 1 }, { w: 390, h: 844, ts: 1.3 }]) {
+      const at = `${c.w}x${c.h}${c.ts !== 1 ? ` text ${c.ts}` : ''}`;
+      await browser.viewport(c.w, c.h, true);
+      await browser.open('train', seed({ why: true }));
+      if (c.ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${c.ts}')`); await wait(300); }
+      for (const open of [false, true]) {
+        if (open) { await browser.eval("document.querySelector('[data-why-toggle]').click()"); await wait(300); }
+        const m = await browser.eval(`(() => {
+          const card = document.querySelector('[data-why-card]'); if (!card) return null;
+          const h = card.querySelector('[data-why-toggle]'), body = card.querySelector('[data-why-body]'), hr = h.getBoundingClientRect();
+          const kids = [...h.querySelectorAll('.why-text > *')].map((e) => e.getBoundingClientRect());
+          const clip = [...h.querySelectorAll('.why-text > *')].some((e) => e.scrollWidth > e.clientWidth + 1) || kids.some((k) => k.bottom > hr.bottom + 0.5 || k.top < hr.top - 0.5);
+          const overlap = kids.length > 1 && kids[0].bottom > kids[1].top + 1;
+          const dom = ['[data-recovery-card]', '.resume, .preview', '[data-why-card]', '[data-program]', '.tools', '[data-train-history]'].map((s) => document.querySelector('#main ' + s)).filter(Boolean);
+          const tops = dom.map((e) => e.getBoundingClientRect().top);
+          const inDom = dom.every((e, i) => !i || !!(dom[i - 1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING));
+          const ordered = [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length;
+          return { h: hr.height, expanded: h.getAttribute('aria-expanded'), hidden: body.hidden, body: body.children.length, clip, overlap, tops, inDom, ordered, over: document.documentElement.scrollWidth - innerWidth };
+        })()`);
+        const what = `${at} ${open ? 'open' : 'collapsed'}`;
+        if (!m) { bad.push(`${what}: no Why card (seed has no notes or stalled lifts)`); continue; }
+        if (m.expanded !== String(open) || m.hidden === open) bad.push(`${what}: aria-expanded ${m.expanded} and hidden ${m.hidden} disagree`);
+        if (open && !m.body) bad.push(`${what}: the body is empty`);
+        if (c.ts === 1 && m.h > 64) bad.push(`${what}: header is ${Math.round(m.h)}px tall, should be 64 or less`);
+        if (m.clip || m.overlap) bad.push(`${what}: header text clips or overlaps`);
+        if (m.over > 1) bad.push(`${what}: scrolls sideways`);
+        if (m.ordered) bad.push(`${what}: ${m.ordered} elements use CSS order`);
+        if (c.w < 840 && !m.inDom) bad.push(`${what}: Train's cards are not in phone order in the DOM`);
+        if (c.w < 840 && m.tops.some((t, i) => i && t < m.tops[i - 1] - 1)) bad.push(`${what}: a card sits above the one before it in the DOM: ${m.tops.map(Math.round)}`);
+        if (c.w >= 840 && !open) { // balanced as drawn; opening the card is the reader's choice
+          const cols = await browser.eval("(() => { const q = (s) => { const e = document.querySelector('#main .train-cols > ' + s); const l = e && [...e.children].pop(); return l ? l.getBoundingClientRect().bottom + scrollY : null; }; return [q('.col-a'), q('.col-b')]; })()");
+          if (cols[0] == null || cols[1] == null || Math.abs(cols[0] - cols[1]) > 400) bad.push(`${what}: Train columns end ${cols.map(Math.round)}, more than 400px apart`);
+        }
+        if (shots) await browser.screenshot(`${shots}/train-why-${open ? 'open' : 'collapsed'}-${c.w}x${c.h}${c.ts !== 1 ? '-text' : ''}.png`);
+      }
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });
 }
 

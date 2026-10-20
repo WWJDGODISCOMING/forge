@@ -9,7 +9,7 @@ export function whyCardHtml(notes, stalledNames) {
   const stall = nStall ? `${nStall} main lifts have stalled (${stalledNames.map(esc).join(', ')}). A lighter week often breaks a plateau.` : '';
   const parts = [];
   if (notes.length) parts.push(`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`);
-  if (nStall) parts.push(`${nStall} lifts stalled`);
+  if (nStall) parts.push(`${nStall} stalled lifts`);
   return `<div class="card why-card" data-why-card>
     <button class="why-head" type="button" data-why-toggle aria-expanded="false" aria-controls="why-body">
       <span class="why-text"><span class="label">Why this workout</span><span class="small why-first">${parts.join(' · ')}</span></span>
