@@ -35,6 +35,8 @@ jobs:
       (github.event_name == 'issues' && (contains(github.event.issue.body, '@claude') || contains(github.event.issue.title, '@claude')))
     runs-on: ubuntu-latest
     timeout-minutes: 120  # big fit-and-finish parts ran past 60 min (Oct 10)
+    outputs:
+      saved_branch: ${{ steps.leftover_pr.outputs.branch }}
     permissions:
       contents: write
       pull-requests: write
@@ -103,8 +105,8 @@ jobs:
 
       # Oct 20: the first queued run (#158) worked 86 min and ended without pushing, so nothing could be reviewed.
       # Safety net: push whatever Claude left on the runner, and print why it stopped (final message + denied commands).
-      - name: Report how Claude finished (workflow_dispatch only)
-        if: always() && github.event_name == 'workflow_dispatch'
+      - name: Report how Claude finished
+        if: always() && steps.claude.outcome != 'skipped'
         env:
           EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
         run: |
@@ -141,6 +143,37 @@ jobs:
             printf 'Claude did not write a PR body or finish its Self-review checklist; this branch holds what it left on the runner (pushed by the workflow). Needs another @claude round before review.\n' > .queue/pr-body.md
           fi
 
+      # Oct 20: an @claude fix-up round on PR #162 ran 80 min. Claude's GitHub App token expires after 1 hour,
+      # so its later pushes (and its progress comment) failed with 401 and the whole round was lost.
+      # Same safety net for comment/review runs: push what Claude left on its claude/* branch with GITHUB_TOKEN
+      # (valid for the whole job). Never pushes main or non-claude branches.
+      - name: Push leftover work (comment/review runs)
+        id: leftover_pr
+        if: always() && github.event_name != 'workflow_dispatch' && steps.claude.outcome != 'skipped'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          branch=$(git rev-parse --abbrev-ref HEAD 2>/dev/null || echo "")
+          case "$branch" in claude/*) ;; *) echo "On '$branch', not a claude/* branch; nothing to save."; exit 0;; esac
+          git config user.name "claude[bot]"
+          git config user.email "41898282+claude[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain -- . ':!.claude-pr' ':!.queue')" ]; then
+            git add -A -- . ':!.claude-pr' ':!.queue'
+            git commit -q -m "Work in progress saved by the workflow (Claude's run ended with uncommitted changes)" || true
+          fi
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git fetch -q origin "$branch" 2>/dev/null && base="origin/$branch" || base="origin/main"
+          ahead=$(git rev-list --count "$base..HEAD" 2>/dev/null || echo 0)
+          echo "Commits on $branch not on $base: $ahead"
+          [ "$ahead" -gt 0 ] || { echo "Nothing to push."; exit 0; }
+          if git push origin "HEAD:refs/heads/$branch"; then
+            echo "branch=$branch" >> "$GITHUB_OUTPUT"
+            echo "::warning::Claude's unpushed work on $branch was pushed by the workflow."
+          else
+            echo "::error::Push of leftover work to $branch failed (workflow files can't be pushed with GITHUB_TOKEN)."
+          fi
+
       - name: Keep Claude's PR body (workflow_dispatch only)
         if: always() && github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@v4
@@ -175,10 +208,10 @@ jobs:
           echo "::error::PR for $branch must be opened by the review checkpoint (body is on issue #$ISSUE and in the pr-body artifact)."
           exit 1
 
-  # A PR opened with GITHUB_TOKEN doesn't fire pull_request workflows, so start the tests on the branch directly.
+  # A PR opened (or a push made) with GITHUB_TOKEN doesn't fire pull_request workflows, so start the tests on the branch directly.
   tests-on-branch:
     needs: claude
-    if: always() && github.event_name == 'workflow_dispatch' && needs.claude.result != 'skipped'
+    if: always() && needs.claude.result != 'skipped' && (github.event_name == 'workflow_dispatch' || needs.claude.outputs.saved_branch != '')
     runs-on: ubuntu-latest
     timeout-minutes: 5
     permissions:
@@ -190,6 +223,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           VERSION: ${{ inputs.version }}
+          SAVED: ${{ needs.claude.outputs.saved_branch }}
         run: |
-          branch="claude/queue-v$VERSION"
+          branch="${SAVED:-claude/queue-v$VERSION}"
           if gh api "repos/$REPO/branches/$branch" --silent 2>/dev/null; then gh workflow run tests.yml -R "$REPO" --ref "$branch"; else echo "No branch $branch."; fi
