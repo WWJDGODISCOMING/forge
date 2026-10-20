@@ -55,9 +55,21 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - The Knees/Lower back toggles also show on the Resume card while a workout is in progress.
   - VoiceOver labels, reduced motion, iPhone and Duo layouts; tests for switching gyms and the toggles mid-workout.
 
-## 5. #146 Apple Health Phase 1: import Apple workouts + Eaten vs burned + leg activity
-- Issue: #146
+## 5. #165 Food: barcode scan + brand fallback + custom foods
+- Issue: #165
 - Version: 0.16.44
+- Status: todo
+- Acceptance:
+  - Barcode scanner on Food > Add (camera): looks the barcode up in the existing food database first, then falls back to Open Food Facts (free, no key) on the server side.
+  - When typed search misses, also query Open Food Facts by brand and name and show the results under a 'Brand products' section.
+  - 'Create food' saves a custom food from the nutrition label (optional photo-of-label estimate via the existing AI provider, fully manual when AI is off) to his foods, so it shows up first next time; a barcode miss leads straight to Create food.
+  - Recent and favorite foods appear at the top of search.
+  - Works offline for saved foods, VoiceOver, iPhone and Duo layouts. Tests for the barcode hit, the barcode miss leading to Create food, and the fallback search.
+  - No new paid services; any new secret goes in Cloud Functions only.
+
+## 6. #146 Apple Health Phase 1: import Apple workouts + Eaten vs burned + leg activity
+- Issue: #146
+- Version: 0.16.45
 - Status: todo
 - Acceptance:
   - Read `workouts`, `heartRate`, `basalCalories`; `readHealthWorkouts()` pages with `anchor` and adds avg/max HR.
@@ -67,9 +79,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Pure `js/workouts/leg-activity.js` with the issue's exact conversion, weights and 4.0 cap; striped segment + legend + sheet on the leg rows; hard-set counts never change.
   - No Functions or rules change.
 
-## 6. #155 Ask Forge: 'Can I eat this?' food coach
+## 7. #155 Ask Forge: 'Can I eat this?' food coach
 - Issue: #155
-- Version: 0.16.45
+- Version: 0.16.46
 - Status: todo
 - Acceptance:
   - Ask sheet on Today and Food (text; dictation via the iOS keyboard).
@@ -79,9 +91,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - General guidance only, never diagnoses; per-profile needs respected (Hannah's low-histamine/pregnancy).
   - Premium UI, navy/cyan + depth tokens, Duo-ready.
 
-## 7. #147 Apple Health Phase 2: save Forge workouts to Apple Health
+## 8. #147 Apple Health Phase 2: save Forge workouts to Apple Health
 - Issue: #147
-- Version: 0.16.46
+- Version: 0.16.47
 - Status: todo
 - Acceptance:
   - Local Swift plugin `ForgeWorkouts` (requestAuthorization, saveWorkout via `HKWorkoutBuilder` with per-minute active-energy samples summing to kcal, pause events, sync identifier/version metadata, overlappingWorkouts); capgo stays for reads.
@@ -89,9 +101,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - `NSHealthUpdateUsageDescription` added and the share description/docs updated.
   - Phase 1 importer skips Forge-written workouts. No-op on the web.
 
-## 8. #153 Live workout screen + lock-screen Live Activity
+## 9. #153 Live workout screen + lock-screen Live Activity
 - Issue: #153
-- Version: 0.16.47
+- Version: 0.16.48
 - Status: todo
 - Acceptance:
   - HKWorkoutSession + HKLiveWorkoutBuilder (iOS 26+) by extending the #147 plugin.
@@ -100,9 +112,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - On end: saved to Apple Health and Forge with no duplicate against the #146 import.
   - Flags anything that needs the paid Apple account; notes the native rebuild.
 
-## 9. #157 Awards: badges flip in 3D
+## 10. #157 Awards: badges flip in 3D
 - Issue: #157
-- Version: 0.16.48
+- Version: 0.16.49
 - Status: todo
 - Acceptance:
   - Tap toggles; drag rotates with the finger and springs to front/back; light haptic at the flip midpoint.
@@ -111,9 +123,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - transform/perspective only, 60fps; Reduce Motion = crossfade; button role, VoiceOver reads the back.
   - Navy/cyan + depth tokens, Duo-ready grid.
 
-## 10. #160 Interactive charts: drag to scrub
+## 11. #160 Interactive charts: drag to scrub
 - Issue: #160
-- Version: 0.16.49
+- Version: 0.16.50
 - Status: todo
 - Acceptance:
   - Press-and-drag on Body weight, Today mini chart and Progress charts: vertical line snaps to the nearest point with an enlarged dot and a label (value · date) plus the trend value.
@@ -122,9 +134,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Never fights vertical scroll (starts on horizontal move or long-press).
   - Pointer events, 60fps, Reduce Motion respected, VoiceOver adjustable, Duo-ready.
 
-## 11. #161 Contrast + onboarding follow-up
+## 12. #161 Contrast + onboarding follow-up
 - Issue: #161
-- Version: 0.16.50
+- Version: 0.16.51
 - Status: todo
 - Acceptance:
   - Light-mode Done set button and How-To pill in the player reach 4.5:1.
@@ -132,9 +144,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Onboarding buttons never overlap on short screens (320x568, 375x667, Duo folded/landscape); tap targets ≥ 44 px.
   - A test asserts each ratio; the layout harness covers onboarding at short sizes.
 
-## 12. #58 slice: consistent native navigation (item 9)
+## 13. #58 slice: consistent native navigation (item 9)
 - Issue: #58
-- Version: 0.16.51
+- Version: 0.16.52
 - Status: todo
 - Acceptance:
   - Check the CHANGELOG first and only build what is not shipped yet.
@@ -142,9 +154,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - No rubber-band on fixed chrome, no text selection/callout or tap-highlight flash on chrome.
   - No white frame on cold start, tab switch or route change in light mode; lazy screens pre-imported on tab touchstart; images decoded before transitions.
 
-## 13. #58 slice: native pieces not covered by #147/#153 (item 10)
+## 14. #58 slice: native pieces not covered by #147/#153 (item 10)
 - Issue: #58
-- Version: 0.16.52
+- Version: 0.16.53
 - Status: todo
 - Acceptance:
   - Check the CHANGELOG first and only build what is not shipped yet.
@@ -152,9 +164,9 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Native share/save/print for exports and the doctor PDF; native camera capture for photos/meals with the pose ghost overlay (`NSCameraUsageDescription`); native barcode scanning in food search.
   - Everything is a no-op on the web.
 
-## 14. #58 slice: remaining audit gaps (items 5-8)
+## 15. #58 slice: remaining audit gaps (items 5-8)
 - Issue: #58
-- Version: 0.16.53
+- Version: 0.16.54
 - Status: todo
 - Acceptance:
   - Compare the shipped CHANGELOG to #58 items 5-8 and build the largest remaining gap only (one slice); name it in the PR title.
