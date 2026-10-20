@@ -22,6 +22,35 @@ export function injuryTags(text = '') {
   return Object.entries(INJURY_WORDS).filter(([, re]) => re.test(text)).map(([k]) => k);
 }
 
+/** Joints you can protect with the Knees / Lower back toggles (Train + Settings), as avoid-tags. */
+export const PROTECT_JOINTS = ['knee', 'lower_back'];
+
+/** The avoid tags from profile.protectJoints. Unknown values are ignored. */
+export function jointAvoidSet(profile) {
+  const list = profile && Array.isArray(profile.protectJoints) ? profile.protectJoints : [];
+  return new Set(list.filter((t) => PROTECT_JOINTS.includes(t)));
+}
+
+/** False when the move is tagged for a joint you're protecting (the swap picker hides those). */
+export function jointFriendly(ex, jointAvoid) {
+  return !(ex.avoid || []).some((t) => jointAvoid.has(t));
+}
+
+const JOINT_WORDS = { knee: { word: 'knees', badge: 'Knee-friendly' }, lower_back: { word: 'lower back', badge: 'Back-friendly' } };
+
+/** { from, badge, why } when Protect swapped `was` (what the plan would have had) for `now`, else null. */
+export function swapInfo(was, now, jointAvoid) {
+  if (!was || !now || was.id === now.id || !jointAvoid || !jointAvoid.size) return null;
+  const tags = (was.avoid || []).filter((t) => jointAvoid.has(t) && JOINT_WORDS[t]);
+  if (!tags.length) return null;
+  return {
+    from: was.id,
+    joints: tags,
+    badge: tags.map((t) => JOINT_WORDS[t].badge).join(' · '),
+    why: `Swapped from ${was.name} to go easy on your ${tags.map((t) => JOINT_WORDS[t].word).join(' and ')}.`,
+  };
+}
+
 const LEVEL = { beginner: 1, intermediate: 2, advanced: 3 };
 export const CYCLE_WEEKS = { beginner: 6, intermediate: 5, advanced: 4 };
 
@@ -79,11 +108,25 @@ export const PATTERN_FALLBACKS = {
   chest_fly: ['horizontal_push'],
 };
 
+/** Extra stand-ins used only while Protect is on: same legs, no deep knee bend or loaded spine. */
+export const JOINT_FALLBACKS = {
+  squat: ['knee_extension', 'hip_thrust', 'hip_abduction'],
+  lunge: ['knee_extension', 'hip_thrust', 'hip_abduction'],
+  knee_extension: ['hip_thrust'],
+  hinge: ['hip_thrust', 'knee_flexion'],
+};
+
+/** Patterns the Swap/Replace picker lists while Protect is on: the move's own plus its joint stand-ins, else null. */
+export function jointPickerPatterns(pattern, jointAvoid) {
+  if (!jointAvoid || !jointAvoid.size || !pattern) return null;
+  return [pattern, ...(JOINT_FALLBACKS[pattern] || []).filter((p) => p !== pattern)];
+}
+
 /** The fallback patterns for a slot, in order, without repeats or patterns the slot already tried. */
-export function fallbackPatterns(slot) {
+export function fallbackPatterns(slot, extra = null) {
   const out = [];
   for (const p of slot.patterns) {
-    for (const f of PATTERN_FALLBACKS[p] || []) {
+    for (const f of [...(PATTERN_FALLBACKS[p] || []), ...(extra ? extra[p] || [] : [])]) {
       if (!slot.patterns.includes(f) && !out.includes(f)) out.push(f);
     }
   }
@@ -210,7 +253,9 @@ export function generateWorkout(opts) {
     notes.push(`${prog.name} needs a barbell and rack. This location doesn’t have them, so similar moves were picked instead.`);
   }
 
-  const avoid = new Set(injuryTags(profile.injuries));
+  const injuryAvoid = new Set(injuryTags(profile.injuries));
+  const jointAvoid = jointAvoidSet(profile);
+  const avoid = new Set([...injuryAvoid, ...jointAvoid]);
   if (avoid.size) notes.push(`Skipping moves that commonly stress your ${[...avoid].map((t) => t.replace('_', ' ')).join(', ')}. Swap any exercise if it feels fine for you.`);
 
   const { deload, week, cycle } = deloadInfo(program, experience, now);
@@ -261,12 +306,20 @@ export function generateWorkout(opts) {
   const volume = prog.volume || 1;
   const items = [];
   let injuryDropped = false;
-  for (const slot of day.slots) {
-    let ex = pickExercise(slot, exercises, ctx);
-    if (!ex && !slot.userPicked) {
-      const fb = fallbackPatterns(slot);
-      if (fb.length) ex = pickExercise({ ...slot, patterns: fb, ids: [] }, exercises, ctx);
+  // With Protect on, also pick what the plan would have been without it, to label each swap.
+  const baseCtx = jointAvoid.size ? { ...ctx, avoid: injuryAvoid, used: new Set() } : null;
+  const pickFor = (slot, c, extra = null) => {
+    let e = pickExercise(slot, exercises, c);
+    if (!e && !slot.userPicked) {
+      const fb = fallbackPatterns(slot, extra);
+      if (fb.length) e = pickExercise({ ...slot, patterns: fb, ids: [] }, exercises, c);
     }
+    return e;
+  };
+  for (const slot of day.slots) {
+    let ex = pickFor(slot, ctx, jointAvoid.size ? JOINT_FALLBACKS : null);
+    const was = baseCtx ? pickFor(slot, baseCtx) : null;
+    if (was) baseCtx.used.add(was.id);
     const swapTo = ex && forced[ex.id] ? exercises.find((e) => e.id === forced[ex.id]) : null;
     if (swapTo && !ctx.used.has(swapTo.id) && canDo(swapTo, available)) ex = swapTo;
     if (!ex) {
@@ -286,7 +339,7 @@ export function generateWorkout(opts) {
     }
     ctx.used.add(ex.id);
     const exForTarget = slot.reps ? { ...ex, reps: slot.reps } : prog.repBias === 'high' && !ex.timed ? { ...ex, reps: [Math.max(ex.reps[0], 8), Math.max(ex.reps[1], 12)] } : ex;
-    const chainNext = ex.chain ? exercises.find((e) => e.chain === ex.chain && e.step === ex.step + 1 && canDo(e, available)) : null;
+    const chainNext = ex.chain ? exercises.find((e) => e.chain === ex.chain && e.step === ex.step + 1 && canDo(e, available) && jointFriendly(e, avoid)) : null;
     const target = nextTarget(exForTarget, historyFor(ex.id), {
       inventory: location.weight_inventory || {}, unit, role: slot.role, experience, deload: lighter, chainNext,
     });
@@ -295,8 +348,9 @@ export function generateWorkout(opts) {
     if (rLevel === 'amber' && slot.role === 'accessory' && !lighter) target.sets = Math.max(1, target.sets - 1);
     const wu = slot.role !== 'accessory' && target.weight ? warmups(ex, target.weight, { inventory: location.weight_inventory || {}, unit }) : [];
     const risky = (ex.avoid || []).filter((t) => avoid.has(t));
-    const warning = risky.length ? `Heads up: this commonly stresses your ${risky.map((t) => t.replace('_', ' ')).join(', ')} (from your injury note). Swap it if it bothers you.` : null;
-    items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning, ...(restSec[ex.id] ? { rest_sec: restSec[ex.id] } : {}) });
+    const warning = risky.length ? `Heads up: this commonly stresses your ${risky.map((t) => t.replace('_', ' ')).join(', ')} (${risky.some((t) => injuryAvoid.has(t)) ? 'from your injury note' : 'you turned on Protect'}). Swap it if it bothers you.` : null;
+    const swap = swapInfo(was, ex, jointAvoid);
+    items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning, ...(swap ? { swap } : {}), ...(restSec[ex.id] ? { rest_sec: restSec[ex.id] } : {}) });
   }
 
   if (items.length < 4 && !injuryDropped) {

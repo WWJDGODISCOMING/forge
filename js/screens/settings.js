@@ -13,6 +13,7 @@ import { VERSION } from '../version.js';
 import { unlockAudio, coach, sfx, beep } from '../ui/sound.js';
 import { hapticSupport, haptics } from '../ui/haptic.js';
 import { icon } from '../ui/icons.js';
+import { protectPillsHtml, protectSummary, bindProtect, SAFETY_LINE } from '../ui/protect-joints.js';
 import { openProteinGoal, proteinSummary } from './protein-goal.js';
 import { openRestDefault, restDefaultTitle } from './rest-default.js';
 import { openFoodPrefs, prefsSummary } from './food-prefs.js';
@@ -79,6 +80,9 @@ export function renderSettings(el) {
             <label><input type="radio" name="player" value="guided" ${pl === 'guided' ? 'checked' : ''}><span>Guided</span></label>
             <label><input type="radio" name="player" value="list" ${pl === 'list' ? 'checked' : ''}><span>List</span></label>
           </div>
+        </div>
+        <div class="g-row col static protect-set"><span class="g-text"><span>Joints to protect</span><small data-protect-sub>${esc(protectSummary())}. For pain that lasts longer than a day. Swaps in easier moves for the same muscles. ${esc(SAFETY_LINE)}</small></span>
+          ${protectPillsHtml()}
         </div>
         <button type="button" class="g-row" data-rest-default><span class="g-text"><span>${esc(restDefaultTitle(st))}</span><small>Timer after every set. Change one exercise from its dots menu.</small></span><span class="chev">${icon('chev')}</span></button>
         <div class="g-row col static"><span>Coach audio</span>
@@ -199,6 +203,7 @@ export function renderSettings(el) {
     if (e.target.checked) setTimeout(() => sfx.charge(0.5), 50);
   });
   $('input[name=mealai]', el).addEventListener('change', (e) => { patch('settings', 'main', { meal_ai: e.target.checked }); haptics.select(); });
+  bindProtect($('.protect-set', el), () => { $('[data-protect-sub]', el).innerHTML = `${esc(protectSummary())}. For pain that lasts longer than a day. Swaps in easier moves for the same muscles. ${esc(SAFETY_LINE)}`; });
   $('input[name=ratesets]', el).addEventListener('change', (e) => localStorage.setItem('forge.rateSets', e.target.checked ? '1' : '0'));
   $('input[name=haptics]', el).addEventListener('change', (e) => patch('settings', 'main', { haptics: e.target.checked }));
 

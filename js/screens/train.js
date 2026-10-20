@@ -22,6 +22,8 @@ import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
 import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
+import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
+import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
@@ -92,6 +94,16 @@ function dayChoices(program) {
   if (p.custom) return (program.custom_days || []).map((d, i) => [`custom_${i}`, d.name]);
   const keys = p.smart ? [...new Set([...smartDayTypes(state.profile.trainingDays || 3), 'full_a', 'upper', 'lower', 'push', 'pull', 'legs', 'boxing'])] : p.days;
   return keys.map((k) => [k, DAY_TYPES[k].label]);
+}
+
+// The profile listener re-renders Train again right after a toggle, so the scroll/focus fix-up outlives one render.
+let pendingProtect = null;
+function keepProtectInPlace(el) {
+  const p = pendingProtect;
+  if (!p || Date.now() - p.at > 2000) { pendingProtect = null; return; }
+  const after = $('.protect-row', el)?.getBoundingClientRect().top;
+  if (p.top != null && after != null && after !== p.top) window.scrollBy({ top: after - p.top, behavior: 'instant' });
+  $(`[data-protect="${p.key}"]`, el)?.focus({ preventScroll: true });
 }
 
 export function renderTrain(el) {
@@ -179,6 +191,14 @@ export function renderTrain(el) {
   );
   bindRecoveryCard(el, rec);
   if (plan) wirePreview(el, plan);
+  bindProtect(el, (list, key) => {
+    flash = new Set();
+    if (!el.isConnected) return;
+    // Keep the Protect row where the thumb tapped it, even though the list above it changes height.
+    pendingProtect = { key, top: $('.protect-row', el)?.getBoundingClientRect().top, at: Date.now() };
+    renderTrain(el);
+  });
+  keepProtectInPlace(el);
   const start = $('[data-start]', el);
   if (start)
     start.onclick = () => startPlan(plan);
@@ -200,7 +220,8 @@ function previewCard(plan, { d, loc, program, u }) {
     return `<li class="pv-ex${flash.has(ex.id) ? ' flash' : ''}">
       <div class="pv-thumb" data-thumb="${esc(ex.id)}" aria-hidden="true"></div>
       <div class="pv-txt">${label ? `<span class="pv-tag">${label}</span>` : ''}<b>${esc(ex.name)}</b>
-        <small class="muted">${esc(targetText(it.target, u, ex))}${it.warmups.length ? ` · ${it.warmups.length} warm-up` : ''}${rest}</small></div>
+        <small class="muted">${esc(targetText(it.target, u, ex))}${it.warmups.length ? ` · ${it.warmups.length} warm-up` : ''}${rest}</small>
+        ${it.swap ? `<span class="swap-badge">${esc(it.swap.badge)}</span><small class="muted swap-why">${esc(it.swap.why)}</small>` : ''}</div>
       <button class="icon-btn pv-more" data-more="${i}" aria-label="More for ${esc(ex.name)}">${icon('more')}</button>
     </li>`;
   };
@@ -235,6 +256,7 @@ function previewCard(plan, { d, loc, program, u }) {
           </ul>
         </div>
         <ol class="pv-list">${blocks.join('')}</ol>
+        ${protectRowHtml()}
         <button class="btn" data-start>Start workout</button>` : '<p class="muted">Nothing fits this location. Add equipment in Settings → Locations.</p>'}
       </div>`;
 }
@@ -437,11 +459,15 @@ function exerciseMore(el, plan, i) {
       const loc = activeLocation();
       const avail = expandEquipment(loc ? loc.equipment : []);
       const inPlan = new Set(plan.exercises.map((x) => x.exercise_id));
+      // A Protect stand-in is picked from its original slot's movement, so Replace still has options.
+      const slotEx = (it.swap && exerciseById(it.swap.from)) || ex;
       openExercisePicker({
         title: `Replace ${ex.name}`,
         onlyPattern: ex.pattern,
-        filter: (c) => !inPlan.has(c.id) && canDo(c, avail),
-        availableNote: 'Same movement, doable at this location.',
+        patterns: jointPickerPatterns(slotEx.pattern, jointAvoidSet(state.profile)),
+        primary: slotEx.primary || [],
+        filter: (c) => !inPlan.has(c.id) && canDo(c, avail) && jointFriendly(c, jointAvoidSet(state.profile)),
+        availableNote: jointAvoidSet(state.profile).size ? 'Same movement, doable here, and easy on the joints you protect.' : 'Same movement, doable at this location.',
         onPick: (c) => {
           // Key by what the generator picks for this slot, so the swap survives re-renders.
           const orig = Object.keys(ed.forced).find((k) => ed.forced[k] === ex.id) || ex.id;

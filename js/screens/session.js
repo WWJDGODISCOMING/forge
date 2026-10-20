@@ -2,6 +2,7 @@
 // big one-handed rows, last session inline, rest bar, supersets, RIR, warm-ups, swaps, plate calculator,
 // pause, and the same power-up / PR celebrations as the player. State lives in js/workouts/live.js.
 import { state } from '../state.js';
+import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { esc, $, $$, sheet, toast, confirmSheet } from '../ui.js';
 import { historyIndex, unit, activeLocation } from '../workouts/plan.js';
 import { exerciseById } from '../workouts/library.js';
@@ -330,8 +331,10 @@ function exerciseMenu(i, el) {
         openExercisePicker({
           title: `Swap ${ex.name}`,
           onlyPattern: ex.pattern,
-          filter: (c) => c.id !== ex.id && canDo(c, avail),
-          availableNote: 'Same movement, doable at this location.',
+          patterns: jointPickerPatterns(ex.pattern, jointAvoidSet(state.profile)),
+          primary: ex.primary || [],
+          filter: (c) => c.id !== ex.id && canDo(c, avail) && jointFriendly(c, jointAvoidSet(state.profile)),
+          availableNote: jointAvoidSet(state.profile).size ? 'Same movement, doable here, and easy on the joints you protect.' : 'Same movement, doable at this location.',
           onPick: (c) => swapExercise(i, c, el),
         });
       } else if (a === 'plates') {

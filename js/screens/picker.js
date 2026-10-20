@@ -19,16 +19,19 @@ export function equipmentText(ex) {
 }
 
 /**
- * opts: { title, filter(ex) → bool, onlyPattern, onPick(ex), availableNote }
+ * opts: { title, filter(ex) → bool, onlyPattern, patterns, primary, onPick(ex), availableNote }
+ * `patterns` (with Protect on) makes the default view list all of them, shared `primary` muscles first.
  */
-export function openExercisePicker({ title = 'Choose an exercise', filter = () => true, onlyPattern = null, onPick, availableNote = '' }) {
+export function openExercisePicker({ title = 'Choose an exercise', filter = () => true, onlyPattern = null, patterns = null, primary = [], onPick, availableNote = '' }) {
   let q = '';
-  let pattern = onlyPattern || '';
+  const SIMILAR = '__similar';
+  let pattern = patterns && patterns.length > 1 ? SIMILAR : onlyPattern || '';
   sheet(title, (body, close) => {
     body.innerHTML = `
       <div class="stack">
         <input type="search" placeholder="Search exercises" aria-label="Search exercises" data-q>
         <select aria-label="Movement" data-pattern>
+          ${patterns && patterns.length > 1 ? `<option value="${SIMILAR}" ${pattern === SIMILAR ? 'selected' : ''}>Similar, easy on your joints</option>` : ''}
           <option value="">All movements</option>
           ${Object.entries(PATTERN_LABELS).map(([k, l]) => `<option value="${k}" ${k === pattern ? 'selected' : ''}>${esc(l)}</option>`).join('')}
         </select>
@@ -36,11 +39,12 @@ export function openExercisePicker({ title = 'Choose an exercise', filter = () =
         <ul class="list picker-list" data-list></ul>
       </div>`;
     const list = $('[data-list]', body);
+    const shared = (e) => (pattern === SIMILAR ? (e.primary || []).filter((m) => primary.includes(m)).length : 0);
     const draw = () => {
       const words = q.toLowerCase().split(/\s+/).filter(Boolean);
       const items = allExercises()
-        .filter((e) => filter(e) && (!pattern || e.pattern === pattern) && words.every((w) => e.name.toLowerCase().includes(w)))
-        .sort((a, b) => a.name.localeCompare(b.name))
+        .filter((e) => filter(e) && (!pattern || (pattern === SIMILAR ? patterns.includes(e.pattern) : e.pattern === pattern)) && words.every((w) => e.name.toLowerCase().includes(w)))
+        .sort((a, b) => shared(b) - shared(a) || a.name.localeCompare(b.name))
         .slice(0, 80);
       list.innerHTML = items.length
         ? items.map((e) => `
