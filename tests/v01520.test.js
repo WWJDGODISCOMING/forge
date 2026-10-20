@@ -71,7 +71,7 @@ test('Train: location chips, Resume, preview, Recovery (fresh stat + map in one 
   const t = src('js/screens/train.js');
   const body = t.slice(at(t, 'el.innerHTML = `'), at(t, 'flash = new Set(); // the highlight'));
   // DOM order is col-a (map, Program, Tools, History) then col-b (Resume, workout, Why); CSS `order` gives the phone order in TRAIN_ORDER.
-  inOrder(body, ['aria-label="Location"', '${recoveryCardHtml(rec)}', '<p class="label">Program</p>', 'class="tools"', 'data-train-history', 'class="card resume"', '${plan ? previewCard', '${whyCard(plan, stalled)}'], 'Train');
+  inOrder(body, ['aria-label="Location"', '${recoveryCardHtml(rec)}', '<p class="label">Program</p>', 'class="tools"', 'data-train-history', 'class="card resume"', '${plan ? previewCard', '${whyCardHtml('], 'Train');
   assert(!body.includes('href="#/history"><span class="t-ic"'), 'History is its own row, not a tool tile');
   const r = src('js/ui/recovery-card.js');
   inOrder(r, ['fresh muscle groups', '${bodyMap(rec'], 'Recovery card');

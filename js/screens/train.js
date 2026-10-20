@@ -22,6 +22,7 @@ import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
 import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
+import { whyCardHtml } from '../ui/why-card.js';
 import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
 import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
@@ -169,7 +170,7 @@ export function renderTrain(el) {
         </a>` : ''}
 
       ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
-      ${whyCard(plan, stalled)}
+      ${whyCardHtml(plan ? plan.notes : [], stalled.map((id) => exerciseById(id)?.name || id))}
       ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
       </div>
       </div>
@@ -210,27 +211,6 @@ export function renderTrain(el) {
   $('[data-focus]', el).onclick = () => openFocusPicker();
   $('[data-cardio]', el).onclick = () => openCardioLog();
   $('[data-plates]', el).onclick = () => openPlateCalculator();
-}
-
-/** One compact, expandable card for everything that explains today's workout (notes, stalled lifts). */
-function whyCard(plan, stalled) {
-  const notes = [...(plan ? plan.notes : [])];
-  const nStall = stalled.length >= 2 ? stalled.length : 0;
-  if (!notes.length && !nStall) return '';
-  const stall = nStall ? `${nStall} main lifts have stalled (${stalled.map((id) => esc(exerciseById(id)?.name || id)).join(', ')}). A lighter week often breaks a plateau.` : '';
-  const parts = [];
-  if (notes.length) parts.push(`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`);
-  if (nStall) parts.push(`${nStall} lifts stalled`);
-  return `<div class="card why-card" data-why-card>
-    <button class="why-head" type="button" data-why-toggle aria-expanded="false" aria-controls="why-body">
-      <span class="why-text"><span class="label">Why this workout</span><span class="small why-first">${parts.join(' · ')}</span></span>
-      <span class="why-chev" aria-hidden="true">${icon('chev')}</span></button>
-    <div class="why-body stack" id="why-body" data-why-body hidden>
-      ${notes.map((x) => `<p class="small">${esc(x)}</p>`).join('')}
-      ${stall ? `<p class="small">${stall}</p>` : ''}
-      ${nStall ? '<div class="row gap"><button class="btn small" data-deload>Start a deload week</button></div>' : ''}
-    </div>
-  </div>`;
 }
 
 function previewCard(plan, { d, loc, program, u }) {

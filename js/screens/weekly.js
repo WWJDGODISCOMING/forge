@@ -138,7 +138,7 @@ export function renderWeekly(el) {
   const share = $('[data-share]', el);
   if (share) share.onclick = async () => {
     const cur = mondayOf(todayKey());
-    const text = reportText(r, u, weekStart !== cur ? reportFor(cur).training : null, todayKey());
+    const text = reportText(r, u, weekStart === shiftWeek(cur, -1) ? reportFor(cur).training : null, todayKey());
     const copy = async () => {
       try { await navigator.clipboard.writeText(text); toast('Copied to your clipboard'); } catch { toast('Couldn’t copy. Try again.'); }
     };

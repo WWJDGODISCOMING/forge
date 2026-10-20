@@ -171,6 +171,7 @@ const SHELL = [
   './js/ui/sharecard.js',
   './js/ui/rings.js',
   './js/ui/recovery-card.js',
+  './js/ui/why-card.js',
   './js/ui/badges.js',
   './js/workouts/awards-store.js',
   './js/workouts/rings.js',
