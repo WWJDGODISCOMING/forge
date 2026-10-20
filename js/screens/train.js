@@ -131,6 +131,8 @@ export function renderTrain(el) {
 
       <div class="train-cols">
       <div class="col col-a">
+      ${recoveryCardHtml(rec)}
+
       ${active ? `
         <a class="card resume" href="${playerRoute()}">
           <p class="label">In progress</p>
@@ -139,19 +141,12 @@ export function renderTrain(el) {
           <span class="btn">Resume workout</span>
         </a>` : ''}
 
-      ${stalled.length >= 2 ? `
-        <div class="notice warn">
-          ${stalled.length} main lifts have stalled (${stalled.map((id) => esc(exerciseById(id)?.name || id)).join(', ')}). A lighter week often breaks a plateau.
-          <div class="row gap" style="margin-top:8px"><button class="btn small" data-deload>Start a deload week</button></div>
-        </div>` : ''}
-
       ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
+      ${whyCard(plan, stalled)}
       ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
 
       </div>
       <div class="col col-b">
-      ${recoveryCardHtml(rec)}
-
       <div class="card">
         <div class="row between center">
           <p class="label">Program</p>
@@ -202,12 +197,37 @@ export function renderTrain(el) {
   const start = $('[data-start]', el);
   if (start)
     start.onclick = () => startPlan(plan);
+  const why = $('[data-why-toggle]', el);
+  if (why) why.onclick = () => {
+    const open = why.getAttribute('aria-expanded') !== 'true';
+    why.setAttribute('aria-expanded', String(open));
+    $('[data-why-body]', el).hidden = !open;
+    el.querySelector('[data-why-card]').classList.toggle('open', open);
+  };
   const dl = $('[data-deload]', el);
   if (dl) dl.onclick = () => { startDeload(); toast('Deload week started'); };
   $('[data-program]', el).onclick = () => openProgramPicker();
   $('[data-focus]', el).onclick = () => openFocusPicker();
   $('[data-cardio]', el).onclick = () => openCardioLog();
   $('[data-plates]', el).onclick = () => openPlateCalculator();
+}
+
+/** One compact, expandable card for everything that explains today's workout (notes, stalled lifts). */
+function whyCard(plan, stalled) {
+  const notes = [...(plan ? plan.notes : [])];
+  const stall = stalled.length >= 2 ? `${stalled.length} main lifts have stalled (${stalled.map((id) => esc(exerciseById(id)?.name || id)).join(', ')}). A lighter week often breaks a plateau.` : '';
+  if (!notes.length && !stall) return '';
+  const first = notes.length ? esc(notes[0]) : stall;
+  return `<div class="card why-card" data-why-card>
+    <button class="why-head" type="button" data-why-toggle aria-expanded="false" aria-controls="why-body">
+      <span class="why-text"><span class="label">Why this workout</span><span class="small why-first">${first}</span></span>
+      <span class="why-chev" aria-hidden="true">${icon('chev')}</span></button>
+    <div class="why-body stack" id="why-body" data-why-body hidden>
+      ${notes.slice(1).map((x) => `<p class="small">${esc(x)}</p>`).join('')}
+      ${stall && notes.length ? `<p class="small">${stall}</p>` : ''}
+      ${stall ? '<div class="row gap"><button class="btn small" data-deload>Start a deload week</button></div>' : ''}
+    </div>
+  </div>`;
 }
 
 function previewCard(plan, { d, loc, program, u }) {
@@ -240,7 +260,6 @@ function previewCard(plan, { d, loc, program, u }) {
           <span class="pill">${icon('timer')} ~${plan.est_minutes} min</span>
           ${plan.focus && plan.focus.length ? `<span class="pill pill-focus">Focus: ${esc(plan.focusLabel)}</span>` : ''}
         </div>
-        ${plan.notes.map((x) => `<p class="notice info small">${esc(x)}</p>`).join('')}
         ${n ? `
         <div class="pv-sum">
           ${bodyMap(planValues(plan), { size: 'mini', caption: false })}

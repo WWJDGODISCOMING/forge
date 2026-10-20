@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.41 — Train and Today, in a better order (2026-10-20)
+
+Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- Train now shows the muscle map, then your workout, then a small "Why this workout" card.
+- Today starts with a bigger Ask Coach. Readiness moved down.
+- The weekly report says "Last week" with dates, and shows this week's count (like 1/4) too.
+
 ## 0.16.40 — Joints to protect (2026-10-20)
 
 Easier workouts for sore knees or a sore lower back. Cloud Functions and `firestore.rules` did not change.

@@ -1,10 +1,10 @@
 // Where the cards go on Today and Train (v0.15.20, part 3 of the approved IA). Pure, so the rules are unit-tested.
 
 /** Today, top to bottom. `alert` is the single banner slot; Weekly report and Score share `report`; the rest are cards. */
-export const TODAY_ORDER = ['alert', 'readiness', 'workout', 'rings', 'missions', 'food', 'coach', 'weight', 'report', 'insights', 'photo'];
+export const TODAY_ORDER = ['alert', 'coach', 'workout', 'rings', 'missions', 'food', 'weight', 'report', 'photo', 'readiness', 'insights'];
 
 /** Train, top to bottom. The fresh-muscle stat and the Recovery map are one card. */
-export const TRAIN_ORDER = ['places', 'resume', 'workout', 'recovery', 'program', 'tools', 'history'];
+export const TRAIN_ORDER = ['places', 'recovery', 'resume', 'workout', 'why', 'program', 'tools', 'history'];
 
 /** Banners that could show on Today, most important first. Only the first one with content shows. */
 export const ALERT_PRIORITY = ['refresh', 'flags', 'install', 'program-done', 'badge', 'tour-offer'];

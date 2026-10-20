@@ -695,7 +695,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         const shown = m.slots.filter((x) => x.t != null);
         if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
-        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5].includes(x.o) ? 'a' : 'b') && !([6, 9].includes(x.o) && x.col)) // 6 and 9 (coach line, insights) go on the shorter side
+        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5].includes(x.o) ? 'a' : 'b') && !([6, 9, 10].includes(x.o) && x.col)) // 6, 9 and 10 (weight, readiness, insights) go on the shorter side
           bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }

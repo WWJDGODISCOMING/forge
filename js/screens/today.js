@@ -39,7 +39,8 @@ function coachTeaser() {
 import { topInsights, dismissInsight, reportFor, currentReportWeek, currentGoalPath } from '../health/intel.js';
 import { compactInsightsHtml, bindInsightCards } from '../health/cards.js';
 import { goalLine } from '../health/goalpath.js';
-import { showReportCard } from '../health/weekly.js';
+import { showReportCard, mondayOf } from '../health/weekly.js';
+import { weekTitle } from '../health/weektext.js';
 import { loadExpiryInfo, refreshDue } from '../native/expiry.js';
 import { refreshBannerHtml, openRefreshSheet } from '../native/refresh-ui.js';
 
@@ -68,7 +69,7 @@ function foodRow(t) {
 
 /** One line under Readiness: opens Coach. Kept to a single line so Today stays short. */
 function coachLine() {
-  return `<a class="card coach-line nav-card" href="#/coach" data-coach-card>
+  return `<a class="card coach-line coach-line-big nav-card" href="#/coach" data-coach-card>
     <span class="coach-line-ic" aria-hidden="true">${icon('help')}</span><span class="coach-line-text">${esc(coachTeaser())}</span><span class="chev" aria-hidden="true">${icon('chev')}</span></a>`;
 }
 
@@ -158,13 +159,16 @@ function scoreCard() {
     <span class="chev" aria-hidden="true">${icon('chev')}</span></a>`;
 }
 
-/** Sunday / Monday: the weekly report, with its one suggestion. */
+/** Sunday / Monday: the weekly report, with its one suggestion. Titled by the week it covers, with this week's live count beside it. */
 function weeklyCard() {
   if (!showReportCard(todayKey())) return '';
-  const r = reportFor(currentReportWeek());
+  const wk = currentReportWeek();
+  const r = reportFor(wk);
   if (!r.hasData) return '';
+  const cur = mondayOf(todayKey());
+  const now = wk === cur ? null : reportFor(cur).training; // this week so far (on Sunday the report already is this week)
   return `<a class="card stack nav-card" href="#/weekly" data-weekly-card>
-    <p class="label">${r.partial ? 'Your week so far' : 'Your week'}</p>
+    <div class="row between center"><p class="label">${esc(weekTitle(r, todayKey()))}</p>${now ? `<span class="small muted nb" data-week-live>This week ${now.workouts}/${now.planned} so far</span>` : ''}</div>
     <p class="big-title">${r.training.workouts} of ${r.training.planned} workouts${r.score.delta ? ` · Score ${r.score.delta > 0 ? 'up' : 'down'} ${Math.abs(round(r.score.delta))}` : ''}</p>
     <p class="small muted">${esc(r.suggestion.text)}</p><span class="small link">See the full report${icon('chev')}</span></a>`;
 }
@@ -185,8 +189,8 @@ function greeting() {
 
 // Two columns (>= 840px): slot numbers on the left or right. The DOM stays in the phone's reading order and only
 // moves into columns while the wide query matches, so VoiceOver and Tab order follow the screen on every size.
-const LEFT_SLOTS = new Set(['1', '3', '5']); // readiness, rings, food; the rest go right
-const FLEX_SLOTS = ['6', '9']; // coach line, insights: they go on whichever side leaves the two columns closest in height (a rest day has no workout card, so the right column is shorter)
+const LEFT_SLOTS = new Set(['1', '3', '5']); // coach, rings, food; the rest go right
+const FLEX_SLOTS = ['6', '9', '10']; // weight, readiness, insights: they go on whichever side leaves the two columns closest in height (a rest day has no workout card, so the right column is shorter)
 let wideQuery = null;
 let wideListener = null;
 function arrangeTodayCols(el) {
@@ -278,9 +282,11 @@ export function renderToday(el) {
       <div class="alert-slot" data-alert-slot>${alert.html}</div>
 
       <div class="today-cols" data-today-cols>
-      <div class="slot" data-o="1">${readinessCard()}</div>
+      <div class="slot" data-o="1">${coachLine()}</div>
+
 
       <div class="slot" data-o="2">${workoutCard()}</div>
+
 
       <div class="slot" data-o="3">
       <div class="card rings-card">
@@ -290,13 +296,14 @@ export function renderToday(el) {
       </div>
       </div>
 
+
       <div class="slot" data-o="4">${missionsCard()}</div>
+
 
       <div class="slot" data-o="5">${foodRow(t)}</div>
 
-      <div class="slot" data-o="6">${coachLine()}</div>
 
-      <div class="slot" data-o="7">
+      <div class="slot" data-o="6">
       <div class="card weight-card">
         <div class="row between center card-head"><p class="label">Weight</p><a class="card-link" href="#/body/weight">See chart${icon('chev', { size: 14 })}</a></div>
         <div class="row between center weight-main" ${reading ? 'role="link" tabindex="0" data-weight-open' : ''}>
@@ -316,11 +323,17 @@ export function renderToday(el) {
       </div>
       </div>
 
-      <div class="slot" data-o="8">${report.html}</div>
 
-      <div class="slot" data-o="9">${insightsBlock()}</div>
+      <div class="slot" data-o="7">${report.html}</div>
 
-      <div class="slot" data-o="10"><div data-photo-reminder></div></div>
+
+      <div class="slot" data-o="8"><div data-photo-reminder></div></div>
+
+      <div class="slot" data-o="9">${readinessCard()}</div>
+
+
+      <div class="slot" data-o="10">${insightsBlock()}</div>
+
       </div>
 
       <p class="disclaimer">General fitness information, not medical advice.</p>

@@ -292,3 +292,8 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 @media (prefers-reduced-motion: reduce) { .plan-spin svg { animation: none; opacity: .6; } }
 .plan-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: var(--s-2); }
 @media (prefers-reduced-motion: no-preference) { .plan-open:active { opacity: .7; } }
+
+/* v0.16.41: Ask Coach is the first, bigger, full-width row on Today */
+.coach-line-big { min-height: 64px; padding-top: var(--s-3); padding-bottom: var(--s-3); }
+.coach-line-big .coach-line-text { font-size: calc(17px * var(--ts)); font-weight: 700; }
+.coach-line-big .coach-line-ic svg { width: 26px; height: 26px; }
