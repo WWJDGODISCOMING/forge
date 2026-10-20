@@ -673,7 +673,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
         const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
         const fr = document.querySelector('#main .food-row-compact'); if (fr) { const rg = fr.querySelector('.food-card-ring'), lb = fr.querySelector('[data-food-log]'); if (rg && lb) { if (Math.abs(rg.getBoundingClientRect().top - lb.getBoundingClientRect().top) > 6 && Math.abs(rg.getBoundingClientRect().bottom - lb.getBoundingClientRect().bottom) > 6 && Math.abs((rg.getBoundingClientRect().top + rg.getBoundingClientRect().bottom) - (lb.getBoundingClientRect().top + lb.getBoundingClientRect().bottom)) > 12) wrap.push('wraps: Today food row'); if (lb.getBoundingClientRect().height < 43.5) wrap.push('small: Log food'); } }
-        const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
+        const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), coach: !!(c && c.matches('[data-coach-card]')), coachMin: c ? parseFloat(getComputedStyle(c).minHeight) : 0, col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
         const done = document.querySelector('#main [data-done-label]'), dq = done && done.getBoundingClientRect();
         const ch = document.querySelector('#main svg.chart'), cq = ch && ch.getBoundingClientRect(), card = ch && ch.closest('.card'), cdq = card && card.getBoundingClientRect();
         const ordered = [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length;
@@ -682,7 +682,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         const dom = a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null;
         const h1 = document.querySelector('#main h1'), tabs = [...document.querySelectorAll('#nav a')].map((e) => e.getBoundingClientRect().height);
         const rows = [...document.querySelectorAll('#main .set-nav [data-pane]')], lastRow = rows.length ? rows[rows.length - 1].getBoundingClientRect() : null;
-        return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, trainCols: (() => { const q = (c) => { const e = document.querySelector('#main .train-cols > .col-' + c); if (!e) return null; const last = [...e.children].filter((k) => k.getBoundingClientRect().height > 1).pop(); return last ? last.getBoundingClientRect().bottom + scrollY : null; }; return { a: q('a'), b: q('b') }; })(), wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
       const cols = route === 'today' || route === 'train' || route === 'body' || route === 'food' || route === 'score' || route === 'play' || route === 'settings';
@@ -691,11 +691,18 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
       const fresh = m.wrap.filter((x) => !base.has(x));
       if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
       if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
+      if (route === 'today' && m.slots.length) { // Ask Coach: first card, original size (same as main: a 48px one-line row), never enlarged
+        const first = m.slots.find((x) => x.t != null);
+        if (!first || !first.coach) bad.push(`${at}: Ask Coach is not the first card on Today`);
+        else if (first.coachMin !== 48) bad.push(`${at}: Ask Coach min-height is ${first.coachMin}, should stay 48`);
+        if (w >= 840 && first && first.col !== 'a') bad.push(`${at}: Ask Coach should sit at the top of the first column`);
+      }
+      if (route === 'train' && w >= 840 && m.trainCols.a != null && m.trainCols.b != null && Math.abs(m.trainCols.a - m.trainCols.b) > 400) bad.push(`${at}: Train columns end ${Math.round(m.trainCols.a)} and ${Math.round(m.trainCols.b)}, more than 400px apart`);
       if (route === 'today') { // reading order (VoiceOver, Tab) must match the screen: DOM order = visual order on a phone, and the right column per card on two columns
         const shown = m.slots.filter((x) => x.t != null);
         if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
-        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5].includes(x.o) ? 'a' : 'b') && !([6, 9, 10].includes(x.o) && x.col)) // 6, 9 and 10 (weight, readiness, insights) go on the shorter side
+        if (w >= 840) for (const x of m.slots) if (x.col !== (x.o === 1 ? 'a' : 'b') && !([3, 4, 5, 6, 9, 10].includes(x.o) && x.col)) // 3, 4, 5, 6, 9 and 10 (rings, missions, food, weight, readiness, insights) go on the shorter side
           bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
