@@ -2,8 +2,8 @@
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import { EXERCISES } from '../js/workouts/exercises.js';
-import { LOCATION_PRESETS, YMCA_PRESET } from '../js/workouts/equipment.js';
-import { generateWorkout, jointAvoidSet, jointFriendly } from '../js/workouts/generator.js';
+import { LOCATION_PRESETS, YMCA_PRESET, expandEquipment, canDo } from '../js/workouts/equipment.js';
+import { generateWorkout, jointAvoidSet, jointFriendly, jointPickerPatterns } from '../js/workouts/generator.js';
 import { DAY_TYPES } from '../js/workouts/programs.js';
 import { MUSCLES } from '../js/workouts/recovery.js';
 import { SAFETY_LINE, protectSummary, protectRowHtml } from '../js/ui/protect-view.js';
@@ -135,4 +135,37 @@ test('Train renders the toggles before Start workout; both are real switches', (
 test('no rules change: the field lives on the profile doc', () => {
   assert(!/protectJoints/.test(src('firestore.rules')));
   assert(/protectJoints/.test(src('js/ui/protect-joints.js')));
+});
+
+test('Next step never points at a move tagged for a protected joint', () => {
+  const top = () => [{ date: '2026-10-01', sets: [{ weight: 0, reps: 12, rir: 2 }, { weight: 0, reps: 12, rir: 2 }, { weight: 0, reps: 12, rir: 2 }] }];
+  const cases = [['single_leg_rdl_bw', 'knee'], ['hanging_knee_raise', 'lower_back']];
+  for (const [from, joint] of cases) {
+    for (const loc of [GYM, HOME, { equipment: [], weight_inventory: {} }]) for (const d of DAYS) {
+      const plan = generateWorkout({ programKey: 'smart', dayType: d, location: loc, exercises: EXERCISES, unit: 'lb', recovery: fresh, profile: { ...base, protectJoints: [joint] }, historyFor: (id) => (id === from ? top() : []) });
+      for (const it of plan.exercises) if (it.target.nextStepId) assert(jointFriendly(byId(it.target.nextStepId), new Set([joint])), `${d}: ${it.target.nextStepId} is tagged ${joint}`);
+    }
+  }
+  assert(/jointFriendly\(e, avoid\)/.test(src('js/workouts/generator.js')), 'chainNext uses the combined avoid set');
+});
+
+test('Swap/Replace pickers also list joint stand-ins so they are never empty', () => {
+  const knees = jointAvoidSet({ protectJoints: ['knee'] });
+  eq(jointPickerPatterns('squat', new Set()), null);
+  for (const loc of [HOME, { equipment: [], weight_inventory: {} }]) for (const id of ['db_goblet_squat', 'squat_air', 'db_reverse_lunge']) {
+    const pats = jointPickerPatterns(byId(id).pattern, knees);
+    const list = EXERCISES.filter((c) => c.id !== id && pats.includes(c.pattern) && jointFriendly(c, knees) && canDo(c, expandEquipment(loc.equipment)));
+    assert(list.some((c) => c.id === 'bw_straight_leg_raise'), `${id} offers Straight-Leg Raise`);
+  }
+  const slotPats = jointPickerPatterns(byId('db_goblet_squat').pattern, knees);
+  assert(EXERCISES.some((c) => slotPats.includes(c.pattern) && jointFriendly(c, knees) && c.id !== 'bw_straight_leg_raise'), 'Replace on the stand-in has options');
+  for (const f of ['js/screens/train.js', 'js/screens/session.js']) assert(/jointPickerPatterns\(/.test(src(f)), `${f} passes patterns`);
+  assert(/slotEx = \(it\.swap/.test(src('js/screens/train.js')), 'Replace uses the original slot movement');
+});
+
+test('Train re-applies scroll and focus after the listener re-render', () => {
+  const t = src('js/screens/train.js');
+  assert(/pendingProtect = \{ key, top/.test(t) && /keepProtectInPlace\(el\);/.test(t), 'pending fix-up is saved and applied each render');
+  assert(/Date\.now\(\) - p\.at > 2000/.test(t), 'short-lived');
+  assert(/focus\(\{ preventScroll: true \}\)/.test(t));
 });

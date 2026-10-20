@@ -23,7 +23,7 @@ import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
 import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
-import { jointAvoidSet, jointFriendly } from '../workouts/generator.js';
+import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
@@ -94,6 +94,16 @@ function dayChoices(program) {
   if (p.custom) return (program.custom_days || []).map((d, i) => [`custom_${i}`, d.name]);
   const keys = p.smart ? [...new Set([...smartDayTypes(state.profile.trainingDays || 3), 'full_a', 'upper', 'lower', 'push', 'pull', 'legs', 'boxing'])] : p.days;
   return keys.map((k) => [k, DAY_TYPES[k].label]);
+}
+
+// The profile listener re-renders Train again right after a toggle, so the scroll/focus fix-up outlives one render.
+let pendingProtect = null;
+function keepProtectInPlace(el) {
+  const p = pendingProtect;
+  if (!p || Date.now() - p.at > 2000) { pendingProtect = null; return; }
+  const after = $('.protect-row', el)?.getBoundingClientRect().top;
+  if (p.top != null && after != null && after !== p.top) window.scrollBy({ top: after - p.top, behavior: 'instant' });
+  $(`[data-protect="${p.key}"]`, el)?.focus({ preventScroll: true });
 }
 
 export function renderTrain(el) {
@@ -185,12 +195,10 @@ export function renderTrain(el) {
     flash = new Set();
     if (!el.isConnected) return;
     // Keep the Protect row where the thumb tapped it, even though the list above it changes height.
-    const before = $('.protect-row', el)?.getBoundingClientRect().top;
+    pendingProtect = { key, top: $('.protect-row', el)?.getBoundingClientRect().top, at: Date.now() };
     renderTrain(el);
-    const after = $('.protect-row', el)?.getBoundingClientRect().top;
-    if (before != null && after != null && after !== before) window.scrollBy({ top: after - before, behavior: 'instant' });
-    $(`[data-protect="${key}"]`, el)?.focus({ preventScroll: true });
   });
+  keepProtectInPlace(el);
   const start = $('[data-start]', el);
   if (start)
     start.onclick = () => startPlan(plan);
@@ -451,9 +459,13 @@ function exerciseMore(el, plan, i) {
       const loc = activeLocation();
       const avail = expandEquipment(loc ? loc.equipment : []);
       const inPlan = new Set(plan.exercises.map((x) => x.exercise_id));
+      // A Protect stand-in is picked from its original slot's movement, so Replace still has options.
+      const slotEx = (it.swap && exerciseById(it.swap.from)) || ex;
       openExercisePicker({
         title: `Replace ${ex.name}`,
         onlyPattern: ex.pattern,
+        patterns: jointPickerPatterns(slotEx.pattern, jointAvoidSet(state.profile)),
+        primary: slotEx.primary || [],
         filter: (c) => !inPlan.has(c.id) && canDo(c, avail) && jointFriendly(c, jointAvoidSet(state.profile)),
         availableNote: jointAvoidSet(state.profile).size ? 'Same movement, doable here, and easy on the joints you protect.' : 'Same movement, doable at this location.',
         onPick: (c) => {

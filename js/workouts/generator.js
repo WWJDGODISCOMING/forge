@@ -116,6 +116,12 @@ export const JOINT_FALLBACKS = {
   hinge: ['hip_thrust', 'knee_flexion'],
 };
 
+/** Patterns the Swap/Replace picker lists while Protect is on: the move's own plus its joint stand-ins, else null. */
+export function jointPickerPatterns(pattern, jointAvoid) {
+  if (!jointAvoid || !jointAvoid.size || !pattern) return null;
+  return [pattern, ...(JOINT_FALLBACKS[pattern] || []).filter((p) => p !== pattern)];
+}
+
 /** The fallback patterns for a slot, in order, without repeats or patterns the slot already tried. */
 export function fallbackPatterns(slot, extra = null) {
   const out = [];
@@ -333,7 +339,7 @@ export function generateWorkout(opts) {
     }
     ctx.used.add(ex.id);
     const exForTarget = slot.reps ? { ...ex, reps: slot.reps } : prog.repBias === 'high' && !ex.timed ? { ...ex, reps: [Math.max(ex.reps[0], 8), Math.max(ex.reps[1], 12)] } : ex;
-    const chainNext = ex.chain ? exercises.find((e) => e.chain === ex.chain && e.step === ex.step + 1 && canDo(e, available)) : null;
+    const chainNext = ex.chain ? exercises.find((e) => e.chain === ex.chain && e.step === ex.step + 1 && canDo(e, available) && jointFriendly(e, avoid)) : null;
     const target = nextTarget(exForTarget, historyFor(ex.id), {
       inventory: location.weight_inventory || {}, unit, role: slot.role, experience, deload: lighter, chainNext,
     });

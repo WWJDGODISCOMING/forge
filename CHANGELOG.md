@@ -10,6 +10,9 @@ Easier workouts for sore knees or a sore lower back. Cloud Functions and `firest
 - Easier moves train the same muscles, so your weekly sets still count.
 - Swapped moves show a Knee-friendly or Back-friendly tag and why.
 - Turn it on or off in Settings too. Off brings your normal workout back.
+- Swap and Replace always show easier options, even for squats and lunges.
+- "Ready for the next step" never suggests a move that is hard on a joint you protect.
+- The Protect switch keeps its place and focus after you tap it.
 
 ## 0.16.39 — Depth look: glass + glow (2026-10-19)
 
