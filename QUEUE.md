@@ -37,7 +37,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 3. #163 Train: tap an exercise to preview its demo before starting
 - Issue: #163
 - Version: 0.16.42
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Tapping an exercise row or thumbnail on Train's list (not the ••• menu) opens a preview sheet with the same looping demo as the player, form cues, muscles worked, and joint-friendly notes when Knees/Lower back is on.
   - Swap and Replace right in the sheet, using the existing joint-aware lists.
