@@ -110,6 +110,7 @@ test('the swap picker hides moves tagged for a protected joint', () => {
   assert(jointFriendly(byId('bb_deadlift'), knees), 'back moves stay when only knees are on');
   assert(jointFriendly(byId('bb_back_squat'), new Set()), 'nothing hidden when off');
   assert(/jointFriendly\(c, jointAvoidSet\(state\.profile\)\)/.test(src('js/screens/train.js')), 'the Replace picker uses the filter');
+  assert(/jointFriendly\(c, jointAvoidSet\(state\.profile\)\)/.test(src('js/screens/session.js')), 'the in-workout Swap uses the filter');
 });
 
 test('safety line is present, short, and never diagnoses', () => {

@@ -33,7 +33,7 @@ export function bindProtect(root, onChange = () => {}) {
       const list = $$('[data-protect]', root).filter((x) => x.getAttribute('aria-checked') === 'true').map((x) => x.dataset.protect);
       haptics.select();
       setProtectJoints(list);
-      onChange(list);
+      onChange(list, b.dataset.protect);
     });
   });
 }

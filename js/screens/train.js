@@ -181,7 +181,16 @@ export function renderTrain(el) {
   );
   bindRecoveryCard(el, rec);
   if (plan) wirePreview(el, plan);
-  bindProtect(el, () => { flash = new Set(); if (el.isConnected) renderTrain(el); });
+  bindProtect(el, (list, key) => {
+    flash = new Set();
+    if (!el.isConnected) return;
+    // Keep the Protect row where the thumb tapped it, even though the list above it changes height.
+    const before = $('.protect-row', el)?.getBoundingClientRect().top;
+    renderTrain(el);
+    const after = $('.protect-row', el)?.getBoundingClientRect().top;
+    if (before != null && after != null && after !== before) window.scrollBy({ top: after - before, behavior: 'instant' });
+    $(`[data-protect="${key}"]`, el)?.focus({ preventScroll: true });
+  });
   const start = $('[data-start]', el);
   if (start)
     start.onclick = () => startPlan(plan);
