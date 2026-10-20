@@ -70,7 +70,9 @@ jobs:
             echo 'prompt<<QUEUE_PROMPT_EOF'
             echo "Please implement issue #$ISSUE per QUEUE.md and CLAUDE.md, including the Self-review checklist. Version $VERSION."
             echo "The issue and its comments are in /tmp/queue-issue.md (read it with cat)."
-            echo "You are on branch claude/queue-v$VERSION. Commit and push only to that branch (never to main), early and often."
+            echo "You are on branch claude/queue-v$VERSION. Commit and push only to that branch (never to main), early and often: after every commit run git push -u origin claude/queue-v$VERSION."
+            echo "Push your first commit within your first few turns, and before you finish make sure git status is clean and everything is pushed. Unpushed work is lost when the run ends."
+            echo "CI renders the full screens matrix; locally render only the changed routes (LAYOUT_ROUTES=...). If a command is denied, switch to an allowed one instead of retrying."
             echo "Include the QUEUE.md status change for this item (in-review) in your commits."
             echo "When done, write your summary and the ticked Self-review checklist to /tmp/pr-body.md (not in the repo); the workflow opens the PR with it."
             echo "$EXTRA"
@@ -78,6 +80,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
 
       - name: Run Claude Code
+        id: claude
         uses: anthropics/claude-code-action@v1
         env:
           # The full test suite (incl. the headless layout test) takes ~2-3 min.
@@ -95,6 +98,46 @@ jobs:
           claude_args: |
             --max-turns 300
             --allowedTools "Edit,Write,MultiEdit,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(sed:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(rm:*),Bash(test:*),Bash(diff:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(sort:*),Bash(uniq:*),Bash(awk:*),Bash(cut:*),Bash(tr:*),Bash(echo:*),Bash(pwd:*),Bash(jq:*),Bash(python3:*)"
+
+      # Oct 20: the first queued run (#158) worked 86 min and ended without pushing, so nothing could be reviewed.
+      # Safety net: push whatever Claude left on the runner, and print why it stopped (final message + denied commands).
+      - name: Report how Claude finished (workflow_dispatch only)
+        if: always() && github.event_name == 'workflow_dispatch'
+        env:
+          EXEC_FILE: ${{ steps.claude.outputs.execution_file }}
+        run: |
+          f="${EXEC_FILE:-$RUNNER_TEMP/claude-execution-output.json}"
+          [ -f "$f" ] || { echo "No execution file."; exit 0; }
+          echo "::group::Denied commands"
+          jq -r '(if type=="array" then .[] else . end) | select(.type=="result") | .permission_denials[]? | "\(.tool_name): \((.tool_input.command // .tool_input.file_path // "") | tostring | .[0:160])"' "$f" || true
+          echo "::endgroup::"
+          echo "::group::Claude's final message"
+          jq -r '(if type=="array" then .[] else . end) | select(.type=="result") | (.result // "") | tostring | .[0:3000]' "$f" || true
+          echo "::endgroup::"
+
+      - name: Push leftover work (workflow_dispatch only)
+        if: always() && github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          branch="claude/queue-v$VERSION"
+          git checkout "$branch" 2>/dev/null || true
+          git config user.name "claude[bot]"
+          git config user.email "41898282+claude[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain)" ]; then
+            git add -A
+            git commit -q -m "v$VERSION: work in progress saved by the workflow (Claude's run ended with uncommitted changes)" || true
+          fi
+          ahead=$(git rev-list --count origin/main..HEAD 2>/dev/null || echo 0)
+          echo "Commits on $branch not on main: $ahead"
+          [ "$ahead" -gt 0 ] || { echo "Nothing to push."; exit 0; }
+          git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
+          git push -u origin "HEAD:refs/heads/$branch" || echo "::warning::Push failed (workflow files can't be pushed with GITHUB_TOKEN)."
+          if [ ! -s /tmp/pr-body.md ]; then
+            printf 'Claude did not write a PR body or finish its Self-review checklist; this branch holds what it left on the runner (pushed by the workflow). Needs another @claude round before review.\n' > /tmp/pr-body.md
+          fi
 
       - name: Open the PR (workflow_dispatch only)
         if: always() && github.event_name == 'workflow_dispatch'
