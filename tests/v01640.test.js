@@ -29,8 +29,8 @@ test('jointAvoidSet: empty, knee, back, both, bad values', () => {
 });
 
 test('tags: the moves named in the issue carry the right joint tag', () => {
-  const knee = ['bb_back_squat', 'bb_front_squat', 'db_goblet_squat', 'bb_reverse_lunge', 'db_walking_lunge', 'db_step_up', 'bw_step_up', 'squat_jump', 'box_jump', 'machine_leg_extension', 'bw_sissy_squat', 'jumping_jacks', 'jump_rope', 'high_knees'];
-  const back = ['bb_deadlift', 'bb_good_morning', 'bb_bent_row', 'db_bent_row', 'bb_back_squat', 'bb_overhead_press', 'db_standing_shoulder_press', 'kb_press', 'decline_situp', 'cable_crunch', 'band_good_morning'];
+  const knee = ['bb_back_squat', 'bb_front_squat', 'db_goblet_squat', 'bb_reverse_lunge', 'db_walking_lunge', 'db_step_up', 'bw_step_up', 'squat_jump', 'box_jump', 'machine_leg_extension', 'bw_sissy_squat', 'jumping_jacks', 'jump_rope', 'high_knees', 'squat_assisted'];
+  const back = ['bb_deadlift', 'bb_good_morning', 'bb_bent_row', 'db_bent_row', 'bb_back_squat', 'bb_overhead_press', 'db_standing_shoulder_press', 'kb_press', 'decline_situp', 'cable_crunch', 'band_good_morning', 'db_single_leg_rdl', 'kb_single_leg_deadlift', 'band_rdl'];
   for (const id of knee) assert(byId(id).avoid.includes('knee'), `${id} knee`);
   for (const id of back) assert(byId(id).avoid.includes('lower_back'), `${id} lower_back`);
   for (const id of ['glute_bridge', 'bw_glute_kickback', 'machine_seated_leg_curl', 'bw_straight_leg_raise', 'bw_side_lying_leg_raise', 'machine_chest_press', 'dead_bug', 'db_chest_supported_row']) assert(!stresses(id), `${id} is friendly`);
@@ -70,8 +70,24 @@ test('swaps keep a primary muscle, so weekly sets are still credited, and say wh
   const legs = gen({ ...base, protectJoints: ['knee'] }, HOME, 'legs');
   assert(legs.exercises.length >= 3, 'legs day still has work at home');
   assert(legs.exercises.some((it) => it.primary.includes('glutes') || it.primary.includes('quads')), 'legs still credited');
-  const squatSwap = gen({ ...base, protectJoints: ['knee'] }, GYM, 'legs').exercises.find((it) => it.swap && byId(it.swap.from).pattern === 'squat');
-  if (squatSwap) assert(byId(squatSwap.swap.from).primary.some((m) => squatSwap.primary.includes(m)), 'a squat swap still hits a squat muscle');
+  const quads = (p) => p.exercises.some((it) => it.primary.includes('quads'));
+  const places = [...LOCATION_PRESETS, { equipment: [], weight_inventory: {} }];
+  for (const loc of places) {
+    for (const d of DAYS) {
+      if (d !== 'boxing' && quads(gen(base, loc, d))) assert(quads(gen({ ...base, protectJoints: ['knee'] }, loc, d)), `${d} keeps quads with Knees on`);
+    }
+  }
+});
+
+test('with Lower back on, no loaded hinge gets a Back-friendly badge', () => {
+  for (const loc of [...LOCATION_PRESETS, GYM]) {
+    for (const d of DAYS) {
+      for (const it of gen({ ...base, protectJoints: ['lower_back'] }, loc, d).exercises) {
+        const e = byId(it.exercise_id);
+        assert(!(e.pattern === 'hinge' && e.load !== 'bodyweight' && it.swap), `${d}: ${e.id} is a loaded hinge`);
+      }
+    }
+  }
 });
 
 test('turning the toggle off restores the original plan for the same inputs', () => {

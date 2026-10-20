@@ -110,8 +110,8 @@ export const PATTERN_FALLBACKS = {
 
 /** Extra stand-ins used only while Protect is on: same legs, no deep knee bend or loaded spine. */
 export const JOINT_FALLBACKS = {
-  squat: ['hip_thrust', 'knee_extension', 'hip_abduction'],
-  lunge: ['hip_thrust', 'knee_extension', 'hip_abduction'],
+  squat: ['knee_extension', 'hip_thrust', 'hip_abduction'],
+  lunge: ['knee_extension', 'hip_thrust', 'hip_abduction'],
   knee_extension: ['hip_thrust'],
   hinge: ['hip_thrust', 'knee_flexion'],
 };
