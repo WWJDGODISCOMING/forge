@@ -63,18 +63,20 @@ jobs:
         run: |
           set -euo pipefail
           [[ "$ISSUE" =~ ^[0-9]+$ ]] && [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "bad inputs"; exit 1; }
+          # Oct 20: Claude was denied reading /tmp (outside the repo), so hand-off files live in .queue/, which git ignores locally.
+          mkdir -p .queue && echo '/.queue/' >> .git/info/exclude
           gh issue view "$ISSUE" --json number,title,body,comments \
-            --jq '"# #\(.number) \(.title)\n\n\(.body)\n\n## Comments\n" + ([.comments[] | "### \(.author.login)\n\(.body)"] | join("\n\n"))' > /tmp/queue-issue.md
+            --jq '"# #\(.number) \(.title)\n\n\(.body)\n\n## Comments\n" + ([.comments[] | "### \(.author.login)\n\(.body)"] | join("\n\n"))' > .queue/issue.md
           git checkout -b "claude/queue-v$VERSION"
           {
             echo 'prompt<<QUEUE_PROMPT_EOF'
             echo "Please implement issue #$ISSUE per QUEUE.md and CLAUDE.md, including the Self-review checklist. Version $VERSION."
-            echo "The issue and its comments are in /tmp/queue-issue.md (read it with cat)."
+            echo "The issue and its comments are in .queue/issue.md (read it with the Read tool)."
             echo "You are on branch claude/queue-v$VERSION. Commit and push only to that branch (never to main), early and often: after every commit run git push -u origin claude/queue-v$VERSION."
             echo "Push your first commit within your first few turns, and before you finish make sure git status is clean and everything is pushed. Unpushed work is lost when the run ends."
             echo "CI renders the full screens matrix; locally render only the changed routes (LAYOUT_ROUTES=...). If a command is denied, switch to an allowed one instead of retrying."
             echo "Include the QUEUE.md status change for this item (in-review) in your commits."
-            echo "When done, write your summary and the ticked Self-review checklist to /tmp/pr-body.md (not in the repo); the workflow opens the PR with it."
+            echo "When done, write your summary and the ticked Self-review checklist to .queue/pr-body.md (git ignores .queue/; never commit it); the workflow opens the PR with it. Do not guess the PR number in QUEUE.md; write 'in-review' and the reviewer fills the number in."
             echo "$EXTRA"
             echo 'QUEUE_PROMPT_EOF'
           } >> "$GITHUB_OUTPUT"
@@ -135,10 +137,23 @@ jobs:
           [ "$ahead" -gt 0 ] || { echo "Nothing to push."; exit 0; }
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
           git push -u origin "HEAD:refs/heads/$branch" || echo "::warning::Push failed (workflow files can't be pushed with GITHUB_TOKEN)."
-          if [ ! -s /tmp/pr-body.md ]; then
-            printf 'Claude did not write a PR body or finish its Self-review checklist; this branch holds what it left on the runner (pushed by the workflow). Needs another @claude round before review.\n' > /tmp/pr-body.md
+          if [ ! -s .queue/pr-body.md ]; then
+            printf 'Claude did not write a PR body or finish its Self-review checklist; this branch holds what it left on the runner (pushed by the workflow). Needs another @claude round before review.\n' > .queue/pr-body.md
           fi
 
+      - name: Keep Claude's PR body (workflow_dispatch only)
+        if: always() && github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: pr-body
+          path: .queue/pr-body.md
+          if-no-files-found: ignore
+          include-hidden-files: true
+          retention-days: 14
+
+      # Oct 20: the repo doesn't let GITHUB_TOKEN create PRs ("GitHub Actions is not permitted to create or approve
+      # pull requests"). If it's refused, post the body on the issue and fail on purpose: the red run wakes the
+      # review checkpoint, which opens the PR from the branch with that body.
       - name: Open the PR (workflow_dispatch only)
         if: always() && github.event_name == 'workflow_dispatch'
         env:
@@ -151,10 +166,14 @@ jobs:
           branch="claude/queue-v$VERSION"
           if ! gh api "repos/$REPO/branches/$branch" --silent 2>/dev/null; then echo "No branch $branch was pushed."; exit 0; fi
           if [ -n "$(gh pr list -R "$REPO" --head "$branch" --state all --json number --jq '.[0].number')" ]; then echo "PR already exists."; exit 0; fi
-          [ -s /tmp/pr-body.md ] || echo "Claude did not write a PR body; see the run log." > /tmp/pr-body.md
-          printf '\n\nCloses #%s (queued from QUEUE.md). Run: %s/%s/actions/runs/%s\n' "$ISSUE" "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID" >> /tmp/pr-body.md
+          [ -s .queue/pr-body.md ] || echo "Claude did not write a PR body; see the run log." > .queue/pr-body.md
+          printf '\n\nCloses #%s (queued from QUEUE.md). Run: %s/%s/actions/runs/%s\n' "$ISSUE" "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID" >> .queue/pr-body.md
           title=$(gh issue view "$ISSUE" -R "$REPO" --json title --jq .title)
-          gh pr create -R "$REPO" --base main --head "$branch" --title "v$VERSION: $title" --body-file /tmp/pr-body.md
+          if gh pr create -R "$REPO" --base main --head "$branch" --title "v$VERSION: $title" --body-file .queue/pr-body.md; then exit 0; fi
+          { printf 'Queued run finished and pushed `%s`, but GitHub refused to let the workflow open the PR. The review checkpoint will open it with the body below (also saved as the `pr-body` artifact of this run).\n\n<details><summary>Claude'"'"'s PR body</summary>\n\n' "$branch"; cat .queue/pr-body.md; printf '\n</details>\n'; } > .queue/handoff.md
+          gh issue comment "$ISSUE" -R "$REPO" --body-file .queue/handoff.md || true
+          echo "::error::PR for $branch must be opened by the review checkpoint (body is on issue #$ISSUE and in the pr-body artifact)."
+          exit 1
 
   # A PR opened with GITHUB_TOKEN doesn't fire pull_request workflows, so start the tests on the branch directly.
   tests-on-branch:
