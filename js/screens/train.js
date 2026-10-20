@@ -6,6 +6,8 @@ import { expandEquipment, canDo } from '../workouts/equipment.js';
 import { autoRest, restDefaultSec, fmtClock } from '../workouts/session-core.js';
 import { planBlocks, planMuscles } from '../workouts/preview.js';
 import { openHowTo } from './howto.js';
+import { openDemoPreview } from './demo-preview.js';
+import { swapCandidate } from '../workouts/demo-preview-core.js';
 import { bodyMap, exerciseValues } from '../ui/bodymap.js';
 import { esc, $, $$, sheet, toast, confirmSheet } from '../ui.js';
 import {
@@ -250,10 +252,12 @@ function previewCard(plan, { d, loc, program, u }) {
     const ex = exerciseById(it.exercise_id);
     const rest = it.rest_sec ? ` · rest ${fmtClock(it.rest_sec)}` : '';
     return `<li class="pv-ex${flash.has(ex.id) ? ' flash' : ''}">
+      <div class="pv-hit" role="button" tabindex="0" data-preview="${i}" aria-label="Preview demo: ${esc(ex.name)}">
       <div class="pv-thumb" data-thumb="${esc(ex.id)}" aria-hidden="true"></div>
       <div class="pv-txt">${label ? `<span class="pv-tag">${label}</span>` : ''}<b>${esc(ex.name)}</b>
         <small class="muted">${esc(targetText(it.target, u, ex))}${it.warmups.length ? ` · ${it.warmups.length} warm-up` : ''}${rest}</small>
         ${it.swap ? `<span class="swap-badge">${esc(it.swap.badge)}</span><small class="muted swap-why">${esc(it.swap.why)}</small>` : ''}</div>
+      </div>
       <button class="icon-btn pv-more" data-more="${i}" aria-label="More for ${esc(ex.name)}">${icon('more')}</button>
     </li>`;
   };
@@ -275,7 +279,7 @@ function previewCard(plan, { d, loc, program, u }) {
         ${n ? `
         <div class="pv-sum">
           ${bodyMap(planValues(plan), { size: 'mini', caption: false })}
-          <p><b>${n} exercise${n === 1 ? '' : 's'} · ${muscles} muscle${muscles === 1 ? '' : 's'}</b><small class="muted">Tap the dots to replace an exercise, see its history or set its rest.</small></p>
+          <p><b>${n} exercise${n === 1 ? '' : 's'} · ${muscles} muscle${muscles === 1 ? '' : 's'}</b><small class="muted">Tap an exercise to preview it, or the dots for more.</small></p>
         </div>
         <div class="pv-warm">
           <p class="pv-group-h"><span>Warm-up</span><small class="muted">~${plan.warm_min || 5} min</small></p>
@@ -299,6 +303,7 @@ function wirePreview(el, plan) {
     if (t.childElementCount) return;
     const ex = exerciseById(t.dataset.thumb);
     if (!ex) return;
+    t.classList.toggle('has-demo', hasFigure(ex.id) || hasPhotos(ex.id));
     if (hasFigure(ex.id)) mountFigure(t, ex, { at: 'hard' });
     else if (hasPhotos(ex.id)) {
       t.innerHTML = `<img src="${esc(photoUrls(ex.id)[0])}" alt="" decoding="async" loading="lazy">`;
@@ -317,6 +322,11 @@ function wirePreview(el, plan) {
   if (ch) ch.onclick = () => openChange(el, plan);
 
   $$('[data-more]', el).forEach((b) => (b.onclick = () => exerciseMore(el, plan, Number(b.dataset.more))));
+  $$('[data-preview]', el).forEach((h) => {
+    const open = () => previewDemo(el, plan, Number(h.dataset.preview), $('[data-thumb]', h));
+    h.onclick = open;
+    h.onkeydown = (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); open(); } };
+  });
 }
 
 const tick = (kind = 'select') => { if (hapticsOn()) haptic(kind); };
@@ -467,6 +477,58 @@ function openChange(el, plan) {
   }, { detents: ['medium', 'large'] });
 }
 
+/** What's doable here and not already planned, for Replace and the preview's Swap. */
+function slotContext(plan, i) {
+  const it = plan.exercises[i];
+  const ex = exerciseById(it.exercise_id);
+  const loc = activeLocation();
+  const avail = expandEquipment(loc ? loc.equipment : []);
+  const inPlan = new Set(plan.exercises.map((x) => x.exercise_id));
+  // A Protect stand-in is picked from its original slot's movement, so Replace still has options.
+  const slotEx = (it.swap && exerciseById(it.swap.from)) || ex;
+  return { ex, avail, inPlan, slotEx, avoid: jointAvoidSet(state.profile) };
+}
+
+/** Put `c` in this slot. Keyed by what the generator picks for the slot, so it survives re-renders. */
+function applyReplace(el, ex, c) {
+  const orig = Object.keys(edits.forced).find((k) => edits.forced[k] === ex.id) || ex.id;
+  const prevForced = edits.forced[orig];
+  const prevRest = { ...edits.rest };
+  edits.forced[orig] = c.id;
+  if (edits.rest[ex.id]) { edits.rest[c.id] = edits.rest[ex.id]; delete edits.rest[ex.id]; }
+  toast(`Replaced with ${c.name}`, 5000, { action: { label: 'Undo', onClick: () => {
+    if (prevForced === undefined) delete edits.forced[orig]; else edits.forced[orig] = prevForced;
+    edits.rest = prevRest;
+    if (el.isConnected) renderTrain(el);
+  } } });
+  renderTrain(el);
+}
+
+function replaceExercise(el, plan, i) {
+  const { ex, avail, inPlan, slotEx, avoid } = slotContext(plan, i);
+  openExercisePicker({
+    title: `Replace ${ex.name}`,
+    onlyPattern: ex.pattern,
+    patterns: jointPickerPatterns(slotEx.pattern, avoid),
+    primary: slotEx.primary || [],
+    filter: (c) => !inPlan.has(c.id) && canDo(c, avail) && jointFriendly(c, jointAvoidSet(state.profile)),
+    availableNote: avoid.size ? 'Same movement, doable here, and easy on the joints you protect.' : 'Same movement, doable at this location.',
+    onPick: (c) => applyReplace(el, ex, c),
+  });
+}
+
+/** Tap a row or thumbnail: the demo preview, with Swap (best match, one tap) and Replace (the picker). */
+function previewDemo(el, plan, i, origin) {
+  const { ex, avail, inPlan, slotEx, avoid } = slotContext(plan, i);
+  const pick = () => swapCandidate(slotEx, ex, { exercises: allExercises(), canDo: (c) => canDo(c, avail), inPlan, avoid, patterns: jointPickerPatterns(slotEx.pattern, avoid) });
+  openDemoPreview(ex, {
+    origin,
+    canSwap: !!pick(),
+    onSwap: () => { const c = pick(); if (c) applyReplace(el, ex, c); },
+    onReplace: () => replaceExercise(el, plan, i),
+  });
+}
+
 function exerciseMore(el, plan, i) {
   const it = plan.exercises[i];
   const ex = exerciseById(it.exercise_id);
@@ -485,30 +547,7 @@ function exerciseMore(el, plan, i) {
           </div>
         </div>
       </div>`;
-    $('[data-a="replace"]', body).onclick = () => {
-      close();
-      const loc = activeLocation();
-      const avail = expandEquipment(loc ? loc.equipment : []);
-      const inPlan = new Set(plan.exercises.map((x) => x.exercise_id));
-      // A Protect stand-in is picked from its original slot's movement, so Replace still has options.
-      const slotEx = (it.swap && exerciseById(it.swap.from)) || ex;
-      openExercisePicker({
-        title: `Replace ${ex.name}`,
-        onlyPattern: ex.pattern,
-        patterns: jointPickerPatterns(slotEx.pattern, jointAvoidSet(state.profile)),
-        primary: slotEx.primary || [],
-        filter: (c) => !inPlan.has(c.id) && canDo(c, avail) && jointFriendly(c, jointAvoidSet(state.profile)),
-        availableNote: jointAvoidSet(state.profile).size ? 'Same movement, doable here, and easy on the joints you protect.' : 'Same movement, doable at this location.',
-        onPick: (c) => {
-          // Key by what the generator picks for this slot, so the swap survives re-renders.
-          const orig = Object.keys(ed.forced).find((k) => ed.forced[k] === ex.id) || ex.id;
-          ed.forced[orig] = c.id;
-          if (ed.rest[ex.id]) { ed.rest[c.id] = ed.rest[ex.id]; delete ed.rest[ex.id]; }
-          toast(`Replaced with ${c.name}`);
-          renderTrain(el);
-        },
-      });
-    };
+    $('[data-a="replace"]', body).onclick = () => { close(); replaceExercise(el, plan, i); };
     $('[data-a="history"]', body).onclick = () => { close(); openHowTo(ex.id, { focus: 'history' }); };
     $$('input[name=rest]', body).forEach((r) => r.addEventListener('change', () => {
       if (r.value) ed.rest[ex.id] = Number(r.value);

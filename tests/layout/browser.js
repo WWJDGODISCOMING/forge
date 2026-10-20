@@ -114,9 +114,9 @@ export async function launch() {
       if (r.exceptionDetails) throw new Error(r.exceptionDetails.exception?.description || r.exceptionDetails.text);
       return r.result.value;
     },
-    async viewport(width, height, dark) {
+    async viewport(width, height, dark, { motion = false } = {}) {
       await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 2, mobile: true });
-      await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }, { name: 'prefers-reduced-motion', value: 'reduce' }] });
+      await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }, { name: 'prefers-reduced-motion', value: motion ? 'no-preference' : 'reduce' }] });
     },
     /** Open the app at a hash route with a seeded account. */
     async open(route, seedData, init = '', { persist = false, at = api.pinned } = {}) {

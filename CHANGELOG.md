@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.42 — Preview an exercise before you start (2026-10-20)
+
+Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- Tap an exercise on Train to watch its demo and see cues, muscles and joint notes.
+- Swap and Replace are right in the preview. Thumbnails now show a small play badge.
+- On a wide screen the preview is a side panel.
+
 ## 0.16.41 — Train and Today, in a better order (2026-10-20)
 
 Cloud Functions and `firestore.rules` did not change.

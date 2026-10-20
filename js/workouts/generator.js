@@ -321,7 +321,7 @@ export function generateWorkout(opts) {
     const was = baseCtx ? pickFor(slot, baseCtx) : null;
     if (was) baseCtx.used.add(was.id);
     const swapTo = ex && forced[ex.id] ? exercises.find((e) => e.id === forced[ex.id]) : null;
-    if (swapTo && !ctx.used.has(swapTo.id) && canDo(swapTo, available)) ex = swapTo;
+    if (swapTo && !ctx.used.has(swapTo.id) && canDo(swapTo, available)) { ctx.used.add(ex.id); ex = swapTo; }
     if (!ex) {
       // Say why a slot is empty when it's your injury note (not missing equipment) that ruled it out.
       if (avoid.size) {
