@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.43 — Switch gyms from Train; joint toggles on the Resume card (2026-10-20)
+
+Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- Tap the gym at the top of Train to switch gyms; today is re-planned for it.
+- Knees and Lower back switches now show on the Resume card too.
+
 ## 0.16.42 — Preview an exercise before you start (2026-10-20)
 
 Cloud Functions and `firestore.rules` did not change.

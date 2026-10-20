@@ -443,6 +443,17 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .protect-pill[aria-checked="true"] { background: var(--deep-fill); color: var(--text-1); border-color: var(--accent-text); box-shadow: var(--glow-accent); }
 .protect-pill:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 .protect-note { margin: 0; }
+/* Gym chip + picker on Train (v0.16.43). No motion of its own. */
+.gym-chip { display: inline-flex; align-items: center; gap: var(--s-2); align-self: flex-start; max-width: 100%; min-height: 44px; padding: 0 var(--s-4); border-radius: var(--r-pill); border: 1px solid var(--accent-text); background: var(--deep-fill); color: var(--text-1); font: inherit; font-size: calc(15px * var(--ts)); font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.gym-chip > span:nth-child(2) { min-width: 0; overflow-wrap: anywhere; text-align: left; padding: 6px 0; }
+.gym-pin, .gym-chev { display: inline-flex; width: 18px; height: 18px; flex: 0 0 auto; }
+.gym-chev { transform: rotate(90deg); color: var(--text-2); }
+.gym-pin svg, .gym-chev svg, .gym-tick svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.gym-chip:focus-visible, .gym-row:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.gym-list { display: grid; gap: var(--s-2); }
+.gym-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 52px; padding: 0 var(--s-4); border-radius: var(--r-md); border: 1px solid var(--border, rgba(255, 255, 255, .16)); background: var(--surface-2); color: var(--text-1); font: inherit; font-size: calc(16px * var(--ts)); font-weight: 600; text-align: left; cursor: pointer; }
+.gym-row[aria-checked="true"] { border-color: var(--accent-text); background: var(--deep-fill); }
+.gym-tick { display: inline-flex; width: 20px; height: 20px; color: var(--accent-text); }
 .protect-set .protect-pills { margin-top: var(--s-1); }
 .swap-badge { align-self: flex-start; margin-top: 2px; padding: 2px 8px; border-radius: var(--r-pill); font-size: calc(11px * var(--ts)); font-weight: 700; color: var(--accent-text); background: color-mix(in srgb, var(--accent-text) 14%, transparent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 45%, transparent); }
 .swap-why { white-space: normal; }

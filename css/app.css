@@ -386,7 +386,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 
 /* ================= Checkpoint B: training ================= */
 .big-title { font-size: calc(22px * var(--ts)); font-weight: 700; letter-spacing: -0.015em; }
-a.card.resume { background: var(--accent-tint); }
+.card.resume { background: var(--accent-tint); }
 .plan-list { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: var(--s-2); }
 .plan-list li div { display: flex; flex-direction: column; }
 select { appearance: none; -webkit-appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--text-2) 50%), linear-gradient(135deg, var(--text-2) 50%, transparent 50%); background-position: calc(100% - 18px) 50%, calc(100% - 13px) 50%; background-size: 5px 5px; background-repeat: no-repeat; padding-right: 34px; }
