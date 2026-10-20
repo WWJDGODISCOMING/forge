@@ -109,7 +109,7 @@ body.playing .navbar { display: none; }
 .pl-done:active { transform: scale(.97); }
 .pl-done.is-done { background: var(--accent-tint); color: var(--accent-text); box-shadow: none; }
 /* Done set stays pinned to the bottom of the screen (clear of the home indicator), however short the phone. */
-.pl-dock { position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 8px; margin: auto calc(-1 * max(var(--gutter), var(--safe-left))) 0; padding: 10px max(var(--gutter), var(--safe-right)) calc(var(--safe-bottom) + 4px) max(var(--gutter), var(--safe-left)); background: var(--tabbar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); } /* full-bleed glass like the tab bar, so no box shows over the glow */
+.pl-dock { position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 8px; margin: auto 0 0; margin-inline: calc((100% - 100vw) / 2); padding: 10px calc((100vw - 100%) / 2) calc(var(--safe-bottom) + 4px); background: var(--tabbar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); } /* full-bleed (viewport-wide even past the 560px column) glass like the tab bar, so no box shows over the glow */
 .pl-next { display: flex; justify-content: center; gap: 4px; color: var(--muted); font-size: calc(15px * var(--ts)); white-space: nowrap; }
 .pl-next-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 .pl-next-meta { flex: none; }

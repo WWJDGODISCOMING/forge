@@ -294,7 +294,7 @@ input[type=date] { -webkit-appearance: none; appearance: none; }
 .onboard .progress span.on { background: var(--accent); }
 .sticky-actions {
   position: sticky; bottom: calc(var(--safe-bottom) + 8px);
-  margin-inline: calc(-1 * max(var(--gutter), var(--safe-left))); padding: var(--s-2) max(var(--gutter), var(--safe-right)) 0 max(var(--gutter), var(--safe-left));
+  margin-inline: calc((100% - 100vw) / 2); padding: var(--s-2) calc((100vw - 100%) / 2) 0; /* viewport-wide even past the 560px column */
   background: var(--tabbar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%);
 }
 .reasons { margin: 6px 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: calc(15px * var(--ts)); }

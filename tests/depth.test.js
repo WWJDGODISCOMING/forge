@@ -83,7 +83,7 @@ test('depth: sticky action docks are full-bleed glass, not an opaque --bg band',
   for (const r of [dock, sticky]) {
     assert(!/var\(--bg\)/.test(r), 'no opaque --bg band');
     assert(/background: var\(--tabbar-bg\)/.test(r) && /backdrop-filter: blur/.test(r), 'tab bar glass');
-    assert(/margin[^;]*calc\(-1 \* max\(var\(--gutter\)/.test(r), 'full-bleed past the gutter');
+    assert(/margin-inline: calc\(\(100% - 100vw\) \/ 2\)/.test(r) && /calc\(\(100vw - 100%\) \/ 2\)/.test(r), 'viewport-wide at every width, incl. 601-839px');
   }
 });
 
