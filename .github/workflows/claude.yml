@@ -9,10 +9,26 @@ on:
     types: [submitted]
   issues:
     types: [opened, assigned]
+  # Started by queue-next.yml (comments made with GITHUB_TOKEN can't trigger the @claude path above)
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: Issue to implement
+        required: true
+        type: string
+      version:
+        description: Version reserved in QUEUE.md (e.g. 0.16.41)
+        required: true
+        type: string
+      prompt:
+        description: Optional extra instructions
+        required: false
+        type: string
 
 jobs:
   claude:
     if: |
+      github.event_name == 'workflow_dispatch' ||
       (github.event_name == 'issue_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review_comment' && contains(github.event.comment.body, '@claude')) ||
       (github.event_name == 'pull_request_review' && contains(github.event.review.body, '@claude')) ||
@@ -36,6 +52,31 @@ jobs:
         with:
           node-version: 22
 
+      - name: Prepare the queued item (workflow_dispatch only)
+        id: prep
+        if: github.event_name == 'workflow_dispatch'
+        env:
+          EXTRA: ${{ inputs.prompt }}
+          GH_TOKEN: ${{ github.token }}
+          ISSUE: ${{ inputs.issue_number }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          [[ "$ISSUE" =~ ^[0-9]+$ ]] && [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "bad inputs"; exit 1; }
+          gh issue view "$ISSUE" --json number,title,body,comments \
+            --jq '"# #\(.number) \(.title)\n\n\(.body)\n\n## Comments\n" + ([.comments[] | "### \(.author.login)\n\(.body)"] | join("\n\n"))' > /tmp/queue-issue.md
+          git checkout -b "claude/queue-v$VERSION"
+          {
+            echo 'prompt<<QUEUE_PROMPT_EOF'
+            echo "Please implement issue #$ISSUE per QUEUE.md and CLAUDE.md, including the Self-review checklist. Version $VERSION."
+            echo "The issue and its comments are in /tmp/queue-issue.md (read it with cat)."
+            echo "You are on branch claude/queue-v$VERSION. Commit and push only to that branch (never to main), early and often."
+            echo "Include the QUEUE.md status change for this item (in-review) in your commits."
+            echo "When done, write your summary and the ticked Self-review checklist to /tmp/pr-body.md (not in the repo); the workflow opens the PR with it."
+            echo "$EXTRA"
+            echo 'QUEUE_PROMPT_EOF'
+          } >> "$GITHUB_OUTPUT"
+
       - name: Run Claude Code
         uses: anthropics/claude-code-action@v1
         env:
@@ -46,6 +87,44 @@ jobs:
           BASH_MAX_TIMEOUT_MS: "900000"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Empty for comment/review events (tag mode, unchanged). Set only for workflow_dispatch (automation mode).
+          prompt: ${{ steps.prep.outputs.prompt }}
           claude_args: |
             --max-turns 300
             --allowedTools "Edit,Write,MultiEdit,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(sed:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(rm:*),Bash(test:*),Bash(diff:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(sort:*),Bash(uniq:*),Bash(awk:*),Bash(cut:*),Bash(tr:*),Bash(echo:*),Bash(pwd:*),Bash(jq:*),Bash(python3:*)"
+
+      - name: Open the PR (workflow_dispatch only)
+        if: always() && github.event_name == 'workflow_dispatch'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          ISSUE: ${{ inputs.issue_number }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          branch="claude/queue-v$VERSION"
+          if ! gh api "repos/$REPO/branches/$branch" --silent 2>/dev/null; then echo "No branch $branch was pushed."; exit 0; fi
+          if [ -n "$(gh pr list -R "$REPO" --head "$branch" --state all --json number --jq '.[0].number')" ]; then echo "PR already exists."; exit 0; fi
+          [ -s /tmp/pr-body.md ] || echo "Claude did not write a PR body; see the run log." > /tmp/pr-body.md
+          printf '\n\nCloses #%s (queued from QUEUE.md). Run: %s/%s/actions/runs/%s\n' "$ISSUE" "$GITHUB_SERVER_URL" "$REPO" "$GITHUB_RUN_ID" >> /tmp/pr-body.md
+          title=$(gh issue view "$ISSUE" -R "$REPO" --json title --jq .title)
+          gh pr create -R "$REPO" --base main --head "$branch" --title "v$VERSION: $title" --body-file /tmp/pr-body.md
+
+  # A PR opened with GITHUB_TOKEN doesn't fire pull_request workflows, so start the tests on the branch directly.
+  tests-on-branch:
+    needs: claude
+    if: always() && github.event_name == 'workflow_dispatch' && needs.claude.result != 'skipped'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: write
+    steps:
+      - name: Dispatch tests.yml on the branch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          VERSION: ${{ inputs.version }}
+        run: |
+          branch="claude/queue-v$VERSION"
+          if gh api "repos/$REPO/branches/$branch" --silent 2>/dev/null; then gh workflow run tests.yml -R "$REPO" --ref "$branch"; else echo "No branch $branch."; fi

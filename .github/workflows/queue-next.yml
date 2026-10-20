@@ -1,0 +1,87 @@
+# Starts the next QUEUE.md item when a claude/* PR closes (merged or not), or by hand.
+# Reads QUEUE.md on main, finds the first `todo` item, and if fewer than 2 claude/* PRs are open and no
+# claude.yml run is in progress, it records an @claude comment on the issue and dispatches claude.yml.
+# Comments made with GITHUB_TOKEN don't trigger other workflows, so the comment is only a record;
+# the actual start is `gh workflow run claude.yml` (workflow_dispatch is allowed from GITHUB_TOKEN).
+# Never merges anything. dry_run=true only logs what it would do.
+name: queue-next
+
+on:
+  pull_request:
+    types: [closed]
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Only log what would happen (no comment, no dispatch)
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: queue-next
+  cancel-in-progress: false
+
+jobs:
+  next:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.pull_request.head.ref, 'claude/')
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: read
+      actions: write
+    steps:
+      - name: Pick the next item and start Claude
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || false }}
+        run: |
+          set -euo pipefail
+          echo "dry_run=$DRY_RUN"
+          gh api "repos/$REPO/contents/QUEUE.md?ref=main" -H "Accept: application/vnd.github.raw" > QUEUE.md
+
+          # First "## " section whose Status line is exactly todo -> "issue version title"
+          pick=$(awk '
+            /^## / { if (st == "todo" && iss != "" && ver != "") { print iss, ver, title; exit }
+                     title = substr($0, 4); iss = ""; ver = ""; st = ""; next }
+            /^- Issue: #[0-9]+/ { iss = $3; sub(/^#/, "", iss) }
+            /^- Version: / { ver = $3 }
+            /^- Status: / { st = $3 }
+            END { }' QUEUE.md)
+          if [ -z "$pick" ]; then
+            # the last section has no following "## " line; check it too
+            pick=$(awk '/^## /{t=substr($0,4);i="";v="";s=""} /^- Issue: #[0-9]+/{i=$3;sub(/^#/,"",i)} /^- Version: /{v=$3} /^- Status: /{s=$3} END{if(s=="todo"&&i!=""&&v!="")print i,v,t}' QUEUE.md)
+          fi
+          if [ -z "$pick" ]; then echo "Queue: no todo item in QUEUE.md. Nothing to do."; exit 0; fi
+          read -r ISSUE VERSION TITLE <<< "$pick"
+          echo "Next todo item: #$ISSUE (v$VERSION) $TITLE"
+
+          open=$(gh pr list -R "$REPO" --state open --limit 100 --json number,headRefName \
+                 --jq '[.[] | select(.headRefName | startswith("claude/"))]')
+          n_open=$(jq length <<< "$open")
+          echo "Open claude/* PRs: $n_open $(jq -c '[.[] | "#\(.number) \(.headRefName)"]' <<< "$open")"
+
+          running=$(gh run list -R "$REPO" --workflow claude.yml --limit 30 --json databaseId,status,displayTitle \
+                    --jq '[.[] | select(.status == "in_progress" or .status == "queued" or .status == "waiting" or .status == "pending")]')
+          n_run=$(jq length <<< "$running")
+          echo "claude.yml runs in progress: $n_run $(jq -c '[.[] | "\(.databaseId) \(.displayTitle)"]' <<< "$running")"
+
+          branch="claude/queue-v$VERSION"
+          if gh api "repos/$REPO/branches/$branch" --silent 2>/dev/null; then
+            echo "Waiting: branch $branch already exists (item already started). Mark it in QUEUE.md."; exit 0
+          fi
+          if [ "$n_open" -ge 2 ]; then echo "Waiting: $n_open claude/* PRs open (limit 2)."; exit 0; fi
+          if [ "$n_run" -gt 0 ]; then echo "Waiting: a claude.yml run is in progress."; exit 0; fi
+
+          body="@claude Please implement this issue per QUEUE.md and CLAUDE.md, including the Self-review checklist. Version $VERSION."
+          if [ "$DRY_RUN" = "true" ]; then
+            echo "DRY RUN: would comment on #$ISSUE: $body"
+            echo "DRY RUN: would run: gh workflow run claude.yml -f issue_number=$ISSUE -f version=$VERSION"
+            exit 0
+          fi
+          gh issue comment "$ISSUE" -R "$REPO" --body "$body (Started by queue-next; this comment is a record, the run is dispatched directly.)"
+          gh workflow run claude.yml -R "$REPO" --ref main -f issue_number="$ISSUE" -f version="$VERSION"
+          echo "Started claude.yml for #$ISSUE v$VERSION"

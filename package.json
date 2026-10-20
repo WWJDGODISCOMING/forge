@@ -8,7 +8,8 @@
     "native:assets": "node scripts/make-assets.mjs && npx capacitor-assets generate --ios --iconBackgroundColor '#040B0E' --splashBackgroundColor '#040B0E' --splashBackgroundColorDark '#040B0E'",
     "native:setup": "bash scripts/ios-setup.sh",
     "native:sync": "node scripts/build-www.mjs && npx cap sync ios",
-    "native:open": "npx cap open ios"
+    "native:open": "npx cap open ios",
+    "screens": "mkdir -p screens && LAYOUT_SHOTS=${LAYOUT_SHOTS:-screens} node tests/layout.test.js"
   },
   "devDependencies": {
     "@capacitor/app": "^8.1.2",

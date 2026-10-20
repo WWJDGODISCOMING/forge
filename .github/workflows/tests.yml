@@ -6,6 +6,7 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch: # queue-dispatched Claude PRs are opened with GITHUB_TOKEN, so claude.yml starts this directly
 
 permissions:
   contents: read
@@ -56,3 +57,22 @@ jobs:
         run: |
           npm install --no-audit --no-fund
           npm test
+
+  screens:
+    name: Screens (headless renders)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Render every screen (390x844, Duo folded and unfolded, dark and light)
+        run: npm run screens
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: screens
+          path: screens/
+          if-no-files-found: warn
+          retention-days: 14

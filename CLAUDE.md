@@ -28,3 +28,21 @@ Forge is Christian Everett's personal fitness app. It's a PWA on GitHub Pages pl
 8. Phase 3: native wrapper (Capacitor).
 
 The review bot will open an issue for each item with the spec. If you finish early, propose the next step in your summary.
+
+## Self-review checklist (required in every PR)
+Before you say a PR is ready, complete this list and paste it, ticked, into the PR body. Don't tick what you didn't do; say why instead.
+
+- [ ] `node tests/run.js` passes (unit + layout).
+- [ ] `npm --prefix functions install && npm --prefix functions test` passes.
+- [ ] Rules tests pass (`tests/rules`, runs in CI; note if they only ran in CI).
+- [ ] Every changed screen rendered with the in-repo headless harness (`tests/layout/`): `LAYOUT_ROUTES=<routes> npm run screens` saves PNGs to `screens/` at 390x844 plus the iPhone Duo folded (466x678, 678x466) and unfolded (626x890, 890x626) sizes, dark and light. CI uploads them as the `screens` artifact of the `tests` workflow; link the artifact (or attach the key shots) in the PR.
+- [ ] Text contrast 4.5:1 or better on every changed element, light and dark.
+- [ ] Reduce Motion respected (no movement-based animation; crossfade or none).
+- [ ] Haptics on meaningful touches via `js/ui/haptic.js` (no-op on the web).
+- [ ] No secrets, tokens or personal health data (synthetic fixtures only).
+- [ ] Health copy gives general guidance and never diagnoses.
+- [ ] Each acceptance criterion for this item in `QUEUE.md`, checked one by one.
+- [ ] Version bumped (`js/version.js`, `sw.js`) to the version `QUEUE.md` reserves, plus a CHANGELOG entry.
+- [ ] Says whether Cloud Functions or `firestore.rules` changed.
+
+After opening the PR, update this item's `Status` in `QUEUE.md` to `in-review (PR #<n>)` **in that same PR**. Work on one `QUEUE.md` item per PR only.
