@@ -22,6 +22,15 @@ export function injuryTags(text = '') {
   return Object.entries(INJURY_WORDS).filter(([, re]) => re.test(text)).map(([k]) => k);
 }
 
+/** Joints you can protect with the Knees / Lower back toggles (Train + Settings), as avoid-tags. */
+export const PROTECT_JOINTS = ['knee', 'lower_back'];
+
+/** The avoid tags from profile.protectJoints. Unknown values are ignored. */
+export function jointAvoidSet(profile) {
+  const list = profile && Array.isArray(profile.protectJoints) ? profile.protectJoints : [];
+  return new Set(list.filter((t) => PROTECT_JOINTS.includes(t)));
+}
+
 const LEVEL = { beginner: 1, intermediate: 2, advanced: 3 };
 export const CYCLE_WEEKS = { beginner: 6, intermediate: 5, advanced: 4 };
 
@@ -210,7 +219,9 @@ export function generateWorkout(opts) {
     notes.push(`${prog.name} needs a barbell and rack. This location doesn’t have them, so similar moves were picked instead.`);
   }
 
-  const avoid = new Set(injuryTags(profile.injuries));
+  const injuryAvoid = new Set(injuryTags(profile.injuries));
+  const jointAvoid = jointAvoidSet(profile);
+  const avoid = new Set([...injuryAvoid, ...jointAvoid]);
   if (avoid.size) notes.push(`Skipping moves that commonly stress your ${[...avoid].map((t) => t.replace('_', ' ')).join(', ')}. Swap any exercise if it feels fine for you.`);
 
   const { deload, week, cycle } = deloadInfo(program, experience, now);
