@@ -292,3 +292,11 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 @media (prefers-reduced-motion: reduce) { .plan-spin svg { animation: none; opacity: .6; } }
 .plan-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: var(--s-2); }
 @media (prefers-reduced-motion: no-preference) { .plan-open:active { opacity: .7; } }
+
+/* Barcode scan, brand products and Create food (v0.16.44). Tokens only; nothing here moves. */
+.food-more { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: var(--s-3) 0; }
+.food-more > .btn { flex: 1 1 160px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); }
+.scan-view { position: relative; width: 100%; aspect-ratio: 4 / 3; max-height: 34vh; border-radius: var(--r-lg); overflow: hidden; background: var(--surface-3); }
+.scan-view video { width: 100%; height: 100%; object-fit: cover; }
+.scan-frame { position: absolute; inset: 22% 10%; border: 2px solid var(--accent); border-radius: var(--r-lg); pointer-events: none; }
+@media (orientation: landscape) and (max-height: 520px) { .scan-view { max-height: 40vh; aspect-ratio: 16 / 7; } }

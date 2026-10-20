@@ -70,7 +70,12 @@ export function cleanFood(f) {
   }
   const serving = String(f.serving || '').trim();
   if (serving.length > LIMITS.serving) return { ok: false, error: `Keep the serving under ${LIMITS.serving} letters.` };
-  return { ok: true, food: { name, kcal: Math.round(kcal), ...macros, serving } };
+  const out = { name, kcal: Math.round(kcal), ...macros, serving };
+  const barcode = String(f.barcode || '').replace(/[\s-]+/g, '');
+  if (/^\d{8,14}$/.test(barcode)) out.barcode = barcode; // a scanned or typed barcode: the next scan finds this food first
+  if (f.favorite === true || f.favorite === 'on' || f.favorite === 'true') out.favorite = true; // favorites sit at the top of search
+  else if (f.favorite === false) out.favorite = false;
+  return { ok: true, food: out };
 }
 
 /** Fields for a new food_logs record (the caller adds the standard fields with newRecord). */

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.44 — Scan a barcode, find brand products, create your own foods (2026-10-20)
+
+Cloud Functions changed (new `foodBarcode`, no secret). `firestore.rules` did not change.
+
+### What's new
+
+- Scan a barcode in Log food. Not found? Create food opens with it filled in.
+- No match for a store brand? Brand products shows up, Costco items included.
+- Create food from a nutrition label, with an optional photo estimate.
+- Favorites and recent foods come first in search.
+
 ## 0.16.43 — Switch gyms from Train; joint toggles on the Resume card (2026-10-20)
 
 Cloud Functions and `firestore.rules` did not change.
