@@ -71,7 +71,7 @@ test('Train: location chips, Resume, preview, Recovery (fresh stat + map in one 
   const t = src('js/screens/train.js');
   const body = t.slice(at(t, 'el.innerHTML = `'), at(t, 'flash = new Set(); // the highlight'));
   // DOM order is the phone order; wide screens move the cards into columns with JS (arrangeTrainCols).
-  inOrder(body, ['aria-label="Location"', '${recoveryCardHtml(rec)}', 'class="card resume"', '${plan ? previewCard', '${whyCardHtml(', '<p class="label">Program</p>', 'class="tools"', 'data-train-history'], 'Train');
+  inOrder(body, ['data-gym', '${recoveryCardHtml(rec)}', 'class="card resume"', '${plan ? previewCard', '${whyCardHtml(', '<p class="label">Program</p>', 'class="tools"', 'data-train-history'], 'Train');
   assert(!body.includes('href="#/history"><span class="t-ic"'), 'History is its own row, not a tool tile');
   const r = src('js/ui/recovery-card.js');
   inOrder(r, ['fresh muscle groups', '${bodyMap(rec'], 'Recovery card');

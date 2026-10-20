@@ -48,7 +48,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 4. #164 Train: tap the gym chip to switch gyms; joint toggles on the Resume card
 - Issue: #164
 - Version: 0.16.43
-- Status: todo
+- Status: in-review
 - Acceptance:
   - The gym chip at the top of Train opens a small picker (light haptic) with saved gyms plus a shortcut to add or edit them in Settings (check how the existing location chips behave first and build on them).
   - Picking a gym re-plans today's workout for that gym's equipment and keeps the Knees/Lower back settings; during an in-progress workout, Forge asks before switching.

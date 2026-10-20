@@ -41,9 +41,9 @@ export const TOUR_STEPS = [
     body: 'Tap this line to ask Coach a question. It answers from your own numbers: your weight, workouts and food. It is not medical advice.',
   },
   {
-    id: 'train', route: 'train', target: '[aria-label="Location"]',
-    title: 'Train: pick where you are',
-    body: 'On the Train tab, choose where you’re working out today. Forge builds the workout from the equipment you have there.',
+    id: 'train', route: 'train', target: '[data-gym]',
+    title: 'Train: pick your gym',
+    body: 'Tap your gym at the top to switch gyms. Forge builds the workout from the equipment you have there.',
   },
   {
     id: 'start', route: 'train', target: '.card.preview [data-start]',

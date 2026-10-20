@@ -15,6 +15,7 @@ import './cardioposes.test.js';
 import './goalpath-dates.test.js';
 import './bodymap.test.js';
 import './preview.test.js';
+import './gym-switch.test.js';
 import './rings.test.js';
 import './withings.test.js';
 import './awards.test.js';

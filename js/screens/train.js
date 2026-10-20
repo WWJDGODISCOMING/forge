@@ -29,6 +29,7 @@ import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
 import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
+import { gymChoices, switchAction, SWITCH_CONFIRM, RESUME_JOINT_NOTE } from '../workouts/gym-switch-core.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
 import {
   LENGTHS, blankEdits, takeSnapshot, restoreSnapshot, isChanged, pickedIds, withSwapAvoid, carryRest, swapResult, swapMessage, noSwapReason, lengthMessage,
@@ -39,6 +40,7 @@ export const playerRoute = () => (state.settings && state.settings.player === 'l
 
 let dayOverride = null;
 let minOverride = null; // "Shorter or longer" for today only; never written to the profile
+let flashAll = false; // a gym switch re-plans every row: highlight them all once
 let flash = new Set(); // exercises that just changed, so the card can highlight them once
 
 // Edits made in the preview before Start: ⋯ → Replace, ⋯ → Rest timer, and Change. They belong to one
@@ -127,25 +129,26 @@ export function renderTrain(el) {
     <section class="stack">
       <h1>Train</h1>
 
-      <div class="chips" role="radiogroup" aria-label="Location">
-        ${state.locations.map((l) => `
-          <label class="chip"><input type="radio" name="loc" value="${esc(l.id)}" ${loc && l.id === loc.id ? 'checked' : ''}><span>${esc(l.name)}</span></label>`).join('')}
-      </div>
+      ${loc ? `<button class="gym-chip" data-gym aria-haspopup="dialog" aria-label="Gym: ${esc(loc.name)}. Switch gyms">
+        <span class="gym-pin" aria-hidden="true">${icon('pin')}</span><span>${esc(loc.name)}</span><span class="gym-chev" aria-hidden="true">${icon('chev')}</span>
+      </button>` : ''}
 
       <div class="train-cols" data-train-cols>
       ${recoveryCardHtml(rec)}
 
       ${active ? `
-        <a class="card resume" href="${playerRoute()}">
+        <div class="card resume">
           <p class="label">In progress</p>
           <p class="big-title">${esc(active.label)}</p>
           <p class="muted small">Started ${new Date(active.started_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
-          <span class="btn">Resume workout</span>
-        </a>` : ''}
+          <a class="btn" href="${playerRoute()}">Resume workout</a>
+          ${protectRowHtml()}
+          <p class="small muted protect-note">${esc(RESUME_JOINT_NOTE)}</p>
+        </div>` : ''}
 
       ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
       ${whyCardHtml(plan ? plan.notes : [], stalled.map((id) => exerciseById(id)?.name || id))}
-      ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
+      ${!loc ? '<div class="notice warn">Add a gym in Settings → Locations first.</div>' : ''}
 
       <div class="card">
         <div class="row between center">
@@ -176,13 +179,9 @@ export function renderTrain(el) {
     </section>`;
 
   flash = new Set(); // the highlight plays once, on this render
-  $$('input[name=loc]', el).forEach((r) =>
-    r.addEventListener('change', () => {
-      dayOverride = null;
-      restoringTo = null;
-      setActiveLocation(r.value);
-    })
-  );
+  flashAll = false;
+  const gym = $('[data-gym]', el);
+  if (gym) gym.onclick = () => openGymPicker(el, !!active);
   bindRecoveryCard(el, rec);
   if (plan) wirePreview(el, plan);
   bindProtect(el, (list, key) => {
@@ -251,7 +250,7 @@ function previewCard(plan, { d, loc, program, u }) {
   const row = ({ it, i }, label) => {
     const ex = exerciseById(it.exercise_id);
     const rest = it.rest_sec ? ` · rest ${fmtClock(it.rest_sec)}` : '';
-    return `<li class="pv-ex${flash.has(ex.id) ? ' flash' : ''}">
+    return `<li class="pv-ex${flash.has(ex.id) || flashAll ? ' flash' : ''}">
       <div class="pv-hit" role="button" tabindex="0" data-preview="${i}" aria-label="Preview demo: ${esc(ex.name)}">
       <div class="pv-thumb" data-thumb="${esc(ex.id)}" aria-hidden="true"></div>
       <div class="pv-txt">${label ? `<span class="pv-tag">${label}</span>` : ''}<b>${esc(ex.name)}</b>
@@ -292,7 +291,7 @@ function previewCard(plan, { d, loc, program, u }) {
         </div>
         <ol class="pv-list">${blocks.join('')}</ol>
         ${protectRowHtml()}
-        <button class="btn" data-start>Start workout</button>` : '<p class="muted">Nothing fits this location. Add equipment in Settings → Locations.</p>'}
+        <button class="btn" data-start>Start workout</button>` : '<p class="muted">Nothing fits this gym. Add equipment in Settings → Locations.</p>'}
       </div>`;
 }
 
@@ -356,6 +355,45 @@ function changed(el, before, message, flashIds = []) {
   if (el.isConnected) renderTrain(el);
   tick('success');
   toast(message, 6000, { action: { label: 'Undo', onClick: () => undoTo(el, before) } });
+}
+
+/** The gym chip's picker: saved gyms (current one ticked) and a shortcut to add or edit them in Settings. */
+function openGymPicker(el, inProgress) {
+  tick('light');
+  const cur = activeLocation();
+  sheet('Switch gym', (body, close) => {
+    body.innerHTML = `
+      <div class="gym-list" role="radiogroup" aria-label="Gym">
+        ${gymChoices(state.locations, cur && cur.id).map((g) => `
+          <button class="gym-row" role="radio" aria-checked="${g.current}" data-gym-id="${esc(g.id)}"><span>${esc(g.name)}</span>${g.current ? `<span class="gym-tick" aria-hidden="true">${icon('check')}</span>` : ''}</button>`).join('')}
+      </div>
+      <p class="small muted gym-note">Switching re-plans today for that gym’s equipment. Your Knees and Lower back settings stay the same.</p>
+      <a class="btn ghost" href="#/locations" data-gym-edit>Add or edit gyms in Settings</a>`;
+    $('[data-gym-edit]', body).onclick = () => { tick('light'); close(); };
+    $$('[data-gym-id]', body).forEach((b) => (b.onclick = async () => {
+      const id = b.dataset.gymId;
+      const act = switchAction(cur && cur.id, id, inProgress);
+      close();
+      if (act === 'none') return;
+      if (act === 'confirm' && !(await confirmSheet(SWITCH_CONFIRM))) return;
+      const before = snap();
+      dayOverride = null;
+      restoringTo = null;
+      flashAll = true;
+      setActiveLocation(id);
+      tick('success');
+      const to = state.locations.find((l) => l.id === id);
+      toast(`Now at ${to ? to.name : 'a new gym'}`, 6000, { action: { label: 'Undo', onClick: () => undoTo(el, before) } });
+    }));
+    // Arrow keys move between the gyms, like any radio group.
+    const rows = $$('[data-gym-id]', body);
+    rows.forEach((b, i) => (b.onkeydown = (e) => {
+      const d = e.key === 'ArrowDown' || e.key === 'ArrowRight' ? 1 : e.key === 'ArrowUp' || e.key === 'ArrowLeft' ? -1 : 0;
+      if (!d) return;
+      e.preventDefault();
+      rows[(i + d + rows.length) % rows.length].focus();
+    }));
+  });
 }
 
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
@@ -461,7 +499,7 @@ function openChange(el, plan) {
     };
     const placeStep = () => {
       const rows = state.locations.map((l) => row(`data-v="${esc(l.id)}"`, esc(l.name), '', { check: loc && l.id === loc.id }));
-      listStep('Location', rows.join(''), (v) => {
+      listStep('Gym', rows.join(''), (v) => {
         if (loc && v === loc.id) { close(); return; }
         const before = snap();
         dayOverride = null;
@@ -470,7 +508,7 @@ function openChange(el, plan) {
         const to = state.locations.find((l) => l.id === v);
         flash = new Set();
         tick('success');
-        toast(`Now at ${to ? to.name : 'a new location'}`, 6000, { action: { label: 'Undo', onClick: () => undoTo(el, before) } });
+        toast(`Now at ${to ? to.name : 'a new gym'}`, 6000, { action: { label: 'Undo', onClick: () => undoTo(el, before) } });
       });
     };
     home();
