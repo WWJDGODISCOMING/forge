@@ -673,7 +673,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         const ht = document.querySelector('#main .weight-text [data-weight-trend]'); if (ht && lineCount(ht) > 1) wrap.push('wraps: weight trend line');
         const rw = document.querySelector('#main .rings-card > .row'); if (rw) { const k = [...rw.children].map((c) => c.getBoundingClientRect().top); if (Math.max(...k) - Math.min(...k) > 6) wrap.push('wraps: rings header'); }
         const fr = document.querySelector('#main .food-row-compact'); if (fr) { const rg = fr.querySelector('.food-card-ring'), lb = fr.querySelector('[data-food-log]'); if (rg && lb) { if (Math.abs(rg.getBoundingClientRect().top - lb.getBoundingClientRect().top) > 6 && Math.abs(rg.getBoundingClientRect().bottom - lb.getBoundingClientRect().bottom) > 6 && Math.abs((rg.getBoundingClientRect().top + rg.getBoundingClientRect().bottom) - (lb.getBoundingClientRect().top + lb.getBoundingClientRect().bottom)) > 12) wrap.push('wraps: Today food row'); if (lb.getBoundingClientRect().height < 43.5) wrap.push('small: Log food'); } }
-        const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
+        const slots = [...document.querySelectorAll('#main .slot')].map((e) => { const c = e.firstElementChild, q = c && c.getBoundingClientRect(); return { o: Number(e.dataset.o), coach: !!(c && c.matches('[data-coach-card]')), coachMin: c ? parseFloat(getComputedStyle(c).minHeight) : 0, col: e.parentElement.classList.contains('col-a') ? 'a' : e.parentElement.classList.contains('col-b') ? 'b' : '', t: q && q.height > 1 ? q.top + scrollY : null }; });
         const done = document.querySelector('#main [data-done-label]'), dq = done && done.getBoundingClientRect();
         const ch = document.querySelector('#main svg.chart'), cq = ch && ch.getBoundingClientRect(), card = ch && ch.closest('.card'), cdq = card && card.getBoundingClientRect();
         const ordered = [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length;
@@ -682,7 +682,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
         const dom = a && b ? !!(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING) : null;
         const h1 = document.querySelector('#main h1'), tabs = [...document.querySelectorAll('#nav a')].map((e) => e.getBoundingClientRect().height);
         const rows = [...document.querySelectorAll('#main .set-nav [data-pane]')], lastRow = rows.length ? rows[rows.length - 1].getBoundingClientRect() : null;
-        return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
+        return { h1: h1 && { fs: parseFloat(getComputedStyle(h1).fontSize), h: h1.getBoundingClientRect().height }, tabH: tabs, lastRowB: lastRow && lastRow.bottom, tabTop: document.getElementById('nav').getBoundingClientRect().top, scrollH: document.documentElement.scrollHeight, demoTop: top(dm), stepTop: top(st), dom: dom, ordered: ordered, doneBox: dq && { t: dq.top, b: dq.bottom }, chart: cq && { w: cq.width, ar: cq.width / cq.height, vb: ch.viewBox.baseVal.width / ch.viewBox.baseVal.height }, card: cdq && { w: cdq.width }, axisPx: ax, vh: innerHeight, slots: slots, trainCols: (() => { const q = (c) => { const e = document.querySelector('#main .train-cols > .col-' + c); if (!e) return null; const last = [...e.children].filter((k) => k.getBoundingClientRect().height > 1).pop(); return last ? last.getBoundingClientRect().bottom + scrollY : null; }; return { a: q('a'), b: q('b') }; })(), wrap: wrap, main: r(document.getElementById('main')), tab: r(document.getElementById('nav')), a: r(a), b: r(b), out: out.slice(0, 4), vw: innerWidth };
       })()`);
       if (route !== 'play' && (Math.abs(m.tab.l) > 1 || Math.abs(m.tab.r - m.vw) > 1)) bad.push(`${at}: tab bar ${Math.round(m.tab.l)}-${Math.round(m.tab.r)} is not full width (${m.vw})`);
       const cols = route === 'today' || route === 'train' || route === 'body' || route === 'food' || route === 'score' || route === 'play' || route === 'settings';
@@ -691,11 +691,18 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
       const fresh = m.wrap.filter((x) => !base.has(x));
       if (fresh.length) bad.push(`${at}: ${fresh.join(', ')}`);
       if (m.out.length) bad.push(`${at}: sits inside the inset: ${m.out.join(', ')}`);
+      if (route === 'today' && m.slots.length) { // Ask Coach: first card, original size (same as main: a 48px one-line row), never enlarged
+        const first = m.slots.find((x) => x.t != null);
+        if (!first || !first.coach) bad.push(`${at}: Ask Coach is not the first card on Today`);
+        else if (first.coachMin !== 48) bad.push(`${at}: Ask Coach min-height is ${first.coachMin}, should stay 48`);
+        if (w >= 840 && first && first.col !== 'a') bad.push(`${at}: Ask Coach should sit at the top of the first column`);
+      }
+      if (route === 'train' && w >= 840 && m.trainCols.a != null && m.trainCols.b != null && Math.abs(m.trainCols.a - m.trainCols.b) > 400) bad.push(`${at}: Train columns end ${Math.round(m.trainCols.a)} and ${Math.round(m.trainCols.b)}, more than 400px apart`);
       if (route === 'today') { // reading order (VoiceOver, Tab) must match the screen: DOM order = visual order on a phone, and the right column per card on two columns
         const shown = m.slots.filter((x) => x.t != null);
         if (w < 840 && m.slots.map((x) => x.o).join() !== '1,2,3,4,5,6,7,8,9,10') bad.push(`${at}: Today's cards are not in phone order in the DOM: ${m.slots.map((x) => x.o)}`);
         if (w < 840) for (let i = 1; i < shown.length; i++) if (shown[i].t < shown[i - 1].t - 1) bad.push(`${at}: Today card ${shown[i].o} sits above card ${shown[i - 1].o} on screen but after it in the DOM`);
-        if (w >= 840) for (const x of m.slots) if (x.col !== ([1, 3, 5].includes(x.o) ? 'a' : 'b') && !([6, 9].includes(x.o) && x.col)) // 6 and 9 (coach line, insights) go on the shorter side
+        if (w >= 840) for (const x of m.slots) if (x.col !== (x.o === 1 ? 'a' : 'b') && !([3, 4, 5, 6, 9, 10].includes(x.o) && x.col)) // 3, 4, 5, 6, 9 and 10 (rings, missions, food, weight, readiness, insights) go on the shorter side
           bad.push(`${at}: Today card ${x.o} is in column ${x.col || 'none'}`);
         if (w >= 840) for (const col of ['a', 'b']) { const o = m.slots.filter((x) => x.col === col).map((x) => x.o); if (o.join() !== [...o].sort((p, q) => p - q).join()) bad.push(`${at}: column ${col} is out of phone order: ${o}`); }
       }
@@ -714,7 +721,7 @@ for (const route of standalone ? ['today', 'train', 'body', 'play', 'score', 'fo
           if (st.shown.length !== 5) bad.push(`${at}: a phone shows every section, got ${st.shown}`);
         }
       }
-      if (route === 'body' || route === 'play') { // reading order is the screen order: left column first in the DOM, and no CSS order anywhere
+      if (route === 'body' || route === 'play' || route === 'train') { // reading order is the screen order: left column first in the DOM, and no CSS order anywhere
         if (m.dom === false) bad.push(`${at}: the left column comes after the right in the DOM`);
         if (m.ordered) bad.push(`${at}: ${m.ordered} elements use CSS order`);
       }
@@ -1739,6 +1746,53 @@ if (standalone) {
       }
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
+}
+
+// v0.16.41: the Why card needs plan notes and stalled lifts to show up, so give Train both and render it collapsed and open.
+if (standalone && (!only || only.includes('train'))) {
+  test('layout: Train Why card: header 64px or less, nothing clips at text size 1.3, DOM order is screen order on a phone, columns balanced', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    for (const c of [{ w: 390, h: 844, ts: 1 }, { w: 890, h: 626, ts: 1 }, { w: 390, h: 844, ts: 1.3 }]) {
+      const at = `${c.w}x${c.h}${c.ts !== 1 ? ` text ${c.ts}` : ''}`;
+      await browser.viewport(c.w, c.h, true);
+      await browser.open('train', seed({ why: true }));
+      if (c.ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${c.ts}')`); await wait(300); }
+      for (const open of [false, true]) {
+        if (open) { await browser.eval("document.querySelector('[data-why-toggle]').click()"); await wait(300); }
+        const m = await browser.eval(`(() => {
+          const card = document.querySelector('[data-why-card]'); if (!card) return null;
+          const h = card.querySelector('[data-why-toggle]'), body = card.querySelector('[data-why-body]'), hr = h.getBoundingClientRect();
+          const kids = [...h.querySelectorAll('.why-text > *')].map((e) => e.getBoundingClientRect());
+          const clip = [...h.querySelectorAll('.why-text > *')].some((e) => e.scrollWidth > e.clientWidth + 1) || kids.some((k) => k.bottom > hr.bottom + 0.5 || k.top < hr.top - 0.5);
+          const overlap = kids.length > 1 && kids[0].bottom > kids[1].top + 1;
+          const dom = ['[data-recovery-card]', '.resume, .preview', '[data-why-card]', '[data-program]', '.tools', '[data-train-history]'].map((s) => document.querySelector('#main ' + s)).filter(Boolean);
+          const tops = dom.map((e) => e.getBoundingClientRect().top);
+          const inDom = dom.every((e, i) => !i || !!(dom[i - 1].compareDocumentPosition(e) & Node.DOCUMENT_POSITION_FOLLOWING));
+          const ordered = [...document.querySelectorAll('#main *')].filter((e) => getComputedStyle(e).order !== '0').length;
+          return { h: hr.height, expanded: h.getAttribute('aria-expanded'), hidden: body.hidden, body: body.children.length, clip, overlap, tops, inDom, ordered, over: document.documentElement.scrollWidth - innerWidth };
+        })()`);
+        const what = `${at} ${open ? 'open' : 'collapsed'}`;
+        if (!m) { bad.push(`${what}: no Why card (seed has no notes or stalled lifts)`); continue; }
+        if (m.expanded !== String(open) || m.hidden === open) bad.push(`${what}: aria-expanded ${m.expanded} and hidden ${m.hidden} disagree`);
+        if (open && !m.body) bad.push(`${what}: the body is empty`);
+        if (c.ts === 1 && m.h > 64) bad.push(`${what}: header is ${Math.round(m.h)}px tall, should be 64 or less`);
+        if (m.clip || m.overlap) bad.push(`${what}: header text clips or overlaps`);
+        if (m.over > 1) bad.push(`${what}: scrolls sideways`);
+        if (m.ordered) bad.push(`${what}: ${m.ordered} elements use CSS order`);
+        if (c.w < 840 && !m.inDom) bad.push(`${what}: Train's cards are not in phone order in the DOM`);
+        if (c.w < 840 && m.tops.some((t, i) => i && t < m.tops[i - 1] - 1)) bad.push(`${what}: a card sits above the one before it in the DOM: ${m.tops.map(Math.round)}`);
+        if (c.w >= 840 && !open) { // balanced as drawn; opening the card is the reader's choice
+          const cols = await browser.eval("(() => { const q = (s) => { const e = document.querySelector('#main .train-cols > ' + s); const l = e && [...e.children].pop(); return l ? l.getBoundingClientRect().bottom + scrollY : null; }; return [q('.col-a'), q('.col-b')]; })()");
+          if (cols[0] == null || cols[1] == null || Math.abs(cols[0] - cols[1]) > 400) bad.push(`${what}: Train columns end ${cols.map(Math.round)}, more than 400px apart`);
+        }
+        if (shots) await browser.screenshot(`${shots}/train-why-${open ? 'open' : 'collapsed'}-${c.w}x${c.h}${c.ts !== 1 ? '-text' : ''}.png`);
+      }
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });
 }
 

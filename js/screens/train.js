@@ -22,6 +22,7 @@ import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
 import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { unlockAudio } from '../ui/sound.js';
 import { icon } from '../ui/icons.js';
+import { whyCardHtml } from '../ui/why-card.js';
 import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
 import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
@@ -129,8 +130,9 @@ export function renderTrain(el) {
           <label class="chip"><input type="radio" name="loc" value="${esc(l.id)}" ${loc && l.id === loc.id ? 'checked' : ''}><span>${esc(l.name)}</span></label>`).join('')}
       </div>
 
-      <div class="train-cols">
-      <div class="col col-a">
+      <div class="train-cols" data-train-cols>
+      ${recoveryCardHtml(rec)}
+
       ${active ? `
         <a class="card resume" href="${playerRoute()}">
           <p class="label">In progress</p>
@@ -139,18 +141,9 @@ export function renderTrain(el) {
           <span class="btn">Resume workout</span>
         </a>` : ''}
 
-      ${stalled.length >= 2 ? `
-        <div class="notice warn">
-          ${stalled.length} main lifts have stalled (${stalled.map((id) => esc(exerciseById(id)?.name || id)).join(', ')}). A lighter week often breaks a plateau.
-          <div class="row gap" style="margin-top:8px"><button class="btn small" data-deload>Start a deload week</button></div>
-        </div>` : ''}
-
       ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
+      ${whyCardHtml(plan ? plan.notes : [], stalled.map((id) => exerciseById(id)?.name || id))}
       ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
-
-      </div>
-      <div class="col col-b">
-      ${recoveryCardHtml(rec)}
 
       <div class="card">
         <div class="row between center">
@@ -178,7 +171,6 @@ export function renderTrain(el) {
         <span class="chev" aria-hidden="true">${icon('chev')}</span>
       </a>
       </div>
-      </div>
     </section>`;
 
   flash = new Set(); // the highlight plays once, on this render
@@ -202,12 +194,52 @@ export function renderTrain(el) {
   const start = $('[data-start]', el);
   if (start)
     start.onclick = () => startPlan(plan);
+  arrangeTrainCols(el);
+  const why = $('[data-why-toggle]', el);
+  if (why) why.onclick = () => {
+    tick();
+    const open = why.getAttribute('aria-expanded') !== 'true';
+    why.setAttribute('aria-expanded', String(open));
+    $('[data-why-body]', el).hidden = !open;
+    el.querySelector('[data-why-card]').classList.toggle('open', open);
+  };
   const dl = $('[data-deload]', el);
   if (dl) dl.onclick = () => { startDeload(); toast('Deload week started'); };
   $('[data-program]', el).onclick = () => openProgramPicker();
   $('[data-focus]', el).onclick = () => openFocusPicker();
   $('[data-cardio]', el).onclick = () => openCardioLog();
   $('[data-plates]', el).onclick = () => openPlateCalculator();
+}
+
+// Two columns (>= 840px). The DOM stays in the phone's reading order and the cards only move into columns while the
+// wide query matches (like Today), so VoiceOver and Tab order follow the screen on every size.
+const TRAIN_RIGHT = '.resume, .preview, [data-why-card], .notice';
+let trainQuery = null;
+let trainListener = null;
+function arrangeTrainCols(el) {
+  if (trainQuery && trainListener) trainQuery.removeEventListener('change', trainListener);
+  trainQuery = trainListener = null;
+  if (typeof matchMedia !== 'function') return;
+  const host = $('[data-train-cols]', el);
+  if (!host) return;
+  const cards = [...host.children];
+  const q = matchMedia('(min-width: 840px)');
+  const apply = () => {
+    if (!el.isConnected || !host.isConnected) return;
+    const focused = document.activeElement;
+    const hadFocus = focused && focused !== document.body && host.contains(focused);
+    if (q.matches) {
+      const a = document.createElement('div'); a.className = 'col col-a';
+      const b = document.createElement('div'); b.className = 'col col-b';
+      host.replaceChildren(a, b);
+      for (const c of cards) (c.matches(TRAIN_RIGHT) ? b : a).append(c);
+    } else host.replaceChildren(...cards);
+    if (hadFocus && focused.isConnected && document.activeElement !== focused) focused.focus({ preventScroll: true });
+  };
+  trainQuery = q;
+  trainListener = () => apply();
+  q.addEventListener('change', trainListener);
+  apply();
 }
 
 function previewCard(plan, { d, loc, program, u }) {
@@ -240,7 +272,6 @@ function previewCard(plan, { d, loc, program, u }) {
           <span class="pill">${icon('timer')} ~${plan.est_minutes} min</span>
           ${plan.focus && plan.focus.length ? `<span class="pill pill-focus">Focus: ${esc(plan.focusLabel)}</span>` : ''}
         </div>
-        ${plan.notes.map((x) => `<p class="notice info small">${esc(x)}</p>`).join('')}
         ${n ? `
         <div class="pv-sum">
           ${bodyMap(planValues(plan), { size: 'mini', caption: false })}

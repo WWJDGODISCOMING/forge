@@ -11,12 +11,12 @@ const inOrder = (s, needles, what) => {
   for (let i = 1; i < pos.length; i++) assert(pos[i] > pos[i - 1], `${what}: ${needles[i]} should come after ${needles[i - 1]}`);
 };
 
-test('Today: the template lists the cards in the approved order (alert, readiness, workout, rings, missions, food, coach, weight, report, insights, photo)', () => {
-  eq(TODAY_ORDER.join(), 'alert,readiness,workout,rings,missions,food,coach,weight,report,insights,photo');
+test('Today: the template lists the cards in the approved order (alert, coach, workout, rings, missions, food, weight, report, photo, readiness, insights)', () => {
+  eq(TODAY_ORDER.join(), 'alert,coach,workout,rings,missions,food,weight,report,photo,readiness,insights');
   const t = src('js/screens/today.js');
   const body = t.slice(at(t, 'el.innerHTML = `'));
-  inOrder(body, ['${greeting()}', '${alert.html}', '${readinessCard()}', '${workoutCard()}', 'class="card rings-card"', '${missionsCard()}', '${foodRow(t)}', '${coachLine()}',
-    'class="card weight-card"', '${report.html}', '${insightsBlock()}', 'data-photo-reminder'], 'Today');
+  inOrder(body, ['${greeting()}', '${alert.html}', '${coachLine()}', '${workoutCard()}', 'class="card rings-card"', '${missionsCard()}', '${foodRow(t)}',
+    'class="card weight-card"', '${report.html}', 'data-photo-reminder', '${readinessCard()}', '${insightsBlock()}'], 'Today');
   const slots = [...body.matchAll(/class="slot" data-o="(\d+)"/g)].map((m) => Number(m[1]));
   eq(slots.join(), '1,2,3,4,5,6,7,8,9,10', 'slots sit in the DOM in one-column order');
 });
@@ -67,10 +67,11 @@ test('Today: the app-expiry banner still takes the alert slot when it arrives', 
 });
 
 test('Train: location chips, Resume, preview, Recovery (fresh stat + map in one card), Program, Tools, History & PRs', () => {
-  eq(TRAIN_ORDER.join(), 'places,resume,workout,recovery,program,tools,history');
+  eq(TRAIN_ORDER.join(), 'places,recovery,resume,workout,why,program,tools,history');
   const t = src('js/screens/train.js');
   const body = t.slice(at(t, 'el.innerHTML = `'), at(t, 'flash = new Set(); // the highlight'));
-  inOrder(body, ['aria-label="Location"', 'class="card resume"', '${plan ? previewCard', '${recoveryCardHtml(rec)}', '<p class="label">Program</p>', 'class="tools"', 'data-train-history'], 'Train');
+  // DOM order is the phone order; wide screens move the cards into columns with JS (arrangeTrainCols).
+  inOrder(body, ['aria-label="Location"', '${recoveryCardHtml(rec)}', 'class="card resume"', '${plan ? previewCard', '${whyCardHtml(', '<p class="label">Program</p>', 'class="tools"', 'data-train-history'], 'Train');
   assert(!body.includes('href="#/history"><span class="t-ic"'), 'History is its own row, not a tool tile');
   const r = src('js/ui/recovery-card.js');
   inOrder(r, ['fresh muscle groups', '${bodyMap(rec'], 'Recovery card');
