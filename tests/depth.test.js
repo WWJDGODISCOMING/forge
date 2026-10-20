@@ -76,6 +76,17 @@ test('depth: reduced transparency removes the ambient layer and makes cards opaq
   assert(/html\.reduce-transparency \{[^}]*--ambient-bg/.test(tokens));
 });
 
+test('depth: sticky action docks are full-bleed glass, not an opaque --bg band', () => {
+  const rule = (css, sel) => css.match(new RegExp(`${sel} \\{[^}]*\\}`))[0];
+  const dock = rule(read('css/player.css'), '\\.pl-dock');
+  const sticky = rule(read('css/app.css'), '\\.sticky-actions');
+  for (const r of [dock, sticky]) {
+    assert(!/var\(--bg\)/.test(r), 'no opaque --bg band');
+    assert(/background: var\(--tabbar-bg\)/.test(r) && /backdrop-filter: blur/.test(r), 'tab bar glass');
+    assert(/margin[^;]*calc\(-1 \* max\(var\(--gutter\)/.test(r), 'full-bleed past the gutter');
+  }
+});
+
 test('depth: special cards combine --elev-1 with their own ring', () => {
   const css = read('css/app.css') + read('css/health.css') + read('css/food.css');
   for (const sel of ['\\.ready-card', '\\.card\\.prs', '\\.excard\\.superset', '\\.verdict\\.ok', '\\.verdict\\.warn', '\\.suggest', '\\.plan-day\\.today']) {
