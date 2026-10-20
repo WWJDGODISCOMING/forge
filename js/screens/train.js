@@ -279,7 +279,7 @@ function previewCard(plan, { d, loc, program, u }) {
         ${n ? `
         <div class="pv-sum">
           ${bodyMap(planValues(plan), { size: 'mini', caption: false })}
-          <p><b>${n} exercise${n === 1 ? '' : 's'} · ${muscles} muscle${muscles === 1 ? '' : 's'}</b><small class="muted">Tap the dots to replace an exercise, see its history or set its rest.</small></p>
+          <p><b>${n} exercise${n === 1 ? '' : 's'} · ${muscles} muscle${muscles === 1 ? '' : 's'}</b><small class="muted">Tap an exercise to preview it, or the dots for more.</small></p>
         </div>
         <div class="pv-warm">
           <p class="pv-group-h"><span>Warm-up</span><small class="muted">~${plan.warm_min || 5} min</small></p>
@@ -303,6 +303,7 @@ function wirePreview(el, plan) {
     if (t.childElementCount) return;
     const ex = exerciseById(t.dataset.thumb);
     if (!ex) return;
+    t.classList.toggle('has-demo', hasFigure(ex.id) || hasPhotos(ex.id));
     if (hasFigure(ex.id)) mountFigure(t, ex, { at: 'hard' });
     else if (hasPhotos(ex.id)) {
       t.innerHTML = `<img src="${esc(photoUrls(ex.id)[0])}" alt="" decoding="async" loading="lazy">`;
@@ -491,9 +492,15 @@ function slotContext(plan, i) {
 /** Put `c` in this slot. Keyed by what the generator picks for the slot, so it survives re-renders. */
 function applyReplace(el, ex, c) {
   const orig = Object.keys(edits.forced).find((k) => edits.forced[k] === ex.id) || ex.id;
+  const prevForced = edits.forced[orig];
+  const prevRest = { ...edits.rest };
   edits.forced[orig] = c.id;
   if (edits.rest[ex.id]) { edits.rest[c.id] = edits.rest[ex.id]; delete edits.rest[ex.id]; }
-  toast(`Replaced with ${c.name}`);
+  toast(`Replaced with ${c.name}`, 5000, { action: { label: 'Undo', onClick: () => {
+    if (prevForced === undefined) delete edits.forced[orig]; else edits.forced[orig] = prevForced;
+    edits.rest = prevRest;
+    renderTrain(el);
+  } } });
   renderTrain(el);
 }
 

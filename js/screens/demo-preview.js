@@ -10,7 +10,7 @@ import { MUSCLE_LABELS } from '../workouts/recovery.js';
 import { jointAvoidSet } from '../workouts/generator.js';
 import { SAFETY_LINE } from '../ui/protect-view.js';
 import { reducedMotion } from '../ui/motion.js';
-import { jointNotes, openKeyframes } from '../workouts/demo-preview-core.js';
+import { jointNotes, openKeyframes, restingRect } from '../workouts/demo-preview-core.js';
 
 /**
  * Open the preview for `ex`. `origin` is the tapped thumbnail (the demo grows out of it). `canSwap` says whether
@@ -31,14 +31,14 @@ export function openDemoPreview(ex, { origin, canSwap = true, onSwap, onReplace 
     body.innerHTML = `
       <div class="stack demo-prev">
         <div class="ht-demo" data-demo role="img" aria-label="${esc(ex.name)} demo"></div>
-        <div><p class="label">Form cues</p><ul class="reasons">${cues}</ul></div>
-        <p><b>Works:</b> ${esc(works)}${also ? `<span class="muted"> · also ${esc(also)}</span>` : ''}</p>
-        ${joints}
         <div class="row gap demo-actions">
-          <button class="btn ghost grow" data-a="swap" ${canSwap ? '' : 'disabled'}>Swap</button>
+          <button class="btn grow" data-a="swap" ${canSwap ? '' : 'disabled'}>Swap</button>
           <button class="btn ghost grow" data-a="replace">Replace</button>
         </div>
         ${canSwap ? '' : '<p class="small muted">No other move fits here right now. Replace lets you browse.</p>'}
+        <div><p class="label">Form cues</p><ul class="reasons">${cues}</ul></div>
+        <p><b>Works:</b> ${esc(works)}${also ? `<span class="muted"> · also ${esc(also)}</span>` : ''}</p>
+        ${joints}
       </div>`;
 
     const demo = $('[data-demo]', body);
@@ -59,7 +59,9 @@ export function openDemoPreview(ex, { origin, canSwap = true, onSwap, onReplace 
     if (demo.animate) {
       requestAnimationFrame(() => {
         const reduced = reducedMotion();
-        demo.animate(openKeyframes(from, demo.getBoundingClientRect(), reduced), { duration: reduced ? 160 : 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
+        // The sheet is still sliding in: measure the demo where it will rest, not where it is this frame.
+        const to = restingRect(demo.getBoundingClientRect(), demo.closest('dialog'));
+        demo.animate(openKeyframes(from, to, reduced), { duration: reduced ? 160 : 320, easing: 'cubic-bezier(.2,.8,.2,1)' });
       });
     }
 

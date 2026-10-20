@@ -4,7 +4,7 @@ import { test, eq, assert } from './harness.js';
 import { EXERCISES } from '../js/workouts/exercises.js';
 import { LOCATION_PRESETS, expandEquipment, canDo } from '../js/workouts/equipment.js';
 import { jointFriendly, jointPickerPatterns } from '../js/workouts/generator.js';
-import { jointNotes, swapCandidate, originTransform, openKeyframes } from '../js/workouts/demo-preview-core.js';
+import { jointNotes, swapCandidate, originTransform, openKeyframes, restingRect } from '../js/workouts/demo-preview-core.js';
 
 const src = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const byId = (id) => EXERCISES.find((e) => e.id === id);
@@ -31,7 +31,7 @@ test('the sheet has the demo, cues, muscles, joint notes, Swap and Replace, offl
 test('wide screens get a side panel, thumbnails a play badge', () => {
   const c = src('css/player.css');
   assert(/min-width: 600px\) \{\s*dialog\.sheet\.demo-sheet \{[^}]*inset: 0 0 0 auto/.test(c), 'side panel');
-  assert(c.includes('.pv-thumb::after'), 'play badge');
+  assert(c.includes('.pv-thumb.has-demo::after'), 'play badge');
 });
 
 test('jointNotes: nothing when off; stress vs easy per protected joint', () => {
@@ -77,4 +77,19 @@ test('reduced motion: a crossfade, no movement; otherwise it grows from the thum
   assert(t.scale < 0.2 && t.dy > 0, 'smaller and below');
   eq(openKeyframes(null, to, false)[0].transform, undefined, 'no origin -> crossfade');
   assert(src('js/screens/demo-preview.js').includes('reducedMotion()'), 'reads the setting');
+});
+
+test('grow-from-thumbnail is measured at the sheet resting spot, not mid-slide', () => {
+  const dlg = (y, cls = []) => ({ style: { getPropertyValue: () => `${y}px` }, classList: { contains: (c) => cls.includes(c) }, offsetHeight: 800 });
+  const rect = { left: 20, top: 900, width: 350, height: 250 };
+  eq(restingRect(rect, dlg(800), 844).top, 100, 'sheet still 800px down -> rests 800px higher');
+  eq(restingRect(rect, dlg(800, ['at-medium']), 844).top, 900 - (800 - 378), 'medium detent rests lower');
+  eq(restingRect(rect, dlg(0), 844).top, 900, 'already resting');
+});
+
+test('swap changes only the swapped slot; Swap sits under the demo; toast has Undo', () => {
+  assert(src('js/workouts/generator.js').includes('{ ctx.used.add(ex.id); ex = swapTo; }'), 'the replaced pick counts as used');
+  const d = src('js/screens/demo-preview.js');
+  assert(d.indexOf('data-a="swap"') < d.indexOf('Form cues'), 'Swap/Replace sit right under the demo');
+  assert(src('js/screens/train.js').includes("label: 'Undo'"), 'Swap toast has Undo');
 });

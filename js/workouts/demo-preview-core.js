@@ -47,3 +47,13 @@ export function openKeyframes(from, to, reduced) {
     { transform: 'none', opacity: 1 },
   ];
 }
+
+/**
+ * A rect measured while the dialog is mid-slide, moved to where it sits once the dialog rests: its live --sheet-y
+ * minus the resting offset (the medium detent leaves half the screen showing; large and the side panel rest at 0).
+ */
+export function restingRect(rect, dialog, viewH = (typeof innerHeight === 'number' ? innerHeight : 0)) {
+  const y = parseFloat(dialog?.style?.getPropertyValue?.('--sheet-y')) || 0;
+  const rest = dialog?.classList?.contains('at-medium') ? Math.max(0, (dialog.offsetHeight || 0) - viewH * 0.5) : 0;
+  return { left: rect.left, top: rect.top - (y - rest), width: rect.width, height: rect.height };
+}
