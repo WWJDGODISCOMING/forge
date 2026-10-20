@@ -133,20 +133,6 @@ export function renderTrain(el) {
       <div class="col col-a">
       ${recoveryCardHtml(rec)}
 
-      ${active ? `
-        <a class="card resume" href="${playerRoute()}">
-          <p class="label">In progress</p>
-          <p class="big-title">${esc(active.label)}</p>
-          <p class="muted small">Started ${new Date(active.started_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
-          <span class="btn">Resume workout</span>
-        </a>` : ''}
-
-      ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
-      ${whyCard(plan, stalled)}
-      ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
-
-      </div>
-      <div class="col col-b">
       <div class="card">
         <div class="row between center">
           <p class="label">Program</p>
@@ -172,6 +158,19 @@ export function renderTrain(el) {
         <div><p class="label">History &amp; PRs</p><p class="small">Past workouts and personal records</p></div>
         <span class="chev" aria-hidden="true">${icon('chev')}</span>
       </a>
+      </div>
+      <div class="col col-b">
+      ${active ? `
+        <a class="card resume" href="${playerRoute()}">
+          <p class="label">In progress</p>
+          <p class="big-title">${esc(active.label)}</p>
+          <p class="muted small">Started ${new Date(active.started_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</p>
+          <span class="btn">Resume workout</span>
+        </a>` : ''}
+
+      ${plan ? previewCard(plan, { d, loc, program, u }) : ''}
+      ${whyCard(plan, stalled)}
+      ${!loc ? '<div class="notice warn">Add a location in Settings → Locations first.</div>' : ''}
       </div>
       </div>
     </section>`;
@@ -199,6 +198,7 @@ export function renderTrain(el) {
     start.onclick = () => startPlan(plan);
   const why = $('[data-why-toggle]', el);
   if (why) why.onclick = () => {
+    tick();
     const open = why.getAttribute('aria-expanded') !== 'true';
     why.setAttribute('aria-expanded', String(open));
     $('[data-why-body]', el).hidden = !open;
@@ -215,17 +215,20 @@ export function renderTrain(el) {
 /** One compact, expandable card for everything that explains today's workout (notes, stalled lifts). */
 function whyCard(plan, stalled) {
   const notes = [...(plan ? plan.notes : [])];
-  const stall = stalled.length >= 2 ? `${stalled.length} main lifts have stalled (${stalled.map((id) => esc(exerciseById(id)?.name || id)).join(', ')}). A lighter week often breaks a plateau.` : '';
-  if (!notes.length && !stall) return '';
-  const first = notes.length ? esc(notes[0]) : stall;
+  const nStall = stalled.length >= 2 ? stalled.length : 0;
+  if (!notes.length && !nStall) return '';
+  const stall = nStall ? `${nStall} main lifts have stalled (${stalled.map((id) => esc(exerciseById(id)?.name || id)).join(', ')}). A lighter week often breaks a plateau.` : '';
+  const parts = [];
+  if (notes.length) parts.push(`${notes.length} ${notes.length === 1 ? 'note' : 'notes'}`);
+  if (nStall) parts.push(`${nStall} lifts stalled`);
   return `<div class="card why-card" data-why-card>
     <button class="why-head" type="button" data-why-toggle aria-expanded="false" aria-controls="why-body">
-      <span class="why-text"><span class="label">Why this workout</span><span class="small why-first">${first}</span></span>
+      <span class="why-text"><span class="label">Why this workout</span><span class="small why-first">${parts.join(' · ')}</span></span>
       <span class="why-chev" aria-hidden="true">${icon('chev')}</span></button>
     <div class="why-body stack" id="why-body" data-why-body hidden>
-      ${notes.slice(1).map((x) => `<p class="small">${esc(x)}</p>`).join('')}
-      ${stall && notes.length ? `<p class="small">${stall}</p>` : ''}
-      ${stall ? '<div class="row gap"><button class="btn small" data-deload>Start a deload week</button></div>' : ''}
+      ${notes.map((x) => `<p class="small">${esc(x)}</p>`).join('')}
+      ${stall ? `<p class="small">${stall}</p>` : ''}
+      ${nStall ? '<div class="row gap"><button class="btn small" data-deload>Start a deload week</button></div>' : ''}
     </div>
   </div>`;
 }
