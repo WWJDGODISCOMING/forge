@@ -15,7 +15,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 1. #154 Joints to protect: knee- and lower-back-friendly workouts
 - Issue: #154
 - Version: 0.16.40
-- Status: in-review (PR #159)
+- Status: done (PR #159)
 - Acceptance:
   - 'Joints to protect' setting (Knees, Lower back; multi-select, per profile) in Settings plus a quick toggle on Train before Start workout.
   - Generator and swap picker exclude/deprioritize stressful moves; joint-friendly substitutes train the same muscles and still count toward weekly sets.
