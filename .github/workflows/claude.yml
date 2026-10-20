@@ -87,6 +87,9 @@ jobs:
           BASH_MAX_TIMEOUT_MS: "900000"
         with:
           claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # queue-next.yml dispatches this run with GITHUB_TOKEN, so the actor is github-actions[bot]. Allow only that bot,
+          # and only for workflow_dispatch (which needs repo write access); comment/review events stay human-only.
+          allowed_bots: ${{ github.event_name == 'workflow_dispatch' && 'github-actions' || '' }}
           # Empty for comment/review events (tag mode, unchanged). Set only for workflow_dispatch (automation mode).
           prompt: ${{ steps.prep.outputs.prompt }}
           claude_args: |
