@@ -27,7 +27,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 2. #158 Reorder Train and Today cards; label the weekly report as last week
 - Issue: #158
 - Version: 0.16.41
-- Status: in-review (PR #160)
+- Status: done (PR #162)
 - Acceptance:
   - Train order: muscle body map → today's workout (list + Start) → one compact, expandable 'Why this workout' card replacing the separate callouts.
   - Today order: larger full-width Ask Coach → today's workout → training and food rings → all missions → food → weight → everything else → readiness/HRV alerts near the bottom.
