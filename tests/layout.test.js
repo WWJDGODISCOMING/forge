@@ -1913,6 +1913,26 @@ if (standalone && (!only || only.includes('train'))) {
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });
+
+  test('layout: Scan and Create food sheets open from Log food, fit, and are shot for review', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    for (const [w, h] of [[390, 844], [466, 678]]) {
+      await browser.viewport(w, h, true);
+      for (const [name, open] of [['scan', "document.querySelector('[data-scan-btn]').click()"], ['create', "document.querySelector('[data-create]').click()"]]) {
+        await browser.open('food', seed({ over: true }));
+        await browser.eval("document.querySelector('[data-log-food]').click()"); await wait(900);
+        await browser.eval(open); await wait(900);
+        const r = await browser.eval("(() => { const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null; return { over: d.scrollWidth > d.clientWidth + 1 }; })()");
+        if (!r) { bad.push(`${name} ${w}x${h}: sheet did not open`); continue; }
+        if (r.over) bad.push(`${name} ${w}x${h}: sheet overflows sideways`);
+        if (shots) await browser.screenshot(`${shots}/food-${name}-${w}x${h}.png`);
+      }
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
 }
 
 test('layout: close the browser', async () => {

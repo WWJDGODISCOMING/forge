@@ -31,6 +31,7 @@ import { P } from './src/paths.js';
 import { handleIngest, importDays, createToken, revokeToken, deleteAppleData, BadPayload, MAX_BODY_BYTES } from './src/health.js';
 import { log } from './src/log.js';
 import { searchFoods, FoodSearchError } from './src/usda.js';
+import { lookupOff } from './src/offood.js';
 import { snapMeal, SnapError } from './src/snap.js';
 import { personalizeMealPlan as buildAiMealPlan, MealAiError } from './src/mealai.js';
 
@@ -219,6 +220,22 @@ export const foodSearch = onCall({ secrets: [USDA_KEY], timeoutSeconds: 20 }, as
       if (e.code === 'limited') throw new HttpsError('resource-exhausted', 'That’s a lot of searches. Try again in a little while.');
       if (e.code === 'busy') throw new HttpsError('unavailable', 'Food search is busy. Try again in a minute.');
       throw new HttpsError('unavailable', 'Food search isn’t available right now.');
+    }
+    throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
+  }
+});
+
+// ---------- Open Food Facts (barcode and brand search). Free, no key; neither the barcode nor the query is logged ----------
+export const foodBarcode = onCall({ timeoutSeconds: 20 }, async (req) => {
+  const uid = needUid(req);
+  try {
+    return await lookupOff({ db: db(), uid, data: req.data, fetch: globalThis.fetch });
+  } catch (e) {
+    if (e instanceof FoodSearchError) {
+      if (e.code === 'invalid') throw new HttpsError('invalid-argument', 'That barcode or search couldn’t be read.');
+      if (e.code === 'limited') throw new HttpsError('resource-exhausted', 'That’s a lot of searches. Try again in a little while.');
+      if (e.code === 'busy') throw new HttpsError('unavailable', 'Product lookup is busy. Try again in a minute.');
+      throw new HttpsError('unavailable', 'Product lookup isn’t available right now.');
     }
     throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
   }

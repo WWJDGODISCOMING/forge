@@ -10,6 +10,8 @@ import { icon, emptyState } from '../ui/icons.js';
 import { MEAL_LABEL, MEALS, cleanFood, copyMealFields, dayBefore, dayTotals, groupByMeal, progress, stepServings } from '../food/core.js';
 import { createFlow } from '../food/flow.js';
 import { search, createOnlineSearch } from '../food/search.js';
+import { lookupBarcode, searchBrand, shouldFallback } from '../food/off.js';
+import { openBarcodeScan, openCreateFood } from './food-scan.js';
 import { SERVING_CHOICES, amountLabel, gramsFromAmount, gramsToOz, measureServing, portionItem, servingsLabel } from '../food/portion.js';
 import { haptics } from '../ui/haptic.js';
 import { settleTicks } from '../ui/motion.js';
@@ -211,6 +213,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
         <div class="food-search-row">
           <label class="field">
             <input type="search" name="q" placeholder="Search foods" autocomplete="off" autocapitalize="off" enterkeyhint="search" aria-label="Search foods"></label>
+          <button type="button" class="icon-btn snap-btn" data-scan-btn title="Scan a barcode" aria-label="Scan a barcode">${icon('barcode', { size: 22 })}</button>
           <label class="icon-btn snap-btn" data-snap-btn title="Take photo of your meal" aria-label="Take photo of your meal">${icon('camera', { size: 22 })}<input type="file" accept="image/*" data-snap-file hidden></label>
         </div>
         <button class="btn ghost" data-quick-toggle>Quick add: just calories</button>
@@ -229,6 +232,15 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
             <ul class="list food-results" data-online-list></ul>
             <p class="small muted food-online-note" data-online-note role="status" aria-live="polite"></p>
           </section>
+          <section class="food-online" data-brand hidden aria-label="Brand products">
+            <h3 class="food-online-head">Brand products</h3>
+            <ul class="list food-results" data-brand-list></ul>
+          </section>
+          <p class="small muted food-online-note" data-brand-note role="status" aria-live="polite"></p>
+          <div class="food-more" data-more hidden>
+            <button type="button" class="btn ghost" data-brand-btn>Search brand products</button>
+            <button type="button" class="btn ghost" data-create>${icon('plus', { size: 18 })}<span data-create-label>Create food</span></button>
+          </div>
         </div>
         <div class="food-dock" data-dock hidden>
           <div class="food-dock-main">
@@ -265,6 +277,12 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     dockMain.addEventListener('scroll', paintEdges, { passive: true });
     if (typeof ResizeObserver === 'function') new ResizeObserver(paintEdges).observe(dockMain);
     amountEl.addEventListener('focus', () => amountEl.scrollIntoView({ block: 'nearest' })); // inside the dock's small scroller, never cut mid-line
+    const brandBox = $('[data-brand]', body);
+    const brandList = $('[data-brand-list]', body);
+    const brandNote = $('[data-brand-note]', body);
+    const more = $('[data-more]', body);
+    let brandItems = []; // Open Food Facts
+    let brandSeq = 0;
     let items = []; // My foods and recents
     let onlineItems = []; // USDA
     let portion = null; // while a USDA food is picked: { base, serving: {g, text}, unit: 'serv' | 'oz' | 'g', servings, grams }
@@ -340,6 +358,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           : `<li class="food-none"><div><b>${q ? 'No match in your foods' : 'Nothing saved yet'}</b><small class="muted">${q ? 'Try Quick add, or save it in My foods.' : 'Type a food to search the USDA database, or use Quick add.'}</small></div></li>`;
     };
     const paintOnline = (u) => {
+      if (u.state !== 'loading' && u.state !== 'idle' && shouldFallback({ query: u.query, localCount: items.length, usda: u })) runBrand(u.query); // typed search missed: try brand products
       if (u.state === 'idle') { onlineItems = []; onlineBox.hidden = true; return; }
       onlineBox.hidden = false;
       onlineBox.setAttribute('aria-busy', String(u.state === 'loading'));
@@ -367,20 +386,62 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       onlineNote.textContent = onlineItems.length ? '' : 'No matches in the USDA database.';
     };
     const onlineSearch = createOnlineSearch({ onUpdate: paintOnline });
-    const pick = (li) => {
-      const isOnline = li.dataset.o !== undefined;
-      const it = (isOnline ? onlineItems : items)[Number(isOnline ? li.dataset.o : li.dataset.i)];
-      if (!it) return;
+    const choose = (it, li = null) => {
       flow.select(it);
       portion = it.usda ? { base: it, serving: it.usda.serving, unit: lastUnit, servings: 1, grams: it.usda.serving.g } : null;
       if (portion) { paintMeasures(); applyPortion(); paintPortion(); }
       paintDock();
-      $$('[data-i], [data-o]', body).forEach((x) => x.classList.toggle('picked', x === li));
+      $$('[data-i], [data-o], [data-b]', body).forEach((x) => x.classList.toggle('picked', x === li));
+    };
+    const pick = (li) => {
+      const list = li.dataset.o !== undefined ? onlineItems : li.dataset.b !== undefined ? brandItems : items;
+      const it = list[Number(li.dataset.o ?? li.dataset.b ?? li.dataset.i)];
+      if (it) choose(it, li);
+    };
+    const paintBrand = (st, list, message = '') => {
+      brandItems = list;
+      brandBox.hidden = !list.length;
+      brandBox.setAttribute('aria-busy', String(st === 'loading'));
+      brandList.innerHTML = list.map((it, i) => `
+        <li class="tap ${flow.f.selected && flow.f.selected.key === it.key ? 'picked' : ''}" data-b="${i}" role="button" tabindex="0">
+          <div class="food-row"><b class="food-name">${esc(it.title)}</b>
+            <small class="food-sub">${it.brand ? `<span class="food-brand"><i>${esc(it.brand)}</i></span>` : ''}<span class="food-kcal">${it.kcal.toLocaleString('en-US')} kcal</span><span class="food-serv">${esc(it.serving)}</span></small></div></li>`).join('');
+      brandNote.textContent = st === 'loading' ? 'Searching brand products…'
+        : st === 'offline' ? 'Brand search needs a connection'
+          : st === 'unavailable' ? (message || 'Brand search isn’t available right now')
+            : st === 'ok' && !list.length ? 'No brand products found. You can create it from the label.' : '';
+    };
+    const runBrand = async (q) => {
+      const mine = ++brandSeq;
+      paintBrand('loading', []);
+      const { call } = await import('../functions.js');
+      const r = await searchBrand(q, { call });
+      if (mine === brandSeq) paintBrand(r.state, r.items, r.message);
+    };
+    const paintMore = () => {
+      const q = flow.f.query.trim();
+      more.hidden = q.length < 2;
+      $('[data-create-label]', body).textContent = `Create “${q.length > 24 ? `${q.slice(0, 23)}…` : q}”`;
+    };
+    $('[data-brand-btn]', body).onclick = () => { haptics.select(); runBrand(flow.f.query.trim()); };
+    $('[data-create]', body).onclick = () => { haptics.select(); openCreateFood({ start: { name: flow.f.query.trim() }, onSaved: (it) => choose(it) }); };
+    $('[data-scan-btn]', body).onclick = () => {
+      haptics.select();
+      openBarcodeScan({
+        onCode: async (code) => {
+          toast('Looking it up…', 1500);
+          const { call } = await import('../functions.js');
+          const r = await lookupBarcode(code, { foods: state.foods, logs: state.food_logs }, { call });
+          if (r.item) { choose(r.item); return; }
+          toast(r.state === 'miss' ? 'Not found. Add it from the label.' : 'Couldn’t look that up. Add it from the label.', 2600);
+          openCreateFood({ start: { barcode: code, unchecked: r.state !== 'miss' }, onSaved: (it) => choose(it) });
+        },
+      });
     };
 
-    for (const list of [results, onlineList]) {
-      list.addEventListener('click', (e) => { const li = e.target.closest('[data-i], [data-o]'); if (li) pick(li); });
-      list.addEventListener('keydown', (e) => { const li = e.target.closest('[data-i], [data-o]'); if (li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(li); } });
+    for (const list of [results, onlineList, brandList]) {
+      list.addEventListener('click', (e) => { const li = e.target.closest('[data-i], [data-o], [data-b]'); if (li) pick(li); });
+      list.addEventListener('keydown', (e) => { const li = e.target.closest('[data-i], [data-o], [data-b]'); if (li && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); pick(li); } });
     }
     $$('[data-serv-choice]', dock).forEach((b) => { b.onclick = () => { haptics.select(); const n = Number(b.dataset.servChoice); setPortion({ unit: 'serv', servings: n, grams: n * portion.serving.g }); }; });
     $('[data-measures]', dock).addEventListener('click', (e) => {
@@ -415,7 +476,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       close();
       setTimeout(() => import('./snap.js').then((m) => m.openSnapMeal({ file, day, meal: flow.f.meal })), 0);
     };
-    $('[name=q]', body).addEventListener('input', (e) => { flow.search(e.target.value); paintResults(); onlineSearch.query(e.target.value); });
+    $('[name=q]', body).addEventListener('input', (e) => { flow.search(e.target.value); paintResults(); paintMore(); brandSeq++; paintBrand('idle', []); onlineSearch.query(e.target.value); });
     $('[data-minus]', dock).onclick = () => { haptics.select(); flow.f.servings = stepServings(flow.f.servings, -1); paintDock(); };
     $('[data-plus]', dock).onclick = () => { haptics.select(); flow.f.servings = stepServings(flow.f.servings, 1); paintDock(); };
     $$('[data-meal]', dock).forEach((b) => { b.onclick = () => { haptics.select(); flow.setMeal(b.dataset.meal); paintMeal(); }; });

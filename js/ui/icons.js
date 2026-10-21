@@ -43,6 +43,7 @@ const P = {
   flat: '<path d="M5 12h14"/>',
   refresh: '<path d="M19.5 12a7.5 7.5 0 11-2.4-5.5M19.5 4.5v4h-4"/>',
   calendar: '<rect x="4" y="5.5" width="16" height="14.5" rx="3.5"/><path d="M4 10h16M8.5 3.5v4M15.5 3.5v4"/><circle cx="12" cy="15" r=".9" fill="currentColor"/>',
+  barcode: '<path d="M4 6v12M7.5 6v12M11 6v12M14.5 6v12M17 6v12M20 6v12"/>',
   tape: '<rect x="3" y="8" width="18" height="8" rx="2"/><path d="M7 8v3.2M11 8v4.5M15 8v3.2M19 8v4.5"/>',
   camera: '<path d="M4 9a3 3 0 013-3h1.2l1.2-1.8a1 1 0 01.8-.4h3.6a1 1 0 01.8.4L16 6h1a3 3 0 013 3v8a3 3 0 01-3 3H7a3 3 0 01-3-3z"/><circle cx="12" cy="13" r="3.5"/>',
   more: '<circle cx="5.5" cy="12" r="1.6" fill="currentColor"/><circle cx="12" cy="12" r="1.6" fill="currentColor"/><circle cx="18.5" cy="12" r="1.6" fill="currentColor"/>',

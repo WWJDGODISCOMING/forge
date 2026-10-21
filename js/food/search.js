@@ -4,12 +4,12 @@
 //    can fail without hurting anything. A remote provider has `remote: true` and throws an error with
 //    `kind: 'offline' | 'limited' | 'unavailable'` when it can't answer.
 //
-// An item: { key, kind: 'mine' | 'recent' | 'usda', name, kcal, protein_g, carbs_g, fat_g, serving, food_id?, portion? }
+// An item: { key, kind: 'mine' | 'recent' | 'usda' | 'off', name, kcal, protein_g, carbs_g, fat_g, serving, food_id?, portion? }
 // kcal and macros are per serving. A logged USDA food keeps food_id "usda:<fdcId>" and the portion text.
 import { usdaItem } from './portion.js';
 
 const norm = (s) => String(s || '').toLowerCase().normalize('NFKD').replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim();
-const isUsdaId = (id) => typeof id === 'string' && id.startsWith('usda:');
+const isUsdaId = (id) => typeof id === 'string' && /^(usda|off):/.test(id); // foods that live online, with no My foods copy
 
 /** Your recent entries, newest first, one per food (by food_id, else by name). */
 export function recentItems(logs, limit = 30) {
@@ -32,7 +32,7 @@ export function recentItems(logs, limit = 30) {
 export function foodItems(foods) {
   return foods.filter((f) => f && !f.deleted).sort((a, b) => a.name.localeCompare(b.name)).map((f) => ({
     key: `mine:${f.id}`, kind: 'mine', name: f.name, kcal: f.kcal, protein_g: f.protein_g, carbs_g: f.carbs_g, fat_g: f.fat_g,
-    serving: f.serving || '', food_id: f.id,
+    serving: f.serving || '', food_id: f.id, ...(f.favorite === true ? { favorite: true } : {}),
   }));
 }
 
@@ -53,13 +53,17 @@ export function searchLocal(query, { foods = [], logs = [], limit = 40 } = {}) {
       return r.food_id && !isUsdaId(r.food_id) ? null : r;
     }).filter(Boolean);
     const rest = mine.filter((m) => !lately.includes(m));
-    return [...lately, ...rest].slice(0, limit);
+    const all = [...lately, ...rest];
+    return [...all.filter((m) => m.favorite), ...all.filter((m) => !m.favorite)].slice(0, limit);
   }
   const words = q.split(' ');
   const hit = (it) => { const n = norm(it.name); return words.every((w) => n.includes(w)); };
-  const rank = (it) => (norm(it.name).startsWith(q) ? 0 : 1);
+  // Favorites first, then foods you logged lately, then the rest; names that start with the search come first inside each.
+  const lately = new Map(recents.map((r, i) => [r.food_id || r.key, i]));
+  const rank = (it) => (it.favorite ? 0 : lately.has(it.food_id || it.key) ? 1 : 2) * 2 + (norm(it.name).startsWith(q) ? 0 : 1);
   const extra = recents.filter((r) => !r.food_id || isUsdaId(r.food_id));
-  return [...mine.filter(hit), ...extra.filter(hit)].sort((a, b) => rank(a) - rank(b)).slice(0, limit);
+  const order = (it) => (lately.has(it.food_id || it.key) ? lately.get(it.food_id || it.key) : 0);
+  return [...mine.filter(hit), ...extra.filter(hit)].sort((a, b) => rank(a) - rank(b) || order(a) - order(b)).slice(0, limit);
 }
 
 export const MAX_QUERY = 60; // the foodSearch function rejects anything longer
