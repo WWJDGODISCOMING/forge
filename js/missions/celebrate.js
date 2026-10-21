@@ -9,11 +9,12 @@
 import { reducedMotion, EASE, countUp } from '../ui/motion.js';
 import { burst, aura, enqueue, confetti, clearParticles } from '../ui/fx.js';
 import { isNative, haptic } from '../native/bridge.js';
+import { sfx } from '../ui/sound.js';
 import { hapticsOn } from '../ui/haptic.js';
 import { badgeSVG, perfectWeekMedal } from '../ui/badges.js';
 import { shareImage } from '../ui/sharecard.js';
 import { todayMissions, seenToday, rememberDone, celebratedTier, recordCelebrated, weekProgress, perfectWeekEnds, recordPerfectWeek } from './store.js';
-import { tierToPlay, effectsFor, hapticPlan, vibratePattern, perfectWeekDue, weekStreak, PERFECT_WEEK_XP } from './celebrate-core.js';
+import { tierToPlay, effectsFor, hapticPlan, soundPlan, vibratePattern, perfectWeekDue, weekStreak, PERFECT_WEEK_XP } from './celebrate-core.js';
 
 const VOLT = '#C6FF3D';
 const COLORS = [VOLT, '#FFFFFF', '#E6FF9A'];
@@ -40,6 +41,8 @@ function startRun() {
     if (isNative()) for (const s of hapticPlan(kind)) run.at(s.t, () => haptic(s.kind));
     else if (navigator.vibrate) navigator.vibrate(vibratePattern(kind));
   };
+  // Explosions on the haptic clock. sfx.boom follows the Sound effects switch; reduced motion doesn't mute them.
+  run.sounds = (kind) => { for (const s of soundPlan(kind)) run.at(s.t, () => sfx.boom(s.kind, s.gain)); };
   run.end = () => {
     if (run.ended) return;
     run.ended = true;
@@ -135,6 +138,7 @@ function playTier(tier, { fresh, xp }) {
   const [cx, cy] = centerOf(card);
   const [kx, ky] = row ? centerOf(row) : [cx, cy];
   run.haptics(tier);
+  run.sounds(tier);
 
   if (card && fx.pop > 1) run.anim(card, [{ transform: 'scale(1)' }, { transform: `scale(${fx.pop})`, offset: 0.35 }, { transform: 'scale(1)' }], { duration: tier === 1 ? 420 : 520, easing: EASE.bounce });
   else if (card && fx.fade) run.anim(card, [{ opacity: 0.6 }, { opacity: 1 }], { duration: 300 });
@@ -229,6 +233,7 @@ function playPerfectWeek({ n, streak }) {
   stage.focus({ preventScroll: true }); // the keyboard belongs to the takeover from the start
   const [cx, cy] = [innerWidth / 2, innerHeight * 0.42];
   run.haptics('week');
+  run.sounds('week');
 
   const showEmblem = (instant) => {
     if (stage.dataset.shown) return;

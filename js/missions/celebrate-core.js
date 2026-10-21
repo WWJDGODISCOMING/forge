@@ -56,6 +56,33 @@ export function hapticPlan(tier) {
   return [];
 }
 
+/**
+ * Sound steps [{ t (ms), kind, gain }] for a tier, on the same clock as the haptics: every explosion lands on a haptic
+ * impact. kinds: pop (one goal), thud (two goals, quiet Perfect Week charge-up), boom (a barrage explosion),
+ * finale (the bigger last boom, with the success haptic). gain is 0..1; sound.js keeps the master capped.
+ */
+export function soundPlan(tier) {
+  const haptics = hapticPlan(tier);
+  if (tier === 1) return haptics.map((s) => ({ t: s.t, kind: 'pop', gain: 0.5 }));
+  if (tier === 2) return haptics.map((s, i) => ({ t: s.t, kind: 'thud', gain: i ? 0.8 : 0.6 }));
+  if (tier === 3) {
+    const booms = haptics.filter((s) => s.kind === 'heavy').length;
+    let n = 0;
+    return haptics.map((s) => (s.kind === 'success'
+      ? { t: s.t, kind: 'finale', gain: 1 }
+      : { t: s.t, kind: 'boom', gain: 0.55 + 0.3 * (n++ / (booms - 1)) })); // each one a little bigger
+  }
+  if (tier === 'week') {
+    return haptics.map((s) => {
+      if (s.kind === 'success') return { t: s.t, kind: 'finale', gain: 1 };
+      if (s.t >= 1600 && s.t < 2000) return { t: s.t, kind: 'boom', gain: 0.95 }; // the eruption
+      if (s.kind === 'heavy') return { t: s.t, kind: 'boom', gain: 0.5 };
+      return { t: s.t, kind: 'thud', gain: 0.35 };
+    });
+  }
+  return [];
+}
+
 /** navigator.vibrate pattern (on, off, on, ...) for the same steps. */
 export function vibratePattern(tier) {
   const ms = { light: 10, medium: 18, heavy: 30, success: 45 };
