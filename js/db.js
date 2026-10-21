@@ -73,6 +73,14 @@ export function patch(col, id, changes) {
   updateDoc(doc(db, 'users', uid(), col, id), { ...changes, updated_at: now() }).catch(reportWriteError);
 }
 
+/** Imported Apple workouts already in Firestore, deleted ones included (the live lists hide them): Map id → { deleted }. */
+export async function importedCardioIds() {
+  const snap = await getDocs(collection(db, 'users', uid(), 'cardio_sessions'));
+  const m = new Map();
+  snap.docs.forEach((d) => { if (d.id.startsWith('hk_')) m.set(d.id, { deleted: !!d.data().deleted }); });
+  return m;
+}
+
 /** Removes one field from a record (the profile's own protein goal going back to Auto). */
 export function unsetField(col, id, field) {
   readOnly(col);

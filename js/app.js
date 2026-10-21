@@ -378,6 +378,8 @@ function autoHealth() {
   import('./screens/apple.js').then((m) => m.autoHealthSync()).catch(() => {});
 }
 if (isNative()) document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoHealth(); });
+// ...and a cheap re-read of today's steps and energy about every 5 minutes while Today is showing (js/screens/apple.js refreshToday).
+if (isNative()) setInterval(() => { if (document.visibilityState === 'visible' && currentRoute() === 'today' && allLoaded() && state.user) import('./screens/apple.js').then((m) => m.refreshToday()).catch(() => {}); }, 5 * 60 * 1000);
 
 // iPhone app: a local notification the day before the free Apple ID signature runs out (js/native/expiry.js).
 if (isNative()) {
@@ -398,6 +400,7 @@ const onlyQuietChanged = (a, b) => {
   return true;
 };
 
+const PLAYER_QUIET = new Set(['workouts', 'loaded', 'sync', 'energy', 'health_daily', 'cardio']);
 let lastLoaded = '';
 subscribe((patch) => {
   // A real snapshot arrives as { settings, loaded: {...state.loaded, settings: true} }: `loaded` (and `sync`) only count when they changed.
@@ -417,8 +420,8 @@ subscribe((patch) => {
   if (keys.length === 1 && keys[0] === 'sync') return renderSync();
   if (quiet) return;
   const route = currentRoute();
-  const onlyWorkouts = keys.every((k) => k === 'workouts' || k === 'loaded' || k === 'sync');
-  if ((route === 'play' || route === 'session') && onlyWorkouts && state.workouts.some((w) => w.status === 'active' && !w.deleted)) return;
+  // Mid-workout, the player is left alone by anything that isn't about the workout: its own saves, and Apple Health's energy and daily numbers.
+  if ((route === 'play' || route === 'session') && keys.every((k) => PLAYER_QUIET.has(k)) && state.workouts.some((w) => w.status === 'active' && !w.deleted)) return;
   render();
 });
 
@@ -436,6 +439,7 @@ async function refreshData() {
     const sync = call('withingsSyncNow', {}, { timeout: 130000 }).then(() => 'ok', (e) => { toast(e.message); return 'failed'; });
     if ((await waitAtMost(sync, PULL_WAIT_MS)) === 'timeout') sync.then((r) => { if (r === 'ok') render(); });
   }
+  if (isNative()) await import('./screens/apple.js').then((m) => m.refreshToday({ force: true })).catch(() => {});
   resetCounters();
   await render();
 }

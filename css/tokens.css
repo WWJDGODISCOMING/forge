@@ -28,7 +28,9 @@
 
   /* Semantic */
   --good: #c6ff3d;
+  --good-ink: #c6ff3d;
   --warn: #ffb547;
+  --warn-ink: #ffb547;
   --danger: #ff5d6c;
   --ember: #3ec8f0;
   --gold: #c6ff3d;
@@ -142,6 +144,8 @@
 
     --good: #4c7a00;   /* lime is a fill and glow only; text needs this darker green */
     --warn: #a05a00;
+    --good-ink: #456f00;   /* 4.8:1 on --surface-2 (--good is 4.2:1 there) */
+    --warn-ink: #8f5000;   /* 5.1:1 on --surface-2 (--warn is 4.3:1 there) */
     --danger: #c9283a;
     --ember: #0a6f94;
     --gold: #4c7a00;

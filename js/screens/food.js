@@ -3,6 +3,7 @@
 // Log food searches My foods and recents instantly, then USDA FoodData Central a moment later (js/food/search.js).
 import { state, units } from '../state.js';
 import { put, patch, softDelete, newRecord } from '../db.js';
+import { balanceBlock, openBalanceSheet } from './balance-ui.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { currentTargets } from '../derived.js';
 import { FLOOR_SOURCE } from '../nutrition/targets.js';
@@ -118,6 +119,7 @@ export function renderFood(el) {
       <div class="col col-b">
       <div class="card stack" data-food-totals>
         ${meter('Calories', tot.kcal, t && t.calories, 'kcal', { big: true })}
+        ${balanceBlock(day)}
         ${meter('Protein', tot.protein_g, t && t.proteinG, 'g', { big: true })}
         <div class="food-minor">
           ${meter('Carbs', tot.carbs_g, t && t.carbG, 'g')}
@@ -165,6 +167,8 @@ export function renderFood(el) {
     renderFood(el);
   };
   $('[data-log-food]', el).onclick = () => openLogFood({ day });
+  const bal = $('[data-balance]', el);
+  if (bal) bal.onclick = () => { haptics.select(); openBalanceSheet(); };
   $('[data-my-foods]', el).onclick = () => openMyFoods();
   $$('[data-add-meal]', el).forEach((b) => { b.onclick = () => openLogFood({ day, meal: b.dataset.addMeal }); });
   const copyDay = $('[data-copy-day]', el);
@@ -501,7 +505,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       put('food_logs', newRecord(fields));
       close();
       haptics.success();
-      toast(`Added ${fields.kcal} kcal to ${MEAL_LABEL[fields.meal].toLowerCase()}`, 2600, { icon: 'check' });
+      toast(`Added ${Number(fields.kcal).toLocaleString('en-US')} kcal to ${MEAL_LABEL[fields.meal].toLowerCase()}`, 2600, { icon: 'check' });
     });
     paintResults();
   }, { detents: ['medium', 'large'] });

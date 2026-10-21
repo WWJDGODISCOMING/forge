@@ -9,7 +9,7 @@ export const REST_DAY = '2026-10-13T12:00:00';
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** @param {{long?: boolean, empty?: boolean}} opt  long: long names + 4-digit calories; empty: a brand-new account */
-export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, mealPrefs = null, now = new Date(WORKOUT_DAY).getTime() } = {}) {
+export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, mealPrefs = null, burn = true, now = new Date(WORKOUT_DAY).getTime() } = {}) {
   const rec = (id, extra = {}) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
   const profile = rec('main', {
     goal: 'lose_fat', sex: 'male', age: 37, heightCm: 180, weightKg: 88, targetWeightKg: 80, activity: 'light',
@@ -56,7 +56,7 @@ export function seed({ long = false, empty = false, active = false, effort = fal
     }));
   });
   for (let i = 14; i >= 0; i--) {
-    out.health_daily.push(rec(dayKey(now - i * DAY), { day: dayKey(now - i * DAY), steps: 7000 + i * 120, hrv_ms: 52 - (i % 5), resting_hr: 58 + (i % 3), sleep_min: 420 + (i % 4) * 8, active_kcal: 480 }));
+    out.health_daily.push(rec(dayKey(now - i * DAY), { day: dayKey(now - i * DAY), steps: 7000 + i * 120, hrv_ms: 52 - (i % 5), resting_hr: 58 + (i % 3), sleep_min: 420 + (i % 4) * 8, ...(burn ? { active_kcal: 480 } : {}) }));
   }
   if (active) {
     const plan = (reps, kg) => ({ warmup: false, plan_weight_kg: kg, plan_reps: reps, weight_kg: null, reps: null, rir: null, done: false, completed_at: null });

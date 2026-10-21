@@ -2,6 +2,9 @@
 // (parsed on this phone; only daily summaries are sent), and a status check that shows which kinds of data
 // have arrived. All data here is written by Cloud Functions; the app only reads it.
 import { state } from '../state.js';
+import { newRecord, put, patch, importedCardioIds } from '../db.js';
+import { planWorkoutImport } from '../health/apple-workouts.js';
+import { mergeEnergy, saveEnergy, loadEnergy, backfillStart, energyChanged, newerDays } from '../nutrition/balance.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { serverErrorText, errorFor } from '../ui/errors.js';
 import { FIREBASE_CONFIG } from '../../config.js';
@@ -11,7 +14,7 @@ import { shiftDay } from '../health/metrics.js';
 import { NEEDED_DAYS } from '../health/readiness.js';
 import { icon } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
-import { autoReadMode, nativeReadKey, lastNativeRead } from '../native/autoread.js';
+import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone } from '../native/autoread.js';
 
 const call = async (...args) => (await import('../functions.js')).call(...args);
 const INGEST_URL = `https://us-east1-${FIREBASE_CONFIG.projectId}.cloudfunctions.net/healthIngest`;
@@ -32,17 +35,47 @@ const dayText = (d) => (d ? formatDay(d, { weekday: 'short', month: 'short', day
 // ---------- iPhone app: read HealthKit directly (js/native/health.js) ----------
 const NATIVE_KEY = () => nativeReadKey(state.user && state.user.uid);
 let nativeState = null; // { text } while reading
-const NOT_IN_HEALTHKIT = ['walkhr', 'workouts']; // not read from HealthKit (Forge has its own workouts; the plugin has no walking heart rate)
+const NOT_IN_HEALTHKIT = ['walkhr']; // not read from HealthKit (the plugin has no walking heart rate)
 const lastNative = () => lastNativeRead(state.user && state.user.uid);
 
+/** Keep Apple's resting/active energy per day on this phone (state.energy + localStorage). Never uploaded. */
+export function storeEnergy(entries) {
+  const uid = state.user && state.user.uid;
+  const known = state.energy && Object.keys(state.energy).length ? state.energy : loadEnergy(uid);
+  const energy = mergeEnergy(known, entries);
+  if (!energyChanged(known, energy)) return false; // same numbers: no write, no state change, nothing redrawn
+  saveEnergy(uid, energy);
+  state.set({ energy });
+  return true;
+}
+
+/** Write the planned Apple workouts as cardio rows. A deleted row is never touched. Returns how many were new or changed. */
+async function saveWorkouts(workouts) {
+  if (!workouts.length) return 0;
+  const existing = await importedCardioIds().catch(() => new Map());
+  const plan = planWorkoutImport(workouts, { existing, forgeWorkouts: state.workouts });
+  const have = new Map(state.cardio.map((c) => [c.id, c]));
+  let n = 0;
+  for (const { id, fields } of plan.create) { put('cardio_sessions', newRecord(fields, { id, source: 'apple_health' })); n++; }
+  for (const { id, fields } of plan.update) {
+    const cur = have.get(id);
+    if (cur && Object.keys(fields).every((k) => cur[k] === fields[k])) continue; // nothing new: no write
+    patch('cardio_sessions', id, fields); n++;
+  }
+  return n;
+}
+
 /**
- * Read Apple Health on this phone and save the daily summaries. The first time it reaches back IMPORT_DAYS days;
- * after that, from 3 days before the last read (late Watch syncs). Returns the number of days saved.
+ * Read Apple Health on this phone and save the daily summaries, Apple Watch workouts (as cardio) and energy. The
+ * first time it reaches back IMPORT_DAYS days; after that, from 3 days before the last read (late Watch syncs).
+ * Resting/active energy for the last 30 days (and always today + yesterday) is read too and kept on this phone.
+ * Returns { days, workouts }.
  */
 export async function nativeHealthSync({ onText = () => {} } = {}) {
-  const { readHealthDays } = await import('../native/health.js');
+  const { readHealthDays, readHealthWorkouts, readHealthEnergy } = await import('../native/health.js');
   const last = lastNative();
-  const since = last ? shiftDay(new Date(last).toLocaleDateString('en-CA'), -3) : shiftDay(todayKey(), -(IMPORT_DAYS - 1));
+  const today = todayKey();
+  const since = last ? shiftDay(new Date(last).toLocaleDateString('en-CA'), -3) : shiftDay(today, -(IMPORT_DAYS - 1));
   onText('Reading Apple Health on this phone…');
   const { days, records } = await readHealthDays({ since });
   if (!records) throw new Error('Apple Health shared nothing with Forge. On your iPhone: Settings → Health → Data Access & Devices → Forge → Turn On All. Then try again.');
@@ -52,27 +85,70 @@ export async function nativeHealthSync({ onText = () => {} } = {}) {
     const r = await call('importHealthDays', { days: days.slice(i, i + CHUNK) });
     sent += r.days || 0;
   }
+  let workouts = 0;
+  try {
+    const uid = state.user && state.user.uid;
+    const first = !backfillDone(uid); // the first read since 0.16.45 on this phone reaches back 30 days for workouts and energy, even if daily summaries were read before
+    const from30 = shiftDay(today, -29);
+    onText('Reading Apple Watch workouts…');
+    workouts = await saveWorkouts(await readHealthWorkouts({ since: first && from30 < since ? from30 : since }));
+    const known = state.energy && Object.keys(state.energy).length ? state.energy : loadEnergy(uid);
+    storeEnergy(await readHealthEnergy({ since: first ? from30 : backfillStart(known, today, shiftDay) }));
+    if (first) markBackfillDone(uid);
+  } catch { /* workouts and energy are extras: the daily summaries are already saved */ }
   try { localStorage.setItem(NATIVE_KEY(), String(Date.now())); } catch { /* private mode */ }
-  return sent;
+  return { days: sent, workouts };
+}
+
+/** "Saved 12 days and 3 workouts from Apple Health" / "Up to date". */
+export const syncToast = ({ days, workouts }) => (days || workouts
+  ? `Saved ${[days && `${days} ${days === 1 ? 'day' : 'days'}`, workouts && `${workouts} ${workouts === 1 ? 'workout' : 'workouts'}`].filter(Boolean).join(' and ')} from Apple Health`
+  : 'Up to date');
+
+let todayAt = 0;
+let todayBusy = false;
+/**
+ * The cheap one: re-read only today's steps, active energy, exercise and resting energy (no history, no workouts),
+ * at most every 3 minutes, whatever the 6 h full read says. Called on open, on resume, on pull-to-refresh on Today and
+ * every few minutes while Today is showing. `force` skips the 3 minute wait (pull-to-refresh). The Today cards
+ * update by themselves when health_daily changes; the energy lines update through state.energy.
+ */
+export async function refreshToday({ force = false } = {}) {
+  if (!isNative() || !state.user || nativeState || todayBusy || !lastNative()) return false;
+  const now = new Date();
+  if (!force && !todayDue({ now, todayAt })) return false;
+  todayBusy = true;
+  todayAt = now.getTime();
+  try {
+    const { readHealthToday } = await import('../native/health.js');
+    const { days, energy } = await readHealthToday({ now });
+    storeEnergy(energy);
+    const fresh = newerDays(days, state.health_daily);
+    if (fresh.length) await call('importHealthDays', { days: fresh });
+    return true;
+  } catch { return false; } finally { todayBusy = false; }
 }
 
 let autoFailedAt = 0;
 let morningAt = 0;
 let morningFailedAt = 0;
+let backfillFailedAt = 0;
 /**
  * Called by the app on open and when it comes back to the front: a quiet read if the last one is 6 h old, or, after
  * 4:00, if today's overnight data hasn't arrived yet (at most every 20 min; js/native/autoread.js). Not while you're
  * reading by hand. The Today cards update by themselves when health_daily changes.
  */
 export async function autoHealthSync() {
-  if (!isNative() || !state.user || nativeState || !lastNative()) return 0;
+  if (!isNative() || !state.user || nativeState || !lastNative()) return null;
   const now = new Date();
-  const mode = autoReadMode({ now, last: lastNative(), today: todayKey(), rows: state.health_daily, failedAt: autoFailedAt, morningAt, morningFailedAt });
-  if (!mode) return 0;
+  const mode = autoReadMode({ now, last: lastNative(), today: todayKey(), rows: state.health_daily, failedAt: autoFailedAt, morningAt, morningFailedAt, backfill: !backfillDone(state.user.uid), backfillFailedAt });
+  if (!mode) { await refreshToday(); return null; }
+  todayAt = now.getTime(); // the full read covers today too
+  if (mode === 'backfill') backfillFailedAt = now.getTime(); // backs off 20 min unless it finishes (then the flag is set)
   morningAt = now.getTime(); // any auto read counts as the morning try, so the 20 minutes start now
   try { return await nativeHealthSync(); } catch {
-    if (mode === 'morning') morningFailedAt = Date.now(); else autoFailedAt = Date.now();
-    return 0;
+    if (mode === 'backfill') backfillFailedAt = Date.now(); else if (mode === 'morning') morningFailedAt = Date.now(); else autoFailedAt = Date.now();
+    return null;
   }
 }
 
@@ -80,7 +156,7 @@ function nativeCard() {
   const last = lastNative();
   return `<div class="card stack" data-native-health>
     <p class="label">Apple Health on this iPhone</p>
-    <p>Forge reads your Watch’s HRV, resting heart rate, sleep, wrist temperature, breathing, blood oxygen, cardio fitness, steps and exercise straight from Apple Health. Only daily summaries are saved. ${last ? '' : 'iOS asks once which data to share: turn them all on.'}</p>
+    <p>Forge reads your Watch’s HRV, resting heart rate, sleep, wrist temperature, breathing, blood oxygen, cardio fitness, steps, exercise, workouts and calories burned straight from Apple Health. Only daily summaries and your workouts are saved. ${last ? '' : 'iOS asks once which data to share: turn them all on.'}</p>
     ${nativeState ? `<p class="small" aria-live="polite">${esc(nativeState.text)}</p>` : ''}
     <button class="btn bigbtn" data-native-read ${nativeState ? 'disabled' : ''}>${nativeState ? 'Reading…' : last ? 'Read Apple Health now' : 'Connect Apple Health'}</button>
     <p class="small muted">${last ? `Last read ${esc(ago(new Date(last).toISOString()))}. Forge reads again by itself when you open it. In the morning it checks every 20 minutes until last night’s sleep is in, then every 6 hours.` : `The first read brings in the last ${IMPORT_DAYS} days.`}</p>
@@ -92,9 +168,9 @@ async function runNative(el) {
   nativeState = { text: 'Asking Apple Health…' };
   renderApple(el);
   try {
-    const n = await nativeHealthSync({ onText: (text) => { nativeState = { text }; const p = $('[data-native-health] [aria-live]', el); if (p) p.textContent = text; } });
+    const r = await nativeHealthSync({ onText: (text) => { nativeState = { text }; const p = $('[data-native-health] [aria-live]', el); if (p) p.textContent = text; } });
     nativeState = null;
-    toast(n ? `Saved ${n} days from Apple Health` : 'Up to date', 3500);
+    toast(syncToast(r), 3500);
   } catch (e) {
     nativeState = null;
     toast(e.message || 'Couldn’t read Apple Health.', 5000);
@@ -118,9 +194,15 @@ function missingNotice(labels) {
     </div>`;
 }
 
+/** No active energy from Apple Health for today or the 2 days before (the Fitness Tracking switches may be off). */
+const noRecentActive = (today) => ![0, 1, 2].some((i) => {
+  const d = shiftDay(today, -i);
+  return (state.health_daily || []).some((r) => (r.id || r.day) === d && r.active_kcal != null);
+});
+
 function statusCard() {
   const today = todayKey();
-  const st = fieldStatus(state.health_daily, today);
+  const st = fieldStatus(state.health_daily, today, state.cardio);
   const r = currentReadiness();
   const a = A();
   const have = Math.min(NEEDED_DAYS, r.baselineDays || 0);
@@ -140,6 +222,8 @@ function statusCard() {
     </div>
     ${(a.rejected_last || []).length ? `<div class="notice warn small" data-rejected>${esc(rejectedText(a.rejected_last))}</div>` : ''}
     ${missing.length ? missingNotice(missing) : ''}
+    ${native && lastNative() && noRecentActive(today) ? `<div class="notice info small" data-no-active><b>No calories burned in the last 3 days</b>
+      <span>Check iPhone Settings → Privacy &amp; Security → Motion &amp; Fitness → Fitness Tracking, and Watch app → Privacy → Fitness Tracking.</span></div>` : ''}
     <div class="field-grid">${chips}</div>
   </div>`;
 }
@@ -314,6 +398,9 @@ async function deleteApple(el) {
   renderApple(el);
   try {
     await call('deleteAppleHealthData');
+    const uid = state.user && state.user.uid;
+    try { localStorage.removeItem(`forge.energy.${uid || ''}`); } catch { /* private mode */ }
+    state.set({ energy: {} });
     toast('Apple Health data deleted');
   } catch (e) {
     toast(e.message, 4000);

@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.45 — Apple Watch workouts, calories burned next to what you eat, leg activity (2026-10-21)
+
+Cloud Functions and `firestore.rules` did not change. iPhone app: needs **Refresh Forge** (new Health permissions and `Info.plist` text).
+
+### What's new
+
+- Apple Watch workouts now show in Forge, with calories burned next to what you eat.
+- Today and Food show calories burned and your deficit. Tap Food's block for 7 days.
+- History shows steps and jogging as a striped leg bar. Your set counts don't change.
+- Today's steps and calories refresh when you open Forge, and when you pull down.
+
+### Details
+
+- Workouts are read from Apple Health with average and max heart rate and saved as cardio (an indoor jog is Jog in place). Reading again never duplicates one, and a workout you delete stays deleted.
+- Resting energy and the per-day energy numbers for the last 30 days stay on your phone only. Daily active calories are still saved with your other daily summaries, as before, and now refresh more often. Burned is resting plus active; workout calories are never added on top. The calorie target does not move.
+- Data check: the Workouts chip counts Apple Watch sessions, and if there are no active calories for 3 days it points to the Fitness Tracking switches.
+
 ## 0.16.44 — Scan a barcode, find brand products, create your own foods (2026-10-20)
 
 Cloud Functions and `firestore.rules` changed (new `foodBarcode`, no secret; `foods` barcode and favorite are type-checked).

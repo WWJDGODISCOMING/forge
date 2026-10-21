@@ -17,12 +17,21 @@ export function hasOvernight(rows, today) {
   return !!r && !!r.sleep && r.sleep.asleep_min != null;
 }
 
+export const TODAY_EVERY_MS = 3 * 60 * 1000; // the cheap re-read of today's totals (steps, energy, exercise)
+
+/** Is a cheap today-only re-read due? (Independent of the 6 h full read: reopening the app refreshes today.) */
+export const todayDue = ({ now, todayAt = 0 }) => now.getTime() - todayAt >= TODAY_EVERY_MS;
+
+export const BACKFILL_BACKOFF_MS = 20 * 60 * 1000;
+
 /**
- * → 'steady' | 'morning' | null.
- * { now: Date, last: ms of the last read, today, rows, failedAt, morningAt: ms of the last morning try, morningFailedAt }
+ * → 'backfill' | 'steady' | 'morning' | null.
+ * { now: Date, last: ms of the last read, today, rows, failedAt, morningAt: ms of the last morning try, morningFailedAt,
+ *   backfill: true while the one-time 30-day workouts + energy read (v0.16.45) hasn't happened on this phone, backfillFailedAt }
  */
-export function autoReadMode({ now, last, today, rows, failedAt = 0, morningAt = 0, morningFailedAt = 0 }) {
+export function autoReadMode({ now, last, today, rows, failedAt = 0, morningAt = 0, morningFailedAt = 0, backfill = false, backfillFailedAt = 0 }) {
   const t = now.getTime();
+  if (backfill && t - backfillFailedAt >= BACKFILL_BACKOFF_MS) return 'backfill'; // right away: not after the 6 h wait
   if (t - last >= STEADY_EVERY_MS && t - failedAt >= STEADY_EVERY_MS) return 'steady';
   if (now.getHours() >= MORNING_FROM_HOUR && now.getHours() < MORNING_UNTIL_HOUR && !hasOvernight(rows, today)
     && t - morningAt >= MORNING_EVERY_MS && t - morningFailedAt >= MORNING_BACKOFF_MS) return 'morning';
@@ -33,4 +42,13 @@ export function autoReadMode({ now, last, today, rows, failedAt = 0, morningAt =
 export const nativeReadKey = (uid) => `forge.healthkit.last.${uid || ''}`;
 export function lastNativeRead(uid) {
   try { return Number(localStorage.getItem(nativeReadKey(uid))) || 0; } catch { return 0; }
+}
+
+/** The one-time 30-day read of Apple Watch workouts and resting/active energy, done once per account on this phone. */
+export const backfillKey = (uid) => `forge.healthkit.backfill30.${uid || ''}`;
+export function backfillDone(uid) {
+  try { return !!localStorage.getItem(backfillKey(uid)); } catch { return false; }
+}
+export function markBackfillDone(uid) {
+  try { localStorage.setItem(backfillKey(uid), String(Date.now())); } catch { /* private mode */ }
 }
