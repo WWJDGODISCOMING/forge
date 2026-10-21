@@ -185,3 +185,41 @@ test('celebrate: boom never primes speech and skips a suspended context', async 
   unlockAudio();
   eq(spoken, 1, 'a real tap still primes speech');
 });
+
+test('sound unlock: a touch pointerdown is not an activation, touchend is, and listeners stay until running', async () => {
+  const param = new Proxy({}, { get: () => () => {}, set: () => true });
+  const node = () => new Proxy(function () {}, { get: (t, k) => (k === 'gain' || k === 'frequency' ? param : () => node()), set: () => true });
+  const created = [];
+  globalThis.window = globalThis.window || globalThis;
+  globalThis.window.AudioContext = globalThis.AudioContext = function () {
+    const c = { currentTime: 0, sampleRate: 8000, state: 'suspended', resume: async () => {}, destination: {}, createBuffer: () => ({ getChannelData: () => new Float32Array(10) }), createGain: node, createOscillator: node, createBiquadFilter: node, createBufferSource: node, createDynamicsCompressor: node };
+    created.push(c);
+    return c;
+  };
+  let spoken = 0;
+  globalThis.window.speechSynthesis = globalThis.speechSynthesis = { speak: () => { spoken++; }, cancel() {} };
+  globalThis.SpeechSynthesisUtterance = function () {};
+  const orig = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  const setNav = (v) => Object.defineProperty(globalThis, 'navigator', { value: v, configurable: true, writable: true });
+  const fresh = await import('../js/ui/sound.js?unlock');
+  const listeners = new Set();
+  const doc = { addEventListener: (t, f) => listeners.add(t), removeEventListener: (t) => listeners.delete(t) };
+  const handler = fresh.installUnlock(doc);
+  try {
+    setNav({ userActivation: { isActive: false } });
+    handler({ type: 'pointerdown', pointerType: 'touch' });
+    eq(spoken, 0, 'a touch pointerdown alone does not speak');
+    handler({ type: 'touchend' });
+    eq(spoken, 0, 'no user activation: the prime is refused and primed stays false');
+    setNav({ userActivation: { isActive: true } });
+    handler({ type: 'touchend' });
+    eq(spoken, 1, 'a following touchend primes once');
+    assert(listeners.has('touchend'), 'still listening while the context is suspended');
+    created[created.length - 1].state = 'running';
+    handler({ type: 'pointerup' });
+    eq(spoken, 1, 'primed only once');
+    eq(listeners.size, 0, 'listeners removed once running and primed');
+  } finally {
+    if (orig) Object.defineProperty(globalThis, 'navigator', orig);
+  }
+});

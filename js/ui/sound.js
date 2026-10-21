@@ -45,9 +45,11 @@ function ensureCtx() {
   return ctx;
 }
 
-/** Call from a tap handler: unlocks audio and primes speech. */
+/** Call from a tap handler: unlocks audio and primes speech. The prime only counts inside a real user activation. */
 export function unlockAudio() {
   ensureCtx();
+  const ua = typeof navigator !== 'undefined' && navigator.userActivation;
+  if (ua && !ua.isActive) return; // not a gesture (Safari 16.4+): a refused prime must not mark us primed
   if (!primed && 'speechSynthesis' in window) {
     try {
       const u = new SpeechSynthesisUtterance(' ');
@@ -234,15 +236,29 @@ function wake() {
     try { ctx.resume().catch(() => {}); } catch { /* ignore */ }
   }
 }
-if (typeof document !== 'undefined') {
-  // the first tap anywhere unlocks audio and primes speech, before any celebration can play
-  const first = () => {
-    document.removeEventListener('pointerdown', first, true);
-    document.removeEventListener('touchend', first, true);
+const ACTIVATION = ['touchend', 'pointerup', 'click', 'keydown'];
+
+/**
+ * Unlock audio on the first real activation anywhere, before any celebration can play. A touch pointerdown is NOT an
+ * activation (it may start a scroll), so it is ignored unless it is a mouse. Keeps listening until the context is
+ * running and speech is primed. Returns the handler (for tests).
+ */
+export function installUnlock(doc) {
+  const opts = { capture: true, passive: true };
+  const events = [...ACTIVATION, 'pointerdown'];
+  const handler = (e) => {
+    if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return;
     unlockAudio();
+    const speechOk = primed || !('speechSynthesis' in window);
+    if (ctx && ctx.state === 'running' && speechOk) events.forEach((t) => doc.removeEventListener(t, handler, opts));
   };
-  document.addEventListener('pointerdown', first, { capture: true, passive: true });
-  document.addEventListener('touchend', first, { capture: true, passive: true });
+  events.forEach((t) => doc.addEventListener(t, handler, opts));
+  return handler;
+}
+
+if (typeof document !== 'undefined') {
+  installUnlock(document);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
-  document.addEventListener('pointerdown', wake, { capture: true, passive: true });
+  // touchend / pointerup are the taps iOS accepts as activation for resuming a backgrounded context
+  ['pointerdown', 'pointerup', 'touchend'].forEach((t) => document.addEventListener(t, wake, { capture: true, passive: true }));
 }

@@ -172,7 +172,7 @@ function playTier(tier, { fresh, xp }) {
       : [{ opacity: 0 }, { opacity: 1, offset: 0.12 }, { opacity: 0.35, offset: 0.4 }, { opacity: 0.9, offset: 0.62 }, { opacity: 0 }], { duration: 1300, easing: 'linear' });
     const bloom = run.layer('ms-bloom');
     run.anim(bloom, [{ opacity: 0 }, { opacity: fx.fade ? 0.25 : 0.55, offset: 0.35 }, { opacity: 0 }], { duration: 420, easing: EASE.out });
-    run.at(1000, () => run.anim(run.layer('ms-bloom'), [{ opacity: 0 }, { opacity: 0.4, offset: 0.4 }, { opacity: 0 }], { duration: 400 }));
+    run.at(1040, () => run.anim(run.layer('ms-bloom'), [{ opacity: 0 }, { opacity: 0.4, offset: 0.4 }, { opacity: 0 }], { duration: 400 }));
     if (fx.toast) toast(run, xp);
     return finish(run, 3100);
   }
