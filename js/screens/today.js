@@ -191,8 +191,8 @@ function greeting() {
 
 // Two columns (>= 840px): slot numbers on the left or right. The DOM stays in the phone's reading order and only
 // moves into columns while the wide query matches, so VoiceOver and Tab order follow the screen on every size.
-const LEFT_SLOTS = new Set(['1']); // Ask Coach stays first on the left; workout, report and photo stay right
-const FLEX_SLOTS = ['3', '4', '5', '6', '9', '10']; // rings, missions, food, weight, readiness, insights: they go on whichever side leaves the two columns closest in height (a rest day has no workout card, so the right column is shorter)
+const LEFT_SLOTS = new Set(['1']); // Ask Coach stays first on the left; workout, food, report and photo stay right (Food stays high in its column: lower down, a fold can't scroll far enough to keep it where the reader had it)
+const FLEX_SLOTS = ['3', '4', '6', '9', '10']; // rings, missions, weight, readiness, insights: they go on whichever side leaves the two columns closest in height (a rest day has no workout card, so the right column is shorter)
 let wideQuery = null;
 let wideListener = null;
 function arrangeTodayCols(el) {
@@ -214,7 +214,7 @@ function arrangeTodayCols(el) {
       put();
       const gap = () => Math.abs(a.getBoundingClientRect().height - b.getBoundingClientRect().height);
       let best = null;
-      for (let mask = 0; mask < 1 << FLEX_SLOTS.length; mask++) { // 6 slots: 64 tries, measured on the real layout
+      for (let mask = 0; mask < 1 << FLEX_SLOTS.length; mask++) { // 5 slots: 32 tries, measured on the real layout
         FLEX_SLOTS.forEach((o, i) => side.set(o, mask & (1 << i) ? 'b' : 'a'));
         put();
         const d = gap();
