@@ -18,7 +18,7 @@ export function balanceOn(day, now = new Date(), logs = state.food_logs) {
 /** One line under Today's Food row, or ''. */
 export function todayBalanceLine() {
   const b = balanceOn(todayKey());
-  if (!b) return '';
+  if (!b || (b.active == null && b.restingFrom !== 'apple')) return ''; // a prorated formula alone isn't worth a line on Today
   const d = deficitText(b.deficit, b.eaten);
   return `<p class="small muted balance-line" data-balance-line><span class="nb">Burned ${fmt(b.burned)} so far</span>${d ? ` · <span class="nb">${esc(d)}</span>` : ''}</p>`;
 }

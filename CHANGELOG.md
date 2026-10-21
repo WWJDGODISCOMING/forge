@@ -7,9 +7,9 @@ Cloud Functions and `firestore.rules` did not change. iPhone app: needs **Refres
 ### What's new
 
 - Apple Watch workouts now show in Forge, with calories burned next to what you eat.
-- Today and Food show eaten, burned and your calorie deficit. Tap Food's block for the last 7 days.
-- Steps and jogging show as a striped leg-activity bar on History. Your set counts don't change.
-- Today's steps and calories refresh when you open Forge, every few minutes, and when you pull down.
+- Today and Food show calories burned and your deficit. Tap Food's block for 7 days.
+- History shows steps and jogging as a striped leg bar. Your set counts don't change.
+- Today's steps and calories refresh when you open Forge, and when you pull down.
 
 ### Details
 

@@ -958,7 +958,7 @@ if (standalone) {
     const errs0 = browser.errors.length;
     // 1. Today, scrolled so the Food card is at the top
     await browser.viewport(466, 678, true);
-    await browser.open('today', seed());
+    await browser.open('today', seed({ burn: false }));
     const topOfFood = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
     await browser.eval("(() => { const e = document.querySelector('[data-food-card]'); const bar = document.querySelector('.navbar'); window.scrollBy({ top: e.getBoundingClientRect().top - (bar ? bar.getBoundingClientRect().bottom : 0) - 4, behavior: 'instant' }); })()");
     await wait(400);
@@ -1072,7 +1072,7 @@ if (standalone) {
       const bad = [];
       const topOf = "(() => { const e = document.querySelector('[data-test-top]'); return e ? Math.round(e.getBoundingClientRect().top) : null; })()";
       await browser.viewport(466, 678, true);
-      await browser.open('today', seed());
+      await browser.open('today', seed({ burn: false }));
       await browser.eval("(() => { const s = document.createElement('style'); s.textContent = 'html, body, * { overflow-anchor: none !important }'; document.head.append(s); })()");
       await browser.eval("window.scrollTo({ top: (document.documentElement.scrollHeight - innerHeight) * 0.2, behavior: 'instant' })");
       await wait(600);
