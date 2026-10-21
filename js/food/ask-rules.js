@@ -66,6 +66,15 @@ export function dietConflict(name, prefsIn) {
   return null;
 }
 
+const SNACKS = ['a pear', 'an apple', 'a banana', 'carrot sticks', 'rice cakes', 'a hard-boiled egg', 'a small protein snack'];
+
+/** A short "x, y, or z" snack idea where no candidate clashes with the person's diets or skip list. */
+export function snackIdeas(prefsIn) {
+  const ok = SNACKS.filter((s) => !dietConflict(s, prefsIn)).slice(0, 3);
+  if (!ok.length) return 'a small snack that fits your food preferences';
+  return ok.length === 1 ? ok[0] : `${ok.slice(0, -1).join(', ')}, or ${ok[ok.length - 1]}`;
+}
+
 // ---------- the numbers ----------
 /** Clean food numbers for one serving, or null. */
 export function cleanItem(raw) {
@@ -121,7 +130,7 @@ export function judge(itemIn, ctxIn, prefsIn) {
     reason = left > 0
       ? `Even half (${fmt(half)} kcal) is more than the ${fmt(left)} kcal you have left today.`
       : `You’re already at your ${fmt(ctx.ceiling)} kcal for today, so this would be extra.`;
-    better = left >= 80 ? `Something around ${fmt(Math.floor(left / 10) * 10)} kcal or less would fit: a pear or apple, or a small protein snack.` : 'Water is a good choice. You can plan this in tomorrow.';
+    better = left >= 80 ? `Something around ${fmt(Math.floor(left / 10) * 10)} kcal or less would fit: ${snackIdeas(prefsIn)}.` : 'Water is a good choice. You can plan this in tomorrow.';
   }
   return { verdict, headline: HEADLINE[verdict], reason, better, factor, numbers, conflict: conflict ? conflict.code : '' };
 }

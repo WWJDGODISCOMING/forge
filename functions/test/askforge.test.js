@@ -139,6 +139,25 @@ test('the rules’ "try instead" idea never clashes with the active diets, with 
   }
 });
 
+test('the rules’ idea also skips anything on the skip list, alone or with diets', async () => {
+  const { judge, dietConflict } = await import('../src/meal/ask-rules.js');
+  const big = { name: 'Big dessert', kcal: 1500, protein_g: 5, carbs_g: 100, fat_g: 40 };
+  const cases = [
+    { diets: [], avoid: ['apple'] }, { diets: [], avoid: ['pear'] }, { diets: [], avoid: ['apple', 'pear'] },
+    { diets: [], avoid: ['apple', 'pear', 'banana', 'carrot', 'rice', 'egg', 'protein'] },
+    { diets: ['low_histamine'], avoid: ['apple'] }, { diets: ['pregnancy_safe', 'dairy_free'], avoid: ['pear', 'banana'] },
+    { diets: ['vegetarian', 'gluten_free', 'low_histamine', 'pregnancy_safe', 'dairy_free'], avoid: ['apple', 'pear'] },
+  ];
+  for (const prefs of cases) {
+    for (const eatenKcal of [1500, 2100]) {
+      const j = judge(big, { ...CTX, eatenKcal }, prefs);
+      assert.ok(j.better);
+      assert.equal(dietConflict(j.better, prefs), null, `${JSON.stringify(prefs)} @${eatenKcal}: ${j.better}`);
+    }
+  }
+  assert.ok(/fits your food preferences/.test(judge(big, { ...CTX, eatenKcal: 1500 }, cases[3]).better));
+});
+
 test('finalAnswer drops an AI "better" idea that clashes with the person’s diet', () => {
   const input = cleanInput(body({ item: { name: 'Big dessert', kcal: 1500, protein_g: 5, carbs_g: 100, fat_g: 40 }, prefs: { diets: ['low_histamine'], avoid: [] } }));
   const r = parseReply(reply({ verdict: 'better', better: 'Try some Greek yogurt.', item: input.item }));

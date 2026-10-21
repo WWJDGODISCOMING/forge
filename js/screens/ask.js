@@ -17,7 +17,7 @@ const EXAMPLES = ['Is it too late for a yogurt?', 'Can I have a slice of pizza?'
 const BADGE = { yes: 'Yes', half: 'Half', better: 'Swap' };
 
 /** The "Ask Forge" button for Today and Food. */
-export const askButton = (cls = '') => `<button type="button" class="ask-entry ${cls}" data-ask-forge aria-label="Ask Forge: can I eat this?"><span class="ask-entry-ic" aria-hidden="true">?</span><span class="ask-entry-txt"><b>Ask Forge</b><small>Can I eat this?</small></span></button>`;
+export const askButton = (cls = '') => `<button type="button" class="ask-entry ${cls}" data-ask-forge aria-label="Ask Forge: can I eat this?"><span class="ask-entry-ic" aria-hidden="true">?</span><span class="ask-entry-txt"><b>Ask Forge</b><small>Can I eat this? Quick food check</small></span></button>`;
 
 /** Wires every [data-ask-forge] button inside `el`. */
 export function bindAsk(el) {
@@ -29,8 +29,8 @@ function numbersHtml(a, ctx, isToday = true) {
   return `<dl class="ask-nums">
     <div><dt>This</dt><dd><b>${num(a.item.kcal)}</b> kcal${a.item.protein_g ? `<small>${num(a.item.protein_g)} g protein</small>` : ''}</dd></div>
     <div><dt>${isToday ? 'Left today' : 'Left that day'}</dt><dd><b>${n.left >= 0 ? num(n.left) : `−${num(-n.left)}`}</b> kcal<small>of ${num(ctx.ceiling)}</small></dd></div>
-    <div><dt>After</dt><dd><b class="${n.after < 0 ? 'ask-over' : ''}">${num(Math.abs(n.after))}</b> kcal ${n.after < 0 ? 'over' : 'left'}<small>if you eat it all${ctx.burned != null ? ` · ${num(ctx.burned)} burned doesn’t change your ceiling` : ''}</small></dd></div>
-  </dl>`;
+    <div><dt>After</dt><dd><b class="${n.after < 0 ? 'ask-over' : ''}">${num(Math.abs(n.after))}</b> kcal ${n.after < 0 ? 'over' : 'left'}<small>if you eat it all</small></dd></div>
+  </dl>${ctx.burned != null ? `<p class="small muted ask-burn">${num(ctx.burned)} kcal burned so far doesn’t change your ceiling.</p>` : ''}`;
 }
 
 export function openAskForge({ day = todayKey() } = {}) {
@@ -47,7 +47,7 @@ export function openAskForge({ day = todayKey() } = {}) {
         <p class="small muted" id="ask-hint">Tap the mic on your keyboard to say it instead.</p>
         <div class="chips ask-examples" role="group" aria-label="Examples">${EXAMPLES.map((x) => `<button type="button" class="chip-btn" data-example="${esc(x)}">${esc(x)}</button>`).join('')}</div>
         <div class="ask-out" data-ask-out role="status" aria-live="polite"></div>
-        <p class="small muted ask-foot">${ai ? 'Your question, today’s food totals and your food preferences go to xAI to write the answer; Forge double-checks it against your numbers.' : 'Answered from your numbers. Forge may look up the food’s calories (food name only). Turn on Ask Forge AI in Settings for a friendlier take.'} ${esc(ASK_FOOTER)}</p>
+        <p class="small muted ask-foot">${ai ? 'Your question, the food, today’s calories and protein (eaten, goals and calories burned) and your food preferences go to xAI to write the answer; Forge double-checks it against your numbers.' : 'Answered from your numbers. Forge may look up the food’s calories (food name only). Turn on Ask Forge AI in Settings for a friendlier take.'} ${esc(ASK_FOOTER)}</p>
       </div>`;
     const form = $('form', body);
     const input = $('input[name=q]', body);

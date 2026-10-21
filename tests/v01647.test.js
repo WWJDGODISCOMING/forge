@@ -165,6 +165,11 @@ test('Ask Forge is on Today and Food, a sheet with detents, haptics, big targets
   assert(!/translate|scale/.test(css), 'no movement in the Ask Forge CSS');
 });
 
+test('privacy copy in Settings and the sheet footer says calories burned go to xAI', () => {
+  assert(/Sends your question[^<]*burned[^<]*xAI/.test(read('js/screens/settings.js')), 'Settings copy mentions burned');
+  assert(/calories burned\) and your food preferences go to xAI/.test(read('js/screens/ask.js')), 'footer mentions burned');
+});
+
 test('server files exist, are wired, and are in the offline shell', () => {
   const sw = read('sw.js');
   for (const f of ['js/food/ask-rules.js', 'js/food/ask.js', 'js/screens/ask.js']) assert(sw.includes(`'./${f}'`), f);

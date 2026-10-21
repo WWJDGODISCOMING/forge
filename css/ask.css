@@ -24,6 +24,7 @@
 .ask-nums dt { color: var(--text-2); font-size: calc(12px * var(--ts, 1)); }
 .ask-nums dd { margin: 0; display: grid; gap: 1px; font-variant-numeric: tabular-nums; }
 .ask-nums dd small { color: var(--text-2); }
+.ask-burn { margin: 0; }
 .ask-over { color: var(--warn-ink); }
 .ask-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
 .ask-actions .btn { min-height: 52px; padding-inline: 8px; white-space: nowrap; }
