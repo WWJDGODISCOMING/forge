@@ -75,7 +75,6 @@ export function openAskForge({ day = todayKey() } = {}) {
         </section>`;
       const ex = $('.ask-examples', body);
       if (ex) ex.hidden = true; // so the verdict shows at the medium detent
-      $('[data-ask-answer]', out).scrollIntoView({ block: 'nearest' });
       $$('[data-log]', out).forEach((b) => {
         b.onclick = () => {
           const portion = Number(b.dataset.log);

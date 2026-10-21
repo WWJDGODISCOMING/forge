@@ -127,7 +127,7 @@ test('rate limits: per hour, per day, and for everyone; the counter is deleted w
 
 test('the rules’ "try instead" idea never clashes with the active diets, with room left or at the ceiling', async () => {
   const { judge, dietConflict } = await import('../src/meal/ask-rules.js');
-  const big = { name: 'Big dessert', kcal: 900, protein_g: 5, carbs_g: 100, fat_g: 40 };
+  const big = { name: 'Big dessert', kcal: 1500, protein_g: 5, carbs_g: 100, fat_g: 40 };
   for (const diet of ['low_histamine', 'dairy_free', 'vegetarian', 'pregnancy_safe', 'gluten_free']) {
     const prefs = { diets: [diet], avoid: [] };
     for (const eatenKcal of [1500, 2100]) {
@@ -140,7 +140,7 @@ test('the rules’ "try instead" idea never clashes with the active diets, with 
 });
 
 test('finalAnswer drops an AI "better" idea that clashes with the person’s diet', () => {
-  const input = cleanInput(body({ item: { name: 'Big dessert', kcal: 900, protein_g: 5, carbs_g: 100, fat_g: 40 }, prefs: { diets: ['low_histamine'], avoid: [] } }));
+  const input = cleanInput(body({ item: { name: 'Big dessert', kcal: 1500, protein_g: 5, carbs_g: 100, fat_g: 40 }, prefs: { diets: ['low_histamine'], avoid: [] } }));
   const r = parseReply(reply({ verdict: 'better', better: 'Try some Greek yogurt.', item: input.item }));
   const a = finalAnswer({ reply: r, input });
   assert.ok(!/yogurt/i.test(a.better), a.better);
