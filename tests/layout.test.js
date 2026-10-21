@@ -227,9 +227,9 @@ if (standalone) {
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const found = new Map();
     const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
-    for (const c of SIZES.map(([w, h]) => ({ w, h, dark: true })).concat([{ w: 375, h: 667, dark: false }])) {
+    for (const c of SIZES.concat(WIDE).map(([w, h]) => ({ w, h, dark: true })).concat([{ w: 375, h: 667, dark: false }])) {
       await browser.viewport(c.w, c.h, c.dark);
-      const at = `${c.w}${c.dark ? 'd' : 'l'}`;
+      const at = `${c.w}x${c.h}${c.dark ? 'd' : 'l'}`;
       for (const route of ['today', 'food']) {
         await browser.open(route, seed());
         const h = await browser.eval("(() => { const b = document.querySelector('[data-ask-forge]'); return b ? b.getBoundingClientRect().height : 0; })()");

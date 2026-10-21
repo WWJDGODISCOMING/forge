@@ -1,7 +1,7 @@
 // Ask Forge (v0.16.47): the app side of "Can I eat this?". The rules-based answer lives in ask-rules.js (shared with the server);
 // this file builds today's context, finds the food's numbers, asks the optional AI and checks what comes back. Pure helpers plus one
 // network call, no DOM. Nothing here runs against the network unless Settings → "Ask Forge AI" is on.
-import { judge, cleanItem, cleanContext, foodFromQuestion, stricter, HEADLINE, VERDICTS, MAX_QUESTION } from './ask-rules.js';
+import { judge, dietConflict, cleanItem, cleanContext, foodFromQuestion, stricter, HEADLINE, VERDICTS, MAX_QUESTION } from './ask-rules.js';
 import { dayTotals, logFields } from './core.js';
 import { searchLocal, searchRemote } from './search.js';
 
@@ -64,7 +64,7 @@ export function checkAnswer(raw, ctx, prefs) {
   return {
     source: 'ai', verdict, headline: HEADLINE[verdict],
     reason: (mine && str(raw.reason, 280)) || (verdict === rules.verdict ? rules.reason : 'Something else would suit your day better.'),
-    better: verdict === 'better' ? (mine && str(raw.better, 160)) || rules.better : '',
+    better: verdict === 'better' ? (mine && !dietConflict(str(raw.better, 160), prefs) && str(raw.better, 160)) || rules.better : '',
     item, numbers: rules.numbers, factor: verdict === 'yes' ? 1 : verdict === 'half' ? 0.5 : 0, conflict: rules.conflict,
   };
 }

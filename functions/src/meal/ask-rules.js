@@ -121,7 +121,7 @@ export function judge(itemIn, ctxIn, prefsIn) {
     reason = left > 0
       ? `Even half (${fmt(half)} kcal) is more than the ${fmt(left)} kcal you have left today.`
       : `You’re already at your ${fmt(ctx.ceiling)} kcal for today, so this would be extra.`;
-    better = left >= 80 ? `Something around ${fmt(Math.floor(left / 10) * 10)} kcal or less would fit: fruit, plain yogurt, or a small protein snack.` : 'Water or herbal tea is fine, and this will keep for tomorrow.';
+    better = left >= 80 ? `Something around ${fmt(Math.floor(left / 10) * 10)} kcal or less would fit: a pear or apple, or a small protein snack.` : 'Water is a good choice. You can plan this in tomorrow.';
   }
   return { verdict, headline: HEADLINE[verdict], reason, better, factor, numbers, conflict: conflict ? conflict.code : '' };
 }

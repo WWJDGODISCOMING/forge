@@ -1,6 +1,6 @@
 // Ask Forge (v0.16.47): the "Can I eat this?" sheet, opened from Today and Food. Type it (or tap the mic on the iOS keyboard), get a short
 // verdict (Yes / Have half / Better pick), the numbers, and a one-tap Log it / Log half. With Settings → "Ask Forge AI" off, the
-// answer is built from your numbers on this phone and nothing is sent anywhere. The maths is in js/food/ask-rules.js and ask.js.
+// answer is built from your numbers (only the food name may go to the food lookup) and nothing else is sent. The maths is in js/food/ask-rules.js and ask.js.
 import { state } from '../state.js';
 import { put, newRecord } from '../db.js';
 import { esc, $, $$, sheet, toast, todayKey } from '../ui.js';
@@ -24,12 +24,12 @@ export function bindAsk(el) {
   $$('[data-ask-forge]', el).forEach((b) => { b.onclick = () => { haptics.light(); openAskForge(); }; });
 }
 
-function numbersHtml(a, ctx) {
+function numbersHtml(a, ctx, isToday = true) {
   const n = a.numbers;
   return `<dl class="ask-nums">
     <div><dt>This</dt><dd><b>${num(a.item.kcal)}</b> kcal${a.item.protein_g ? `<small>${num(a.item.protein_g)} g protein</small>` : ''}</dd></div>
-    <div><dt>Left today</dt><dd><b>${n.left >= 0 ? num(n.left) : `−${num(-n.left)}`}</b> kcal<small>of ${num(ctx.ceiling)}</small></dd></div>
-    <div><dt>After</dt><dd><b class="${n.after < 0 ? 'ask-over' : ''}">${num(Math.abs(n.after))}</b> kcal ${n.after < 0 ? 'over' : 'left'}<small>${ctx.burned != null ? `${num(ctx.burned)} burned so far` : 'if you eat it all'}</small></dd></div>
+    <div><dt>${isToday ? 'Left today' : 'Left that day'}</dt><dd><b>${n.left >= 0 ? num(n.left) : `−${num(-n.left)}`}</b> kcal<small>of ${num(ctx.ceiling)}</small></dd></div>
+    <div><dt>After</dt><dd><b class="${n.after < 0 ? 'ask-over' : ''}">${num(Math.abs(n.after))}</b> kcal ${n.after < 0 ? 'over' : 'left'}<small>if you eat it all${ctx.burned != null ? ` · ${num(ctx.burned)} burned doesn’t change your ceiling` : ''}</small></dd></div>
   </dl>`;
 }
 
@@ -47,7 +47,7 @@ export function openAskForge({ day = todayKey() } = {}) {
         <p class="small muted" id="ask-hint">Tap the mic on your keyboard to say it instead.</p>
         <div class="chips ask-examples" role="group" aria-label="Examples">${EXAMPLES.map((x) => `<button type="button" class="chip-btn" data-example="${esc(x)}">${esc(x)}</button>`).join('')}</div>
         <div class="ask-out" data-ask-out role="status" aria-live="polite"></div>
-        <p class="small muted ask-foot">${ai ? 'Your question and today’s totals go to xAI to write the answer; Forge double-checks it against your numbers.' : 'Answered from your numbers on this phone. Turn on Ask Forge AI in Settings for a friendlier take.'} ${esc(ASK_FOOTER)}</p>
+        <p class="small muted ask-foot">${ai ? 'Your question, today’s food totals and your food preferences go to xAI to write the answer; Forge double-checks it against your numbers.' : 'Answered from your numbers. Forge may look up the food’s calories (food name only). Turn on Ask Forge AI in Settings for a friendlier take.'} ${esc(ASK_FOOTER)}</p>
       </div>`;
     const form = $('form', body);
     const input = $('input[name=q]', body);
@@ -66,13 +66,16 @@ export function openAskForge({ day = todayKey() } = {}) {
           <p class="ask-food small muted">${esc(a.item.name)}${a.item.serving ? ` · ${esc(a.item.serving)}` : ''}</p>
           <p class="ask-reason">${esc(a.reason)}</p>
           ${a.better ? `<p class="ask-try"><b>Try instead:</b> ${esc(a.better)}</p>` : ''}
-          ${numbersHtml(a, ctx)}
+          ${numbersHtml(a, ctx, day === todayKey())}
           <div class="ask-actions">
             <button type="button" class="btn ${a.verdict === 'half' ? '' : 'ghost'}" data-log="0.5">Log half</button>
             <button type="button" class="btn ${a.verdict === 'yes' ? '' : 'ghost'}" data-log="1">Log it</button>
           </div>
           <p class="small muted">Logs to ${esc(MEAL_LABEL[mealForHour(new Date().getHours() + new Date().getMinutes() / 60)])}. ${a.source === 'ai' ? 'Estimates; check the label if you can.' : 'From your numbers.'}${note ? ` ${esc(note)}` : ''}</p>
         </section>`;
+      const ex = $('.ask-examples', body);
+      if (ex) ex.hidden = true; // so the verdict shows at the medium detent
+      $('[data-ask-answer]', out).scrollIntoView({ block: 'nearest' });
       $$('[data-log]', out).forEach((b) => {
         b.onclick = () => {
           const portion = Number(b.dataset.log);
