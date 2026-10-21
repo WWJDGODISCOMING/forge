@@ -9,6 +9,8 @@ Cloud Functions and `firestore.rules` did not change.
 - Finishing every goal now sets off a barrage of explosions with the screen shake.
 - One goal gets a soft pop, two get a double thud, a Perfect Week a bigger blast.
 - It follows the Sound effects switch and your silent switch.
+- Sound wakes up on your first tap, and never disturbs the voice coach.
+- Food no longer jumps sideways while it loads on a wide screen (iPhone sideways, Duo unfolded).
 
 ### Details
 

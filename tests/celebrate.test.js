@@ -149,3 +149,39 @@ test('celebrate: the Sound effects switch silences explosions', async () => {
   sfx.boom('boom', 1);
   eq(made.length, 1, 'switch on: it plays');
 });
+
+test('skeleton: Food claims the wide canvas so its two columns do not shift the page', async () => {
+  const { skeletonHTML } = await import('../js/ui/skeleton.js');
+  assert(skeletonHTML('food').includes('skel-wide'), 'food skeleton is wide');
+});
+
+test('celebrate: boom never primes speech and skips a suspended context', async () => {
+  const param = new Proxy({}, { get: () => () => {}, set: () => true });
+  const node = () => new Proxy(function () {}, { get: (t, k) => (k === 'gain' || k === 'frequency' ? param : () => node()), set: () => true });
+  let sources = 0;
+  let resumed = 0;
+  const created = [];
+  globalThis.window = globalThis.window || globalThis;
+  globalThis.window.AudioContext = globalThis.AudioContext = function () {
+    const c = { currentTime: 0, sampleRate: 8000, state: 'suspended', resume: async () => { resumed++; }, destination: {}, createBuffer: () => ({ getChannelData: () => new Float32Array(10) }), createGain: node, createOscillator: node, createBiquadFilter: node, createBufferSource: () => { sources++; return node(); }, createDynamicsCompressor: node };
+    created.push(c);
+    return c;
+  };
+  let spoken = 0;
+  globalThis.window.speechSynthesis = globalThis.speechSynthesis = { speak: () => { spoken++; }, cancel() {} };
+  globalThis.SpeechSynthesisUtterance = function () {};
+  const { state } = await import('../js/state.js');
+  const { sfx, unlockAudio } = await import('../js/ui/sound.js');
+  state.settings = { ...(state.settings || {}), sfx: true };
+  sfx.boom('boom', 1);
+  eq(spoken, 0, 'boom before any unlock does not prime speech');
+  eq(sources, 0, 'a suspended context schedules nothing');
+  const c = created[created.length - 1];
+  if (c) {
+    c.state = 'running';
+    sfx.boom('boom', 1);
+    assert(sources > 0, 'a running context plays');
+  }
+  unlockAudio();
+  eq(spoken, 1, 'a real tap still primes speech');
+});

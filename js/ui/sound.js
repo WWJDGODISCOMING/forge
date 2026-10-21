@@ -19,7 +19,8 @@ const prefs = () => ({
   sfx: !state.settings || state.settings.sfx !== false,
 });
 
-export function unlockAudio() {
+/** Create the context and master chain (no speech priming) and resume it. Safe outside a gesture; it may just stay suspended. */
+function ensureCtx() {
   try {
     if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient';
   } catch { /* not supported */ }
@@ -41,6 +42,12 @@ export function unlockAudio() {
   } catch {
     ctx = null;
   }
+  return ctx;
+}
+
+/** Call from a tap handler: unlocks audio and primes speech. */
+export function unlockAudio() {
+  ensureCtx();
   if (!primed && 'speechSynthesis' in window) {
     try {
       const u = new SpeechSynthesisUtterance(' ');
@@ -146,7 +153,13 @@ export const sfx = {
     if (!prefs().sfx) return;
     const e = EXPLOSIONS[kind];
     if (!e) return;
-    if (!ctx) unlockAudio();
+    // celebrations run outside a tap: never prime speech here, and never schedule on a suspended context
+    // (currentTime is frozen, so queued booms would all fire together later)
+    if (!ensureCtx()) return;
+    if (ctx.state !== 'running') {
+      try { ctx.resume().catch(() => {}); } catch { /* ignore */ }
+      return;
+    }
     explosion({ ...e, gain: Math.max(0, Math.min(1, gain)) });
   },
   /** Workout complete. */
@@ -222,6 +235,14 @@ function wake() {
   }
 }
 if (typeof document !== 'undefined') {
+  // the first tap anywhere unlocks audio and primes speech, before any celebration can play
+  const first = () => {
+    document.removeEventListener('pointerdown', first, true);
+    document.removeEventListener('touchend', first, true);
+    unlockAudio();
+  };
+  document.addEventListener('pointerdown', first, { capture: true, passive: true });
+  document.addEventListener('touchend', first, { capture: true, passive: true });
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
   document.addEventListener('pointerdown', wake, { capture: true, passive: true });
 }
