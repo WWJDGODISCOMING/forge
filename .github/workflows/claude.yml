@@ -76,7 +76,7 @@ jobs:
             echo "The issue and its comments are in .queue/issue.md (read it with the Read tool)."
             echo "You are on branch claude/queue-v$VERSION. Commit and push only to that branch (never to main), early and often: after every commit run git push -u origin claude/queue-v$VERSION."
             echo "Push your first commit within your first few turns, and before you finish make sure git status is clean and everything is pushed. Unpushed work is lost when the run ends."
-            echo "CI renders the full screens matrix; locally render only the changed routes (LAYOUT_ROUTES=...). If a command is denied, switch to an allowed one instead of retrying."
+            echo "CI renders the full screens matrix; locally render only the changed routes (LAYOUT_ROUTES=...). If a command is denied, switch to an allowed one instead of retrying. Use Write/Edit to create files (not cat heredocs), prefix env vars with env (env LAYOUT_SHOTS=screens node ...), avoid ( ) subshells, and commit + push your work before starting long renders."
             echo "Include the QUEUE.md status change for this item (in-review) in your commits."
             echo "When done, write your summary and the ticked Self-review checklist to .queue/pr-body.md (git ignores .queue/; never commit it); the workflow opens the PR with it. Do not guess the PR number in QUEUE.md; write 'in-review' and the reviewer fills the number in."
             echo "$EXTRA"
@@ -101,7 +101,7 @@ jobs:
           prompt: ${{ steps.prep.outputs.prompt }}
           claude_args: |
             --max-turns 300
-            --allowedTools "Edit,Write,MultiEdit,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(sed:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(rm:*),Bash(test:*),Bash(diff:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(sort:*),Bash(uniq:*),Bash(awk:*),Bash(cut:*),Bash(tr:*),Bash(echo:*),Bash(pwd:*),Bash(jq:*),Bash(python3:*)"
+            --allowedTools "Edit,Write,MultiEdit,Bash(node:*),Bash(npm:*),Bash(npx:*),Bash(git:*),Bash(ls:*),Bash(cat:*),Bash(grep:*),Bash(rg:*),Bash(find:*),Bash(sed:*),Bash(mkdir:*),Bash(cp:*),Bash(mv:*),Bash(rm:*),Bash(test:*),Bash(diff:*),Bash(head:*),Bash(tail:*),Bash(wc:*),Bash(sort:*),Bash(uniq:*),Bash(awk:*),Bash(cut:*),Bash(tr:*),Bash(echo:*),Bash(pwd:*),Bash(jq:*),Bash(python3:*),Bash(cd:*),Bash(env:*),Bash(which:*),Bash(printf:*)"
 
       # Oct 20: the first queued run (#158) worked 86 min and ended without pushing, so nothing could be reviewed.
       # Safety net: push whatever Claude left on the runner, and print why it stopped (final message + denied commands).
@@ -159,7 +159,9 @@ jobs:
           git config user.name "claude[bot]"
           git config user.email "41898282+claude[bot]@users.noreply.github.com"
           if [ -n "$(git status --porcelain -- . ':!.claude-pr' ':!.queue')" ]; then
-            git add -A -- . ':!.claude-pr' ':!.queue'
+            # Plain add (ignored files are skipped), then unstage hand-off files. Naming an ignored path in a pathspec makes git add exit 1.
+            git add -A || true
+            git reset -q -- .claude-pr .queue 2>/dev/null || true
             git commit -q -m "Work in progress saved by the workflow (Claude's run ended with uncommitted changes)" || true
           fi
           git remote set-url origin "https://x-access-token:${GH_TOKEN}@github.com/${REPO}.git"
