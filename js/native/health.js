@@ -24,7 +24,9 @@ export const SUM_TYPES = {
   calories: 'HKQuantityTypeIdentifierActiveEnergyBurned',
   exerciseTime: 'HKQuantityTypeIdentifierAppleExerciseTime',
 };
-export const READ_TYPES = [...Object.keys(SAMPLE_TYPES), ...Object.keys(SUM_TYPES), 'sleep'];
+// 'workouts' (Apple Watch sessions), 'heartRate' (avg/max during a workout) and 'basalCalories' (resting energy,
+// read live and kept on this phone only) are read but never saved as daily summaries.
+export const READ_TYPES = [...Object.keys(SAMPLE_TYPES), ...Object.keys(SUM_TYPES), 'sleep', 'workouts', 'heartRate', 'basalCalories'];
 const SLEEP_STATE = { inBed: 'HKCategoryValueSleepAnalysisInBed', asleep: 'HKCategoryValueSleepAnalysisAsleepUnspecified', awake: 'HKCategoryValueSleepAnalysisAwake', rem: 'HKCategoryValueSleepAnalysisAsleepREM', deep: 'HKCategoryValueSleepAnalysisAsleepDeep', light: 'HKCategoryValueSleepAnalysisAsleepCore', core: 'HKCategoryValueSleepAnalysisAsleepCore' };
 
 const pad = (n) => String(n).padStart(2, '0');
@@ -114,4 +116,66 @@ export async function readHealthDays({ since, now = new Date(), limit = 20000 } 
     try { totals[t] = (await H.queryAggregated({ dataType: t, ...range, bucket: 'day', aggregation: 'sum' })).samples || []; } catch { totals[t] = []; }
   }
   return daysFromHealth({ samples, totals, since });
+}
+
+const dayRange = (since, now) => ({ startDate: new Date(`${since}T00:00:00`).toISOString(), endDate: new Date(now).toISOString() });
+
+/** Apple Watch workouts since `since` (YYYY-MM-DD), paged with `anchor`, each with avg_hr / max_hr (and active-energy samples when it has no total). */
+export async function readHealthWorkouts({ since, now = new Date() } = {}) {
+  const H = healthPlugin();
+  if (!H) return [];
+  const range = dayRange(since, now);
+  const out = [];
+  let anchor;
+  for (let page = 0; page < 20; page++) {
+    let r;
+    try { r = await H.queryWorkouts({ ...range, limit: 200, ascending: false, anchor }); } catch { break; }
+    const list = (r && r.workouts) || [];
+    out.push(...list);
+    anchor = r && r.anchor;
+    if (!anchor || list.length < 200) break;
+  }
+  for (const w of out) {
+    try {
+      const hr = (await H.readSamples({ dataType: 'heartRate', startDate: w.startDate, endDate: w.endDate, limit: 2000 })).samples || [];
+      const v = hr.map((s) => Number(s.value)).filter((x) => x > 0);
+      if (v.length) { w.avg_hr = Math.round(v.reduce((a, b) => a + b, 0) / v.length); w.max_hr = Math.round(Math.max(...v)); }
+    } catch { /* no heart rate for this one */ }
+    if (!(Number(w.totalEnergyBurned) > 0)) { // deprecated on iOS 18+: add up the active energy inside the window
+      try { w.energySamples = (await H.readSamples({ dataType: 'calories', startDate: w.startDate, endDate: w.endDate, limit: 2000 })).samples || []; } catch { w.energySamples = []; }
+    }
+  }
+  return out;
+}
+
+/** Daily active and resting energy from `since` to now → [{ day, active, resting }]. Kept on this phone only. */
+export async function readHealthEnergy({ since, now = new Date() } = {}) {
+  const H = healthPlugin();
+  if (!H) return [];
+  const range = dayRange(since, now);
+  const byDay = new Map();
+  for (const [type, key] of [['calories', 'active'], ['basalCalories', 'resting']]) {
+    try {
+      const r = await H.queryAggregated({ dataType: type, ...range, bucket: 'day', aggregation: 'sum' });
+      for (const a of (r && r.samples) || []) {
+        const d = new Date(new Date(a.startDate).getTime() + 12 * 3600 * 1000).toLocaleDateString('en-CA'); // bucket middle: right day
+        byDay.set(d, { ...(byDay.get(d) || { day: d }), [key]: Number(a.value) });
+      }
+    } catch { /* not shared */ }
+  }
+  return [...byDay.values()];
+}
+
+/** A cheap re-read of today only: steps, active energy and exercise totals (daily-summary shape) plus today's resting energy. */
+export async function readHealthToday({ now = new Date() } = {}) {
+  const H = healthPlugin();
+  if (!H) throw new Error('Apple Health is only available in the Forge iPhone app.');
+  const today = new Date(now).toLocaleDateString('en-CA');
+  const range = dayRange(today, now);
+  const totals = {};
+  for (const t of Object.keys(SUM_TYPES)) {
+    try { totals[t] = (await H.queryAggregated({ dataType: t, ...range, bucket: 'day', aggregation: 'sum' })).samples || []; } catch { totals[t] = []; }
+  }
+  const energy = await readHealthEnergy({ since: today, now });
+  return { ...daysFromHealth({ totals, since: today }), energy };
 }

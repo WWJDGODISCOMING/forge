@@ -18,7 +18,7 @@ export const FIELDS = [
 ];
 
 /** rows: health_daily docs. → { lastDay, days, fields: [{ key, label, lastDay, count28 }] } */
-export function fieldStatus(rows, today) {
+export function fieldStatus(rows, today, cardio = []) {
   const days = indexDays(rows);
   const from = shiftDay(today, -27);
   const fields = FIELDS.map(([key, label, has]) => {
@@ -31,6 +31,13 @@ export function fieldStatus(rows, today) {
     }
     return { key, label, lastDay, count28 };
   });
+  // Workouts: Apple Watch sessions imported as cardio count too (health_daily.workouts from the Shortcut still does).
+  const w = fields.find((f) => f.key === 'workouts');
+  const wdays = new Set(cardio.filter((c) => !c.deleted && c.source === 'apple_health').map((c) => c.day).filter(Boolean));
+  for (const d of wdays) {
+    if (!w.lastDay || d > w.lastDay) w.lastDay = d;
+    if (d >= from && d <= today && !(days.get(d) && FIELDS[11][2](days.get(d)))) w.count28++;
+  }
   const keys = [...days.keys()].sort();
   return { lastDay: keys.length ? keys[keys.length - 1] : null, days: keys.length, fields };
 }

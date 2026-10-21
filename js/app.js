@@ -378,6 +378,8 @@ function autoHealth() {
   import('./screens/apple.js').then((m) => m.autoHealthSync()).catch(() => {});
 }
 if (isNative()) document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoHealth(); });
+// ...and a cheap re-read of today's steps and energy about every 5 minutes while Today is showing (js/screens/apple.js refreshToday).
+if (isNative()) setInterval(() => { if (document.visibilityState === 'visible' && currentRoute() === 'today' && allLoaded() && state.user) import('./screens/apple.js').then((m) => m.refreshToday()).catch(() => {}); }, 5 * 60 * 1000);
 
 // iPhone app: a local notification the day before the free Apple ID signature runs out (js/native/expiry.js).
 if (isNative()) {
@@ -436,6 +438,7 @@ async function refreshData() {
     const sync = call('withingsSyncNow', {}, { timeout: 130000 }).then(() => 'ok', (e) => { toast(e.message); return 'failed'; });
     if ((await waitAtMost(sync, PULL_WAIT_MS)) === 'timeout') sync.then((r) => { if (r === 'ok') render(); });
   }
+  if (isNative()) await import('./screens/apple.js').then((m) => m.refreshToday({ force: true })).catch(() => {});
   resetCounters();
   await render();
 }

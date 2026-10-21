@@ -42,6 +42,7 @@ import { goalLine } from '../health/goalpath.js';
 import { showReportCard, mondayOf } from '../health/weekly.js';
 import { weekTitle } from '../health/weektext.js';
 import { loadExpiryInfo, refreshDue } from '../native/expiry.js';
+import { todayBalanceLine } from './balance-ui.js';
 import { refreshBannerHtml, openRefreshSheet } from '../native/refresh-ui.js';
 
 /** Today's food against targets, for the rings. */
@@ -62,6 +63,7 @@ function foodRow(t) {
       <p class="label">Food</p>
       <p class="food-card-kcal"><b data-tick="today-kcal">${n(tot.kcal)}</b> <small>of ${n(t.calories)} kcal</small></p>
       <p class="small ${sum.over ? 'over' : 'muted'}"><span class="nb">${esc(sum.note)}</span> · <span class="nb">${esc(sum.protein)}</span></p>
+      ${todayBalanceLine()}
     </a>
     <button class="btn small food-log-btn" data-food-log aria-label="Log food"><span class="fl-plus" aria-hidden="true">+</span><span class="fl-txt">Log food</span></button>
   </div>`;

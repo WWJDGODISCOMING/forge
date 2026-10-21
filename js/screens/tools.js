@@ -65,7 +65,7 @@ export function openCardioLog(prefill = {}) {
         </div>
         <label class="field"><span>Avg heart rate <small class="muted">optional</small></span><input name="hr" type="number" inputmode="numeric"></label>
         <label class="field"><span>Notes <small class="muted">optional</small></span><input name="notes" value="${esc(prefill.notes || '')}" maxlength="200"></label>
-        <p class="small muted">Typed in by you. Apple Health and Strava imports come in Phase 2.</p>
+        <p class="small muted">Apple Watch workouts are added automatically in the iPhone app.</p>
         <p class="error" aria-live="polite"></p>
         <button class="btn" type="submit">Save</button>
       </form>`;

@@ -17,6 +17,11 @@ export function hasOvernight(rows, today) {
   return !!r && !!r.sleep && r.sleep.asleep_min != null;
 }
 
+export const TODAY_EVERY_MS = 3 * 60 * 1000; // the cheap re-read of today's totals (steps, energy, exercise)
+
+/** Is a cheap today-only re-read due? (Independent of the 6 h full read: reopening the app refreshes today.) */
+export const todayDue = ({ now, todayAt = 0 }) => now.getTime() - todayAt >= TODAY_EVERY_MS;
+
 /**
  * → 'steady' | 'morning' | null.
  * { now: Date, last: ms of the last read, today, rows, failedAt, morningAt: ms of the last morning try, morningFailedAt }

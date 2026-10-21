@@ -10,6 +10,9 @@ import { softDelete, patch } from '../db.js';
 import { exerciseRir, setEffort, effortLabel, EFFORT_CHOICES } from '../workouts/effort.js';
 import { CARDIO_TYPES, cardioStatsHtml } from '../cardio-types.js';
 import { icon, emptyState } from '../ui/icons.js';
+import { setsPerMuscle } from '../workouts/sets-per-muscle.js';
+import { legActivity, legSummary, LEG_MUSCLES } from '../workouts/leg-activity.js';
+import { sourceTag } from '../health/apple-workouts.js';
 
 let trendId = null;
 
@@ -20,22 +23,7 @@ function mondayOf(key) {
   return addDays(key, -dow);
 }
 
-/** Hard sets per muscle (primary 1, secondary 0.5) for workouts in [from, to). */
-export function setsPerMuscle(workouts, from, to) {
-  const out = {};
-  for (const w of workouts) {
-    const k = dayKey(w.started_at);
-    if (k < from || k >= to) continue;
-    for (const it of w.exercises || []) {
-      const ex = exerciseById(it.exercise_id);
-      if (!ex || ex.kind === 'conditioning') continue;
-      const n = (it.sets || []).filter((s) => s.done && !s.warmup).length;
-      ex.primary.forEach((m) => (out[m] = (out[m] || 0) + n));
-      ex.secondary.forEach((m) => (out[m] = (out[m] || 0) + n * 0.5));
-    }
-  }
-  return out;
-}
+export { setsPerMuscle };
 
 function bestOf(ex, sets) {
   if (ex.timed || ['bodyweight', 'band', 'other', 'backpack'].includes(ex.load)) return { v: Math.max(...sets.map((s) => s.reps || 0)), unit: ex.timed ? 's' : 'reps' };
@@ -53,6 +41,9 @@ export function renderHistory(el) {
   const thisMon = mondayOf(today);
   const thisWeek = setsPerMuscle(done, thisMon, addDays(today, 1));
   const lastWeek = setsPerMuscle(done, addDays(thisMon, -7), thisMon);
+  // Display only: steps and leg cardio, drawn as a separate stripe. It never touches the hard-set numbers above.
+  const leg = legActivity({ healthDaily: state.health_daily, cardio, from: thisMon, to: addDays(today, 1) });
+  const legRows = leg ? LEG_MUSCLES.filter((m) => leg[m] > 0) : [];
   const muscles = ['chest', 'lats', 'upper_back', 'front_delts', 'side_delts', 'rear_delts', 'biceps', 'triceps', 'quads', 'hamstrings', 'glutes', 'calves', 'abs'];
 
   // Heatmap: 12 weeks, Monday-start columns.
@@ -115,11 +106,14 @@ export function renderHistory(el) {
           ${muscles.map((m) => {
             const v = thisWeek[m] || 0;
             const p = lastWeek[m] || 0;
-            return `<div class="vol-row"><span>${MUSCLE_LABELS[m]}</span>
-              <div class="vol-bar"><em style="width:${Math.min(100, (p / 24) * 100)}%"></em><i style="width:${Math.min(100, (v / 24) * 100)}%" class="${v >= 10 && v <= 20 ? 'in' : ''}"></i><s></s></div>
-              <b>${Math.round(v * 10) / 10}</b></div>`;
+            const a = legRows.includes(m) ? leg[m] : 0;
+            const hard = Math.round(v * 10) / 10;
+            const bar = `<div class="vol-bar"${a ? ` role="img" aria-label="${MUSCLE_LABELS[m]}: ${hard} hard sets, plus ${a} leg activity"` : ''}><em style="width:${Math.min(100, (p / 24) * 100)}%"></em><i style="width:${Math.min(100, (v / 24) * 100)}%" class="${v >= 10 && v <= 20 ? 'in' : ''}"></i>${a ? `<u class="act" style="left:${Math.min(100, (v / 24) * 100)}%;width:${(Math.min(a, 4) / 24) * 100}%"></u>` : ''}<s></s></div>`;
+            if (!a) return `<div class="vol-row"><span>${MUSCLE_LABELS[m]}</span>${bar}<b>${hard}</b></div>`;
+            return `<button type="button" class="vol-row vol-leg" data-leg aria-label="${MUSCLE_LABELS[m]}: ${hard} hard sets, plus ${a} leg activity. What is this?"><span>${MUSCLE_LABELS[m]}<small class="muted act-sub">+${a} activity</small></span>${bar}<b>${hard}</b></button>`;
           }).join('')}
         </div>
+        ${legRows.length ? `<button type="button" class="vol-legend small muted" data-leg><i class="act-sw" aria-hidden="true"></i>Leg activity (steps, jogging)</button>` : ''}
       </div>
 
       ${trendable.length ? `
@@ -142,12 +136,13 @@ export function renderHistory(el) {
         <li class="tap" data-w="${esc(r.w.id)}"><div><b>${esc(r.w.label)}</b>
           <small class="muted">${formatDay(dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${esc(state.locations.find((l) => l.id === r.w.location_id)?.name || '')} · ${(r.w.exercises || []).reduce((n, it) => n + it.sets.filter((s) => s.done && !s.warmup).length, 0)} sets${(r.w.prs || []).length ? ` · ${icon('trophy')} ${r.w.prs.length}` : ''}</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>` : `
         <li class="tap" data-c="${esc(r.c.id)}"><div><b>${esc(CARDIO_TYPES[r.c.activity] || r.c.activity)}</b>
-          <small class="muted">${formatDay(r.c.day || dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${r.c.duration_min} min${r.c.calories ? ` · ${r.c.calories} kcal` : ''} · Manual</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>`).join('')}</ul>`
+          <small class="muted">${formatDay(r.c.day || dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${r.c.duration_min} min${r.c.calories ? ` · ${r.c.calories} kcal` : ''} · ${esc(sourceTag(r.c))}</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>`).join('')}</ul>`
         : `<div class="card">${emptyState({ icon: 'chart', title: 'No workouts yet', text: 'Finish a workout and it shows up here, with your records.', action: { href: '#/train', label: 'Start your first workout' } })}</div>`}
     </section>`;
 
   const sel = $('[data-trend]', el);
   if (sel) sel.addEventListener('change', () => { trendId = sel.value; renderHistory(el); });
+  el.querySelectorAll('[data-leg]').forEach((b) => b.addEventListener('click', () => openLegActivity(leg)));
   el.querySelectorAll('[data-w]').forEach((li) => li.addEventListener('click', () => openWorkout(li.dataset.w)));
   el.querySelectorAll('[data-c]').forEach((li) => li.addEventListener('click', () => openCardio(li.dataset.c)));
 }
@@ -225,14 +220,26 @@ function openCardio(id) {
         <div class="stats">
           ${cardioStatsHtml(c, u)}
         </div>
-        ${c.avg_hr ? `<p>Avg heart rate: ${c.avg_hr} bpm <span class="muted small">(typed in)</span></p>` : ''}
+        ${c.avg_hr ? `<p>Avg heart rate: ${c.avg_hr} bpm <span class="muted small">(${c.source === 'apple_health' ? 'Apple Watch' : 'typed in'})</span></p>` : ''}
         ${c.notes ? `<p class="muted">${esc(c.notes)}</p>` : ''}
-        <p class="small muted">Source: manual entry</p>
+        <p class="small muted">Source: ${c.source === 'apple_health' ? esc(`Apple Health · ${sourceTag(c)}`) : 'manual entry'}</p>
         <button class="btn danger-ghost" data-del>Delete</button>
       </div>`;
     $('[data-del]', body).onclick = async () => {
       close();
       if (await confirmSheet({ title: 'Delete this cardio session?', message: 'This can’t be undone.', confirmLabel: 'Delete', danger: true })) softDelete('cardio_sessions', id);
     };
+  });
+}
+
+function openLegActivity(a) {
+  if (!a) return;
+  const names = { quads: 'Quads', hamstrings: 'Hamstrings', glutes: 'Glutes', calves: 'Calves' };
+  sheet('Leg activity', (body) => {
+    body.innerHTML = `<div class="stack" data-leg-sheet>
+      <p>${esc(legSummary(a))}</p>
+      <ul class="list flat">${LEG_MUSCLES.map((m) => `<li><div><b>${names[m]}</b></div><b>+${a[m]}</b></li>`).join('')}</ul>
+      <p class="small muted">Steps: ${a.sources.stepUnits.toFixed(1)} · Cardio bonus: ${a.sources.cardioUnits.toFixed(1)} · across ${a.sources.days} ${a.sources.days === 1 ? 'day' : 'days'}. Each muscle tops out at 4, so this never reads as a training dose.</p>
+    </div>`;
   });
 }

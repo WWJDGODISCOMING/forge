@@ -787,3 +787,24 @@ html { overflow-anchor: auto; }
 .swipe-act span { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; width: 96px; min-height: 44px; font-size: calc(13px * var(--ts, 1)); } /* centred in the revealed 96 px, rides the panel's leading edge */
 .swipe-act:focus-visible { outline: 2px solid white; outline-offset: -4px; }
 .list li.swiping > .swipe-act { display: flex; }
+
+/* v0.16.45: leg activity stripe on the History muscle card, and Eaten vs burned (Today, Food). */
+.vol-bar u.act { position: absolute; top: 0; bottom: 0; border-radius: 0 6px 6px 0; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent-text) 35%, transparent) 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 45%, transparent); }
+button.vol-row { width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; font-size: calc(15px * var(--ts)); text-align: left; cursor: pointer; }
+button.vol-row > span { display: flex; flex-direction: column; line-height: 1.15; }
+.act-sub { font-size: calc(12px * var(--ts)); }
+.vol-legend { display: flex; align-items: center; gap: 8px; min-height: 44px; width: 100%; padding: 0; border: 0; background: none; font: inherit; font-size: calc(13px * var(--ts)); cursor: pointer; text-align: left; }
+.act-sw { display: inline-block; flex: none; width: 24px; height: 10px; border-radius: 4px; background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--accent-text) 35%, transparent) 0 3px, transparent 3px 6px); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 45%, transparent); }
+.balance-line { margin-top: 2px; }
+.balance-block { display: grid; gap: 2px; width: 100%; min-height: 44px; padding: var(--s-2) var(--s-3); border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.balance-nums, .balance-net { font-size: calc(15px * var(--ts)); }
+.balance-net.good { color: var(--good); }
+.balance-net.over { color: var(--warn); }
+.balance-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--s-2); align-items: end; }
+.bb-day { display: grid; gap: 4px; justify-items: center; }
+.bb-cols { display: flex; align-items: flex-end; gap: 3px; height: 96px; width: 100%; justify-content: center; }
+.bb-cols i { display: block; width: 40%; max-width: 14px; border-radius: 4px 4px 0 0; min-height: 2px; }
+.bb-eat { background: var(--accent-text); }
+.bb-burn { background: var(--text-3); }
+.legend i.bb-eat-sw { background: var(--accent-text); }
+.legend i.bb-burn-sw { background: var(--text-3); }

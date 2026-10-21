@@ -18,6 +18,7 @@ export const state = {
   exercises: [], // custom exercises
   body_measures: [], // server-written (Withings)
   health_daily: [], // server-written (Apple Health, W2)
+  energy: {}, // Apple resting/active energy per day, kept on this phone only (js/nutrition/balance.js)
   foods: [], // My foods (v0.11.0)
   food_logs: [], // what you ate (v0.11.0)
   foodError: null, // set when the food collections can't be read (rules not published yet); the rest of the app still works
@@ -34,7 +35,7 @@ export const state = {
     this.set({
       user, loaded: notLoaded(), loadError: null, profile: null, settings: null,
       locations: [], weights: [], workouts: [], cardio: [], programs: [], exercises: [],
-      body_measures: [], health_daily: [], integrations: {}, serverErrors: {}, foods: [], food_logs: [], foodError: null,
+      body_measures: [], health_daily: [], integrations: {}, serverErrors: {}, foods: [], food_logs: [], foodError: null, energy: {},
     });
   },
 };
