@@ -43,6 +43,7 @@ import { showReportCard, mondayOf } from '../health/weekly.js';
 import { weekTitle } from '../health/weektext.js';
 import { loadExpiryInfo, refreshDue } from '../native/expiry.js';
 import { todayBalanceLine } from './balance-ui.js';
+import { askButton, bindAsk } from './ask.js';
 import { refreshBannerHtml, openRefreshSheet } from '../native/refresh-ui.js';
 
 /** Today's food against targets, for the rings. */
@@ -302,7 +303,7 @@ export function renderToday(el) {
       <div class="slot" data-o="4">${missionsCard()}</div>
 
 
-      <div class="slot" data-o="5">${foodRow(t)}</div>
+      <div class="slot" data-o="5">${foodRow(t)}${askButton('ask-entry--today')}</div>
 
 
       <div class="slot" data-o="6">
@@ -348,6 +349,7 @@ export function renderToday(el) {
     e.currentTarget.setAttribute('aria-expanded', String(open));
     $('[data-weight-why-text]', el).hidden = !open;
   };
+  bindAsk(el);
   $('[data-food-log]', el).onclick = () => import('./food.js').then((m) => m.openLogFood());
   const why = $('[data-ready-why]', el);
   if (why) why.onclick = () => {

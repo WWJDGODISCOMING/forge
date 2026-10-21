@@ -90,6 +90,7 @@ import './v01636.test.js';
 import './v01637.test.js';
 import './v01638.test.js';
 import './v01640.test.js';
+import './v01647.test.js';
 import './layout.test.js';
 import { VERSION } from '../js/version.js';
 

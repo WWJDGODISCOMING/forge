@@ -43,7 +43,7 @@ const RX = {
   other: /\b(liver|p[aâ]t[eé]|unpasteuri[sz]ed|raw milk|wine|beer|rum|whisk(?:e)?y|vodka|cocktail|margarita|champagne|sprouts)\b/,
 };
 const PLANT = /\b(coconut|almond|oat|rice|soy|cashew|hemp) (milk|yogh?urt|cream|butter|cheese)\b|\bpeanut butter\b|\bcocoa butter\b|\bnut butter\b/g;
-const GF_OK = /\bgluten[- ]free\b|\b(rice|corn|chickpea|almond) (noodles?|pasta|bread|tortilla|crackers?)\b/g;
+const GF_OK = /\bgluten[- ]free(?: \w+)?\b|\b(rice|corn|chickpea|almond) (noodles?|pasta|bread|tortilla|crackers?)\b/g;
 const LH_OK = /\b(cottage cheese|ricotta|cream cheese|fresh mozzarella|fresh)\b/g;
 const DIET_WORD = { low_histamine: 'low-histamine', pregnancy_safe: 'pregnancy-safe', vegetarian: 'vegetarian', dairy_free: 'dairy-free', gluten_free: 'gluten-free' };
 

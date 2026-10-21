@@ -1,5 +1,25 @@
 # Changelog
 
+## 0.16.47 — Ask Forge: "Can I eat this?" (2026-10-21)
+
+Cloud Functions changed (new `askForge` function). `firestore.rules` did not change.
+
+### What's new
+
+- New Ask Forge button on Today and Food: ask if you can eat something.
+- You get a short answer: Yes, Have half, or Better pick, with the numbers.
+- One tap on Log it or Log half adds it to your day.
+- It works without AI, using your calories, protein and what you've burned today.
+- Turn on Ask Forge AI in Settings for a friendlier take. It's off until you do.
+- It respects your food preferences, like low-histamine and pregnancy-safe.
+
+### Details
+
+- The answer is built from your calorie ceiling, protein goal, today's totals and calories burned. The food's numbers come from My foods, then USDA, then the AI's estimate, or you can type the calories.
+- With the AI on, the question and today's totals go to xAI. Forge checks the reply against the same rules, so the AI can only be as strict as your numbers or stricter, never kinder.
+- Limited to 12 questions an hour and 40 a day per person, and a daily cap for everyone.
+- General guidance only, not medical advice.
+
 ## 0.16.46 — Mission celebrations now have sound (2026-10-21)
 
 Cloud Functions and `firestore.rules` did not change.

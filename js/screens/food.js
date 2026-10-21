@@ -19,6 +19,7 @@ import { settleTicks } from '../ui/motion.js';
 import { bindSwipeRows } from '../ui/swiperow.js';
 import { createPendingDelete } from '../ui/pendingdelete.js';
 import { renderPlan } from './food-plan.js';
+import { askButton, openAskForge } from './ask.js';
 
 let foodView = 'log'; // 'log' or 'plan' (the Plan segment), kept while the app is open
 let viewDay = null; // the day shown; null = today
@@ -115,6 +116,7 @@ export function renderFood(el) {
       </div>
       <!-- Primary action. Text search lives inside the Log food sheet; Snap-a-meal (the camera button beside search) lives there too, not as a button here. -->
       <button class="btn bigbtn" data-log-food>${icon('plus')}Log food</button>
+      ${askButton()}
       </div>
       <div class="col col-b">
       <div class="card stack" data-food-totals>
@@ -167,6 +169,7 @@ export function renderFood(el) {
     renderFood(el);
   };
   $('[data-log-food]', el).onclick = () => openLogFood({ day });
+  $('[data-ask-forge]', el).onclick = () => { haptics.light(); openAskForge({ day }); };
   const bal = $('[data-balance]', el);
   if (bal) bal.onclick = () => { haptics.select(); openBalanceSheet(); };
   $('[data-my-foods]', el).onclick = () => openMyFoods();

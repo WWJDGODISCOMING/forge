@@ -17,6 +17,7 @@ const TALL = [
   ['js/screens/food.js', "sheet('Log food'"],
   ['js/screens/food.js', "sheet('My foods'"],
   ['js/screens/snap.js', "sheet('Snap a meal'"],
+  ['js/screens/ask.js', "sheet('Ask Forge'"],
   ['js/screens/train.js', "sheet('Change workout'"],
   ['js/screens/howto.js', 'sheet(ex.name'],
   ['js/screens/demo-preview.js', 'sheet(ex.name'],
