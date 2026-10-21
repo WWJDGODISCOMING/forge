@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.46 — Mission celebrations now have sound (2026-10-21)
+
+Cloud Functions and `firestore.rules` did not change.
+
+### What's new
+
+- Finishing every goal now sets off a barrage of explosions with the screen shake.
+- One goal gets a soft pop, two get a double thud, a Perfect Week a bigger blast.
+- It follows the Sound effects switch and your silent switch.
+- Sound wakes up on your first tap, and never disturbs the voice coach.
+- Food no longer jumps sideways while it loads on a wide screen (iPhone sideways, Duo unfolded).
+
+### Details
+
+- The sounds are made on the phone (no audio files). Each explosion lands on a haptic tap, and the volume is capped so it never clips.
+- Reduce Motion drops the shake but the sounds still play.
+
 ## 0.16.45 — Apple Watch workouts, calories burned next to what you eat, leg activity (2026-10-21)
 
 Cloud Functions and `firestore.rules` did not change. iPhone app: needs **Refresh Forge** (new Health permissions and `Info.plist` text).

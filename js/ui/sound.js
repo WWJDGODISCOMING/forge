@@ -19,7 +19,8 @@ const prefs = () => ({
   sfx: !state.settings || state.settings.sfx !== false,
 });
 
-export function unlockAudio() {
+/** Create the context and master chain (no speech priming) and resume it. Safe outside a gesture; it may just stay suspended. */
+function ensureCtx() {
   try {
     if (navigator.audioSession && navigator.audioSession.type !== 'ambient') navigator.audioSession.type = 'ambient';
   } catch { /* not supported */ }
@@ -28,12 +29,27 @@ export function unlockAudio() {
       ctx = new (window.AudioContext || window.webkitAudioContext)();
       master = ctx.createGain();
       master.gain.value = 0.9;
-      master.connect(ctx.destination);
+      // a limiter after the master so stacked explosions can't clip
+      const lim = ctx.createDynamicsCompressor();
+      lim.threshold.value = -10;
+      lim.knee.value = 6;
+      lim.ratio.value = 12;
+      lim.attack.value = 0.002;
+      lim.release.value = 0.15;
+      master.connect(lim).connect(ctx.destination);
     }
     if (ctx.state !== 'running') ctx.resume().catch(() => {});
   } catch {
     ctx = null;
   }
+  return ctx;
+}
+
+/** Call from a tap handler: unlocks audio and primes speech. The prime only counts inside a real user activation. */
+export function unlockAudio() {
+  ensureCtx();
+  const ua = typeof navigator !== 'undefined' && navigator.userActivation;
+  if (ua && !ua.isActive) return; // not a gesture (Safari 16.4+): a refused prime must not mark us primed
   if (!primed && 'speechSynthesis' in window) {
     try {
       const u = new SpeechSynthesisUtterance(' ');
@@ -68,6 +84,41 @@ function tone({ freq = 880, type = 'sine', ms = 160, gain = 0.22, at = 0, slideT
   o.stop(t0 + ms / 1000 + 0.05);
 }
 
+let noiseBuf = null;
+/** One filtered noise burst, a falling sine thump and a short sub-bass tail. Peak gains stay low so stacks don't clip. */
+function explosion({ gain, burst, burstHz, thump, thumpHz, tail }) {
+  if (!ctx) return;
+  const t0 = ctx.currentTime;
+  if (!noiseBuf) {
+    noiseBuf = ctx.createBuffer(1, Math.floor(ctx.sampleRate * 1.2), ctx.sampleRate);
+    const d = noiseBuf.getChannelData(0);
+    for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
+  }
+  const src = ctx.createBufferSource();
+  src.buffer = noiseBuf;
+  const f = ctx.createBiquadFilter();
+  f.type = 'lowpass';
+  f.frequency.setValueAtTime(burstHz, t0);
+  f.frequency.exponentialRampToValueAtTime(120, t0 + burst);
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.0001, t0);
+  g.gain.exponentialRampToValueAtTime(0.4 * gain, t0 + 0.006);
+  g.gain.exponentialRampToValueAtTime(0.0001, t0 + burst);
+  src.connect(f).connect(g).connect(master);
+  src.start(t0);
+  src.stop(t0 + burst + 0.05);
+  tone({ freq: thumpHz, slideTo: 38, type: 'sine', ms: thump, gain: 0.45 * gain });
+  if (tail) tone({ freq: 34, type: 'sine', ms: tail, gain: 0.25 * gain, at: 0.03 });
+}
+
+// per kind: noise length (s), noise filter start (Hz), thump length (ms), thump pitch (Hz), sub-bass tail (ms)
+const EXPLOSIONS = {
+  pop: { burst: 0.12, burstHz: 2200, thump: 120, thumpHz: 150, tail: 0 },
+  thud: { burst: 0.18, burstHz: 1200, thump: 200, thumpHz: 110, tail: 160 },
+  boom: { burst: 0.4, burstHz: 1800, thump: 320, thumpHz: 90, tail: 320 },
+  finale: { burst: 0.9, burstHz: 2600, thump: 600, thumpHz: 70, tail: 800 },
+};
+
 const semi = (f, n) => f * Math.pow(2, n / 12);
 
 /** Coach beeps (count-ins, rest end). Silent when the coach is Off. */
@@ -98,6 +149,20 @@ export const sfx = {
     tone({ freq: 70, slideTo: 45, type: 'sine', ms: 380, gain: 0.35 });
     [1046.5, 1318.5, 1568, 2093].forEach((f, k) => tone({ freq: f, ms: 300, gain: 0.15, at: 0.08 + k * 0.08, type: 'triangle' }));
     tone({ freq: 2637, ms: 600, gain: 0.08, at: 0.42 });
+  },
+  /** One celebration explosion: kind is pop | thud | boom | finale, gain 0..1. Obeys the Sound effects switch. */
+  boom(kind = 'boom', gain = 1) {
+    if (!prefs().sfx) return;
+    const e = EXPLOSIONS[kind];
+    if (!e) return;
+    // celebrations run outside a tap: never prime speech here, and never schedule on a suspended context
+    // (currentTime is frozen, so queued booms would all fire together later)
+    if (!ensureCtx()) return;
+    if (ctx.state !== 'running') {
+      try { ctx.resume().catch(() => {}); } catch { /* ignore */ }
+      return;
+    }
+    explosion({ ...e, gain: Math.max(0, Math.min(1, gain)) });
   },
   /** Workout complete. */
   fanfare() {
@@ -171,7 +236,29 @@ function wake() {
     try { ctx.resume().catch(() => {}); } catch { /* ignore */ }
   }
 }
+const ACTIVATION = ['touchend', 'pointerup', 'click', 'keydown'];
+
+/**
+ * Unlock audio on the first real activation anywhere, before any celebration can play. A touch pointerdown is NOT an
+ * activation (it may start a scroll), so it is ignored unless it is a mouse. Keeps listening until the context is
+ * running and speech is primed. Returns the handler (for tests).
+ */
+export function installUnlock(doc) {
+  const opts = { capture: true, passive: true };
+  const events = [...ACTIVATION, 'pointerdown'];
+  const handler = (e) => {
+    if (e.type === 'pointerdown' && e.pointerType !== 'mouse') return;
+    unlockAudio();
+    const speechOk = primed || !('speechSynthesis' in window);
+    if (ctx && ctx.state === 'running' && speechOk) events.forEach((t) => doc.removeEventListener(t, handler, opts));
+  };
+  events.forEach((t) => doc.addEventListener(t, handler, opts));
+  return handler;
+}
+
 if (typeof document !== 'undefined') {
+  installUnlock(document);
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') wake(); });
-  document.addEventListener('pointerdown', wake, { capture: true, passive: true });
+  // touchend / pointerup are the taps iOS accepts as activation for resuming a backgrounded context
+  ['pointerdown', 'pointerup', 'touchend'].forEach((t) => document.addEventListener(t, wake, { capture: true, passive: true }));
 }
