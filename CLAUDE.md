@@ -14,6 +14,7 @@ Forge is Christian Everett's personal fitness app. It's a PWA on GitHub Pages pl
 - Keep `config.js` as committed. Never commit secrets or tokens. The repo is public.
 - **Privacy:** never commit Christian's real health data, Withings exports, photos, or GPS. Use synthetic fixtures in tests.
 - Run `node tests/run.js` and `npm --prefix functions install && npm --prefix functions test` before pushing. Rules tests run in CI.
+- **Your run ends the moment you stop to wait.** Never start tests or renders in the background or with a monitor and then say you're waiting: run them in the foreground (Bash allows up to 15 min). Make the edits first with Edit/Write (not python or cat heredocs), commit and push them, then run the checks, push any follow-up fixes, and only then write your final message. A run that ends with nothing pushed can't be reviewed.
 - Bump `js/version.js` and `sw.js` and add a CHANGELOG entry for each release.
 - UX bar: iPhone-first, one-handed use, big tap targets, plain friendly words, respects reduced motion and safe areas. Christian's wife also uses the app (her own account).
 
