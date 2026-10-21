@@ -26,6 +26,6 @@
 .ask-nums dd small { color: var(--text-2); }
 .ask-over { color: var(--warn-ink); }
 .ask-actions { display: grid; grid-template-columns: 1fr 1fr; gap: var(--s-3); }
-.ask-actions .btn { min-height: 52px; }
+.ask-actions .btn { min-height: 52px; padding-inline: 8px; white-space: nowrap; }
 @media (max-width: 359px) { .ask-nums { grid-template-columns: 1fr; } .ask-form { grid-template-columns: 1fr; } }
 @media (prefers-reduced-motion: no-preference) { .ask-card { animation: ask-in .22s ease-out; } @keyframes ask-in { from { opacity: 0; } to { opacity: 1; } } }

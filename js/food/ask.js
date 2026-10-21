@@ -18,12 +18,22 @@ export function contextFrom({ logs = [], day, targets, burned = null, now = new 
   });
 }
 
+/** "bowl of oatmeal" → ["bowl of oatmeal", "oatmeal"]: the amount word never helps a food search. */
+export function queryVariants(query) {
+  const q = String(query || '').replace(/\s+/g, ' ').trim();
+  const plain = q.replace(/^(?:(?:a|an|the|some|one|half|1|2) )?(?:(?:big|small|large|tiny|little) )?(?:bowl|slice|piece|cup|glass|handful|scoop|serving|bite|bar|can|bottle|bag|pack|packet|tub|container|spoonful|bit|few) of /, '').trim();
+  return plain && plain !== q ? [q, plain] : [q];
+}
+
 /** Finds one serving of the food: My foods and recents first, then USDA when `online` is true. → the cleaned item or null. */
 export async function lookupFood(query, { foods = [], logs = [], online = true, remote = searchRemote } = {}) {
-  const q = String(query || '').trim();
+  const variants = queryVariants(query);
+  const q = variants[variants.length - 1];
   if (q.length < 2) return null;
-  const local = searchLocal(q, { foods, logs, limit: 3 }).map(cleanItem).filter((i) => i && i.kcal > 0);
-  if (local.length) return { ...local[0], from: 'mine' };
+  for (const v of variants) {
+    const local = searchLocal(v, { foods, logs, limit: 3 }).map(cleanItem).filter((i) => i && i.kcal > 0);
+    if (local.length) return { ...local[0], from: 'mine' };
+  }
   if (!online) return null;
   try {
     const res = await remote(q);

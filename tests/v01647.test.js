@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import { judge, dietConflict, foodFromQuestion, stricter, cleanItem, cleanContext } from '../js/food/ask-rules.js';
-import { contextFrom, lookupFood, localAnswer, checkAnswer, requestAnswer, askLogFields, askAiOn } from '../js/food/ask.js';
+import { contextFrom, lookupFood, queryVariants, localAnswer, checkAnswer, requestAnswer, askLogFields, askAiOn } from '../js/food/ask.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const YOGURT = { name: 'Noosa vanilla bean yogurt', kcal: 300, protein_g: 12, carbs_g: 38, fat_g: 11 };
@@ -102,6 +102,9 @@ test('lookupFood: My foods first, then USDA when online, null offline or with no
   eq(await lookupFood('banana', { foods, remote: async () => ({ state: 'offline', items: [] }) }), null);
   eq(await lookupFood('banana', { foods, remote: async () => { throw new Error('x'); } }), null);
   eq(await lookupFood('a', { foods, remote }), null);
+  eq(queryVariants('a bowl of oatmeal').join('|'), 'a bowl of oatmeal|oatmeal');
+  eq(queryVariants('banana').join('|'), 'banana');
+  eq((await lookupFood('bowl of noosa', { foods, remote })).kcal, 300, 'the amount word is dropped before searching');
 });
 
 test('localAnswer works with AI off: verdict, numbers and Log it / Log half amounts', () => {
