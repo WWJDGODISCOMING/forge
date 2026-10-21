@@ -2,10 +2,10 @@
 import { readFileSync } from 'node:fs';
 import { test, eq, assert, near } from './harness.js';
 import { mapActivity, planWorkoutImport, workoutToCardio, skipReason, sourceTag } from '../js/health/apple-workouts.js';
-import { dayBalance, deficitText, todayLine, weekTotals, weekText, mergeEnergy, backfillStart, dayFraction } from '../js/nutrition/balance.js';
+import { energyChanged, newerDays, dayBalance, deficitText, todayLine, weekTotals, weekText, mergeEnergy, backfillStart, dayFraction } from '../js/nutrition/balance.js';
 import { legActivity, legSummary } from '../js/workouts/leg-activity.js';
 import { setsPerMuscle } from '../js/workouts/sets-per-muscle.js';
-import { todayDue, TODAY_EVERY_MS } from '../js/native/autoread.js';
+import { todayDue, TODAY_EVERY_MS, autoReadMode, backfillKey } from '../js/native/autoread.js';
 import { fieldStatus } from '../js/health/status.js';
 import { shiftDay } from '../js/health/metrics.js';
 
@@ -220,4 +220,51 @@ test('no network calls in the new pure modules; READ_TYPES asks for workouts, he
   }
   const h = readFileSync(new URL('../js/native/health.js', import.meta.url), 'utf8');
   for (const t of ["'workouts'", "'heartRate'", "'basalCalories'"]) assert(h.includes(t), t);
+});
+
+// ---- review round 1 ----
+test('a re-read with the same numbers is not a change (no state.set, no redraw); a new number is', () => {
+  const a = mergeEnergy({}, [{ day: '2026-10-21', active: 400, resting: 1500 }], 1);
+  const same = mergeEnergy(a, [{ day: '2026-10-21', active: 400, resting: 1500 }], 999);
+  assert(!energyChanged(a, same));
+  assert(energyChanged(a, mergeEnergy(a, [{ day: '2026-10-21', active: 410 }], 999)));
+  assert(energyChanged(a, mergeEnergy(a, [{ day: '2026-10-20', resting: 1700 }], 999)));
+});
+
+test('today re-read writes only the days that differ from health_daily', () => {
+  const rows = [{ id: '2026-10-21', steps: 5000, active_kcal: 300 }];
+  eq(newerDays([{ day: '2026-10-21', steps: 5000, active_kcal: 300 }], rows).length, 0);
+  eq(newerDays([{ day: '2026-10-21', steps: 5200, active_kcal: 300 }], rows).length, 1);
+  eq(newerDays([{ day: '2026-10-22', steps: 10 }], rows).length, 1);
+});
+
+test('the player ignores energy, health_daily and cardio patches while a workout is active', () => {
+  const src = readFileSync(new URL('../js/app.js', import.meta.url), 'utf8');
+  const m = src.match(/const PLAYER_QUIET = new Set\(\[([^\]]*)\]\)/);
+  assert(m, 'PLAYER_QUIET exists');
+  for (const k of ['energy', 'health_daily', 'workouts']) assert(m[1].includes(`'${k}'`), k);
+  assert(/keys\.every\(\(k\) => PLAYER_QUIET\.has\(k\)\)/.test(src));
+});
+
+test('first launch of 0.16.45: the 30-day workouts + energy read runs at once, not after the 6 h wait, and backs off after a failure', () => {
+  const now = new Date('2026-10-21T14:00:00');
+  const base = { now, last: now.getTime() - 60000, today: '2026-10-21', rows: [] };
+  eq(autoReadMode({ ...base, backfill: false }), null);
+  eq(autoReadMode({ ...base, backfill: true }), 'backfill');
+  eq(autoReadMode({ ...base, backfill: true, backfillFailedAt: now.getTime() - 60000 }), null);
+  eq(autoReadMode({ ...base, backfill: true, backfillFailedAt: now.getTime() - 21 * 60000 }), 'backfill');
+  assert(backfillKey('u1') !== backfillKey('u2'), 'one flag per account');
+  const src = readFileSync(new URL('../js/screens/apple.js', import.meta.url), 'utf8');
+  assert(/first \? from30 : backfillStart/.test(src) && /first && from30 < since \? from30 : since/.test(src), 'workouts and energy reach back 30 days on the first read');
+  assert(/if \(first\) markBackfillDone\(uid\)/.test(src));
+});
+
+test('the backfill plan is idempotent: a second pass over the same Watch workouts creates nothing and never revives a deleted row', () => {
+  const ws = [W({}), W({ platformId: 'U2' }), W({ platformId: 'U3', startDate: '2026-09-25T08:00:00', endDate: '2026-09-25T08:30:00' })];
+  const first = planWorkoutImport(ws, {});
+  eq(first.create.length, 3);
+  const existing = new Map(first.create.map((c) => [c.id, { deleted: c.id === 'hk_U2' }]));
+  const second = planWorkoutImport(ws, { existing });
+  eq(second.create.length, 0);
+  assert(!second.update.some((u) => u.id === 'hk_U2'));
 });

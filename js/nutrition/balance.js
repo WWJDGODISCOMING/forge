@@ -86,6 +86,21 @@ export function mergeEnergy(map = {}, entries = [], at = Date.now()) {
   return out;
 }
 
+/** Did any day's resting/active figure differ between two maps? (The `at` stamp doesn't count.) */
+export function energyChanged(a = {}, b = {}) {
+  for (const d of new Set([...Object.keys(a), ...Object.keys(b)])) {
+    const x = a[d] || {}, y = b[d] || {};
+    if (x.active !== y.active || x.resting !== y.resting) return true;
+  }
+  return false;
+}
+
+/** Only the days whose figures differ from what health_daily already has, so a re-read that found nothing new writes nothing. */
+export function newerDays(days, rows = []) {
+  const have = new Map((rows || []).map((r) => [r.id || r.day, r]));
+  return days.filter((d) => { const r = have.get(d.day); return !r || Object.keys(d).some((k) => k !== 'day' && r[k] !== d[k]); });
+}
+
 /** Keep the newest `keep` days so the stored map stays small. */
 export function trimEnergy(map, keep = 60) {
   const days = Object.keys(map).sort().slice(-keep);

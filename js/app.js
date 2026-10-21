@@ -400,6 +400,7 @@ const onlyQuietChanged = (a, b) => {
   return true;
 };
 
+const PLAYER_QUIET = new Set(['workouts', 'loaded', 'sync', 'energy', 'health_daily', 'cardio']);
 let lastLoaded = '';
 subscribe((patch) => {
   // A real snapshot arrives as { settings, loaded: {...state.loaded, settings: true} }: `loaded` (and `sync`) only count when they changed.
@@ -419,8 +420,8 @@ subscribe((patch) => {
   if (keys.length === 1 && keys[0] === 'sync') return renderSync();
   if (quiet) return;
   const route = currentRoute();
-  const onlyWorkouts = keys.every((k) => k === 'workouts' || k === 'loaded' || k === 'sync');
-  if ((route === 'play' || route === 'session') && onlyWorkouts && state.workouts.some((w) => w.status === 'active' && !w.deleted)) return;
+  // Mid-workout, the player is left alone by anything that isn't about the workout: its own saves, and Apple Health's energy and daily numbers.
+  if ((route === 'play' || route === 'session') && keys.every((k) => PLAYER_QUIET.has(k)) && state.workouts.some((w) => w.status === 'active' && !w.deleted)) return;
   render();
 });
 

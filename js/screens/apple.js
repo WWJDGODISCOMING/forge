@@ -4,7 +4,7 @@
 import { state } from '../state.js';
 import { newRecord, put, patch, importedCardioIds } from '../db.js';
 import { planWorkoutImport } from '../health/apple-workouts.js';
-import { mergeEnergy, saveEnergy, loadEnergy, backfillStart } from '../nutrition/balance.js';
+import { mergeEnergy, saveEnergy, loadEnergy, backfillStart, energyChanged, newerDays } from '../nutrition/balance.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { serverErrorText, errorFor } from '../ui/errors.js';
 import { FIREBASE_CONFIG } from '../../config.js';
@@ -14,7 +14,7 @@ import { shiftDay } from '../health/metrics.js';
 import { NEEDED_DAYS } from '../health/readiness.js';
 import { icon } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
-import { autoReadMode, nativeReadKey, lastNativeRead, todayDue } from '../native/autoread.js';
+import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone } from '../native/autoread.js';
 
 const call = async (...args) => (await import('../functions.js')).call(...args);
 const INGEST_URL = `https://us-east1-${FIREBASE_CONFIG.projectId}.cloudfunctions.net/healthIngest`;
@@ -41,9 +41,12 @@ const lastNative = () => lastNativeRead(state.user && state.user.uid);
 /** Keep Apple's resting/active energy per day on this phone (state.energy + localStorage). Never uploaded. */
 export function storeEnergy(entries) {
   const uid = state.user && state.user.uid;
-  const energy = mergeEnergy(state.energy && Object.keys(state.energy).length ? state.energy : loadEnergy(uid), entries);
+  const known = state.energy && Object.keys(state.energy).length ? state.energy : loadEnergy(uid);
+  const energy = mergeEnergy(known, entries);
+  if (!energyChanged(known, energy)) return false; // same numbers: no write, no state change, nothing redrawn
   saveEnergy(uid, energy);
   state.set({ energy });
+  return true;
 }
 
 /** Write the planned Apple workouts as cardio rows. A deleted row is never touched. Returns how many were new or changed. */
@@ -84,10 +87,14 @@ export async function nativeHealthSync({ onText = () => {} } = {}) {
   }
   let workouts = 0;
   try {
+    const uid = state.user && state.user.uid;
+    const first = !backfillDone(uid); // the first read since 0.16.45 on this phone reaches back 30 days for workouts and energy, even if daily summaries were read before
+    const from30 = shiftDay(today, -29);
     onText('Reading Apple Watch workouts…');
-    workouts = await saveWorkouts(await readHealthWorkouts({ since }));
-    const known = state.energy && Object.keys(state.energy).length ? state.energy : loadEnergy(state.user && state.user.uid);
-    storeEnergy(await readHealthEnergy({ since: backfillStart(known, today, shiftDay) }));
+    workouts = await saveWorkouts(await readHealthWorkouts({ since: first && from30 < since ? from30 : since }));
+    const known = state.energy && Object.keys(state.energy).length ? state.energy : loadEnergy(uid);
+    storeEnergy(await readHealthEnergy({ since: first ? from30 : backfillStart(known, today, shiftDay) }));
+    if (first) markBackfillDone(uid);
   } catch { /* workouts and energy are extras: the daily summaries are already saved */ }
   try { localStorage.setItem(NATIVE_KEY(), String(Date.now())); } catch { /* private mode */ }
   return { days: sent, workouts };
@@ -116,7 +123,8 @@ export async function refreshToday({ force = false } = {}) {
     const { readHealthToday } = await import('../native/health.js');
     const { days, energy } = await readHealthToday({ now });
     storeEnergy(energy);
-    if (days.length) await call('importHealthDays', { days });
+    const fresh = newerDays(days, state.health_daily);
+    if (fresh.length) await call('importHealthDays', { days: fresh });
     return true;
   } catch { return false; } finally { todayBusy = false; }
 }
@@ -124,6 +132,7 @@ export async function refreshToday({ force = false } = {}) {
 let autoFailedAt = 0;
 let morningAt = 0;
 let morningFailedAt = 0;
+let backfillFailedAt = 0;
 /**
  * Called by the app on open and when it comes back to the front: a quiet read if the last one is 6 h old, or, after
  * 4:00, if today's overnight data hasn't arrived yet (at most every 20 min; js/native/autoread.js). Not while you're
@@ -132,12 +141,13 @@ let morningFailedAt = 0;
 export async function autoHealthSync() {
   if (!isNative() || !state.user || nativeState || !lastNative()) return null;
   const now = new Date();
-  const mode = autoReadMode({ now, last: lastNative(), today: todayKey(), rows: state.health_daily, failedAt: autoFailedAt, morningAt, morningFailedAt });
+  const mode = autoReadMode({ now, last: lastNative(), today: todayKey(), rows: state.health_daily, failedAt: autoFailedAt, morningAt, morningFailedAt, backfill: !backfillDone(state.user.uid), backfillFailedAt });
   if (!mode) { await refreshToday(); return null; }
   todayAt = now.getTime(); // the full read covers today too
+  if (mode === 'backfill') backfillFailedAt = now.getTime(); // backs off 20 min unless it finishes (then the flag is set)
   morningAt = now.getTime(); // any auto read counts as the morning try, so the 20 minutes start now
   try { return await nativeHealthSync(); } catch {
-    if (mode === 'morning') morningFailedAt = Date.now(); else autoFailedAt = Date.now();
+    if (mode === 'backfill') backfillFailedAt = Date.now(); else if (mode === 'morning') morningFailedAt = Date.now(); else autoFailedAt = Date.now();
     return null;
   }
 }
