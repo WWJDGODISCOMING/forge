@@ -44,6 +44,8 @@ const SHELL = [
   './js/mfa-ui.js',
   './js/mfa-sdk.js',
   './js/vendor/qrcode/qrcode.js',
+  './js/vendor/ean/ean.js',
+  './js/food/gtin.js',
   './js/state.js',
   './js/ui.js',
   './js/units.js',

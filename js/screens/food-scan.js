@@ -10,9 +10,38 @@ import { cleanBarcode, labelPrefill } from '../food/off.js';
 import { foodItems } from '../food/search.js';
 import { prepareImage, estimateMeal } from '../food/snap.js';
 import { photoInput } from './snap.js';
+import { canScan, pickDecoder, createConfirmer, validScan } from '../food/gtin.js';
 
-const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128'];
-export const canScan = () => typeof navigator !== 'undefined' && !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia) && typeof BarcodeDetector === 'function';
+const FORMATS = ['ean_13', 'ean_8', 'upc_a', 'upc_e'];
+export { canScan };
+
+/** Reads a frame with the vendored JS reader (iOS has no BarcodeDetector): the middle band of the video, as grayscale. */
+async function jsDetector() {
+  const { decodeFrame } = await import('../vendor/ean/ean.js');
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  return async (video) => {
+    const vw = video.videoWidth;
+    const vh = video.videoHeight;
+    if (!vw || !vh) return '';
+    const w = Math.min(960, vw);
+    const h = Math.max(1, Math.round(vh * (w / vw)));
+    canvas.width = w; canvas.height = h;
+    ctx.drawImage(video, 0, 0, w, h);
+    const px = ctx.getImageData(0, 0, w, h).data;
+    const gray = new Uint8Array(w * h);
+    for (let i = 0, j = 0; i < gray.length; i++, j += 4) gray[i] = (px[j] * 77 + px[j + 1] * 150 + px[j + 2] * 29) >> 8;
+    return decodeFrame(gray, w, h);
+  };
+}
+
+async function nativeDetector() {
+  const d = new BarcodeDetector({ formats: FORMATS });
+  return async (video) => {
+    const hits = await d.detect(video);
+    return hits.map((h) => validScan(h.rawValue)).find(Boolean) || '';
+  };
+}
 
 /** The camera sheet. Calls onCode(code) with the digits once, then closes. Typing the number always works. */
 export function openBarcodeScan({ onCode }) {
@@ -28,7 +57,7 @@ export function openBarcodeScan({ onCode }) {
         ${canScan() ? `<div class="scan-view"><video playsinline muted aria-label="Camera"></video><i class="scan-frame" aria-hidden="true"></i></div>` : ''}
         <p class="small muted" data-scan-note role="status" aria-live="polite">${canScan() ? 'Point the camera at the barcode.' : 'This device can’t scan with the camera. Type the number under the barcode.'}</p>
         <form class="stack" data-scan-form novalidate>
-          <label class="field"><span>Or type the barcode number</span><input name="code" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="0 96619 12345 6"></label>
+          <label class="field"><span>Or type the barcode number</span><input name="code" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="e.g. 0 96619 12345 6"></label>
           <p class="error" aria-live="polite"></p>
           <button class="btn" type="submit">Look it up</button>
         </form>
@@ -48,15 +77,14 @@ export function openBarcodeScan({ onCode }) {
         if (!alive) { stop(); return; }
         video.srcObject = stream;
         await video.play();
-        const detector = new BarcodeDetector({ formats: FORMATS });
+        const detect = (await pickDecoder()) === 'native' ? await nativeDetector() : await jsDetector();
+        const confirm = createConfirmer(2); // the same valid code on 2 frames in a row, so a misread can't pick the wrong product
         const tick = async () => {
           if (!alive) return;
-          try {
-            const hits = await detector.detect(video);
-            const code = hits.map((h) => cleanBarcode(h.rawValue)).find(Boolean);
-            if (code) { done(code); return; }
-          } catch { /* a frame that can't be read is just skipped */ }
-          setTimeout(tick, 250);
+          let code = '';
+          try { code = confirm(await detect(video)); } catch { confirm(''); /* a frame that can't be read is just skipped */ }
+          if (code) { done(code); return; }
+          setTimeout(tick, 120);
         };
         tick();
       } catch {
@@ -77,11 +105,11 @@ export function openCreateFood({ start = {}, onSaved } = {}) {
     const paint = (note = '') => {
       body.innerHTML = `
         <form class="stack" novalidate>
-          ${v.barcode ? `<p class="small muted" data-barcode-note>${icon('barcode', { size: 16 })} Barcode ${esc(v.barcode)} wasn’t found. Add it once and scanning finds it next time.</p>` : ''}
-          <label class="btn ghost snap-take" data-label-btn>${icon('camera')}Estimate from a photo of the label${photoInput('data-label-file')}</label>
+          ${v.barcode ? `<p class="small muted" data-barcode-note>${icon('barcode', { size: 16 })} ${v.unchecked ? `Couldn’t check barcode ${esc(v.barcode)} right now.` : `Barcode ${esc(v.barcode)} wasn’t found.`} Add it once and scanning finds it next time.</p>` : ''}
+          <label class="btn ghost snap-take" data-label-btn>${icon('camera')}Read the label with a photo${photoInput('data-label-file')}</label>
           <p class="small muted" data-label-note role="status" aria-live="polite">${esc(note || 'Optional. The photo goes to the AI to read the label and isn’t saved. You can fix the numbers before saving.')}</p>
-          <label class="field"><span>Name</span><input name="name" maxlength="80" value="${esc(v.name)}" autocomplete="off" placeholder="Just Bare spicy chicken strips"></label>
-          <label class="field"><span>Serving</span><input name="serving" maxlength="40" value="${esc(v.serving)}" autocomplete="off" placeholder="3 oz (84 g)"></label>
+          <label class="field"><span>Name</span><input name="name" maxlength="80" value="${esc(v.name)}" autocomplete="off" placeholder="e.g. Just Bare spicy chicken strips"></label>
+          <label class="field"><span>Serving</span><input name="serving" maxlength="40" value="${esc(v.serving)}" autocomplete="off" placeholder="e.g. 3 oz (84 g)"></label>
           <p class="small muted">Numbers are for one serving, as printed on the label.</p>
           <div class="field-grid">
             <label class="field"><span>Calories</span><input name="kcal" type="number" inputmode="numeric" min="0" max="5000" value="${esc(v.kcal)}"></label>

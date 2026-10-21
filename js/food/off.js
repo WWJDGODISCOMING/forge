@@ -33,7 +33,7 @@ export function localByBarcode(code, { foods = [], logs = [] } = {}) {
     };
   }
   // Something you logged from a scan before: it has no portion maths left, so it comes back as one logged serving.
-  const l = logs.filter((x) => x && !x.deleted && x.food_id && same(String(x.food_id), `off:${code}`))
+  const l = logs.filter((x) => x && !x.deleted && x.food_id && String(x.food_id).startsWith('off:') && same(String(x.food_id).slice(4), code))
     .sort((a, b) => (b.created_at || '').localeCompare(a.created_at || ''))[0];
   if (l) {
     return {
@@ -89,6 +89,5 @@ export function labelPrefill(row) {
   return {
     name, serving: portionText({ ...row, whole: false }).slice(0, 40),
     kcal: m.kcal, protein_g: m.protein_g, carbs_g: m.carbs_g, fat_g: m.fat_g,
-    ...(row.brand ? { brand: String(row.brand).slice(0, 40) } : {}),
   };
 }

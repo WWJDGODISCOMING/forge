@@ -2,7 +2,7 @@
 
 ## 0.16.44 — Scan a barcode, find brand products, create your own foods (2026-10-20)
 
-Cloud Functions changed (new `foodBarcode`, no secret). `firestore.rules` did not change.
+Cloud Functions and `firestore.rules` changed (new `foodBarcode`, no secret; `foods` barcode and favorite are type-checked).
 
 ### What's new
 
@@ -10,6 +10,7 @@ Cloud Functions changed (new `foodBarcode`, no secret). `firestore.rules` did no
 - No match for a store brand? Brand products shows up, Costco items included.
 - Create food from a nutrition label, with an optional photo estimate.
 - Favorites and recent foods come first in search.
+- The camera scan also works on iPhone: a small built-in reader (EAN-13, EAN-8, UPC-A, UPC-E) checks the check digit and needs the same code twice before it uses it.
 
 ## 0.16.43 — Switch gyms from Train; joint toggles on the Resume card (2026-10-20)
 

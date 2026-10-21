@@ -317,6 +317,13 @@ test('foods: wrong types and out-of-range values are denied', async () => {
   // The limits themselves are fine.
   await assertSucceeds(setDoc(doc(db, 'users/alice/foods/ok1'), food('alice', 'ok1', { name: 'x'.repeat(80), kcal: 5000, protein_g: 500, carbs_g: 500, fat_g: 500, serving: 'x'.repeat(40) })));
   await assertSucceeds(setDoc(doc(db, 'users/alice/foods/ok2'), food('alice', 'ok2', { name: 'x', kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0, serving: '' })));
+  // v0.16.44: the optional barcode (8–14 digits) and favorite (bool) are type-checked.
+  await assertSucceeds(setDoc(doc(db, 'users/alice/foods/bc1'), food('alice', 'bc1', { barcode: '096619123456', favorite: true })));
+  await assertSucceeds(setDoc(doc(db, 'users/alice/foods/bc2'), food('alice', 'bc2', { barcode: '12345678', favorite: false })));
+  for (const [k, extra] of [['bc3', { barcode: '123456789012345' }], ['bc4', { barcode: '12345abc' }], ['bc5', { barcode: 96619123456 }],
+    ['bc6', { barcode: '1234567' }], ['bc7', { favorite: 'yes' }], ['bc8', { favorite: 1 }]]) {
+    await assertFails(setDoc(doc(db, `users/alice/foods/${k}`), food('alice', k, extra)));
+  }
   // An update that breaks a rule is denied too.
   await assertFails(updateDoc(doc(db, 'users/alice/foods/ok1'), { kcal: 5001, updated_at: T9 }));
 });

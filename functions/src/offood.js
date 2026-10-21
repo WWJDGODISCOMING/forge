@@ -6,7 +6,7 @@ import { log } from './log.js';
 import { FoodSearchError, meterSearch, tidyCase, shortBrand, createCache } from './usda.js';
 
 export const OFF_BASE = 'https://world.openfoodfacts.org';
-export const USER_AGENT = 'Forge/1.0 (personal fitness app; forge-web-f2351)'; // Open Food Facts asks every client to identify itself
+export const USER_AGENT = 'Forge/1.0 (personal fitness app; https://forge-web-f2351.web.app)'; // Open Food Facts asks every client to identify itself
 export const FIELDS = 'code,product_name,generic_name,brands,serving_size,serving_quantity,nutriments';
 export const MAX_RESULTS = 20;
 export const TIMEOUT_MS = 6000;

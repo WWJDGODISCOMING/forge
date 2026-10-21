@@ -434,7 +434,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           const r = await lookupBarcode(code, { foods: state.foods, logs: state.food_logs }, { call });
           if (r.item) { choose(r.item); return; }
           toast(r.state === 'miss' ? 'Not found. Add it from the label.' : 'Couldn’t look that up. Add it from the label.', 2600);
-          openCreateFood({ start: { barcode: code }, onSaved: (it) => choose(it) });
+          openCreateFood({ start: { barcode: code, unchecked: r.state !== 'miss' }, onSaved: (it) => choose(it) });
         },
       });
     };
