@@ -70,7 +70,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 6. #146 Apple Health Phase 1: import Apple workouts + Eaten vs burned + leg activity
 - Issue: #146
 - Version: 0.16.45
-- Status: in-review
+- Status: in-review (PR #170)
 - Acceptance:
   - Read `workouts`, `heartRate`, `basalCalories`; `readHealthWorkouts()` pages with `anchor` and adds avg/max HR.
   - Pure `js/health/apple-workouts.js`: skips Forge-written and linked-overlap workouts, maps workout types to Forge cardio keys (indoor/no-distance run → `jog_in_place`), idempotent `hk_<uuid>` docs, never revives deleted docs, kcal fallback.
