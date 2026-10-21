@@ -86,7 +86,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 7. #169 Missions: explosion sound barrage for completion celebrations
 - Issue: #169
 - Version: 0.16.46
-- Status: in-review
+- Status: done (PR #171)
 - Acceptance:
   - Synthesize sounds in `js/ui/sound.js` (Web Audio, no audio files): filtered noise burst + low sine thump per explosion, short sub-bass tail.
   - All-goals tier: barrage timed exactly to the 10 accelerating heavy haptic impacts in `hapticPlan`, then a bigger final boom with the success haptic and lime burst.
