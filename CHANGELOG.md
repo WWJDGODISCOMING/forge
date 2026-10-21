@@ -14,7 +14,7 @@ Cloud Functions and `firestore.rules` did not change. iPhone app: needs **Refres
 ### Details
 
 - Workouts are read from Apple Health with average and max heart rate and saved as cardio (an indoor jog is Jog in place). Reading again never duplicates one, and a workout you delete stays deleted.
-- Resting and active energy for the last 30 days stay on your phone only. Burned is resting plus active; workout calories are never added on top. The calorie target does not move.
+- Resting energy and the per-day energy numbers for the last 30 days stay on your phone only. Daily active calories are still saved with your other daily summaries, as before, and now refresh more often. Burned is resting plus active; workout calories are never added on top. The calorie target does not move.
 - Data check: the Workouts chip counts Apple Watch sessions, and if there are no active calories for 3 days it points to the Fitness Tracking switches.
 
 ## 0.16.44 — Scan a barcode, find brand products, create your own foods (2026-10-20)

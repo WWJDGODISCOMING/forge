@@ -10,9 +10,9 @@ Not needed to try the app on your own iPhone. Do these when the LLC has joined t
   - **Body → Weight** and other **User Content** (workouts, notes): linked, App Functionality, not used for tracking.
   - No third-party analytics or ad SDKs ship in the app, so there is nothing else to declare. Re-check this if one is ever added.
 - [ ] **Account deletion** is required for apps with sign-in (5.1.1(v)). It's already there: **Settings → Delete account** (removes the data and the sign-in). Tell the reviewer where it is in the review notes.
-- [ ] **HealthKit rules (5.1.3).** Health data is never used for advertising, marketing or data mining, and is never sold or given to data brokers. Forge reads Apple Health on the phone and saves only daily summaries to the user's own account. Say this in the review notes and keep it true.
+- [ ] **HealthKit rules (5.1.3).** Health data is never used for advertising, marketing or data mining, and is never sold or given to data brokers. Forge reads Apple Health on the phone and saves daily summaries and each Apple Watch workout (time, length, calories, average and max heart rate, source name) to the user's own account. Resting energy stays on the phone. Say this in the review notes and keep it true.
 - [ ] **Purpose strings** (already in `ios/App/App/Info.plist`):
-  - `NSHealthShareUsageDescription` names every kind of data read and says only daily summaries are saved.
+  - `NSHealthShareUsageDescription` names every kind of data read and says that daily summaries and Apple Watch workouts are saved to the user's own account.
   - `NSHealthUpdateUsageDescription` is **left out on purpose**: Forge never writes to Apple Health (the plugin is asked for read access only, so iOS never needs it). If App Store Connect's upload check complains it's missing, add a true one, such as "Forge doesn't save anything to Apple Health", and ask Claude to make sure no write is requested.
 - [ ] **HealthKit review notes.** Say what the Health data is used for (Readiness and the Forge Score), that Forge works without it, and give the reviewer a demo account with some data.
 - [ ] **Screenshots** (6.9" and 6.5" iPhone), app icon (the 1024 px one is already in the project), age rating, category (Health & Fitness), support URL.
