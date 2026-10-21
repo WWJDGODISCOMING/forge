@@ -24,10 +24,13 @@ async function jsDetector() {
     const vw = video.videoWidth;
     const vh = video.videoHeight;
     if (!vw || !vh) return '';
-    const w = Math.min(960, vw);
-    const h = Math.max(1, Math.round(vh * (w / vw)));
+    // Full width (up to 1920), only the middle half of the height: scaling down would halve the width of each bar.
+    const w = Math.min(1920, vw);
+    const sy = Math.round(vh * 0.25);
+    const sh = Math.max(1, Math.round(vh * 0.5));
+    const h = Math.max(1, Math.round(sh * (w / vw)));
     canvas.width = w; canvas.height = h;
-    ctx.drawImage(video, 0, 0, w, h);
+    ctx.drawImage(video, 0, sy, vw, sh, 0, 0, w, h);
     const px = ctx.getImageData(0, 0, w, h).data;
     const gray = new Uint8Array(w * h);
     for (let i = 0, j = 0; i < gray.length; i++, j += 4) gray[i] = (px[j] * 77 + px[j + 1] * 150 + px[j + 2] * 29) >> 8;
@@ -39,7 +42,7 @@ async function nativeDetector() {
   const d = new BarcodeDetector({ formats: FORMATS });
   return async (video) => {
     const hits = await d.detect(video);
-    return hits.map((h) => validScan(h.rawValue)).find(Boolean) || '';
+    return hits.map((h) => validScan(h.rawValue, h.format)).find(Boolean) || '';
   };
 }
 
@@ -55,7 +58,7 @@ export function openBarcodeScan({ onCode }) {
     body.innerHTML = `
       <div class="stack scan">
         ${canScan() ? `<div class="scan-view"><video playsinline muted aria-label="Camera"></video><i class="scan-frame" aria-hidden="true"></i></div>` : ''}
-        <p class="small muted" data-scan-note role="status" aria-live="polite">${canScan() ? 'Point the camera at the barcode.' : 'This device can’t scan with the camera. Type the number under the barcode.'}</p>
+        <p class="small muted" data-scan-note role="status" aria-live="polite">${canScan() ? 'Hold the barcode level across the frame.' : 'This device can’t scan with the camera. Type the number under the barcode.'}</p>
         <form class="stack" data-scan-form novalidate>
           <label class="field"><span>Or type the barcode number</span><input name="code" inputmode="numeric" autocomplete="off" maxlength="20" placeholder="e.g. 0 96619 12345 6"></label>
           <p class="error" aria-live="polite"></p>
@@ -73,8 +76,11 @@ export function openBarcodeScan({ onCode }) {
     const note = $('[data-scan-note]', body);
     (async () => {
       try {
-        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } }, audio: false });
+        // A big picture, so each bar is several pixels wide at a distance the phone can focus at.
+        stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' }, width: { ideal: 1920 }, height: { ideal: 1080 } }, audio: false });
         if (!alive) { stop(); return; }
+        // Keep focus adjusting where the browser allows it; ignored elsewhere.
+        try { await stream.getVideoTracks()[0].applyConstraints({ advanced: [{ focusMode: 'continuous' }] }); } catch { /* not supported */ }
         video.srcObject = stream;
         await video.play();
         const detect = (await pickDecoder()) === 'native' ? await nativeDetector() : await jsDetector();

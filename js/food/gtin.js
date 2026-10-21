@@ -1,13 +1,22 @@
 // Camera barcode helpers (pure, unit tested): the GTIN check digit, the "same code on 2 frames in a row" rule, and the
 // choice between the phone's own BarcodeDetector and the vendored JS reader (js/vendor/ean). iOS has no BarcodeDetector.
 import { cleanBarcode } from './off.js';
-import { checkDigitOk } from '../vendor/ean/ean.js';
+import { checkDigitOk, expandUpcE } from '../vendor/ean/ean.js';
 
 export { checkDigitOk };
 
 /** A scanned code is usable only when it is 8–14 digits with a valid GTIN check digit (8, 12, 13 or 14 long). */
-export const validScan = (text) => {
-  const c = cleanBarcode(text);
+export const validScan = (text, format = '') => {
+  let c = cleanBarcode(text);
+  // The native detector's UPC-E is 8 digits (number system, 6 digits, check); it is checked as the UPC-A it expands to.
+  if (c && c.length === 8 && format === 'upc_e' && c[0] === '0') {
+    const a = expandUpcE(c.slice(1, 7));
+    return a[11] === c[7] ? a : '';
+  }
+  if (c && c.length === 8 && !checkDigitOk(c) && c[0] === '0') {
+    const a = expandUpcE(c.slice(1, 7));
+    if (a[11] === c[7]) c = a;
+  }
   return c && checkDigitOk(c) ? c : '';
 };
 

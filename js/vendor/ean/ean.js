@@ -112,20 +112,43 @@ function runsOf(row) {
   // Dark means below the middle of the row's own light and dark levels (5th and 95th percentile), which keeps bar
   // widths even when the picture is a little soft.
   const sorted = Uint8Array.from(row).sort();
-  const lo = sorted[Math.floor(n * 0.05)];
-  const hi = sorted[Math.min(n - 1, Math.floor(n * 0.95))];
-  if (hi - lo < 40) return { w: [n], dark0: false }; // flat: no barcode here
-  const cut = (lo + hi) / 2;
-  const w = [];
-  let dark0 = false;
-  let cur = null;
-  let len = 0;
-  for (let i = 0; i < n; i++) {
-    const dark = row[i] < cut;
-    if (cur === null) { cur = dark; dark0 = dark; len = 1; } else if (dark === cur) len++;
-    else { w.push(len); cur = dark; len = 1; }
+  const lo0 = sorted[Math.floor(n * 0.05)];
+  const hi0 = sorted[Math.min(n - 1, Math.floor(n * 0.95))];
+  if (hi0 - lo0 < 40) return { w: [n], dark0: false }; // flat: no barcode here
+  // The light and dark levels are measured per block, so a lighting gradient across the package doesn't move the cut.
+  const blocks = Math.max(1, Math.min(12, Math.floor(n / 64)));
+  const size = n / blocks;
+  const cuts = [];
+  for (let b = 0; b < blocks; b++) {
+    const part = Uint8Array.from(row.subarray(Math.floor(b * size), Math.floor((b + 1) * size))).sort();
+    const lo = part[Math.floor(part.length * 0.05)];
+    const hi = part[Math.min(part.length - 1, Math.floor(part.length * 0.95))];
+    cuts.push(hi - lo >= 40 ? (lo + hi) / 2 : (lo0 + hi0) / 2);
   }
-  w.push(len);
+  const cutAt = (i) => {
+    const t = Math.min(blocks - 1, Math.max(0, i / size - 0.5));
+    const a = Math.floor(t);
+    const f = t - a;
+    return cuts[a] * (1 - f) + cuts[Math.min(blocks - 1, a + 1)] * f;
+  };
+  // Run edges are where the row crosses the cut, placed between pixels, so widths can be fractions.
+  const sm = row;
+  const w = [];
+  const dark0 = sm[0] < cutAt(0);
+  let cur = dark0;
+  let start = 0;
+  for (let i = 1; i < n; i++) {
+    const c = cutAt(i);
+    if ((sm[i] < c) === cur) continue;
+    const c0 = cutAt(i - 1);
+    const d0 = sm[i - 1] - c0;
+    const d1 = sm[i] - c;
+    const edge = i - 1 + (d0 === d1 ? 0.5 : d0 / (d0 - d1));
+    w.push(edge - start);
+    start = edge;
+    cur = !cur;
+  }
+  w.push(n - start);
   return { w, dark0 };
 }
 

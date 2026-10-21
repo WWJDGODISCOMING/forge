@@ -114,6 +114,48 @@ test('decoder choice: native BarcodeDetector only when it reads ean_13, else the
   assert(canScan({ navigator: { mediaDevices: { getUserMedia() {} } } }), 'the camera is enough: the JS reader needs no BarcodeDetector');
 });
 
+/** Modules → a row at a fractional `px` per module, Gaussian blurred (sigma px), with noise and a lighting gradient. */
+const softRow = (modules, px, sigma, { noise = 8, gradient = 40, quiet = 14, seed = 5 } = {}) => {
+  const bits = '0'.repeat(quiet) + modules + '0'.repeat(quiet);
+  const n = Math.ceil(bits.length * px);
+  const raw = new Float64Array(n);
+  for (let i = 0; i < n; i++) raw[i] = bits[Math.min(bits.length - 1, Math.floor((i + 0.5) / px))] === '1' ? 30 : 225;
+  const r = Math.ceil(sigma * 3);
+  const k = Array.from({ length: 2 * r + 1 }, (_, j) => Math.exp(-((j - r) ** 2) / (2 * sigma * sigma)));
+  const ks = k.reduce((a, b) => a + b, 0);
+  let s = seed;
+  const rnd = () => { s = (s * 1103515245 + 12345) % 2147483648; return s / 2147483648 - 0.5; };
+  return Uint8Array.from(raw, (_, i) => {
+    let v = 0;
+    for (let j = -r; j <= r; j++) v += raw[Math.min(n - 1, Math.max(0, i + j))] * k[j + r];
+    return Math.max(0, Math.min(255, Math.round(v / ks - gradient * (i / n - 0.5) + rnd() * 2 * noise)));
+  });
+};
+
+test('decodeRow: fractional module widths with Gaussian blur, noise and a lighting gradient', () => {
+  const cases = [[2.2, 1.0], [3.3, 1.5], [2.55, 0.8], [3, 1.2], [2.0, 0.6], [4.1, 1.8]];
+  for (const code of ['4006381333931', '0036000291452']) {
+    for (const [px, sigma] of cases) {
+      const want = code.startsWith('0') ? code.slice(1) : code;
+      eq(decodeRow(softRow(ean13(code), px, sigma)), want, `${code} at ${px}px/module, sigma ${sigma}`);
+    }
+  }
+});
+
+test('the camera asks for a large picture and the reader keeps full width', async () => {
+  const { readFileSync } = await import('node:fs');
+  const src = readFileSync(new URL('../js/screens/food-scan.js', import.meta.url), 'utf8');
+  const m = /width:\s*\{\s*ideal:\s*(\d+)/.exec(src);
+  assert(m && Number(m[1]) >= 1280, 'getUserMedia asks for an ideal width of at least 1280');
+  assert(!/Math\.min\(960/.test(src), 'frames are not scaled down to 960');
+});
+
+test('UPC-E from the native detector is expanded before the check digit', () => {
+  const a = expandUpcE('123456');
+  eq(validScan(`0123456${a[11]}`, 'upc_e'), a);
+  eq(validScan(`0123456${(Number(a[11]) + 1) % 10}`, 'upc_e'), '');
+});
+
 test('the scan sheet no longer lists code_128 and the reader is vendored without a CDN', async () => {
   const { readFileSync } = await import('node:fs');
   const src = readFileSync(new URL('../js/screens/food-scan.js', import.meta.url), 'utf8');
