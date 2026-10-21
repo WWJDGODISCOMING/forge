@@ -398,6 +398,9 @@ async function deleteApple(el) {
   renderApple(el);
   try {
     await call('deleteAppleHealthData');
+    const uid = state.user && state.user.uid;
+    try { localStorage.removeItem(`forge.energy.${uid || ''}`); } catch { /* private mode */ }
+    state.set({ energy: {} });
     toast('Apple Health data deleted');
   } catch (e) {
     toast(e.message, 4000);

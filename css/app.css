@@ -798,9 +798,9 @@ button.vol-row > span { display: flex; flex-direction: column; line-height: 1.15
 .balance-line { margin-top: 2px; }
 .balance-block { display: grid; gap: 2px; width: 100%; min-height: 44px; padding: var(--s-2) var(--s-3); border: 1px solid var(--line); border-radius: 12px; background: var(--surface-2); color: inherit; font: inherit; text-align: left; cursor: pointer; }
 .balance-nums, .balance-net { font-size: calc(15px * var(--ts)); }
-.balance-net.good { color: var(--good); }
-.balance-net.over { color: var(--warn); }
-@media (prefers-color-scheme: light) { .balance-net.good { color: #456f00; } .balance-net.over { color: #8f5000; } } /* 4.8:1 and 5.1:1 on --surface-2; the shared tokens are 4.2:1 and 4.3:1 there */
+.balance-net.good { color: var(--good-ink); }
+.balance-net.over { color: var(--warn-ink); }
+.balance-net.now { color: var(--text-1); }
 .balance-bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: var(--s-2); align-items: end; }
 .bb-day { display: grid; gap: 4px; justify-items: center; }
 .bb-cols { display: flex; align-items: flex-end; gap: 3px; height: 96px; width: 100%; justify-content: center; }
