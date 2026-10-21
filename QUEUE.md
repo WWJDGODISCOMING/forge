@@ -58,7 +58,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 5. #165 Food: barcode scan + brand fallback + custom foods
 - Issue: #165
 - Version: 0.16.44
-- Status: in-review
+- Status: done (PR #168)
 - Acceptance:
   - Barcode scanner on Food > Add (camera): looks the barcode up in the existing food database first, then falls back to Open Food Facts (free, no key) on the server side.
   - When typed search misses, also query Open Food Facts by brand and name and show the results under a 'Brand products' section.
