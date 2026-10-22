@@ -2,6 +2,7 @@
 // (js/screens/apple.js) reads the workouts with js/native/health.js, looks up which ids already exist, and writes
 // the rows this plans. Rows are `hk_<HealthKit UUID>`, so a second read finds and updates the same doc.
 import { NO_DISTANCE } from '../cardio-types.js';
+import { alreadyLive } from '../workouts/live-core.js';
 
 export const FORGE_SOURCE_ID = 'com.christianeverett.forge'; // capacitor.config.json appId: Phase 2's own writes
 const INDOOR_JOG_M = 200;
@@ -54,8 +55,9 @@ export function overlapShare(aStart, aEnd, bStart, bEnd) {
 }
 
 /** Why a workout is not imported ('forge' | 'linked'), or null. */
-export function skipReason(w, forgeWorkouts = []) {
+export function skipReason(w, forgeWorkouts = [], cardio = []) {
   if (w.sourceId === FORGE_SOURCE_ID || (w.metadata && w.metadata.ForgeWorkoutId)) return 'forge';
+  if (alreadyLive(cardio, w.platformId)) return 'forge'; // a live workout Forge recorded and saved to Health itself (#153)
   for (const f of forgeWorkouts) {
     if (f.deleted || !f.finished_at || f.apple_workout_uuid !== w.platformId) continue;
     if (overlapShare(w.startDate, w.endDate, f.started_at, f.finished_at) >= 0.5) return 'linked';
@@ -106,12 +108,12 @@ export function workoutToCardio(w, energySamples = []) {
  * → { create: [{ id, fields }], update: [{ id, fields }], skipped: n }.
  * A deleted doc is never rewritten or revived; Forge-written and linked workouts are skipped.
  */
-export function planWorkoutImport(workouts, { existing = new Map(), forgeWorkouts = [] } = {}) {
+export function planWorkoutImport(workouts, { existing = new Map(), forgeWorkouts = [], cardio = [] } = {}) {
   const out = { create: [], update: [], skipped: 0 };
   const seen = new Set();
   for (const w of workouts || []) {
     const id = w && w.platformId ? `hk_${w.platformId}` : null;
-    if (!id || seen.has(id) || skipReason(w, forgeWorkouts)) { out.skipped++; continue; }
+    if (!id || seen.has(id) || skipReason(w, forgeWorkouts, cardio)) { out.skipped++; continue; }
     seen.add(id);
     const have = existing.get(id);
     if (have && have.deleted) { out.skipped++; continue; }

@@ -6,7 +6,7 @@ export const TAB_ORDER = ['today', 'train', 'food', 'body', 'score'];
 
 // Which tab lights up for each screen. Settings and its children have no tab: they light whichever tab opened Settings.
 export const TAB_FOR = {
-  session: 'train', play: 'train', summary: 'train', timer: 'train', library: 'train',
+  session: 'train', play: 'train', live: 'train', summary: 'train', timer: 'train', library: 'train',
   history: 'score', awards: 'score', score: 'score',
   metric: 'body', photos: 'body', progress: 'score', trends: 'score', weekly: 'score',
   coach: 'today', program: 'today', food: 'food',

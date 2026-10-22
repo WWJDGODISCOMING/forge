@@ -126,6 +126,7 @@ const routes = {
   summary: (id) => import('./screens/summary.js').then((m) => m.renderSummary(main, decodeURIComponent(id || ''))),
   body: () => import('./screens/body.js').then((m) => m.renderBody(main)),
   progress: () => import('./screens/progress.js').then((m) => { location.replace(`#/${m.lastProgressRoute()}`); }),
+  live: () => import('./screens/live.js').then((m) => m.renderLive(main)),
   timer: () => import('./screens/timer.js').then((m) => m.renderTimer(main)),
   history: () => import('./screens/history.js').then((m) => m.renderHistory(main)),
   library: () => import('./screens/library.js').then((m) => m.renderLibrary(main)),
@@ -146,7 +147,7 @@ const routes = {
   profile: () => import('./screens/onboarding.js').then((m) => m.renderOnboarding(main, { editing: true })),
 };
 // Screens that fill the whole screen (no tab bar, no nav bar).
-const FULLSCREEN = new Set(['play', 'summary', 'profile']);
+const FULLSCREEN = new Set(['play', 'summary', 'profile', 'live']);
 
 const routeParts = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'today').split('/');
 const currentRoute = () => routeParts()[0];
@@ -298,6 +299,7 @@ async function renderScreen() {
   if (restRemaining() > 0 && !state.workouts.some((w) => w.status === 'active' && !w.deleted)) stopRest();
   if (lastRoute === 'session' && route !== 'session') import('./screens/session.js').then((m) => m.leaveSession());
   if (lastRoute === 'play' && route !== 'play') import('./screens/player.js').then((m) => m.leavePlayer());
+  if (lastRoute === 'live' && route !== 'live') import('./screens/live.js').then((m) => m.leaveLive());
   if (lastRoute === 'summary' && route !== 'summary') import('./ui/fx.js').then((m) => m.clearParticles());
   if (lastRoute !== route) screenNav(null); // sub-view nav (e.g. a Locations editor) never outlives its screen
   lastRoute = route;

@@ -1,5 +1,26 @@
 # Changelog
 
+## 0.16.51 — Live workout with a lock-screen card (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes. **Needs Refresh Forge on the Mac** (new Swift files, the lock-screen extension target, Info.plist keys). No Xcode steps.
+
+### What's new
+
+- Train has a Live workout button: Jog in place, Walk or Run with a big running clock.
+- Watch calories, heart rate, distance and pace update as you go.
+- Pause, resume and end from the screen, or from your lock screen.
+- Ending it saves to Forge, and to Apple Health if you turn that on. Never twice.
+- A 3-2-1 before it starts, and a Discard choice for an accidental start.
+- A running workout shows on Train and Today, so you can reopen it.
+- Lock-screen pauses are counted exactly, so Forge and Health agree.
+
+### Details
+
+- `ForgeLiveWorkout.swift` runs an `HKWorkoutSession` + `HKLiveWorkoutBuilder` (iOS 26+), with the `ForgeWorkouts` plugin's new `startLive`, `pauseLive`, `resumeLive`, `endLive`, `liveState` and a `liveUpdate` event. Older iPhones and the web run the same screen from timestamps and keep the workout in Forge only.
+- Calories: measured active energy when the phone has it, else MET × weight × time (jog 8.0, walk 3.8, run 9.8); total = active + resting (1 kcal/kg/h estimate).
+- No duplicates: the Health workout carries `ForgeWorkoutId` metadata so the Apple Health import skips it, and the Forge row is `live_…` with the Health uuid.
+- Live Activity + Dynamic Island: `ios/App/ForgeLiveActivity/` (a real target in the Xcode project, embedded by Refresh Forge). The Pause button is a `LiveActivityIntent`.
+
 ## 0.16.50 — Forge workouts fill your Apple Activity rings (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes. **Needs Refresh Forge on the Mac** (new Swift plugin + Info.plist key).

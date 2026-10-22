@@ -1,0 +1,104 @@
+/* Live workout screen (#/live). Tokens only; light follows the system via the same names. */
+.tools .tool[data-live] { grid-column: 1 / -1; }
+
+.live { position: fixed; inset: 0; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; /* owns the whole viewport (its own safe areas), so the page column and its first paint never move */ display: flex; flex-direction: column; gap: var(--s-4);
+  padding: calc(var(--safe-top) + var(--s-3)) calc(var(--gutter) + var(--safe-right)) calc(var(--safe-bottom) + var(--s-4)) calc(var(--gutter) + var(--safe-left));
+  background: var(--ambient-bg), var(--bg); }
+.live-top { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap); }
+.live-top h1 { flex: 1; margin: 0; font-size: calc(22px * var(--ts)); }
+.live-close { display: grid; place-items: center; width: var(--tap); height: var(--tap); border-radius: var(--r-pill); background: var(--surface-2); color: var(--text-1); box-shadow: var(--elev-1); }
+.live-close svg { width: 22px; height: 22px; transform: rotate(180deg); }
+.live-badge { padding: 4px 12px; border-radius: var(--r-pill); background: var(--accent-tint); color: var(--accent-text); font-weight: 700; font-size: calc(13px * var(--ts)); }
+.live.paused .live-badge { background: var(--warn-tint); color: var(--warn-ink, var(--warn)); }
+.live-lead { margin: 0; color: var(--text-2); }
+
+.live-kinds { display: grid; gap: var(--s-3); }
+.live-kind { display: grid; grid-template-columns: 44px 1fr; grid-template-rows: auto auto; column-gap: var(--s-3); align-items: center; text-align: left; min-height: 72px;
+  padding: var(--s-3) var(--s-4); border: 0; border-radius: var(--r-lg); background: var(--glass-card); color: var(--text-1); box-shadow: var(--elev-1); transition: box-shadow .2s, background .2s; }
+.live-kind-ic { grid-row: 1 / 3; display: grid; place-items: center; width: 44px; height: 44px; border-radius: var(--r-md); background: var(--surface-3); }
+.live-kind-ic svg { width: 24px; height: 24px; }
+.live-kind-t { font-weight: 700; font-size: calc(18px * var(--ts)); }
+.live-kind-s { color: var(--text-2); }
+.live-kind[aria-checked="true"] { background: var(--deep-fill); box-shadow: var(--elev-2), 0 0 0 2px var(--accent); }
+.live-kind[aria-checked="true"] .live-kind-ic { background: var(--accent); color: var(--accent-ink); }
+
+.live-go { display: grid; place-items: center; min-height: 60px; border: 0; border-radius: var(--r-pill); background: var(--accent-gradient); color: var(--accent-ink);
+  font: inherit; font-weight: 800; font-size: calc(20px * var(--ts)); text-decoration: none; box-shadow: var(--glow-accent); margin-top: auto; }
+.live-go:active { transform: scale(.98); }
+.live-go[disabled] { opacity: .6; }
+
+.live-health { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: var(--tap); padding: 0 var(--s-4); border: 0; border-radius: var(--r-lg);
+  background: var(--surface-2); color: var(--text-1); font: inherit; font-weight: 600; box-shadow: var(--elev-1); }
+.live-health b { padding: 2px 12px; border-radius: var(--r-pill); background: var(--surface-3); color: var(--text-2); }
+.live-health[aria-checked="true"] b { background: var(--accent-tint); color: var(--accent-text); }
+
+.live-clock { text-align: center; font-family: var(--num); font-variant-numeric: tabular-nums; font-weight: 800; letter-spacing: -.03em; white-space: nowrap;
+  font-size: min(calc(var(--t-hero) * 1.5 * var(--ts)), 96px); line-height: 1.05; padding: clamp(var(--s-2), 2.4vh, var(--s-5)) 0; color: var(--accent-text); text-shadow: 0 0 28px var(--accent-glow); }
+.live-clock small { font-size: .4em; color: var(--text-2); text-shadow: none; }
+.live.paused .live-clock { color: var(--text-2); text-shadow: none; animation: live-breathe 1.6s ease-in-out infinite; }
+
+/* Running screen: clock + buttons (.live-main) and the number tiles. Portrait stacks clock, tiles, buttons;
+   landscape puts clock + buttons on the left and the tiles on the right, so it all fits one screen. */
+.live-body { flex: 1; display: flex; flex-direction: column; gap: var(--s-3); min-height: 0; }
+.live-main { display: contents; }
+.live-main .live-clock { order: 1; }
+.live-grid { order: 2; }
+.live-actions { order: 3; }
+
+.live-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--s-2); }
+.live-grid[data-n="3"] .live-tile:last-child, .live-grid[data-n="5"] .live-tile:last-child { grid-column: 1 / -1; } /* no hole in the two-column grid */
+.live-tile { display: flex; flex-direction: column; gap: 2px; padding: var(--s-3) var(--s-4); border-radius: var(--r-lg); background: var(--glass-card); box-shadow: var(--elev-1); min-width: 0; }
+.live-tl { color: var(--text-2); font-size: calc(12px * var(--ts)); font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.live-tv { font-family: var(--num); font-variant-numeric: tabular-nums; white-space: nowrap; line-height: 1.1; color: var(--text-1);
+  font-size: clamp(22px, calc(7vw * var(--ts)), calc(36px * var(--ts))); }
+
+.live-actions { display: flex; gap: var(--s-3); margin-top: auto; }
+.live-pause, .live-end { min-height: 64px; border: 0; border-radius: var(--r-pill); font: inherit; font-weight: 800; font-size: calc(18px * var(--ts)); box-shadow: var(--elev-2); }
+.live-pause { flex: 1; display: flex; align-items: center; justify-content: center; gap: var(--s-2); background: var(--surface-3); color: var(--text-1); }
+.live-pause svg { width: 24px; height: 24px; }
+.live.paused .live-pause { background: var(--accent-gradient); color: var(--accent-ink); }
+.live-end { flex: 0 0 34%; background: var(--danger-tint); color: var(--danger); }
+.live-pause:active, .live-end:active { transform: scale(.97); }
+.live-fine { margin: 0; text-align: center; }
+.live-discard { color: var(--danger); }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* 3-2-1 */
+.live-countwrap { flex: 1; display: grid; place-content: center; text-align: center; }
+.live-count { font-family: var(--num); font-weight: 800; font-size: min(40vh, 40vw, 220px); line-height: 1; color: var(--accent-text); text-shadow: 0 0 40px var(--accent-glow); animation: live-pop .9s ease-out; }
+.live-count-t { margin: 0; }
+.live-cancel { flex: none; margin-top: auto; }
+
+/* Resume pill on Today and the live label on the Train tile */
+.live-pill { display: flex; align-items: center; justify-content: center; gap: var(--s-2); min-height: var(--tap); border-radius: var(--r-pill); background: var(--accent-tint); color: var(--accent-text);
+  font-weight: 700; text-decoration: none; box-shadow: var(--elev-1); }
+.tools .tool.live-on { color: var(--accent-text); }
+
+@keyframes live-breathe { 50% { opacity: .55; } }
+@keyframes live-pop { from { opacity: 0; transform: scale(.7); } to { opacity: 1; transform: none; } }
+
+/* Folded Duo and landscape: clock + buttons on the left, number tiles on the right; one screen, no scrolling. */
+@media (orientation: landscape) {
+  .live[data-kind] { gap: var(--s-2); }
+  .live[data-kind] .live-body { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); column-gap: var(--s-5); align-items: center; }
+  .live[data-kind] .live-main { display: flex; flex-direction: column; justify-content: center; gap: var(--s-3); min-width: 0; }
+  .live[data-kind] .live-clock { padding: 0; font-size: min(calc(var(--t-hero) * 1.3 * var(--ts)), 12vw, 84px); }
+  .live[data-kind] .live-actions { margin-top: 0; }
+  .live[data-kind] .live-pause, .live[data-kind] .live-end { min-height: 56px; }
+  .live[data-kind] .live-tile { padding: var(--s-2) var(--s-3); }
+  .live[data-kind] .live-tv { font-size: clamp(20px, calc(3.6vw * var(--ts)), calc(30px * var(--ts))); }
+  .live[data-kind] .live-top { min-height: 48px; }
+  .live:not([data-kind]) .live-kinds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+/* Unfolded Duo sideways and other wide landscape screens: three tile columns use the full width. */
+@media (orientation: landscape) and (min-width: 800px) {
+  .live[data-kind] .live-body { grid-template-columns: minmax(0, 1fr) minmax(0, 1.5fr); }
+  .live[data-kind] .live-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .live[data-kind] .live-grid[data-n] .live-tile:last-child { grid-column: auto; }
+  .live[data-kind] .live-grid[data-n="5"] .live-tile:last-child { grid-column: span 2; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .live.paused .live-clock, .live-count { animation: none; }
+  .live-kind, .live-go:active, .live-pause:active, .live-end:active { transition: none; transform: none; }
+}

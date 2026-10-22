@@ -14,7 +14,7 @@ const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
 const shortLand0 = (w, h) => w >= 600 && h <= 500;
 const SAFE_BOTTOM = 21; // the home indicator in landscape
 const WIDE = [[466, 678], [678, 466], [844, 390], [874, 402], [932, 430], [626, 890], [890, 626]]; // 844x390, 874x402 and 932x430 are current iPhones sideways
-const ROUTES = ['play', 'today', 'train', 'body', 'program', 'score', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
+const ROUTES = ['play', 'live', 'today', 'train', 'body', 'program', 'score', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
 const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || process.env['LAYOUT_' + k.toUpperCase()];
 const only = arg('routes') ? arg('routes').split(',') : null;
 const shots = arg('shots');
@@ -80,6 +80,32 @@ for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 
     assert(!r.over && !r.off, 'the sheet overflows sideways');
     assert(r.yes >= 44, `Change date button is ${r.yes}px tall`);
   });
+}
+
+// Live workout: the running screen (Run shows distance and pace) and the paused look, at the phone and Duo sizes
+for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
+  for (const dark of [true, false]) {
+    test(`layout: live: the running screen fits at ${w}x${h} ${dark ? 'dark' : 'light'}`, async () => {
+      if (skipReason()) return;
+      browser = browser || await launch();
+      await browser.viewport(w, h, dark);
+      await browser.open('live', seed());
+      await browser.eval("document.querySelector('[data-kind=run]').click(); document.querySelector('[data-start]').click()");
+      await new Promise((r) => setTimeout(r, 4300)); // the 3-2-1, then the running screen
+      await browser.eval("document.querySelector('[data-pause]').click()");
+      await new Promise((r) => setTimeout(r, 400));
+      const r = await browser.eval("(() => { const b = document.querySelector('[data-pause]').getBoundingClientRect(); const e = document.querySelector('[data-end]').getBoundingClientRect(); const wide = [...document.querySelectorAll('.live-tv')].filter((n) => n.scrollWidth > n.clientWidth).length; const wrapped = [...document.querySelectorAll('.live-tl')].filter((n) => n.scrollWidth > n.clientWidth).length; return { over: document.documentElement.scrollWidth > innerWidth + 1, tall: (() => { const l = document.querySelector('.live'); return l.scrollHeight > l.clientHeight + 1 || document.documentElement.scrollHeight > innerHeight + 1; })(), bottom: Math.round(Math.max(b.bottom, e.bottom)), h: innerHeight, pause: Math.round(b.height), end: Math.round(e.height), wide, wrapped, tiles: document.querySelectorAll('.live-tile').length }; })()");
+      if (shots) await browser.screenshot(`${shots}/live-running-${w}x${h}-${dark ? 'dark' : 'light'}.png`);
+      await browser.eval("localStorage.removeItem('forge.live')");
+      assert(r && !r.over, 'the live screen overflows sideways');
+      assert(r.pause >= 44 && r.end >= 44, `Pause ${r.pause}px / End ${r.end}px tall`);
+      assert(r.tiles === 5, `expected 5 tiles for a run, got ${r.tiles}`);
+      assert(r.bottom <= r.h, `Pause/End bottom at ${r.bottom}px, below the ${r.h}px screen`);
+      assert(!r.tall, 'the running screen scrolls: it must fit one screen');
+      assert(r.wide === 0, `${r.wide} tile value(s) wider than their tile`);
+      assert(r.wrapped === 0, `${r.wrapped} tile label(s) cut off`);
+    });
+  }
 }
 
 for (const route of standalone ? ['today', 'train', 'body', 'score', 'settings'] : []) {
