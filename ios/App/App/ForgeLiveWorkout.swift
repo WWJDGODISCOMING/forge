@@ -56,7 +56,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         pauseLock.lock(); pauseStart = nil; pauseLog = []; pauseLock.unlock()
         session.prepare() // gets the sensors ready before the clock starts
         session.startActivity(with: start)
-        try await builder.beginCollection(withStart: start)
+        try await builder.beginCollection(at: start)
         let hasActivity = startActivity()
         ForgeLiveBridge.togglePause = { [weak self] in self?.togglePause() }
         return hasActivity
@@ -146,7 +146,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         let closed = pauseInfo(closeAt: endDate).list
         if !save {
             // Nothing goes to Apple Health, but JS still gets the phone's own clock and numbers for the Forge row.
-            try? await builder.endCollection(withEnd: endDate)
+            try? await builder.endCollection(at: endDate)
             let st = stats()
             builder.discardWorkout()
             return ["elapsed": st.elapsed * 1000, "elapsedMs": st.elapsed * 1000, "pauses": closed, "kcal": st.kcal, "distanceM": st.meters]
@@ -156,7 +156,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         if before.kcal <= 0, fallbackKcal > 0, let t = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned) {
             let s = HKQuantitySample(type: t, quantity: HKQuantity(unit: kcalUnit, doubleValue: fallbackKcal), start: builder.startDate ?? endDate.addingTimeInterval(-60), end: endDate, device: .local(),
                                      metadata: [HKMetadataKeySyncIdentifier: "forge:live:\(id):kcal", HKMetadataKeySyncVersion: 1, "ForgeWorkoutId": id])
-            try? await builder.add([s])
+            try? await builder.addSamples([s])
         }
         try await builder.addMetadata([
             HKMetadataKeyExternalUUID: id,
@@ -165,7 +165,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
             HKMetadataKeyIndoorWorkout: indoor,
             "ForgeWorkoutId": id,
         ])
-        try await builder.endCollection(withEnd: endDate)
+        try await builder.endCollection(at: endDate)
         let end = stats()
         var hrAvg: Double? = nil, hrMax: Double? = nil
         if let t = HKQuantityType.quantityType(forIdentifier: .heartRate), let st = builder.statistics(for: t) {
