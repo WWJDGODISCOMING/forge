@@ -58,6 +58,25 @@ const dayNum = (key) => {
 export const daysBetween = (a, b) => dayNum(b) - dayNum(a);
 /** Last day of a program that started on `started`. */
 export const lastDayOf = (started, id) => shiftDay(started, PROGRAMS[id].weeks * 7 - 1);
+/** The earliest start that still leaves program `id` running today (its last day is today at the soonest). */
+export const earliestStart = (id, today) => shiftDay(today, -(PROGRAMS[id].weeks * 7 - 1));
+/**
+ * Can the program's start move to `day`? A real YYYY-MM-DD, today or earlier, and (when `earliest` is given) no earlier
+ * than that, so the program is still running. → { ok, reason }.
+ */
+export function checkStart(day, today, earliest) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '') || Number.isNaN(new Date(`${day}T12:00:00`).getTime()) || shiftDay(day, 0) !== day) return { ok: false, reason: 'Pick a date.' };
+  if (day > today) return { ok: false, reason: 'Pick today or an earlier day. A program can’t start in the future.' };
+  if (earliest && day < earliest) return { ok: false, reason: `Pick a day in the last ${Math.round((daysBetween(earliest, today) + 1) / 7)} weeks.` };
+  return { ok: true, reason: '' };
+}
+
+/** The running program `p` with its start moved to `day`, or the reason it can't. Only `started` changes. → { ok, program, previous, reason }. */
+export function moveStart(p, day, today) {
+  const c = checkStart(day, today, earliestStart(p.id, today));
+  return c.ok ? { ok: true, program: { ...p, started: day }, previous: p.started, reason: '' } : { ok: false, program: p, previous: p.started, reason: c.reason };
+}
+
 /** Week boundaries run from the start day, not the calendar week. Week n is 0-based. */
 export const weekBounds = (started, n) => ({ start: shiftDay(started, n * 7), end: shiftDay(started, n * 7 + 6) });
 
