@@ -14,7 +14,7 @@ const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
 const shortLand0 = (w, h) => w >= 600 && h <= 500;
 const SAFE_BOTTOM = 21; // the home indicator in landscape
 const WIDE = [[466, 678], [678, 466], [844, 390], [874, 402], [932, 430], [626, 890], [890, 626]]; // 844x390, 874x402 and 932x430 are current iPhones sideways
-const ROUTES = ['play', 'today', 'train', 'body', 'score', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
+const ROUTES = ['play', 'today', 'train', 'body', 'program', 'score', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
 const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || process.env['LAYOUT_' + k.toUpperCase()];
 const only = arg('routes') ? arg('routes').split(',') : null;
 const shots = arg('shots');
@@ -35,15 +35,20 @@ if (arg('size')) CASES.splice(0, CASES.length, ...CASES.filter((c) => String(c.w
 
 const standalone = !!(process.argv[1] && process.argv[1].endsWith("layout.test.js"));
 
+// Each route is checked in groups of sizes (not all ~18 renders in one test) so the shards can balance and a hang names its group.
+const CHUNK = 5;
+const chunks = (list) => Array.from({ length: Math.ceil(list.length / CHUNK) }, (_, i) => list.slice(i * CHUNK, i * CHUNK + CHUNK));
+
 for (const route of standalone ? ROUTES : []) {
   if (only && !only.includes(route)) continue;
-  test(`layout: ${route} has no wraps, clips, small tap targets or overflow`, async () => {
+  const groups = chunks(CASES);
+  groups.forEach((group, gi) => test(`layout: ${route} has no wraps, clips, small tap targets or overflow (sizes ${gi + 1}/${groups.length})`, async () => {
     if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
     browser = browser || await launch();
     const found = new Map();
-    for (const c of CASES) {
+    for (const c of group) {
       await browser.viewport(c.w, c.h, c.dark);
-      await browser.open(route, seed({ long: c.long, over: c.over, active: route === 'play' }));
+      await browser.open(route, seed({ long: c.long, over: c.over, active: route === 'play', program: route === 'program' }));
       const cls = await browser.eval('window.__cls || 0'); // before any text-size change
       if (c.ts) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${c.ts}')`); await new Promise((r) => setTimeout(r, 300)); }
       const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: !!c.ts })})`);
@@ -57,6 +62,23 @@ for (const route of standalone ? ROUTES : []) {
       for (const p of probs) found.set(p, [...(found.get(p) || []), `${c.w}${c.dark ? "d" : "l"}${c.long ? "L" : ""}${c.over ? "O" : ""}${c.ts ? "T" : ""}`]);
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  }));
+}
+
+// Program: the Change start date sheet, at the phone and Duo sizes (this also feeds the `screens` artifact)
+for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
+  test(`layout: program: the Change start date sheet fits at ${w}x${h}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('program', seed({ program: true }));
+    await browser.eval("document.querySelector('[data-program-start]').click()");
+    await new Promise((r) => setTimeout(r, 600));
+    const r = await browser.eval("(() => { const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null; const b = d.querySelector('[data-yes]').getBoundingClientRect(); return { over: d.scrollWidth > d.clientWidth + 1, yes: Math.round(b.height), off: b.right > innerWidth + 1 }; })()");
+    if (shots && r) await browser.screenshot(`${shots}/program-sheet-${w}x${h}.png`);
+    assert(r, 'the sheet did not open');
+    assert(!r.over && !r.off, 'the sheet overflows sideways');
+    assert(r.yes >= 44, `Change date button is ${r.yes}px tall`);
   });
 }
 
@@ -411,18 +433,22 @@ if (!standalone) {
     if (process.argv.includes('--no-layout')) { console.log('      (skipped: --no-layout)'); return; }
     const { spawn } = await import('node:child_process');
     // the screens are independent, so run them as parallel shards (each with its own Chromium) instead of one long serial run
-    const SHARDS = 4; // shard 1 of 3 sat at ~6m50s against a 7m cap; four shards on the 4-core runner leave real headroom
+    const SHARDS = 6; // cost-balanced (see the bin-packing below); each test is also capped, so a hang is named
     const runs = Array.from({ length: SHARDS }, (_, i) => new Promise((resolve) => {
       const p = spawn(process.execPath, [new URL(import.meta.url).pathname, `--shard=${i + 1}/${SHARDS}`], { stdio: ['ignore', 'pipe', 'pipe'] });
       let out = '';
       p.stdout.on('data', (d) => { out += d; });
       p.stderr.on('data', (d) => { out += d; });
-      const timer = setTimeout(() => { p.kill('SIGKILL'); out += `\nshard ${i + 1} timed out`; }, 540000);
+      const timer = setTimeout(() => {
+        p.kill('SIGKILL');
+        const started = out.split('\n').filter((l) => l.includes('▶'));
+        out += `\nshard ${i + 1} timed out after 9 min. Last test started: ${started.length ? started[started.length - 1].trim() : '(none)'}`;
+      }, 540000); // under the 15 minute job cap in tests.yml
       p.on('close', (status) => { clearTimeout(timer); resolve({ status, out }); });
     }));
     const results = await Promise.all(runs);
     const bad = results.filter((r) => r.status !== 0);
-    assert(!bad.length, '\n' + bad.map((r) => r.out.split('\n').filter((l) => !l.includes('✓')).join('\n')).join('\n'));
+    assert(!bad.length, '\n' + bad.map((r) => r.out.split('\n').filter((l) => !l.includes('✓') && !(l.includes('▶') && !l.includes('Last test started'))).join('\n')).join('\n'));
     // The Duo resize/rotation/fold blocks only exist when the file runs as its own process (these shards). Fail loudly if they stop running.
     const ran = results.map((r) => r.out).join('\n');
     const count = (ran.match(/✓ layout:/g) || []).length;
@@ -1977,10 +2003,37 @@ test('layout: close the browser', async () => {
 
 if (standalone) {
   const { runAll, tests } = await import('./harness.js');
-  const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/4 → every fourth test, starting at the second
+  const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/6 → the second of six cost-balanced groups
   if (shard.length === 2) {
-    const only = arg('only'); const keep = tests.filter((t, i) => only ? (t.name.includes(only) || t.name === 'layout: close the browser') : i % shard[1] === shard[0] - 1 || t.name === 'layout: close the browser');
-    tests.splice(0, tests.length, ...keep);
+    const CLOSE = 'layout: close the browser';
+    const only = arg('only');
+    if (only) {
+      const keep = tests.filter((t) => t.name.includes(only) || t.name === CLOSE);
+      tests.splice(0, tests.length, ...keep);
+    } else {
+      // Bin-pack by estimated cost (renders): a route group costs its size count, anything else ~3. Every shard computes the same split.
+      const cost = (t) => { const m = /\(sizes (\d+)\/(\d+)\)/.exec(t.name); return m ? (Number(m[1]) < Number(m[2]) ? CHUNK : CASES.length - CHUNK * (Number(m[2]) - 1)) : 3; };
+      const bins = Array.from({ length: shard[1] }, () => ({ load: 0, names: new Set() }));
+      tests.filter((t) => t.name !== CLOSE).map((t, i) => ({ t, i, c: cost(t) })).sort((a, b) => b.c - a.c || a.i - b.i).forEach(({ t, c }) => {
+        const bin = bins.reduce((lo, b) => (b.load < lo.load ? b : lo));
+        bin.load += c; bin.names.add(t);
+      });
+      const mine = bins[shard[0] - 1].names;
+      const keep = tests.filter((t) => mine.has(t) || t.name === CLOSE);
+      tests.splice(0, tests.length, ...keep);
+    }
+    // Cap each test and say which one hung (a stuck Chromium used to take the whole shard down with a silent SIGKILL).
+    const PER_TEST_MS = Number(process.env.LAYOUT_TEST_MS) || 150000;
+    for (const t of tests) {
+      const fn = t.fn;
+      t.fn = async () => {
+        console.log(`  ▶ ${t.name}`);
+        let timer;
+        try {
+          await Promise.race([fn(), new Promise((_, rej) => { timer = setTimeout(() => rej(new Error(`HUNG: "${t.name}" took over ${PER_TEST_MS / 1000}s`)), PER_TEST_MS); })]);
+        } finally { clearTimeout(timer); }
+      };
+    }
   }
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);

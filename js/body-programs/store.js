@@ -10,7 +10,7 @@ import { indexDays, localDay } from '../missions/core.js';
 import { newMissionBadges } from '../missions/badges.js';
 import { missionSettings, startedDay, ensureStarted } from '../missions/store.js';
 import {
-  PROGRAMS, canStart, checkStart, programStatus, paceBand, finishedEntry, endedEntry, programBadges, programXP, progressDays, summaryFor, entryCompleted,
+  PROGRAMS, canStart, moveStart, programStatus, paceBand, finishedEntry, endedEntry, programBadges, programXP, progressDays, summaryFor, entryCompleted,
 } from './core.js';
 
 const today = () => localDay(Date.now());
@@ -78,10 +78,10 @@ export function endProgram() {
 export function changeStartDate(day) {
   const p = activeProgram();
   if (!p) return { ok: false, previous: null, reason: 'No program is running.' };
-  const c = checkStart(day, today());
-  if (!c.ok) return { ok: false, previous: p.started, reason: c.reason };
-  patch('settings', 'main', { body_program: { ...p, started: day } });
-  return { ok: true, previous: p.started, reason: '' };
+  const m = moveStart(p, day, today());
+  if (!m.ok) return { ok: false, previous: m.previous, reason: m.reason };
+  patch('settings', 'main', { body_program: m.program });
+  return { ok: true, previous: m.previous, reason: '' };
 }
 
 let settling = null;

@@ -97,7 +97,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 8. #155 Ask Forge: 'Can I eat this?' food coach
 - Issue: #155
 - Version: 0.16.47
-- Status: in-review
+- Status: in-review (PR #175)
 - Acceptance:
   - Ask sheet on Today and Food (text; dictation via the iOS keyboard).
   - Context via the existing swappable AI interface and Cloud Function (no keys in the front end): eaten kcal/macros, ceiling, protein goal, burned (from #146), the food (USDA/label lookup when possible).
@@ -109,7 +109,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 9. #174 Polish: deficit on Today calories line + Programs 'Change start date' + fresh burned
 - Issue: #174
 - Version: 0.16.48
-- Status: in-review
+- Status: in-review (PR #175)
 - Acceptance:
   - Today 'Training and food' Calories line also shows the signed deficit (burned minus eaten), same calc, wording and colors as the Food card, e.g. '1,085 of 1,500 kcal · 1,010 deficit'; ceiling stays fixed at the Settings value and never rises with burned.
   - Programs: 'Change start date' next to End program; today or past dates only; weeks recompute; goals re-evaluate from existing data; confirmation sheet with Undo; light haptic; iPhone and Duo folded/unfolded.

@@ -27,7 +27,8 @@ export function todayBalanceLine() {
 export function todayDeficitHtml(b = balanceOn(todayKey())) {
   if (!b || (b.active == null && b.restingFrom !== 'apple')) return '';
   const d = deficitShort(b.deficit, b.eaten);
-  return d ? `<p class="small balance-deficit" data-today-deficit><b class="nb balance-net ${b.partial ? 'now' : b.deficit > 0 ? 'good' : 'over'}">${esc(d)}</b></p>` : '';
+  const shown = b.partial && d && d !== 'Even' ? `${d} so far` : d; // not the ceiling: the day isn't over
+  return d ? `<p class="small balance-deficit" data-today-deficit><b class="nb balance-net ${b.partial ? 'now' : b.deficit > 0 ? 'good' : 'over'}">${esc(shown)}</b></p>` : '';
 }
 
 /** The compact block under the Calories meter on the Food tab (a button: opens the 7-day sheet), or ''. */

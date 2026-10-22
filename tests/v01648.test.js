@@ -1,7 +1,7 @@
 // v0.16.48: deficit on the Today calories line, Programs "Change start date", burned stays fresh. Synthetic data only.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { programStatus, checkStart, weekBounds } from '../js/body-programs/core.js';
+import { programStatus, checkStart, earliestStart, moveStart, weekBounds } from '../js/body-programs/core.js';
 import { indexDays } from '../js/missions/core.js';
 import { dayBalance, deficitText, deficitShort } from '../js/nutrition/balance.js';
 import { watchForeground, FOREGROUND_GAP_MS } from '../js/native/autoread.js';
@@ -19,6 +19,10 @@ test('Today deficit: the same number and wording as the Food card, just shorter'
   eq(deficitShort(-210, 1600), '210 over');
   eq(deficitShort(0, 1600), 'Even');
   eq(deficitShort(500, 0), '');
+});
+
+test('Today deficit says "so far" while the day is partial', () => {
+  assert(src('../js/screens/balance-ui.js').includes('b.partial && d && d !== \'Even\' ? `${d} so far`'), 'partial days read "so far"');
 });
 
 test('Today deficit: ceiling is the Settings value and the colours match the Food card', () => {
@@ -54,14 +58,38 @@ test('start date check: today and past dates pass, future and junk are rejected'
   for (const bad of ['', null, 'nope', '2026-02-31', '2026-13-01']) eq(checkStart(bad, '2026-10-22').ok, false, String(bad));
 });
 
-test('change start date only rewrites body_program.started; Undo puts the old one back', () => {
+test('start date floor: the earliest day passes, one day earlier is rejected, so the program is still running', () => {
+  const today = '2026-10-22';
+  const earliest = earliestStart('cut4', today);
+  eq(earliest, '2026-09-25'); // 4 weeks = 28 days, today is the last day
+  eq(checkStart(earliest, today, earliest).ok, true);
+  const early = checkStart('2026-09-24', today, earliest);
+  eq(early.ok, false);
+  eq(early.reason, 'Pick a day in the last 4 weeks.');
+  assert(!programStatus({ id: 'cut4', started: earliest }, today, data).finished, 'earliest start is not finished');
+  assert(programStatus({ id: 'cut4', started: '2026-09-24' }, today, data).finished, 'one earlier would have finished it');
+});
+
+test('moveStart (the store logic): only started changes, bad dates refused, Undo restores the old start', () => {
+  const today = '2026-10-22';
+  const p = { id: 'cut4', started: '2026-10-12' };
+  const m = moveStart(p, '2026-10-05', today);
+  eq(m.ok, true); eq(m.program.started, '2026-10-05'); eq(m.program.id, 'cut4'); eq(m.previous, '2026-10-12');
+  const undo = moveStart(m.program, m.previous, today); // what the Undo toast calls
+  eq(undo.ok, true); eq(undo.program.started, '2026-10-12');
+  eq(moveStart(p, '2026-08-01', today).ok, false);
+  eq(moveStart(p, '2026-10-23', today).ok, false);
+  eq(moveStart(p, '2026-08-01', today).program.started, '2026-10-12');
+});
+
+test('change start date wiring: store, sheet and hero link', () => {
   const store = src('../js/body-programs/store.js');
-  assert(store.includes("patch('settings', 'main', { body_program: { ...p, started: day } })"), 'only the start changes');
-  assert(store.includes('checkStart(day, today())'), 'future dates refused in the store');
+  assert(store.includes('moveStart(p, day, today())') && store.includes("patch('settings', 'main', { body_program: m.program })"), 'store uses moveStart');
   const ui = src('../js/screens/program.js');
   assert(ui.includes("label: 'Undo'") && ui.includes('changeStartDate(r.previous)'), 'Undo restores the previous start');
   assert(ui.includes('haptics.light()'), 'light haptic');
-  assert(ui.includes('max="${today}"'), 'date picker capped at today');
+  assert(ui.includes('min="${earliest}" max="${today}"'), 'date picker bounded');
+  assert(ui.includes('data-program-start-hero'), 'hero line opens the sheet');
   assert(ui.indexOf('data-program-start') < ui.indexOf('data-program-end'), 'next to End program');
 });
 
@@ -82,5 +110,9 @@ test('foreground event triggers a refresh, throttled', () => {
 test('app wires the foreground refresh and the periodic one covers Today and Food', () => {
   const app = src('../js/app.js');
   assert(app.includes('watchForeground(document, () => autoHealth({ force: true }))'));
+  // a patch-triggered autoHealth() sets healthAutoAt; a forced foreground call must still go through
+  assert(app.includes('(!force && Date.now() - healthAutoAt < 60000)'), 'force skips the shared 60 s gate');
+  assert(app.includes('autoHealthSync({ force })'), 'force reaches the today re-read');
+  assert(src('../js/screens/apple.js').includes('await refreshToday({ force })'), 'autoHealthSync calls refreshToday with force');
   assert(app.includes("['today', 'food'].includes(currentRoute())"));
 });

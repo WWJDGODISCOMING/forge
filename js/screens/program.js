@@ -3,7 +3,8 @@
 import { esc, sheet, confirmSheet, toast, todayKey } from '../ui.js';
 import { haptics } from '../ui/haptic.js';
 import { icon, emptyState } from '../ui/icons.js';
-import { checkStart, weekBounds } from '../body-programs/core.js';
+import { checkStart, earliestStart, weekBounds } from '../body-programs/core.js';
+import { startedDay } from '../missions/store.js';
 import { activeProgram, currentStatus, endProgram, changeStartDate } from '../body-programs/store.js';
 
 const CIRC = 2 * Math.PI * 44;
@@ -67,7 +68,7 @@ export function renderProgram(el) {
   el.innerHTML = `<section class="stack">
     <h1>${esc(st.def.name)}</h1>
     <div class="card pg-head">${ringHtml(st)}
-      <div class="pg-head-text"><p><b>${st.weeksHit}</b> of ${st.def.weeks} weeks fully hit</p><p class="small muted">Started ${fmtDay(st.started)} · ends ${fmtDay(st.last)}</p></div>
+      <div class="pg-head-text"><p><b>${st.weeksHit}</b> of ${st.def.weeks} weeks fully hit</p><button type="button" class="link small muted" data-program-start-hero aria-label="Change start date. Started ${esc(fmtDay(st.started))}, ends ${esc(fmtDay(st.last))}">Started ${fmtDay(st.started)} · ends ${fmtDay(st.last)}</button></div>
     </div>
     <div class="card">
       <div class="row between center"><p class="label">This week</p><span class="small muted">${st.goalsDone} of ${st.goalsTotal} goals</span></div>
@@ -84,7 +85,7 @@ export function renderProgram(el) {
       <button type="button" class="link pg-end" data-program-end>End program</button>
     </div>
   </section>`;
-  el.querySelector('[data-program-start]').onclick = () => openStartSheet(st, el);
+  el.querySelectorAll('[data-program-start], [data-program-start-hero]').forEach((b) => { b.onclick = () => openStartSheet(st, el); });
   el.querySelector('[data-program-end]').onclick = async () => {
     const ok = await confirmSheet({
       title: 'End this program?',
@@ -102,10 +103,11 @@ export function renderProgram(el) {
 /** The sheet for moving the start date: a date up to today, the new week 1 range, then Apply (with Undo afterwards). */
 function openStartSheet(st, el) {
   const today = todayKey();
+  const earliest = earliestStart(activeProgram().id, today);
   sheet('Change start date', (body, closeSheet) => {
     body.innerHTML = `<div class="stack" data-start-sheet>
       <p class="muted">Pick the day week 1 began. Weeks and goals are worked out again from what you’ve already logged. Nothing is deleted.</p>
-      <label class="field"><span>Start date</span><input type="date" name="start" value="${esc(st.started)}" max="${today}" aria-label="Program start date, today or earlier" data-start-input></label>
+      <label class="field"><span>Start date</span><input type="date" name="start" value="${esc(st.started)}" min="${earliest}" max="${today}" aria-label="Program start date, today or earlier" data-start-input></label>
       <p class="pg-preview" aria-live="polite" data-start-preview></p>
       <div class="row gap">
         <button type="button" class="btn ghost grow" data-no>Cancel</button>
@@ -116,11 +118,12 @@ function openStartSheet(st, el) {
     const preview = body.querySelector('[data-start-preview]');
     const yes = body.querySelector('[data-yes]');
     const sync = () => {
-      const c = checkStart(input.value, today);
+      const c = checkStart(input.value, today, earliest);
       yes.disabled = !c.ok;
       if (!c.ok) { preview.textContent = c.reason; return; }
       const w = weekBounds(input.value, 0);
-      preview.textContent = `Week 1 will run ${fmtDay(w.start)} – ${fmtDay(w.end)}.`;
+      const ms = startedDay();
+      preview.textContent = `Week 1 will run ${fmtDay(w.start)} – ${fmtDay(w.end)}.${ms && input.value < ms ? ' Program XP only counts from the day missions began, so this earlier start won’t earn XP.' : ''}`;
     };
     input.addEventListener('input', sync);
     input.addEventListener('change', sync);

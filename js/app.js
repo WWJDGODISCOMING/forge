@@ -373,7 +373,7 @@ function settlePrograms() {
 // and only once you've connected it on Settings → Apple Health).
 let healthAutoAt = 0;
 function autoHealth({ force = false } = {}) {
-  if (!isNative() || !allLoaded() || !state.user || Date.now() - healthAutoAt < 60000) return;
+  if (!isNative() || !allLoaded() || !state.user || (!force && Date.now() - healthAutoAt < 60000)) return; // a foreground call is already throttled by watchForeground
   healthAutoAt = Date.now();
   import('./screens/apple.js').then((m) => m.autoHealthSync({ force })).catch(() => {});
 }
