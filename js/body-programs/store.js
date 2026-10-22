@@ -10,7 +10,7 @@ import { indexDays, localDay } from '../missions/core.js';
 import { newMissionBadges } from '../missions/badges.js';
 import { missionSettings, startedDay, ensureStarted } from '../missions/store.js';
 import {
-  PROGRAMS, canStart, programStatus, paceBand, finishedEntry, endedEntry, programBadges, programXP, progressDays, summaryFor, entryCompleted,
+  PROGRAMS, canStart, checkStart, programStatus, paceBand, finishedEntry, endedEntry, programBadges, programXP, progressDays, summaryFor, entryCompleted,
 } from './core.js';
 
 const today = () => localDay(Date.now());
@@ -69,6 +69,19 @@ export function endProgram() {
   if (!p) return false;
   finish(endedEntry(p, today(), programData()));
   return true;
+}
+
+/**
+ * Move the running program's start to `day` (today or earlier). Only `started` changes: the weeks and goals are worked
+ * out from it and from the data already logged, so nothing is deleted or rewritten. Returns { ok, previous, reason }.
+ */
+export function changeStartDate(day) {
+  const p = activeProgram();
+  if (!p) return { ok: false, previous: null, reason: 'No program is running.' };
+  const c = checkStart(day, today());
+  if (!c.ok) return { ok: false, previous: p.started, reason: c.reason };
+  patch('settings', 'main', { body_program: { ...p, started: day } });
+  return { ok: true, previous: p.started, reason: '' };
 }
 
 let settling = null;

@@ -22,6 +22,24 @@ export const TODAY_EVERY_MS = 3 * 60 * 1000; // the cheap re-read of today's tot
 /** Is a cheap today-only re-read due? (Independent of the 6 h full read: reopening the app refreshes today.) */
 export const todayDue = ({ now, todayAt = 0 }) => now.getTime() - todayAt >= TODAY_EVERY_MS;
 
+export const FOREGROUND_GAP_MS = 60 * 1000;
+/**
+ * Run `fn` whenever the app comes back to the front (visibilitychange → visible), at most once per `gap` ms.
+ * Returns a function that stops watching. `doc` is the document (a fake in tests).
+ */
+export function watchForeground(doc, fn, { gap = FOREGROUND_GAP_MS, now = () => Date.now() } = {}) {
+  let at = -Infinity;
+  const on = () => {
+    if (doc.visibilityState !== 'visible') return;
+    const t = now();
+    if (t - at < gap) return;
+    at = t;
+    fn();
+  };
+  doc.addEventListener('visibilitychange', on);
+  return () => doc.removeEventListener('visibilitychange', on);
+}
+
 export const BACKFILL_BACKOFF_MS = 20 * 60 * 1000;
 
 /**

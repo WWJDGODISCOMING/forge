@@ -46,6 +46,9 @@ export function deficitText(deficit, eaten = 1) {
   return deficit > 0 ? `${fmt(n)} calorie deficit` : `${fmt(n)} ${n === 1 ? 'calorie' : 'calories'} over`;
 }
 
+/** The same figure, short enough for the Calories line on Today: "1,010 deficit" / "210 over". */
+export const deficitShort = (deficit, eaten = 1) => deficitText(deficit, eaten).replace(/ calorie(s)? (deficit|over)$/, ' $2');
+
 /** Short Today line: "Burned 1,940 so far · 320 calorie deficit". */
 export function todayLine(b) {
   if (!b) return '';

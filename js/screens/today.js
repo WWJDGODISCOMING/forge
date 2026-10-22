@@ -42,7 +42,7 @@ import { goalLine } from '../health/goalpath.js';
 import { showReportCard, mondayOf } from '../health/weekly.js';
 import { weekTitle } from '../health/weektext.js';
 import { loadExpiryInfo, refreshDue } from '../native/expiry.js';
-import { todayBalanceLine } from './balance-ui.js';
+import { todayBalanceLine, todayDeficitHtml } from './balance-ui.js';
 import { askButton, bindAsk } from './ask.js';
 import { refreshBannerHtml, openRefreshSheet } from '../native/refresh-ui.js';
 
@@ -63,6 +63,7 @@ function foodRow(t) {
     <a class="food-card-text" href="#/food" aria-label="Food: ${n(tot.kcal)} of ${n(t.calories)} kcal. See meals">
       <p class="label">Food</p>
       <p class="food-card-kcal"><b data-tick="today-kcal">${n(tot.kcal)}</b> <small>of ${n(t.calories)} kcal</small></p>
+      ${todayDeficitHtml()}
       <p class="small ${sum.over ? 'over' : 'muted'}"><span class="nb">${esc(sum.note)}</span> · <span class="nb">${esc(sum.protein)}</span></p>
       ${todayBalanceLine()}
     </a>

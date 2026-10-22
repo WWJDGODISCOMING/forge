@@ -59,6 +59,13 @@ export const daysBetween = (a, b) => dayNum(b) - dayNum(a);
 /** Last day of a program that started on `started`. */
 export const lastDayOf = (started, id) => shiftDay(started, PROGRAMS[id].weeks * 7 - 1);
 /** Week boundaries run from the start day, not the calendar week. Week n is 0-based. */
+/** Can the program's start move to `day`? Today or a past date only, a real YYYY-MM-DD. → { ok, reason }. */
+export function checkStart(day, today) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day || '') || Number.isNaN(new Date(`${day}T12:00:00`).getTime()) || shiftDay(day, 0) !== day) return { ok: false, reason: 'Pick a date.' };
+  if (day > today) return { ok: false, reason: 'Pick today or an earlier day. A program can’t start in the future.' };
+  return { ok: true, reason: '' };
+}
+
 export const weekBounds = (started, n) => ({ start: shiftDay(started, n * 7), end: shiftDay(started, n * 7 + 6) });
 
 // ---------- the safe pace ----------

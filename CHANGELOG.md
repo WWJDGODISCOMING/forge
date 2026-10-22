@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.48 — Polish: deficit on Today, change a program's start date, fresher burned (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Today shows your deficit under the calories, like "1,010 deficit".
+- Programs can change their start date, with Undo.
+- Burned calories refresh each time you open Forge.
+
+### Details
+
+- Moving the start only changes the first day. Weeks and goals are worked out again from what you already logged; nothing is deleted.
+
 ## 0.16.47 — Ask Forge: "Can I eat this?" (2026-10-21)
 
 Cloud Functions changed (new `askForge` function). `firestore.rules` did not change.

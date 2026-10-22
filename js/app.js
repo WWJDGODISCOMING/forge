@@ -372,14 +372,15 @@ function settlePrograms() {
 // iPhone app: read Apple Health quietly on open and when Forge comes back to the front (every 6 h at most,
 // and only once you've connected it on Settings → Apple Health).
 let healthAutoAt = 0;
-function autoHealth() {
+function autoHealth({ force = false } = {}) {
   if (!isNative() || !allLoaded() || !state.user || Date.now() - healthAutoAt < 60000) return;
   healthAutoAt = Date.now();
-  import('./screens/apple.js').then((m) => m.autoHealthSync()).catch(() => {});
+  import('./screens/apple.js').then((m) => m.autoHealthSync({ force })).catch(() => {});
 }
-if (isNative()) document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') autoHealth(); });
-// ...and a cheap re-read of today's steps and energy about every 5 minutes while Today is showing (js/screens/apple.js refreshToday).
-if (isNative()) setInterval(() => { if (document.visibilityState === 'visible' && currentRoute() === 'today' && allLoaded() && state.user) import('./screens/apple.js').then((m) => m.refreshToday()).catch(() => {}); }, 5 * 60 * 1000);
+// Coming back to the front always re-reads today's burned calories (resting + active), past the 3 minute wait.
+if (isNative()) import('./native/autoread.js').then((m) => m.watchForeground(document, () => autoHealth({ force: true })));
+// ...and a cheap re-read of today's steps and energy about every 5 minutes while Today or Food is showing (js/screens/apple.js refreshToday).
+if (isNative()) setInterval(() => { if (document.visibilityState === 'visible' && ['today', 'food'].includes(currentRoute()) && allLoaded() && state.user) import('./screens/apple.js').then((m) => m.refreshToday()).catch(() => {}); }, 5 * 60 * 1000);
 
 // iPhone app: a local notification the day before the free Apple ID signature runs out (js/native/expiry.js).
 if (isNative()) {

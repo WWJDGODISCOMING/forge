@@ -1,8 +1,10 @@
 // #/program: the running body program. A ring for the whole program, a row per week (past weeks ✓ or partly, the
 // current week live), this week's goals with progress, the weight-pace bar, and a quiet "End program".
-import { esc, confirmSheet, toast } from '../ui.js';
+import { esc, sheet, confirmSheet, toast, todayKey } from '../ui.js';
+import { haptics } from '../ui/haptic.js';
 import { icon, emptyState } from '../ui/icons.js';
-import { activeProgram, currentStatus, endProgram } from '../body-programs/store.js';
+import { checkStart, weekBounds } from '../body-programs/core.js';
+import { activeProgram, currentStatus, endProgram, changeStartDate } from '../body-programs/store.js';
 
 const CIRC = 2 * Math.PI * 44;
 const fmtDay = (d) => new Date(`${d}T12:00:00`).toLocaleDateString([], { month: 'short', day: 'numeric' });
@@ -77,8 +79,12 @@ export function renderProgram(el) {
       <ul class="ms-list">${st.weeks.map(weekRow).join('')}</ul>
       <p class="small muted">Hit every goal in a week for +50 XP. Finish the program for +250 XP and a badge.</p>
     </div>
-    <button type="button" class="link pg-end" data-program-end>End program</button>
+    <div class="pg-actions">
+      <button type="button" class="link pg-end" data-program-start aria-label="Change start date. Now ${esc(fmtDay(st.started))}">Change start date</button>
+      <button type="button" class="link pg-end" data-program-end>End program</button>
+    </div>
   </section>`;
+  el.querySelector('[data-program-start]').onclick = () => openStartSheet(st, el);
   el.querySelector('[data-program-end]').onclick = async () => {
     const ok = await confirmSheet({
       title: 'End this program?',
@@ -91,4 +97,44 @@ export function renderProgram(el) {
       location.hash = '#/body';
     }
   };
+}
+
+/** The sheet for moving the start date: a date up to today, the new week 1 range, then Apply (with Undo afterwards). */
+function openStartSheet(st, el) {
+  const today = todayKey();
+  sheet('Change start date', (body, closeSheet) => {
+    body.innerHTML = `<div class="stack" data-start-sheet>
+      <p class="muted">Pick the day week 1 began. Weeks and goals are worked out again from what you’ve already logged. Nothing is deleted.</p>
+      <label class="field"><span>Start date</span><input type="date" name="start" value="${esc(st.started)}" max="${today}" aria-label="Program start date, today or earlier" data-start-input></label>
+      <p class="pg-preview" aria-live="polite" data-start-preview></p>
+      <div class="row gap">
+        <button type="button" class="btn ghost grow" data-no>Cancel</button>
+        <button type="button" class="btn grow" data-yes>Change date</button>
+      </div>
+    </div>`;
+    const input = body.querySelector('[data-start-input]');
+    const preview = body.querySelector('[data-start-preview]');
+    const yes = body.querySelector('[data-yes]');
+    const sync = () => {
+      const c = checkStart(input.value, today);
+      yes.disabled = !c.ok;
+      if (!c.ok) { preview.textContent = c.reason; return; }
+      const w = weekBounds(input.value, 0);
+      preview.textContent = `Week 1 will run ${fmtDay(w.start)} – ${fmtDay(w.end)}.`;
+    };
+    input.addEventListener('input', sync);
+    input.addEventListener('change', sync);
+    sync();
+    body.querySelector('[data-no]').onclick = () => closeSheet();
+    yes.onclick = () => {
+      const r = changeStartDate(input.value);
+      if (!r.ok) { preview.textContent = r.reason; return; }
+      haptics.light();
+      closeSheet();
+      renderProgram(el);
+      toast(`Week 1 now starts ${fmtDay(input.value)}`, 6000, {
+        action: { label: 'Undo', onClick: () => { if (changeStartDate(r.previous).ok) { haptics.light(); renderProgram(el); } } },
+      });
+    };
+  });
 }

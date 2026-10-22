@@ -69,7 +69,9 @@
 .pg-bar { position: relative; height: 10px; margin: 8px 0 2px; border-radius: 5px; background: var(--surface-2); }
 .pg-zone { position: absolute; top: 0; bottom: 0; border-radius: 5px; background: color-mix(in srgb, var(--good) 45%, var(--surface-2)); }
 .pg-dot { position: absolute; top: 50%; width: 18px; height: 18px; margin: -9px 0 0 -9px; border-radius: 50%; background: var(--text); border: 3px solid var(--bg); box-sizing: border-box; }
-.pg-end { color: var(--text-3); justify-self: center; font-size: calc(15px * var(--ts)); }
+.pg-actions { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px var(--s-4); }
+.pg-preview { margin: 0; min-height: 1.4em; }
+.pg-end { min-height: 44px; padding: 0 var(--s-2); color: var(--text-2); justify-self: center; font-size: calc(15px * var(--ts)); }
 .pg-done .ms-badge-text small { font-size: calc(13px * var(--ts)); }
 @media (prefers-reduced-motion: no-preference) {
   .pg-ring-fg { transition: stroke-dashoffset .6s var(--ease-out); }

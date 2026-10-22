@@ -138,11 +138,11 @@ let backfillFailedAt = 0;
  * 4:00, if today's overnight data hasn't arrived yet (at most every 20 min; js/native/autoread.js). Not while you're
  * reading by hand. The Today cards update by themselves when health_daily changes.
  */
-export async function autoHealthSync() {
+export async function autoHealthSync({ force = false } = {}) {
   if (!isNative() || !state.user || nativeState || !lastNative()) return null;
   const now = new Date();
   const mode = autoReadMode({ now, last: lastNative(), today: todayKey(), rows: state.health_daily, failedAt: autoFailedAt, morningAt, morningFailedAt, backfill: !backfillDone(state.user.uid), backfillFailedAt });
-  if (!mode) { await refreshToday(); return null; }
+  if (!mode) { await refreshToday({ force }); return null; }
   todayAt = now.getTime(); // the full read covers today too
   if (mode === 'backfill') backfillFailedAt = now.getTime(); // backs off 20 min unless it finishes (then the flag is set)
   morningAt = now.getTime(); // any auto read counts as the morning try, so the 20 minutes start now

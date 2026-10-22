@@ -135,7 +135,9 @@
 .food-row-compact .food-card-text { flex: 1 1 0; min-width: 0; color: inherit; text-decoration: none; }
 .food-row-compact .food-card-kcal b { font-size: calc(22px * var(--ts)); }
 .food-row-compact .btn.small { flex: none; margin: 0; min-height: 44px; }
-.food-row-compact .food-card-kcal > b, .food-row-compact .food-card-kcal > small { white-space: nowrap; }
+.food-row-compact .food-card-kcal > b { white-space: nowrap; }
+.balance-deficit { margin: 0; }
+.balance-deficit .balance-net { font-size: inherit; font-weight: 600; }
 .food-row-compact .nb { display: inline-block; max-width: 100%; white-space: normal; overflow-wrap: break-word; }
 .food-row-compact .fl-plus { display: none; font-size: calc(28px * var(--ts)); line-height: 1; font-weight: 700; }
 /* Narrow card (small phones, Duo columns): Log food becomes a 44x44 "+" so the headline fits on one line. */

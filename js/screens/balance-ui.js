@@ -2,7 +2,7 @@
 import { state } from '../state.js';
 import { esc, sheet, todayKey, formatDay } from '../ui.js';
 import { dayTotals } from '../food/core.js';
-import { dayBalance, fmt, deficitText, weekTotals, weekText, loadEnergy } from '../nutrition/balance.js';
+import { dayBalance, fmt, deficitText, deficitShort, weekTotals, weekText, loadEnergy } from '../nutrition/balance.js';
 import { shiftDay } from '../health/metrics.js';
 import { currentWeightKg } from '../derived.js';
 
@@ -20,8 +20,14 @@ export function balanceOn(day, now = new Date(), logs = state.food_logs) {
 export function todayBalanceLine() {
   const b = balanceOn(todayKey());
   if (!b || (b.active == null && b.restingFrom !== 'apple')) return ''; // a prorated formula alone isn't worth a line on Today
-  const d = deficitText(b.deficit, b.eaten);
-  return `<p class="small muted balance-line" data-balance-line><span class="nb">Burned ${fmt(b.burned)} so far</span>${d ? ` · <span class="nb">${esc(d)}</span>` : ''}</p>`;
+  return `<p class="small muted balance-line" data-balance-line><span class="nb">Burned ${fmt(b.burned)} so far</span></p>`;
+}
+
+/** The deficit line right under the Calories line on Today (its own line, so the headline stays on one row) (same calculation and colours as the Food card's), or ''. The ceiling next to it never moves. */
+export function todayDeficitHtml(b = balanceOn(todayKey())) {
+  if (!b || (b.active == null && b.restingFrom !== 'apple')) return '';
+  const d = deficitShort(b.deficit, b.eaten);
+  return d ? `<p class="small balance-deficit" data-today-deficit><b class="nb balance-net ${b.partial ? 'now' : b.deficit > 0 ? 'good' : 'over'}">${esc(d)}</b></p>` : '';
 }
 
 /** The compact block under the Calories meter on the Food tab (a button: opens the 7-day sheet), or ''. */
@@ -35,7 +41,7 @@ export function balanceBlock(day) {
     <span class="label">Eaten vs burned</span>
     <span class="balance-nums"><span class="nb">Eaten <b>${fmt(b.eaten)}</b></span> · <span class="nb">Burned <b>${fmt(b.burned)}</b></span></span>
     <span class="small muted">${esc(parts)}${b.partial ? ' so far' : ''}</span>
-    ${d ? `<b class="balance-net ${b.partial ? 'now' : b.deficit > 0 ? 'good' : 'over'}">${esc(shown)}</b>` : ''}</button>`;
+    ${d ? `<b class="nb balance-net ${b.partial ? 'now' : b.deficit > 0 ? 'good' : 'over'}">${esc(shown)}</b>` : ''}</button>`;
 }
 
 /** The last 7 days (ending at `today`), oldest first: { day, balance }. */

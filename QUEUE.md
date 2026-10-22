@@ -109,7 +109,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 9. #174 Polish: deficit on Today calories line + Programs 'Change start date' + fresh burned
 - Issue: #174
 - Version: 0.16.48
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Today 'Training and food' Calories line also shows the signed deficit (burned minus eaten), same calc, wording and colors as the Food card, e.g. '1,085 of 1,500 kcal · 1,010 deficit'; ceiling stays fixed at the Settings value and never rises with burned.
   - Programs: 'Change start date' next to End program; today or past dates only; weeks recompute; goals re-evaluate from existing data; confirmation sheet with Undo; light haptic; iPhone and Duo folded/unfolded.
