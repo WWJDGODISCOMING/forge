@@ -10,7 +10,7 @@ import { unit } from '../workouts/plan.js';
 import { icon } from '../ui/icons.js';
 import { haptics } from '../ui/haptic.js';
 import { setWantAwake } from '../timer.js';
-import { LIVE_KINDS, LIVE_ORDER, activeMs, isPaused, fmtElapsed, fmtDistance, fmtPace, activeKcal, totalKcal, liveSummaryLine, healthWriteWanted } from '../workouts/live-core.js';
+import { LIVE_KINDS, LIVE_ORDER, activeMs, isPaused, fmtElapsed, fmtDistance, fmtPace, activeKcal, totalKcal, liveSummaryLine, healthWriteWanted, liveNote } from '../workouts/live-core.js';
 import * as live from '../native/live-workout.js';
 
 let tickId = null;
@@ -118,7 +118,7 @@ function paint(el) {
   if (pb) pb.setAttribute('aria-label', paused ? 'Resume workout' : 'Pause workout');
   const ic = $('[data-pause-ic]', el);
   if (ic) ic.innerHTML = paused ? icon('play') : icon('pause');
-  set('[data-note]', m.failed ? 'Kept in Forge only. Apple Health stopped this one.' : m.nativeLive ? (m.activity ? 'Also on your lock screen.' : 'Saving to Apple Health when you end.') : 'Kept in Forge. Open the iPhone app to also fill your Apple rings.');
+  set('[data-note]', liveNote({ failed: m.failed, nativeLive: m.nativeLive, activity: m.activity, healthOn: healthWriteWanted(state.settings), inApp: !!plugin('ForgeWorkouts') }));
   const sr = $('[data-sr]', el);
   if (sr && Math.floor(ms / 60000) !== Number(sr.dataset.min)) { sr.dataset.min = Math.floor(ms / 60000); sr.textContent = liveSummaryLine(s, now, u, { distanceM: m.distanceM, kcal: active }); }
 }

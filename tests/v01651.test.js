@@ -3,7 +3,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import {
   LIVE_KINDS, newLive, pauseLive, resumeLive, endLive, activeMs, isPaused, fmtElapsed, fmtDistance, fmtPace,
-  activeKcal, totalKcal, liveToCardio, alreadyLive, adoptNativePauses, endPayload, healthWriteWanted,
+  activeKcal, totalKcal, liveToCardio, alreadyLive, adoptNativePauses, endPayload, healthWriteWanted, liveNote,
 } from '../js/workouts/live-core.js';
 import { planWorkoutImport } from '../js/health/apple-workouts.js';
 import { VERSION } from '../js/version.js';
@@ -220,4 +220,15 @@ test('Health copy matches the behaviour: off until switched on, distance listed;
   const icons = read('js/ui/icons.js');
   assert(/^\s+run: /m.test(icons) && /^\s+walk: /m.test(icons));
   assert(read('js/screens/train.js').includes('bindLiveChips') && read('js/screens/today.js').includes('livePillHtml'));
+});
+
+test('running-screen note tells the truth about Apple Health', () => {
+  const b = { failed: false, nativeLive: true, activity: false, healthOn: false, inApp: true };
+  eq(liveNote(b), 'Kept in Forge. Apple Health is off for this one.');
+  eq(liveNote({ ...b, healthOn: true }), 'Saving to Apple Health when you end.');
+  eq(liveNote({ ...b, activity: true }), 'On your lock screen. Kept in Forge.');
+  eq(liveNote({ ...b, activity: true, healthOn: true }), 'On your lock screen. Saving to Apple Health when you end.');
+  eq(liveNote({ ...b, nativeLive: false }), 'Kept in Forge. Live Apple Health workouts need iOS 26.');
+  eq(liveNote({ ...b, nativeLive: false, inApp: false }), 'Kept in Forge. Open the iPhone app to also fill your Apple rings.');
+  assert(liveNote({ ...b, failed: true }).includes('stopped'));
 });

@@ -6,8 +6,8 @@ import ActivityKit
 import AppIntents
 #endif
 
-// Shared by the app and the Live Activity extension (ios/App/ForgeLiveActivity): tick this file's target membership for
-// both in Xcode (docs/ios-setup.md → "Live workout on the lock screen"). Nothing here touches HealthKit.
+// Shared by the app and the Live Activity extension (ios/App/ForgeLiveActivity): the project already includes this file
+// in both targets. Nothing here touches HealthKit.
 
 #if canImport(ActivityKit)
 @available(iOS 16.2, *)

@@ -3,9 +3,8 @@ import SwiftUI
 import ActivityKit
 import AppIntents
 
-// The lock-screen card and Dynamic Island for a live Forge workout. Add this folder as a Widget Extension target named
-// ForgeLiveActivity (docs/ios-setup.md → "Live workout on the lock screen"), and tick that target for
-// App/ForgeLiveShared.swift too. Navy and cyan, like the app.
+// The lock-screen card and Dynamic Island for a live Forge workout. This folder is the ForgeLiveActivity extension
+// target, already in the project; App/ForgeLiveShared.swift is in both targets. Navy and cyan, like the app.
 
 private let cyan = Color(red: 0.243, green: 0.784, blue: 0.941)
 private let navy = Color(red: 0.016, green: 0.043, blue: 0.055)

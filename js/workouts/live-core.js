@@ -57,6 +57,14 @@ export function adoptNativePauses(s, { pauses, pausedAt } = {}) {
 /** Saving to Apple Health is a choice made in Settings → Apple Health: off until switched on (same rule as #147). */
 export const healthWriteWanted = (settings) => !!(settings && settings.health_write_workouts);
 
+/** The one-line note under the running clock. Says only what is true about Apple Health for this workout. */
+export function liveNote({ failed, nativeLive, activity, healthOn, inApp }) {
+  if (failed) return 'Kept in Forge only. Apple Health stopped this one.';
+  if (!nativeLive) return inApp ? 'Kept in Forge. Live Apple Health workouts need iOS 26.' : 'Kept in Forge. Open the iPhone app to also fill your Apple rings.';
+  const health = healthOn ? 'Saving to Apple Health when you end.' : 'Kept in Forge. Apple Health is off for this one.';
+  return activity ? 'On your lock screen. ' + (healthOn ? health : 'Kept in Forge.') : health;
+}
+
 /**
  * What to hand the phone when the workout ends. `fallbackKcal` is the MET estimate (0 without a weight, never an
  * invented number); the phone only writes it when it measured no energy of its own, so the rings still move.
