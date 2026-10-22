@@ -141,7 +141,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 12. #153 Live workout screen + lock-screen Live Activity
 - Issue: #153
 - Version: 0.16.51
-- Status: todo
+- Status: in-review
 - Acceptance:
   - HKWorkoutSession + HKLiveWorkoutBuilder (iOS 26+) by extending the #147 plugin.
   - Live screen: timer, active + total kcal, HR with a Watch, distance/pace for walk/run, time-only for Jog in place; pause/resume/end; Duo-ready.

@@ -14,7 +14,7 @@ const SIZES = [[320, 568], [375, 667], [390, 844], [440, 956]];
 const shortLand0 = (w, h) => w >= 600 && h <= 500;
 const SAFE_BOTTOM = 21; // the home indicator in landscape
 const WIDE = [[466, 678], [678, 466], [844, 390], [874, 402], [932, 430], [626, 890], [890, 626]]; // 844x390, 874x402 and 932x430 are current iPhones sideways
-const ROUTES = ['play', 'today', 'train', 'body', 'program', 'score', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
+const ROUTES = ['play', 'live', 'today', 'train', 'body', 'program', 'score', 'trends', 'timer', 'history', 'settings', 'apple', 'food', 'awards', 'locations', 'library'];
 const arg = (k) => (process.argv.find((a) => a.startsWith('--' + k + '=')) || '').split('=')[1] || process.env['LAYOUT_' + k.toUpperCase()];
 const only = arg('routes') ? arg('routes').split(',') : null;
 const shots = arg('shots');

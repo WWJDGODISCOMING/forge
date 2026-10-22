@@ -18,6 +18,11 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
         CAPPluginMethod(name: "overlappingWorkouts", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "activeEnergySum", returnType: CAPPluginReturnPromise),
         CAPPluginMethod(name: "deleteWorkout", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "startLive", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "pauseLive", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "resumeLive", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "endLive", returnType: CAPPluginReturnPromise),
+        CAPPluginMethod(name: "liveState", returnType: CAPPluginReturnPromise),
     ]
 
     private let store = HKHealthStore()
@@ -50,8 +55,12 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
         }
     }
 
+    private var liveStorage: Any? // ForgeLiveWorkout (iOS 26+), untyped so this file still loads on older iPhones
+
     private func activityType(_ name: String?) -> HKWorkoutActivityType {
         switch name {
+        case "running": return .running
+        case "walking": return .walking
         case "functionalStrengthTraining": return .functionalStrengthTraining
         case "mixedCardio": return .mixedCardio
         default: return .traditionalStrengthTraining
@@ -65,7 +74,11 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
         guard let energy = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
               let hr = HKObjectType.quantityType(forIdentifier: .heartRate) else { call.reject("Missing HealthKit types."); return }
         let workout = HKObjectType.workoutType()
-        store.requestAuthorization(toShare: [workout, energy], read: [workout, energy, hr]) { [weak self] _, error in
+        // Live workouts also write and read walking + running distance.
+        var share: Set<HKSampleType> = [workout, energy]
+        var read: Set<HKObjectType> = [workout, energy, hr]
+        if let dist = HKObjectType.quantityType(forIdentifier: .distanceWalkingRunning) { share.insert(dist); read.insert(dist) }
+        store.requestAuthorization(toShare: share, read: read) { [weak self] _, error in
             guard let self = self else { return }
             if let error = error { call.reject(error.localizedDescription); return }
             call.resolve([
@@ -271,5 +284,59 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
             self.store.deleteObjects(of: energy, predicate: HKQuery.predicateForObjects(from: w)) { _, _, _ in finishDelete() }
         }
         store.execute(query)
+    }
+
+    // MARK: live workout (HKWorkoutSession + HKLiveWorkoutBuilder, iOS 26+)
+
+    @available(iOS 26.0, *)
+    private var live: ForgeLiveWorkout {
+        if let l = liveStorage as? ForgeLiveWorkout { return l }
+        let l = ForgeLiveWorkout(store: store)
+        l.onUpdate = { [weak self] data in self?.notifyListeners("liveUpdate", data: data) }
+        liveStorage = l
+        return l
+    }
+
+    @objc func startLive(_ call: CAPPluginCall) {
+        guard HKHealthStore.isHealthDataAvailable() else { call.reject("Apple Health isn't available on this device."); return }
+        guard #available(iOS 26.0, *) else { call.reject("Live workouts need iOS 26 or newer."); return }
+        guard let id = call.getString("id"), !id.isEmpty, let start = date(call.options["start"]) else { call.reject("Missing id or start."); return }
+        let kind = call.getString("activityType")
+        let indoor = call.getBool("indoor") ?? true
+        let walking = kind == "walking"
+        let title = indoor ? "Jog in place" : (walking ? "Walk" : "Run")
+        let weight = call.getDouble("weightKg") ?? 0
+        let miles = (call.getBool("miles") ?? true)
+        Task {
+            do {
+                let hasActivity = try await self.live.start(id: id, type: self.activityType(kind), indoor: indoor, start: start, weightKg: weight, title: title, showsDistance: !indoor, useMiles: miles)
+                call.resolve(["liveActivity": hasActivity])
+            } catch { call.reject(error.localizedDescription) }
+        }
+    }
+
+    @objc func pauseLive(_ call: CAPPluginCall) {
+        if #available(iOS 26.0, *) { live.pause() }
+        call.resolve()
+    }
+
+    @objc func resumeLive(_ call: CAPPluginCall) {
+        if #available(iOS 26.0, *) { live.resume() }
+        call.resolve()
+    }
+
+    @objc func liveState(_ call: CAPPluginCall) {
+        if #available(iOS 26.0, *), live.isRunning { call.resolve(live.snapshot()) } else { call.resolve([:]) }
+    }
+
+    @objc func endLive(_ call: CAPPluginCall) {
+        guard #available(iOS 26.0, *), live.isRunning else { call.resolve([:]); return }
+        let save = call.getBool("save") ?? true
+        let fallback = max(0, call.getDouble("fallbackKcal") ?? 0)
+        let end = date(call.options["end"]) ?? Date()
+        Task {
+            do { call.resolve(try await self.live.end(save: save, fallbackKcal: fallback, endDate: end)) }
+            catch { call.reject(error.localizedDescription) }
+        }
     }
 }

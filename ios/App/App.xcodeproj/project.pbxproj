@@ -18,6 +18,8 @@
 		9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9582B6822FE993A50072D4E8 /* SceneDelegate.swift */; };
 		A1F0E0022F0000020000F002 /* ForgeWorkoutsPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0032F0000020000F003 /* ForgeWorkoutsPlugin.swift */; };
 		A1F0E0042F0000020000F004 /* ForgeBridgeViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0052F0000020000F005 /* ForgeBridgeViewController.swift */; };
+		A1F0E0062F0000030000F006 /* ForgeLiveWorkout.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0072F0000030000F007 /* ForgeLiveWorkout.swift */; };
+		A1F0E0082F0000030000F008 /* ForgeLiveShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0092F0000030000F009 /* ForgeLiveShared.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -32,6 +34,8 @@
 		504EC3131FED79650016851F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		50B271D01FEDC1A000F3C39B /* public */ = {isa = PBXFileReference; lastKnownFileType = folder; path = public; sourceTree = "<group>"; };
 		9582B6822FE993A50072D4E8 /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		A1F0E0072F0000030000F007 /* ForgeLiveWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeLiveWorkout.swift; sourceTree = "<group>"; };
+		A1F0E0092F0000030000F009 /* ForgeLiveShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeLiveShared.swift; sourceTree = "<group>"; };
 		A1F0E0032F0000020000F003 /* ForgeWorkoutsPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeWorkoutsPlugin.swift; sourceTree = "<group>"; };
 		A1F0E0052F0000020000F005 /* ForgeBridgeViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeBridgeViewController.swift; sourceTree = "<group>"; };
 		958DCC722DB07C7200EA8C5F /* debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; name = debug.xcconfig; path = ../debug.xcconfig; sourceTree = SOURCE_ROOT; };
@@ -71,6 +75,8 @@
 			children = (
 				9582B6822FE993A50072D4E8 /* SceneDelegate.swift */,
 				A1F0E0032F0000020000F003 /* ForgeWorkoutsPlugin.swift */,
+				A1F0E0072F0000030000F007 /* ForgeLiveWorkout.swift */,
+				A1F0E0092F0000030000F009 /* ForgeLiveShared.swift */,
 				A1F0E0052F0000020000F005 /* ForgeBridgeViewController.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
@@ -174,6 +180,8 @@
 				504EC3081FED79650016851F /* AppDelegate.swift in Sources */,
 				9582B6832FE993A70072D4E8 /* SceneDelegate.swift in Sources */,
 				A1F0E0022F0000020000F002 /* ForgeWorkoutsPlugin.swift in Sources */,
+				A1F0E0062F0000030000F006 /* ForgeLiveWorkout.swift in Sources */,
+				A1F0E0082F0000030000F008 /* ForgeLiveShared.swift in Sources */,
 				A1F0E0042F0000020000F004 /* ForgeBridgeViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -166,6 +166,7 @@ export function renderTrain(el) {
 
       <div class="tools">
         <a class="tool" href="#/timer"><span class="t-ic" aria-hidden="true">${icon('timer')}</span>Timer</a>
+        <a class="tool" href="#/live" data-live><span class="t-ic" aria-hidden="true">${icon('play')}</span>Live workout</a>
         <button class="tool" data-cardio><span class="t-ic" aria-hidden="true">${icon('bike')}</span>Log cardio</button>
         <button class="tool" data-plates><span class="t-ic" aria-hidden="true">${icon('dumbbell')}</span>Plates</button>
         <a class="tool" href="#/library"><span class="t-ic" aria-hidden="true">${icon('book')}</span>Exercises</a>

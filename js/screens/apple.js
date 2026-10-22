@@ -55,7 +55,7 @@ export function storeEnergy(entries) {
 async function saveWorkouts(workouts) {
   if (!workouts.length) return 0;
   const existing = await importedCardioIds().catch(() => new Map());
-  const plan = planWorkoutImport(workouts, { existing, forgeWorkouts: state.workouts });
+  const plan = planWorkoutImport(workouts, { existing, forgeWorkouts: state.workouts, cardio: state.cardio });
   const have = new Map(state.cardio.map((c) => [c.id, c]));
   let n = 0;
   for (const { id, fields } of plan.create) { put('cardio_sessions', newRecord(fields, { id, source: 'apple_health' })); n++; }
