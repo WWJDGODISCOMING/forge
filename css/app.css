@@ -338,7 +338,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .chart .trend { fill: none; stroke: var(--accent-text); stroke-width: calc(3px * var(--ck, 1)); stroke-linecap: round; stroke-linejoin: round; }
 .chart .scrub-pill rect { fill: var(--surface-3); stroke: var(--separator); stroke-width: 1; }
 .chart .scrub-pill text { fill: var(--text-1); font-size: calc(12px * var(--ts) * var(--ck, 1)); font-weight: 600; font-family: var(--font); font-variant-numeric: tabular-nums; }
-.chart .scrub-pill .scrub-sub { font-weight: 500; fill: var(--text-2); }
+.chart .scrub-pill .scrub-sub { font-weight: 500; fill: var(--text-1); } /* --text-2 on --surface-3 was 4.16:1 in dark */
 /* The scrub layer is invisible until bindScrub() adds .on, and fades out when the finger lifts. Opacity only, so Reduce Motion just drops the fade. */
 .chart .scrub, .chart .scrub-pill, .spark .scrub { opacity: 0; transition: opacity .2s ease-out; pointer-events: none; }
 .chart .scrub.on, .chart .scrub-pill.on, .spark .scrub.on { opacity: 1; transition-duration: .08s; }

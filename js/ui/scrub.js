@@ -1,9 +1,9 @@
 // Press and drag across a chart to read it (Apple Health / Withings style). The maths is in scrubmath.js; the SVG
 // layers come from scrubLayer(), the readout row from scrubBar(), and bindScrub() wires pointer events to them.
 import { formatDay } from '../ui.js';
-import { tick } from './haptic.js';
+import { tick, lightTap } from './haptic.js';
 import { icon } from './icons.js';
-import { labelPlace, tickGate, scrubIntent, isFlick, stepIndex, spokenPoint } from './scrubmath.js';
+import { labelPlace, tickGate, scrubIntent, isFlick, stepIndex, spokenPoint, restoreIndex } from './scrubmath.js';
 
 /** The scrub line, enlarged dot and floating label, hidden until bindScrub() lights them. y1/y2: the line's extent in the viewBox. */
 export function scrubLayer(y1, y2) {
@@ -15,6 +15,17 @@ export function scrubLayer(y1, y2) {
 export function scrubBar(idle = 'Touch and drag the chart to read a day.') {
   const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   return `<div class="scrub-bar"><button type="button" class="icon-btn scrub-step prev" data-scrub-prev aria-label="Earlier reading">${icon('chev')}</button><p class="small muted chart-readout" data-readout aria-live="polite">${attr(idle)}</p><button type="button" class="icon-btn scrub-step" data-scrub-next aria-label="Later reading">${icon('chev')}</button></div>`;
+}
+
+/** "Back to latest" button for a panned chart (44 px; bindBackToLatest adds the haptic tap). */
+export function backToLatestHtml() {
+  return '<button class="btn ghost small" type="button" data-pan-reset>Back to latest</button>';
+}
+
+/** Wire the [data-pan-reset] button inside `root`: a light tap, then `reset()`. */
+export function bindBackToLatest(root, reset) {
+  const b = root.querySelector('[data-pan-reset]');
+  if (b) b.addEventListener('click', () => { lightTap(); reset(); });
 }
 
 /** Index of the point nearest to x (points sorted by x). Pure. */
@@ -33,9 +44,12 @@ export function nearestIndex(xs, x) {
  * (a mouse starts at once). A quick long swipe calls `onPan(-1 | 1)` (earlier / later); the arrows beside `readout`
  * ([data-scrub-prev] / [data-scrub-next]) step one reading and call it too when they run off the end. The SVG becomes
  * an adjustable slider for VoiceOver (swipe up/down) and arrow keys. Pointer events only. Returns an unbind.
- * Point tuples: [x, y, day, text, trendText?]. Options: dayText, onPan, onSelect(i | null), slider (default true).
+ * Point tuples: [x, y, day, text, trendText?]. Options: dayText, onPan, onSelect(i | null), slider (default true), restore.
+ * A step that runs off an end calls onPan(dir, { selectDay, focus }) (focus: 'prev' | 'next' | 'chart'); onPan returns
+ * false when it can't pan. The screen re-renders and passes restore { day, dir, focus } to the new bindScrub, which
+ * selects the reading just before / after `day` and puts focus back on the same control.
  */
-export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { month: 'short', day: 'numeric' }), onPan = null, onSelect = null, slider = true } = {}) {
+export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { month: 'short', day: 'numeric' }), onPan = null, onSelect = null, slider = true, restore = null } = {}) {
   if (!svg || !svg.dataset.scrub) return () => {};
   let pts;
   try { pts = JSON.parse(svg.dataset.scrub); } catch { return () => {}; }
@@ -133,9 +147,13 @@ export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { month:
     fade();
     if (onSelect) onSelect(null);
   };
-  const step = (dir) => {
+  const step = (dir, focus = 'chart') => {
     const r = stepIndex(sel, dir, pts.length);
-    if (r.edge && onPan && sel === (r.edge < 0 ? 0 : pts.length - 1)) { clear(); onPan(r.edge); return; }
+    if (r.edge && onPan && sel === (r.edge < 0 ? 0 : pts.length - 1)) {
+      if (onPan(r.edge, { selectDay: pts[sel][2], focus }) === false) return; // nothing further to show: keep the selection
+      clear();
+      return;
+    }
     if (r.i != null) showAt(r.i);
   };
   const onKey = (ev) => {
@@ -148,8 +166,8 @@ export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { month:
   const eat = (ev) => { if (moved) { ev.stopPropagation(); ev.preventDefault(); moved = false; } };
   const noScroll = (ev) => { if (active && ev.cancelable) ev.preventDefault(); }; // after a long press the page must not start scrolling under the finger
   const noMenu = (ev) => ev.preventDefault();
-  const prevClick = () => step(-1);
-  const nextClick = () => step(1);
+  const prevClick = () => step(-1, 'prev');
+  const nextClick = () => step(1, 'next');
   let unbind = () => {};
   const outside = (ev) => {
     if (!svg.isConnected) return unbind(); // the screen changed: stop listening
@@ -178,6 +196,11 @@ export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { month:
   if (prevBtn) prevBtn.addEventListener('click', prevClick);
   if (nextBtn) nextBtn.addEventListener('click', nextClick);
   document.addEventListener('pointerdown', outside);
+  if (restore) {
+    showAt(restoreIndex(pts.map((p) => p[2]), restore.day, restore.dir));
+    const target = restore.focus === 'prev' ? prevBtn : restore.focus === 'next' ? nextBtn : svg;
+    if (target && target.focus) target.focus({ preventScroll: true });
+  }
   unbind = () => {
     clearTimeout(hold);
     svg.removeEventListener('keydown', onKey);

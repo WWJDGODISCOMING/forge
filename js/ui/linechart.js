@@ -94,7 +94,7 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
   </svg>`;
 }
 
-export { bindScrub, scrubBar, scrubLayer, nearestIndex } from './scrub.js';
+export { bindScrub, scrubBar, scrubLayer, nearestIndex, backToLatestHtml, bindBackToLatest } from './scrub.js';
 
 /** Class that holds the draw-in until the screen has landed. Set once at mount, so timing never changes mid-animation; range/unit taps have no view transition and start at once. */
 export function chartWait() {

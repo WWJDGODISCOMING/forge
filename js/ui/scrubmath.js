@@ -58,3 +58,15 @@ export function stepIndex(i, dir, n) {
 export function spokenPoint(day, text, trend) {
   return [day, text, trend].filter(Boolean).join(', ');
 }
+
+/**
+ * Which point to select after a step panned the window. `days` are the new window's points (ascending), `day` the
+ * reading that was selected before, `dir` -1 (earlier) or +1 (later): the nearest reading just before / after it,
+ * or the closest end if the new window has none that side. -1 when there are no points.
+ */
+export function restoreIndex(days, day, dir) {
+  if (!days.length) return -1;
+  if (dir < 0) { for (let i = days.length - 1; i >= 0; i--) if (days[i] < day) return i; return 0; }
+  for (let i = 0; i < days.length; i++) if (days[i] > day) return i;
+  return days.length - 1;
+}

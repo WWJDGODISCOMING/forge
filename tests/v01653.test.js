@@ -1,8 +1,10 @@
 // v0.16.53: drag to scrub on every chart. Synthetic data only.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { scrubIntent, isFlick, stepIndex, spokenPoint } from '../js/ui/scrubmath.js';
+import { scrubIntent, isFlick, stepIndex, spokenPoint, restoreIndex } from '../js/ui/scrubmath.js';
+import { addDays } from '../js/weight/smoothing.js';
 import { weightChartSVG, sparklineSVG } from '../js/weight/chart.js';
+import { backToLatestHtml } from '../js/ui/scrub.js';
 import { lineChartSVG, scrubBar } from '../js/ui/linechart.js';
 import { VERSION } from '../js/version.js';
 
@@ -93,6 +95,61 @@ test('scrub code uses pointer events, honours Reduce Motion, and is wired into e
   assert(/prefers-reduced-motion: reduce\) \{ \.chart \.scrub/.test(read('css/app.css')), 'no fade under Reduce Motion');
   assert(/bindScrub/.test(read('js/screens/weight.js')) && /bindScrub/.test(read('js/screens/today.js')) && /bindScrub/.test(read('js/screens/history.js')) && /bindScrub/.test(read('js/screens/metric.js')));
   assert(read('sw.js').includes("'./js/ui/scrub.js'"), 'precached');
+});
+
+// ---- review round 1 ----
+const tokens = read('css/tokens.css');
+const lightStart = tokens.indexOf('prefers-color-scheme: light');
+const token = (name, scope) => {
+  const m = scope.match(new RegExp(`--${name}:\\s*(#[0-9a-fA-F]{6})`));
+  return m && m[1];
+};
+const lum = (hex) => {
+  const c = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16) / 255).map((v) => (v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4));
+  return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+};
+const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((p, q) => q - p); return (x + 0.05) / (y + 0.05); };
+
+test('the label trend line is 4.5:1 or better on the pill in dark and light', () => {
+  const m = read('css/app.css').match(/\.scrub-pill \.scrub-sub \{[^}]*fill: var\(--([\w-]+)\)/);
+  assert(m, 'sub-line colour token');
+  for (const [name, scope] of [['dark', tokens.slice(0, lightStart)], ['light', tokens.slice(lightStart)]]) {
+    const r = ratio(token(m[1], scope), token('surface-3', scope));
+    assert(r >= 4.5, `${name}: ${r.toFixed(2)}:1`);
+  }
+});
+
+test('stepping earlier from the first point of a 30d window lands before the old day, not after', () => {
+  const pts = scrubData(weightChartSVG(series, { units: 'imperial', rangeDays: 30 }));
+  const first = pts[0][2];
+  eq(stepIndex(0, -1, pts.length).edge, -1, 'runs off the earlier end');
+  // the screen pans back by half the range, then the bound scrub restores the selection
+  const panned = scrubData(weightChartSVG(series, { units: 'imperial', rangeDays: 30, endDay: addDays(series[39].day, -15) }));
+  const days = panned.map((p) => p[2]);
+  const i = restoreIndex(days, first, -1);
+  assert(days[i] < first, `${days[i]} is before ${first}`);
+  eq(i, days.filter((d) => d < first).length - 1, 'the reading just before');
+  eq(restoreIndex(days, days[3], 1), 4, 'stepping later restores the next reading');
+});
+
+test('Back to latest is a 44 px haptic button, shown whenever a chart is panned', () => {
+  assert(/data-pan-reset/.test(backToLatestHtml()) && /Back to latest/.test(backToLatestHtml()));
+  assert(/\.btn\.small \{ min-height: 44px/.test(read('css/app.css')));
+  assert(/lightTap\(\)/.test(read('js/ui/scrub.js')), 'haptic tap');
+  for (const f of ['js/screens/weight.js', 'js/screens/metric.js']) {
+    const src = read(f);
+    assert(/range && panDays \? backToLatestHtml\(\)/.test(src), `${f} shows the control whenever panDays > 0`);
+    assert(/bindBackToLatest\(/.test(src), `${f} wires it`);
+    assert(/restore\b/.test(src) && /selectDay/.test(src), `${f} restores the selection`);
+  }
+  const app = read('js/app.js');
+  assert(/lastRoute === 'body'[^\n]*resetWeightPan/.test(app) && /lastRoute === 'metric'[^\n]*resetMetricPan/.test(app), 'pan resets when you leave');
+});
+
+test('a fresh visit opens at the latest data', () => {
+  // The screens import Firebase over https, so Node can't load them; check the reset itself.
+  assert(/function resetWeightPan\(\) \{ panDays = 0;/.test(read('js/screens/weight.js')));
+  assert(/function resetMetricPan\(\) \{ panDays = 0;/.test(read('js/screens/metric.js')));
 });
 
 test('version bumped in step', () => {

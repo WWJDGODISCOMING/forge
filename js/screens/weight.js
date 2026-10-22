@@ -7,7 +7,7 @@ import { weightToDisplay, weightFromInput, weightUnit, formatWeight } from '../u
 import { trendChange, weeklyRate, dayKey, addDays } from '../weight/smoothing.js';
 import { weightChartSVG } from '../weight/chart.js';
 import { grabChart, morphChart, scrubBar } from '../ui/linechart.js';
-import { bindScrub } from '../ui/scrub.js';
+import { bindScrub, backToLatestHtml, bindBackToLatest } from '../ui/scrub.js';
 import { timeOf, readingLabel } from '../weight/reading.js';
 import { weightSeries, mySuspects, latestWeighIn } from '../derived.js';
 import { SCALE_SOURCES } from '../withings/review.js';
@@ -18,11 +18,16 @@ import { goalProjection } from '../health/goalpath.js';
 const SOURCE_LABELS = { manual: 'Manual', withings: 'Withings', withings_csv: 'Withings (export)', apple_shortcut: 'Apple Health (Shortcut)', apple_health: 'Apple Health' };
 let range = 90;
 let panDays = 0; // how far back the chart window has been swiped (0 = ends at the latest weigh-in)
+let restoreScrub = null; // { day, dir, focus }: where the arrow / key step that panned the window left off
 let unbindScrub = () => {};
 let showAll = false;
 const HISTORY_LIMIT = 5;
 
 export { timeOf, readingLabel };
+
+/** Open the weight chart at the latest weigh-in again (the router calls this when you leave Body). */
+export function resetWeightPan() { panDays = 0; restoreScrub = null; }
+export const weightPanDays = () => panDays;
 
 export function openLogWeight() {
   const u = getUnits();
@@ -95,6 +100,7 @@ export function weightHeroHtml() {
       </div>
       ${weightChartSVG(series, { units: u, goalKg, projection, rangeDays: range || null, endDay: range && panDays ? addDays(latest.day, -panDays) : null })}
       ${scrubBar()}
+      ${range && panDays ? backToLatestHtml() : ''}
       <p class="small muted legend"><span class="key dot"></span>weigh-ins <span class="key line"></span>trend ${goalKg ? '<span class="key dash"></span>goal' : ''}</p>
       <button class="btn bigbtn" data-log type="button">${icon('plus')}Log weight</button>
     </div>`;
@@ -137,14 +143,19 @@ export function bindWeight(el, rerender) {
   );
   unbindScrub();
   const { series } = weightModel();
-  const onPan = range && series.length ? (dir) => { // dir -1 = earlier
+  const restore = restoreScrub;
+  restoreScrub = null;
+  const onPan = range && series.length ? (dir, o = {}) => { // dir -1 = earlier
     const latest = series[series.length - 1].day;
     const next = Math.max(0, panDays - dir * Math.max(1, Math.round(range / 2)));
-    if ((dir < 0 && addDays(latest, -panDays - range) <= series[0].day) || next === panDays) return; // already at the first or latest weigh-in
+    if ((dir < 0 && addDays(latest, -panDays - range) <= series[0].day) || next === panDays) return false; // already at the first or latest weigh-in
     panDays = next;
+    restoreScrub = o.selectDay ? { day: o.selectDay, dir, focus: o.focus } : null;
     rerender();
+    return true;
   } : null;
-  unbindScrub = bindScrub($('[data-weight-hero] svg.chart', el), $('[data-weight-hero] [data-readout]', el), { onPan });
+  bindBackToLatest(el, () => { panDays = 0; rerender(); });
+  unbindScrub = bindScrub($('[data-weight-hero] svg.chart', el), $('[data-weight-hero] [data-readout]', el), { onPan, restore });
   const confirmDelete = (id, fromScale) => confirmSheet({
     title: 'Delete weigh-in?',
     message: fromScale ? 'This removes it from Forge on all devices. It stays in the Withings app, and Forge won’t bring it back.' : 'This removes it from your history on all devices.',

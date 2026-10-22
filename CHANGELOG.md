@@ -15,6 +15,10 @@ No Cloud Functions or `firestore.rules` changes. No native rebuild.
 - The page still scrolls. Reading starts on a sideways move or a long press.
 - VoiceOver can adjust each chart and reads the date, value and trend.
 - With Reduce Motion on, the line just appears and disappears.
+- After a swipe back in time, a **Back to latest** button brings the chart home. Leaving Body or a metric always reopens at the latest data.
+- Stepping earlier or later with the arrows, keys or VoiceOver past the edge of the window keeps your place (the reading just before or after) and keeps focus on the same control.
+- The trend line in the label is easier to read in dark mode.
+- Scrubbing covers the weight, metric, Today and exercise Progress charts; the Goal path chart is not scrubbable yet.
 
 ### Details
 

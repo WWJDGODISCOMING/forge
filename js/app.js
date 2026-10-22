@@ -297,6 +297,8 @@ async function renderScreen() {
   const route = routes[currentRoute()] ? currentRoute() : 'today';
   // The rest timer belongs to a running workout; never let it outlive one.
   if (restRemaining() > 0 && !state.workouts.some((w) => w.status === 'active' && !w.deleted)) stopRest();
+  if (lastRoute === 'body' && route !== 'body') import('./screens/weight.js').then((m) => m.resetWeightPan());
+  if (lastRoute === 'metric' && route !== 'metric') import('./screens/metric.js').then((m) => m.resetMetricPan());
   if (lastRoute === 'session' && route !== 'session') import('./screens/session.js').then((m) => m.leaveSession());
   if (lastRoute === 'play' && route !== 'play') import('./screens/player.js').then((m) => m.leavePlayer());
   if (lastRoute === 'live' && route !== 'live') import('./screens/live.js').then((m) => m.leaveLive());
