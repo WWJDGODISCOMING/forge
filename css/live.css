@@ -51,11 +51,12 @@
 @keyframes live-breathe { 50% { opacity: .55; } }
 
 /* Folded Duo and landscape: timer on the left, controls and numbers on the right. */
-@media (orientation: landscape), (max-width: 480px) and (max-height: 700px) {
-  .live { display: grid; grid-template-columns: 1fr 1fr; align-content: start; column-gap: var(--s-5); }
-  .live > .live-top, .live > .live-fine { grid-column: 1 / -1; }
+@media (orientation: landscape) {
+  .live[data-kind] { display: grid; grid-template-columns: 1fr 1fr; align-content: start; column-gap: var(--s-5); }
+  .live[data-kind] > .live-top, .live[data-kind] > .live-fine { grid-column: 1 / -1; }
   .live-clock { padding: var(--s-3) 0; font-size: min(calc(var(--t-hero) * 1.2 * var(--ts)), 72px); }
   .live-actions, .live-go { margin-top: 0; }
+  .live:not([data-kind]) { min-height: 0; }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -82,6 +82,28 @@ for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 
   });
 }
 
+// Live workout: the running screen (Run shows distance and pace) and the paused look, at the phone and Duo sizes
+for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
+  for (const dark of [true, false]) {
+    test(`layout: live: the running screen fits at ${w}x${h} ${dark ? 'dark' : 'light'}`, async () => {
+      if (skipReason()) return;
+      browser = browser || await launch();
+      await browser.viewport(w, h, dark);
+      await browser.open('live', seed());
+      await browser.eval("document.querySelector('[data-kind=run]').click(); document.querySelector('[data-start]').click()");
+      await new Promise((r) => setTimeout(r, 800));
+      await browser.eval("document.querySelector('[data-pause]').click()");
+      await new Promise((r) => setTimeout(r, 400));
+      const r = await browser.eval("(() => { const b = document.querySelector('[data-pause]').getBoundingClientRect(); const e = document.querySelector('[data-end]').getBoundingClientRect(); return { over: document.documentElement.scrollWidth > innerWidth + 1, pause: Math.round(b.height), end: Math.round(e.height), tiles: document.querySelectorAll('.live-tile').length }; })()");
+      if (shots) await browser.screenshot(`${shots}/live-running-${w}x${h}-${dark ? 'dark' : 'light'}.png`);
+      await browser.eval("localStorage.removeItem('forge.live')");
+      assert(r && !r.over, 'the live screen overflows sideways');
+      assert(r.pause >= 44 && r.end >= 44, `Pause ${r.pause}px / End ${r.end}px tall`);
+      assert(r.tiles === 4, `expected 4 tiles for a run, got ${r.tiles}`);
+    });
+  }
+}
+
 for (const route of standalone ? ['today', 'train', 'body', 'score', 'settings'] : []) {
   test(`layout: ${route}: the nav bar collapses once the large title scrolls under it, and not before`, async () => {
     if (skipReason()) return;
