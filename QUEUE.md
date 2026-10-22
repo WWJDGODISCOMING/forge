@@ -174,7 +174,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 15. #161 Contrast + onboarding follow-up
 - Issue: #161
 - Version: 0.16.54
-- Status: in-review
+- Status: done (PR #181)
 - Acceptance:
   - Light-mode Done set button and How-To pill in the player reach 4.5:1.
   - The selected Settings item on the unfolded Duo (626x890, 890x626) reaches 4.5:1, light and dark.
