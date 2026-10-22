@@ -22,28 +22,48 @@ export const crossedMid = (a, b) => (a - 90) * (b - 90) < 0 || b === 90;
 const fmtNum = (n) => Math.round(n).toLocaleString();
 const when = (iso) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
 
+/** A kg goal as the user sees it: metric as is, imperial rounded to 2 significant figures (220,462 lb -> 220,000). */
+export function goalDisplay(kg, units) {
+  const v = weightToDisplay(kg, units);
+  if (units === 'metric') return v;
+  const m = 10 ** Math.max(0, Math.floor(Math.log10(v)) - 1);
+  return Math.round(v / m) * m;
+}
+
 /** "12,000 lb" style total for the kg-based badges, in the user's units; other units are plain counts. */
 function amount(v, unit, units) {
   if (unit.startsWith('kg')) {
     const rest = unit.slice(2).trim(); // 'lifted' or 'in one workout'
-    return `${fmtNum(weightToDisplay(v, units))} ${weightUnit(units)}${rest ? ` ${rest}` : ''}`;
+    return `${fmtNum(goalDisplay(v, units))} ${weightUnit(units)}${rest ? ` ${rest}` : ''}`;
   }
   return `${fmtNum(v)} ${unit}`;
+}
+
+/** The "how to earn it" line; volume badges speak the user's units ("Lift 220,000 lb in total" / "Lift 100 tonnes in total"). */
+export function howText(b, units = 'imperial') {
+  const p = b.progress;
+  if (!p || !p.unit.startsWith('kg')) return b.how;
+  const what = p.unit.includes('one workout') ? 'in one workout' : 'in total';
+  const n = units === 'metric' ? `${fmtNum(p.goal / 1000)} tonnes` : `${fmtNum(goalDisplay(p.goal, units))} lb`;
+  return `Lift ${n} ${what}`;
 }
 
 /**
  * What the back of a badge says. `b` is a badge from awardsFor ({ name, how, earned, progress });
  * returns { title, lines: [text], bar: { cur, goal, text } | null, tier, sr } (sr = the whole back as one sentence).
+ * bar.cur and bar.goal are in the displayed units.
  */
 export function backInfo(b, { tierName = '', units = 'imperial' } = {}) {
-  const lines = [b.how];
+  const lines = [howText(b, units)];
   let bar = null;
   const p = b.progress;
   if (b.earned) {
     lines.push(`Earned ${when(b.earned.at)}${p ? ` · ${amount(p.goal, p.unit, units)}` : ''}`);
   } else if (p) {
-    const cur = p.unit.startsWith('kg') ? weightToDisplay(p.cur, units) : p.cur;
-    bar = { cur: p.cur, goal: p.goal, text: `${fmtNum(cur)} of ${amount(p.goal, p.unit, units)}` };
+    const kg = p.unit.startsWith('kg');
+    const goal = kg ? goalDisplay(p.goal, units) : p.goal;
+    const cur = kg ? Math.min(goal, Math.round(weightToDisplay(p.cur, units))) : p.cur;
+    bar = { cur, goal, text: `${fmtNum(cur)} of ${amount(p.goal, p.unit, units)}` };
   } else {
     lines.push('Not earned yet');
   }
@@ -71,12 +91,15 @@ function wireOne(btn, say) {
     angle = a;
     card.style.setProperty('--rot', `${a}deg`);
   };
+  const frontLabel = btn.getAttribute('aria-label');
   const side = (flipped) => {
     const changed = btn.classList.contains('flipped') !== flipped;
     btn.setAttribute('aria-pressed', flipped ? 'true' : 'false');
     btn.classList.toggle('flipped', flipped);
     front.setAttribute('aria-hidden', flipped ? 'true' : 'false');
     back.setAttribute('aria-hidden', flipped ? 'false' : 'true');
+    // The button's label overrides its contents, so swap it: VoiceOver re-reads whichever side is up.
+    if (frontLabel != null) btn.setAttribute('aria-label', flipped && back.dataset.sr ? back.dataset.sr : frontLabel);
     if (flipped && changed) say(back.dataset.sr || '');
   };
 

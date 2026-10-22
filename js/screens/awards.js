@@ -6,7 +6,7 @@ import { esc } from '../ui.js';
 import { streak, LEVELS, xpForLevel, XP_RULES } from '../workouts/awards.js';
 import { myAwards, syncBadges, goalDays } from '../workouts/awards-store.js';
 import { badgeSVG, BADGE_ART, TIER_NAMES } from '../ui/badges.js';
-import { backInfo, wireFlips } from '../ui/badge-flip.js';
+import { backInfo, howText, wireFlips } from '../ui/badge-flip.js';
 import { icon, emptyState } from '../ui/icons.js';
 import { missionWeekHtml } from '../missions/ui.js';
 import { programsAwardsHtml } from '../body-programs/ui.js';
@@ -74,7 +74,7 @@ export function renderAwards(el) {
                     ${badgeSVG(b.id, { earned: !!b.earned, shine: !!b.earned && Date.now() - Date.parse(b.earned.at) < RECENT, size: 76, units })}
                     <span class="aw-tier">${tier}</span>
                     <b>${esc(b.name)}</b>
-                    <small class="muted">${b.earned ? `Earned ${when(b.earned.at)}` : esc(b.how)}</small>
+                    <small class="muted">${b.earned ? `Earned ${when(b.earned.at)}` : esc(howText(b, units))}</small>
                   </span>
                   <span class="aw-face aw-back" aria-hidden="true" data-sr="${esc(back.sr)}">
                     <span class="aw-tier">${tier}</span>

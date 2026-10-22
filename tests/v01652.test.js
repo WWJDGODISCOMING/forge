@@ -1,7 +1,7 @@
 // v0.16.52: badges flip in 3D. Synthetic data only.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { dragAngle, settleAngle, crossedMid, backInfo } from '../js/ui/badge-flip.js';
+import { dragAngle, settleAngle, crossedMid, backInfo, howText, wireFlips } from '../js/ui/badge-flip.js';
 import { awardsFor, badgeProgress, METERS, BADGES } from '../js/workouts/awards.js';
 import { VERSION } from '../js/version.js';
 
@@ -55,6 +55,52 @@ test('weights on the back follow the user units', () => {
   const p = { name: 'Ten Tons', how: 'x', earned: null, progress: { cur: 5000, goal: 10000, unit: 'kg lifted' } };
   eq(backInfo(p, { units: 'metric' }).bar.text, '5,000 of 10,000 kg lifted');
   assert(backInfo(p, { units: 'imperial' }).bar.text.includes('lb lifted'));
+});
+
+test('volume badges speak one unit on both sides, and the bar uses the displayed numbers', () => {
+  const v = (id, goal, unit, cur) => ({ id, name: 'Hundred Tons', how: 'Lift 100 tonnes in total', earned: null, progress: { cur, goal, unit } });
+  const b = v('vol2', 100000, 'kg lifted', 5443.108); // 12,000 lb
+  eq(howText(b, 'imperial'), 'Lift 220,000 lb in total');
+  eq(howText(b, 'metric'), 'Lift 100 tonnes in total');
+  const imp = backInfo(b, { units: 'imperial' });
+  eq(imp.bar.text, '12,000 of 220,000 lb lifted');
+  eq(imp.bar.goal, 220000);
+  eq(imp.bar.cur, 12000);
+  assert(!imp.sr.includes('220,462') && imp.lines[0] === 'Lift 220,000 lb in total');
+  const met = backInfo(b, { units: 'metric' });
+  eq(met.bar.text, '5,443 of 100,000 kg lifted');
+  eq(met.bar.goal, 100000);
+  const big = v('big', 10000, 'kg in one workout', 0);
+  eq(howText(big, 'imperial'), 'Lift 22,000 lb in one workout');
+  eq(howText(big, 'metric'), 'Lift 10 tonnes in one workout');
+  eq(howText(v('vol3', 1000000, 'kg lifted', 0), 'imperial'), 'Lift 2,200,000 lb in total');
+});
+
+test('turning a card swaps the button label so VoiceOver re-reads the side that is up', () => {
+  const attrs = () => { const m = {}; return { m, setAttribute: (k, x) => { m[k] = x; }, getAttribute: (k) => (k in m ? m[k] : null) }; };
+  const el = (extra = {}) => ({ ...attrs(), ...extra });
+  const front = el(); const back = el({ dataset: { sr: 'Ten Tons. Cobalt tier.' } });
+  const cls = new Set();
+  const btn = el({
+    classList: { contains: (c) => cls.has(c), toggle: (c, on) => (on ? cls.add(c) : cls.delete(c)), add: (c) => cls.add(c), remove: (c) => cls.delete(c) },
+    querySelector: (q) => (q === '.aw-front' ? front : q === '.aw-back' ? back : el({ style: { setProperty() {} } })),
+    addEventListener: (t, fn) => { (btn.fire[t] ||= []).push(fn); },
+    getBoundingClientRect: () => ({ width: 100 }), fire: {},
+  });
+  btn.setAttribute('aria-label', 'Ten Tons, locked. Turns over to show its story.');
+  const spoken = [];
+  const g = globalThis;
+  const keep = { win: g.window, rm: g.matchMedia, raf: g.requestAnimationFrame, caf: g.cancelAnimationFrame };
+  g.matchMedia = () => ({ matches: true }); g.window = g;
+  g.requestAnimationFrame = () => 0; g.cancelAnimationFrame = () => {};
+  try {
+    wireFlips({ querySelectorAll: () => [btn] }, (t) => spoken.push(t));
+    for (const fn of btn.fire.click) fn();
+    eq(btn.getAttribute('aria-label'), 'Ten Tons. Cobalt tier.');
+    eq(spoken.length, 1);
+    for (const fn of btn.fire.click) fn();
+    eq(btn.getAttribute('aria-label'), 'Ten Tons, locked. Turns over to show its story.');
+  } finally { g.window = keep.win; g.matchMedia = keep.rm; g.requestAnimationFrame = keep.raf; g.cancelAnimationFrame = keep.caf; }
 });
 
 test('the screen wires the flip, with button role, hidden back and Reduce Motion crossfade', () => {
