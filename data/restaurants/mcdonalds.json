@@ -1,0 +1,23 @@
+{
+  "id": "mcdonalds", "name": "McDonald's", "build": false, "version": 1,
+  "source": "https://www.mcdonalds.com/us/en-us/about-our-food/nutrition-calculator.html", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "burgers", "label": "Burgers and sandwiches"},
+    {"id": "breakfast", "label": "Breakfast"},
+    {"id": "sides", "label": "Fries and sides"},
+    {"id": "drinks", "label": "Drinks"}
+  ],
+  "items": [
+    {"id": "big-mac", "name": "Big Mac", "group": "burgers", "kcal": 590, "protein_g": 25, "carbs_g": 46, "fat_g": 34},
+    {"id": "mcdouble", "name": "McDouble", "group": "burgers", "kcal": 400, "protein_g": 22, "carbs_g": 33, "fat_g": 20},
+    {"id": "qpc", "name": "Quarter Pounder with Cheese", "group": "burgers", "kcal": 520, "protein_g": 30, "carbs_g": 42, "fat_g": 26},
+    {"id": "mcchicken", "name": "McChicken", "group": "burgers", "kcal": 400, "protein_g": 14, "carbs_g": 39, "fat_g": 21},
+    {"id": "fish", "name": "Filet-O-Fish", "group": "burgers", "kcal": 390, "protein_g": 16, "carbs_g": 38, "fat_g": 19},
+    {"id": "nuggets10", "name": "Chicken McNuggets, 10 piece", "group": "burgers", "kcal": 410, "protein_g": 23, "carbs_g": 25, "fat_g": 25},
+    {"id": "egg-mcmuffin", "name": "Egg McMuffin", "group": "breakfast", "kcal": 310, "protein_g": 17, "carbs_g": 30, "fat_g": 13},
+    {"id": "hash-brown", "name": "Hash Browns", "group": "breakfast", "kcal": 140, "protein_g": 1, "carbs_g": 15, "fat_g": 8},
+    {"id": "fries-m", "name": "French Fries, medium", "group": "sides", "kcal": 320, "protein_g": 5, "carbs_g": 43, "fat_g": 15},
+    {"id": "coke-m", "name": "Coca-Cola, medium", "group": "drinks", "kcal": 200, "protein_g": 0, "carbs_g": 55, "fat_g": 0},
+    {"id": "diet-coke-m", "name": "Diet Coke, medium", "group": "drinks", "kcal": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0}
+  ]
+}

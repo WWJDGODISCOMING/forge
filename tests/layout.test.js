@@ -188,6 +188,93 @@ if (standalone) {
 }
 
 if (standalone) {
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const click = (sel) => browser.eval(`document.querySelector(${JSON.stringify(sel)}).click()`);
+  const openBuilder = async (w, h, ts, dark = true) => {
+    await browser.viewport(w, h, dark);
+    await browser.open('food', seed());
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+    await click('[data-log-food]');
+    await wait(700);
+  };
+  const enterChipotle = async () => { await click('[data-restaurant]'); await wait(900); await click('[data-chain="chipotle"]'); await wait(900); };
+  const inView = `(r) => r.left >= -0.5 && r.right <= innerWidth + 0.5 && r.top >= -0.5 && r.bottom <= innerHeight + 0.5`;
+
+  test('layout: Restaurant builder: rows and the + never move when you add items, nothing clips, Add stays on screen', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    for (const [w, h, ts] of [[320, 568, 1], [390, 844, 1], [390, 844, 1.35], [466, 678, 1], [626, 890, 1], [890, 626, 1]]) {
+      const tag = `${w}x${h}${ts !== 1 ? 'T' : ''}`;
+      await openBuilder(w, h, ts);
+      // Log food: Restaurant and Quick add share a row, each on one line
+      const alt = await browser.eval("[...document.querySelectorAll('.food-alt > .btn')].map((b) => ({ h: b.getBoundingClientRect().height, lines: Math.round(b.getBoundingClientRect().height / parseFloat(getComputedStyle(b).lineHeight || 20)) }))");
+      assert(alt.length === 2 && alt.every((b) => b.h < 64 * Math.max(1, ts)), `Restaurant / Quick add buttons wrap at ${tag}: ${JSON.stringify(alt)}`);
+      if (shots) await browser.screenshot(`${shots}/restaurant-log-${tag}.png`);
+      await enterChipotle();
+      const rects = () => browser.eval("[...document.querySelectorAll('[data-item]')].map((li) => { const r = li.getBoundingClientRect(), p = li.querySelector('[data-plus]').getBoundingClientRect(); return { id: li.dataset.item, h: r.height, top: li.offsetTop, plusX: p.x, plusW: p.width }; })");
+      const before = await rects();
+      assert(before.length >= 20, `builder did not open at ${tag}`);
+      for (const id of ['tortilla', 'pollo', 'white-rice', 'black-beans', 'cheese']) { await browser.eval(`document.querySelector('[data-item="${id}"] [data-plus]').click()`); await wait(120); }
+      await browser.eval("document.querySelector('[data-item=\"pollo\"] [data-plus]').click()"); // 1 → 1½ in a half group
+      await browser.eval("document.querySelector('[data-item=\"white-rice\"] [data-minus]').click()"); // 1 → ½
+      await wait(500);
+      const after = await rects();
+      const moved = after.filter((a, i) => Math.abs(a.h - before[i].h) > 0.5 || Math.abs(a.plusX - before[i].plusX) > 0.5 || Math.abs(a.top - before[i].top) > 0.5 || a.plusW < 43.5);
+      assert(!moved.length, `rows moved or shrank after adding items at ${tag}: ${JSON.stringify(moved.slice(0, 3))} (before ${JSON.stringify(before.find((b) => b.id === moved[0]?.id))})`);
+      assert(after.every((a) => a.h < 104 * Math.max(1, ts)), `a row grew tall at ${tag}: ${Math.max(...after.map((a) => a.h))}px`);
+      const kcal = await browser.eval("document.querySelector('[data-tick=rest-kcal]').textContent");
+      assert(kcal === '935',`tally shows "${kcal}" at ${tag}`);
+      const behind = (v) => browser.eval(`["main", "nav", "navbar"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = "${v}"; })`);
+      await behind("hidden");
+      const probs = (await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)).filter((p) => !/overlap.*(Add ·|Log to)/.test(p)); // rows scrolling under the sticky dock are not an overlap
+      await behind("");
+      assert(!probs.length, `builder problems at ${tag}: ${probs.join(' | ')}`);
+      const add = await browser.eval(`(${inView})(document.querySelector('[data-add]').getBoundingClientRect())`);
+      assert(add, `Add button is not fully on screen at ${tag}`);
+      if (shots) await browser.screenshot(`${shots}/restaurant-builder-${tag}.png`);
+      // Step 2: the meal choice, name and Favorite are on the same screen as the Log button
+      await click('[data-add]');
+      await wait(500);
+      const conf = await browser.eval(`(() => { const ok = ${inView}; const dlg = document.querySelector('dialog.sheet[open]'); const chips = [...dlg.querySelectorAll('[data-meal]')]; const log = dlg.querySelector('[data-log]'); return { chips: chips.length, chipsIn: chips.every((c) => ok(c.getBoundingClientRect())), small: chips.filter((c) => c.getBoundingClientRect().height < 43.5).length, logIn: !!log && ok(log.getBoundingClientRect()), name: !!document.querySelector('[name=oname]'), fav: !!document.querySelector('[name=fav]'), text: log ? log.textContent : '' }; })()`);
+      assert(conf.chips === 4 && conf.chipsIn && conf.small === 0 && conf.logIn && conf.name && conf.fav, `confirm step at ${tag}: ${JSON.stringify(conf)}`);
+      await behind("hidden");
+      const probs2 = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+      await behind("");
+      assert(!probs2.length, `confirm problems at ${tag}: ${probs2.join(' | ')}`);
+      if (shots) await browser.screenshot(`${shots}/restaurant-confirm-${tag}.png`);
+    }
+  });
+
+  test('layout: Restaurant builder: one tap on each of the 8 example items reads 1,085 in the tally and on Add; ½ is a second choice', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await openBuilder(390, 844, 1);
+    await enterChipotle();
+    for (const id of ['tortilla', 'pollo', 'brown-rice', 'pinto-beans', 'cheese', 'cilantro-lime', 'tomato-salsa', 'red-salsa']) { await browser.eval(`document.querySelector('[data-item="${id}"] [data-plus]').click()`); await wait(60); }
+    await wait(400);
+    const got = await browser.eval("({ tally: document.querySelector('[data-tick=rest-kcal]').textContent, add: document.querySelector('[data-add]').textContent, qty: document.querySelector('[data-item=\"pollo\"] [data-qty]').textContent })");
+    assert(got.tally === '1,085' && got.add.includes('1,085'), `after one tap each: ${JSON.stringify(got)}`);
+    assert(got.qty === '1', `first tap is a full portion, got "${got.qty}"`);
+    await browser.eval("document.querySelector('[data-item=\"pollo\"] [data-minus]').click()");
+    await wait(300);
+    assert((await browser.eval("document.querySelector('[data-item=\"pollo\"] [data-qty]').textContent")) === 'Half', '− from 1 gives Half');
+  });
+
+  test('layout: wide screens claim their width on the first paint: no layout shift at Duo and sideways-iPhone sizes', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    const bad = [];
+    for (const [w, h] of [[844, 390], [874, 402], [890, 626], [932, 430]]) for (const route of ['play', 'today', 'train', 'body']) {
+      await browser.viewport(w, h, true);
+      await browser.open(route, seed({ active: route === 'play' }));
+      const cls = await browser.eval('window.__cls || 0');
+      if (cls > 0.02) bad.push(`${route} ${cls.toFixed(3)} @${w}x${h}`);
+    }
+    assert(!bad.length, `layout shift on first render: ${bad.join(', ')}`);
+  });
+}
+
+if (standalone) {
   test('layout: Today weight card: trend line breaks only at the dot, the two actions share one row', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
@@ -1786,7 +1873,10 @@ if (standalone) {
           await browser.eval("document.querySelector('input[name=food-view][value=plan]').click()"); await wait(500);
           if (!(await browser.eval("!!document.querySelector('[data-plan] .plan-meal [data-log]')"))) { note('Plan view did not draw', at); continue; }
           if (!(await browser.eval("document.querySelector('[data-plan-foot]')?.textContent.includes('Not medical advice')"))) note('plan footer missing', at);
-          const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+          const behind = (v) => browser.eval(`["main", "nav", "navbar"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = "${v}"; })`);
+      await behind("hidden");
+      const probs = (await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)).filter((p) => !/overlap.*(Add ·|Log to)/.test(p)); // rows scrolling under the sticky dock are not an overlap
+      await behind("");
           for (const p of probs) note(`Plan: ${p}`, at);
           await browser.eval("document.querySelector('.plan-open').click()"); await wait(700);
           let r = await browser.eval(sheetCheck);

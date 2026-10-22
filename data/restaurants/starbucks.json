@@ -1,0 +1,19 @@
+{
+  "id": "starbucks", "name": "Starbucks", "build": false, "version": 1,
+  "source": "https://www.starbucks.com/menu", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "drinks", "label": "Drinks (grande)"},
+    {"id": "food", "label": "Food"}
+  ],
+  "items": [
+    {"id": "pike", "name": "Pike Place brewed coffee", "group": "drinks", "kcal": 5, "protein_g": 1, "carbs_g": 0, "fat_g": 0},
+    {"id": "latte", "name": "Caffè Latte (2% milk)", "group": "drinks", "kcal": 190, "protein_g": 13, "carbs_g": 19, "fat_g": 7},
+    {"id": "cappuccino", "name": "Cappuccino (2% milk)", "group": "drinks", "kcal": 120, "protein_g": 8, "carbs_g": 10, "fat_g": 4},
+    {"id": "macchiato", "name": "Caramel Macchiato (2% milk)", "group": "drinks", "kcal": 250, "protein_g": 10, "carbs_g": 35, "fat_g": 7},
+    {"id": "mocha", "name": "Caffè Mocha (2% milk)", "group": "drinks", "kcal": 370, "protein_g": 13, "carbs_g": 43, "fat_g": 15},
+    {"id": "bacon-gouda", "name": "Bacon, Gouda and Egg Sandwich", "group": "food", "kcal": 360, "protein_g": 19, "carbs_g": 34, "fat_g": 18},
+    {"id": "egg-bites", "name": "Bacon and Gruyère Egg Bites", "group": "food", "kcal": 300, "protein_g": 19, "carbs_g": 9, "fat_g": 20},
+    {"id": "croissant", "name": "Butter Croissant", "group": "food", "kcal": 260, "protein_g": 5, "carbs_g": 29, "fat_g": 14},
+    {"id": "spinach-wrap", "name": "Spinach, Feta and Egg White Wrap", "group": "food", "kcal": 290, "protein_g": 20, "carbs_g": 34, "fat_g": 8}
+  ]
+}

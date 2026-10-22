@@ -119,7 +119,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 10. #172 Food: Restaurant meal builder
 - Issue: #172
 - Version: 0.16.49
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Food > Add has a 'Restaurant' entry: pick a chain (Chipotle, Chick-fil-A, Panera, Subway, Starbucks, McDonald's, Taco Bell, Wendy's, Cava, Sweetgreen), then tap the items ordered; build-your-own chains get component pickers (tortilla, protein, rice, beans, toppings, sauces) with half portions.
   - Live running totals for calories, protein, carbs, fat; save as a meal and as a Favorite so it shows first in search.

@@ -1,0 +1,27 @@
+{
+  "id": "sweetgreen", "name": "Sweetgreen", "build": true, "version": 2,
+  "source": "https://www.sweetgreen.com/nutrition", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "base", "label": "Base", "half": true},
+    {"id": "protein", "label": "Protein", "half": true},
+    {"id": "toppings", "label": "Toppings", "half": true},
+    {"id": "dressings", "label": "Dressings", "half": true}
+  ],
+  "items": [
+    {"id": "mixed-greens", "name": "Mixed greens", "group": "base", "kcal": 15, "protein_g": 1, "carbs_g": 3, "fat_g": 0},
+    {"id": "arugula", "name": "Baby arugula", "group": "base", "kcal": 10, "protein_g": 1, "carbs_g": 1, "fat_g": 0},
+    {"id": "wild-rice", "name": "Wild rice", "group": "base", "kcal": 190, "protein_g": 6, "carbs_g": 38, "fat_g": 2},
+    {"id": "quinoa", "name": "Warm quinoa", "group": "base", "kcal": 170, "protein_g": 6, "carbs_g": 29, "fat_g": 3},
+    {"id": "chicken", "name": "Roasted chicken", "group": "protein", "kcal": 140, "protein_g": 24, "carbs_g": 1, "fat_g": 4},
+    {"id": "falafel", "name": "Falafel", "group": "protein", "kcal": 210, "protein_g": 7, "carbs_g": 22, "fat_g": 11},
+    {"id": "tofu", "name": "Organic tofu", "group": "protein", "kcal": 130, "protein_g": 13, "carbs_g": 3, "fat_g": 8},
+    {"id": "avocado", "name": "Avocado", "group": "toppings", "kcal": 120, "protein_g": 2, "carbs_g": 6, "fat_g": 11},
+    {"id": "tomatoes", "name": "Tomatoes", "group": "toppings", "kcal": 20, "protein_g": 1, "carbs_g": 4, "fat_g": 0},
+    {"id": "cucumber", "name": "Cucumbers", "group": "toppings", "kcal": 10, "protein_g": 0, "carbs_g": 2, "fat_g": 0},
+    {"id": "feta", "name": "Feta", "group": "toppings", "kcal": 90, "protein_g": 5, "carbs_g": 1, "fat_g": 7},
+    {"id": "almonds", "name": "Roasted almonds", "group": "toppings", "kcal": 130, "protein_g": 5, "carbs_g": 5, "fat_g": 11},
+    {"id": "pesto-vin", "name": "Pesto vinaigrette", "group": "dressings", "kcal": 110, "protein_g": 1, "carbs_g": 2, "fat_g": 11},
+    {"id": "balsamic", "name": "Balsamic vinaigrette", "group": "dressings", "kcal": 130, "protein_g": 0, "carbs_g": 3, "fat_g": 13},
+    {"id": "lime-cilantro", "name": "Lime cilantro jalapeño vinaigrette", "group": "dressings", "kcal": 100, "protein_g": 0, "carbs_g": 2, "fat_g": 10}
+  ]
+}
