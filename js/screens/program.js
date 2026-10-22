@@ -68,7 +68,7 @@ export function renderProgram(el) {
   el.innerHTML = `<section class="stack">
     <h1>${esc(st.def.name)}</h1>
     <div class="card pg-head">${ringHtml(st)}
-      <div class="pg-head-text"><p><b>${st.weeksHit}</b> of ${st.def.weeks} weeks fully hit</p><button type="button" class="link small muted" data-program-start-hero aria-label="Change start date. Started ${esc(fmtDay(st.started))}, ends ${esc(fmtDay(st.last))}">Started ${fmtDay(st.started)} · ends ${fmtDay(st.last)}</button></div>
+      <div class="pg-head-text"><p><b>${st.weeksHit}</b> of ${st.def.weeks} weeks fully hit</p><button type="button" class="link small muted pg-when" data-program-start-hero aria-label="Change start date. Started ${esc(fmtDay(st.started))}, ends ${esc(fmtDay(st.last))}">Started ${fmtDay(st.started)}<br>ends ${fmtDay(st.last)}</button></div>
     </div>
     <div class="card">
       <div class="row between center"><p class="label">This week</p><span class="small muted">${st.goalsDone} of ${st.goalsTotal} goals</span></div>

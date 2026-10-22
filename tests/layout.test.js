@@ -2023,15 +2023,16 @@ if (standalone) {
       tests.splice(0, tests.length, ...keep);
     }
     // Cap each test and say which one hung (a stuck Chromium used to take the whole shard down with a silent SIGKILL).
-    const PER_TEST_MS = Number(process.env.LAYOUT_TEST_MS) || 150000;
+    const PER_TEST_MS = Number(process.env.LAYOUT_TEST_MS) || 300000; // the slowest single test (the Change toast probes) needs ~3 minutes; the shard cap is 9
     for (const t of tests) {
       const fn = t.fn;
       t.fn = async () => {
         console.log(`  ▶ ${t.name}`);
         let timer;
+        const t0 = Date.now();
         try {
           await Promise.race([fn(), new Promise((_, rej) => { timer = setTimeout(() => rej(new Error(`HUNG: "${t.name}" took over ${PER_TEST_MS / 1000}s`)), PER_TEST_MS); })]);
-        } finally { clearTimeout(timer); }
+        } finally { clearTimeout(timer); console.log(`    (${Math.round((Date.now() - t0) / 1000)}s)`); }
       };
     }
   }
