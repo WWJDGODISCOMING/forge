@@ -1,10 +1,7 @@
 /* Live workout screen (#/live). Tokens only; light follows the system via the same names. */
 .tools .tool[data-live] { grid-column: 1 / -1; }
 
-/* The screen owns the whole viewport (its own safe-area padding), so the page's 560px column and padding step aside. */
-body.fullscreen main:has(> .live) { max-width: none; padding: 0; }
-
-.live { min-height: 100dvh; box-sizing: border-box; display: flex; flex-direction: column; gap: var(--s-4);
+.live { position: fixed; inset: 0; overflow-y: auto; overscroll-behavior: contain; box-sizing: border-box; /* owns the whole viewport (its own safe areas), so the page column and its first paint never move */ display: flex; flex-direction: column; gap: var(--s-4);
   padding: calc(var(--safe-top) + var(--s-3)) calc(var(--gutter) + var(--safe-right)) calc(var(--safe-bottom) + var(--s-4)) calc(var(--gutter) + var(--safe-left));
   background: var(--ambient-bg), var(--bg); }
 .live-top { display: flex; align-items: center; gap: var(--s-3); min-height: var(--tap); }
@@ -91,7 +88,6 @@ body.fullscreen main:has(> .live) { max-width: none; padding: 0; }
   .live[data-kind] .live-tile { padding: var(--s-2) var(--s-3); }
   .live[data-kind] .live-tv { font-size: clamp(20px, calc(3.6vw * var(--ts)), calc(30px * var(--ts))); }
   .live[data-kind] .live-top { min-height: 48px; }
-  .live:not([data-kind]) { min-height: 0; }
   .live:not([data-kind]) .live-kinds { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 }
 /* Unfolded Duo sideways and other wide landscape screens: three tile columns use the full width. */
