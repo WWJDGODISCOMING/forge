@@ -2,12 +2,15 @@
 import { weightToDisplay, weightUnit } from '../units.js';
 import { daysBetween, addDays } from './smoothing.js';
 import { formatDay } from '../ui.js';
-import { areaFill, chartWait } from '../ui/linechart.js';
+import { areaFill, chartWait, scrubLayer } from '../ui/linechart.js';
 import { axisNeedsYear, dotStyle } from '../ui/chartmath.js';
 import { chartWidth } from '../ui/charts.js';
 
-export function weightChartSVG(series, { units, goalKg, projection, rangeDays, width = chartWidth(), height = 210 } = {}) {
+/** `endDay`: show the window that ends on this day instead of the latest reading (swiping back through time); goal projection only shows at the latest. */
+export function weightChartSVG(series, { units, goalKg, projection, rangeDays, endDay: windowEnd = null, width = chartWidth(), height = 210 } = {}) {
+  if (windowEnd) series = series.filter((p) => p.day <= windowEnd);
   if (!series.length) return '';
+  if (windowEnd && series[series.length - 1].day !== windowEnd) projection = null;
   const last = series[series.length - 1];
   const startDay = rangeDays ? addDays(last.day, -rangeDays) : series[0].day;
   const pts = series.filter((p) => p.day >= startDay);
@@ -63,15 +66,17 @@ export function weightChartSVG(series, { units, goalKg, projection, rangeDays, w
   const labels = `<text x="${L}" y="${height - 6}" class="axis">${formatDay(pts[0].day, yr)}</text>
     <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(endDay, yr)}</text>`;
 
-  return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="Weight chart: dots are weigh-ins, line is your trend">
+  const unitText = weightUnit(units);
+  const scrub = pts.map((p) => [Number(x(p.day).toFixed(1)), Number(y(p.kg).toFixed(1)), p.day, `${disp(p.kg).toFixed(1)} ${unitText}`, `Trend ${disp(p.trend).toFixed(1)} ${unitText}`]);
+  return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="Weight chart: dots are weigh-ins, line is your trend" data-scrub="${JSON.stringify(scrub).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}">
     ${ticks.join('')}${goal}${offscale}${proj}
     ${pts.length > 1 ? areaFill(trendPath, x(pts[0].day).toFixed(1), x(last.day).toFixed(1), (height - B).toFixed(1)) : ''}
-    ${dots}<path d="${trendPath}" class="trend" pathLength="1"/>${labels}
+    ${dots}<path d="${trendPath}" class="trend" pathLength="1"/>${scrubLayer(T, height - B)}${labels}
   </svg>`;
 }
 
 /** Small sparkline of the trend for cards. */
-export function sparklineSVG(series, days = 30, width = 120, height = 36) {
+export function sparklineSVG(series, days = 30, width = 120, height = 36, units = null) {
   if (series.length < 2) return '';
   const last = series[series.length - 1];
   const pts = series.filter((p) => p.day >= addDays(last.day, -days));
@@ -79,12 +84,13 @@ export function sparklineSVG(series, days = 30, width = 120, height = 36) {
   const vals = pts.map((p) => p.trend);
   const min = Math.min(...vals), max = Math.max(...vals);
   const span = Math.max(1, daysBetween(pts[0].day, last.day));
-  const d = pts
-    .map((p, i) => {
-      const px = (daysBetween(pts[0].day, p.day) / span) * (width - 4) + 2;
-      const py = max === min ? height / 2 : 2 + (1 - (p.trend - min) / (max - min)) * (height - 4);
-      return `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`;
-    })
-    .join(' ');
-  return `<svg viewBox="0 0 ${width} ${height}" class="spark" aria-hidden="true"><path d="${d}"/></svg>`;
+  const at = pts.map((p) => [
+    (daysBetween(pts[0].day, p.day) / span) * (width - 4) + 2,
+    max === min ? height / 2 : 2 + (1 - (p.trend - min) / (max - min)) * (height - 4),
+  ]);
+  const d = at.map(([px, py], i) => `${i ? 'L' : 'M'}${px.toFixed(1)},${py.toFixed(1)}`).join(' ');
+  // Touch the sparkline to scrub it: the dot rides the trend line, and the Today card shows that day's numbers (see screens/today.js).
+  const u = units ? weightUnit(units) : '';
+  const scrub = units ? pts.map((p, i) => [Number(at[i][0].toFixed(1)), Number(at[i][1].toFixed(1)), p.day, `${weightToDisplay(p.kg, units).toFixed(1)} ${u}`, `Trend ${weightToDisplay(p.trend, units).toFixed(1)} ${u}`]) : null;
+  return `<svg viewBox="0 0 ${width} ${height}" class="spark${scrub ? ' spark-scrub' : ''}" aria-hidden="true"${scrub ? ` data-scrub="${JSON.stringify(scrub).replace(/&/g, '&amp;').replace(/"/g, '&quot;')}"` : ''}><path d="${d}"/>${scrub ? `<g class="scrub"><line y1="0" y2="${height}" class="scrub-line"/><circle r="9" class="scrub-halo"/><circle r="4.5" class="scrub-dot"/></g>` : ''}</svg>`;
 }

@@ -163,7 +163,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 14. #160 Interactive charts: drag to scrub
 - Issue: #160
 - Version: 0.16.53
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Press-and-drag on Body weight, Today mini chart and Progress charts: vertical line snaps to the nearest point with an enlarged dot and a label (value · date) plus the trend value.
   - Selection haptic per snap; line fades on lift.

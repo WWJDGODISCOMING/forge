@@ -4,9 +4,10 @@ import { esc, $, $$, sheet, toast, todayKey, formatDay, confirmSheet } from '../
 import { haptics } from '../ui/haptic.js';
 import { bindSwipeRows } from '../ui/swiperow.js';
 import { weightToDisplay, weightFromInput, weightUnit, formatWeight } from '../units.js';
-import { trendChange, weeklyRate, dayKey } from '../weight/smoothing.js';
+import { trendChange, weeklyRate, dayKey, addDays } from '../weight/smoothing.js';
 import { weightChartSVG } from '../weight/chart.js';
-import { grabChart, morphChart } from '../ui/linechart.js';
+import { grabChart, morphChart, scrubBar } from '../ui/linechart.js';
+import { bindScrub } from '../ui/scrub.js';
 import { timeOf, readingLabel } from '../weight/reading.js';
 import { weightSeries, mySuspects, latestWeighIn } from '../derived.js';
 import { SCALE_SOURCES } from '../withings/review.js';
@@ -16,6 +17,8 @@ import { goalProjection } from '../health/goalpath.js';
 
 const SOURCE_LABELS = { manual: 'Manual', withings: 'Withings', withings_csv: 'Withings (export)', apple_shortcut: 'Apple Health (Shortcut)', apple_health: 'Apple Health' };
 let range = 90;
+let panDays = 0; // how far back the chart window has been swiped (0 = ends at the latest weigh-in)
+let unbindScrub = () => {};
 let showAll = false;
 const HISTORY_LIMIT = 5;
 
@@ -90,7 +93,8 @@ export function weightHeroHtml() {
         ${[[30, '30d'], [90, '90d'], [365, '1y'], [0, 'All']].map(([d, l]) =>
           `<label><input type="radio" name="range" value="${d}" ${range === d ? 'checked' : ''}><span>${l}</span></label>`).join('')}
       </div>
-      ${weightChartSVG(series, { units: u, goalKg, projection, rangeDays: range || null })}
+      ${weightChartSVG(series, { units: u, goalKg, projection, rangeDays: range || null, endDay: range && panDays ? addDays(latest.day, -panDays) : null })}
+      ${scrubBar()}
       <p class="small muted legend"><span class="key dot"></span>weigh-ins <span class="key line"></span>trend ${goalKg ? '<span class="key dash"></span>goal' : ''}</p>
       <button class="btn bigbtn" data-log type="button">${icon('plus')}Log weight</button>
     </div>`;
@@ -126,10 +130,21 @@ export function bindWeight(el, rerender) {
     r.addEventListener('change', () => {
       const from = grabChart(el);
       range = Number(r.value);
+      panDays = 0;
       rerender();
       if (from) morphChart($('svg.chart', el), from);
     })
   );
+  unbindScrub();
+  const { series } = weightModel();
+  const onPan = range && series.length ? (dir) => { // dir -1 = earlier
+    const latest = series[series.length - 1].day;
+    const next = Math.max(0, panDays - dir * Math.max(1, Math.round(range / 2)));
+    if ((dir < 0 && addDays(latest, -panDays - range) <= series[0].day) || next === panDays) return; // already at the first or latest weigh-in
+    panDays = next;
+    rerender();
+  } : null;
+  unbindScrub = bindScrub($('[data-weight-hero] svg.chart', el), $('[data-weight-hero] [data-readout]', el), { onPan });
   const confirmDelete = (id, fromScale) => confirmSheet({
     title: 'Delete weigh-in?',
     message: fromScale ? 'This removes it from Forge on all devices. It stays in the Withings app, and Forge won’t bring it back.' : 'This removes it from your history on all devices.',

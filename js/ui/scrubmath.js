@@ -20,3 +20,41 @@ export function tickGate(ms = 35) {
     return true;
   };
 }
+
+/**
+ * What a touch that started on a chart is turning into. A mouse or pen scrubs at once. A finger waits: a mostly
+ * horizontal move scrubs, a mostly vertical one is the page scrolling, and holding still for `hold` ms scrubs too.
+ * Returns 'scrub' | 'scroll' | 'wait'.
+ */
+export function scrubIntent({ dx, dy, ms, touch = true, hold = 380, slop = 8 }) {
+  if (!touch) return 'scrub';
+  const ax = Math.abs(dx);
+  const ay = Math.abs(dy);
+  if (ax >= slop && ax > ay * 1.2) return 'scrub';
+  if (ay >= slop && ay >= ax) return 'scroll';
+  if (ms >= hold && ax < slop && ay < slop) return 'scrub';
+  return 'wait';
+}
+
+/** A quick, long horizontal swipe pans the dates; a slower drag scrubs. */
+export function isFlick({ dx, ms, minPx = 70, maxMs = 220 }) {
+  return Math.abs(dx) >= minPx && ms <= maxMs;
+}
+
+/**
+ * Next selection for the prev/next arrows (and VoiceOver's adjust). dir is -1 (earlier) or +1 (later); `i` is the
+ * current point or null. Returns { i, edge }: edge is -1/+1 when the step runs off that end (the caller may pan).
+ */
+export function stepIndex(i, dir, n) {
+  if (n <= 0) return { i: null, edge: 0 };
+  const from = i == null ? (dir < 0 ? n : n - 1) : i;
+  const to = from + dir;
+  if (to < 0) return { i: 0, edge: -1 };
+  if (to > n - 1) return { i: n - 1, edge: 1 };
+  return { i: to, edge: 0 };
+}
+
+/** The spoken value for the adjustable chart: "Oct 15, 209.1 lb, Trend 208.4 lb". */
+export function spokenPoint(day, text, trend) {
+  return [day, text, trend].filter(Boolean).join(', ');
+}
