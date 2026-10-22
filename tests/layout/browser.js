@@ -127,7 +127,7 @@ export async function launch() {
       const boot = `window.__SEED = ${JSON.stringify(seedData)};
         try { if (!${persist} || sessionStorage.getItem('__booted') !== '${tok}') { localStorage.clear(); localStorage.setItem('forge.seen', '1'); sessionStorage.setItem('__booted', '${tok}'); } } catch (e) {}
         try { delete Navigator.prototype.serviceWorker; } catch (e) {}
-        window.__cls = 0; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) window.__cls += e.value; }).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
+        window.__cls = 0; window.__shifts = []; try { new PerformanceObserver((l) => { for (const e of l.getEntries()) if (!e.hadRecentInput) { window.__cls += e.value; window.__shifts.push(Math.round(e.startTime) + 'ms ' + e.value.toFixed(3) + ' ' + (e.sources || []).map((s) => s.node && (s.node.nodeName + '.' + (s.node.className || ''))).join(',')); } }).observe({ type: 'layout-shift', buffered: true }); } catch (e) {}
         ${at ? pinClock(at) : ''}
         ${init}`;
       const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: boot });

@@ -58,7 +58,7 @@ for (const route of standalone ? ROUTES : []) {
         await browser.eval("window.scrollTo({ top: 1e6, behavior: 'instant' })");
         await browser.screenshot(`${shots}/${route}-${c.w}x${c.h}-${c.dark ? 'dark' : 'light'}${c.long ? '-long' : ''}${c.ts ? '-text' : ''}-bottom.png`);
       }
-      if (cls > 0.02) probs.push(`layout shift ${cls.toFixed(3)} on first render`);
+      if (cls > 0.02) probs.push(`layout shift ${cls.toFixed(3)} on first render (moved: ${(await browser.eval('(window.__shifts || []).join(" | ")')).slice(0, 300)})`); // names the node that moved, so a flaky CI hit points at the real cause
       for (const p of probs) found.set(p, [...(found.get(p) || []), `${c.w}${c.dark ? "d" : "l"}${c.long ? "L" : ""}${c.over ? "O" : ""}${c.ts ? "T" : ""}`]);
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
