@@ -130,7 +130,7 @@ xcrun devicectl list devices --json-output "$DEVICES" >> "$LOG" 2>&1
 UDID_NAME="$(node -e '
 const fs = require("fs");
 let d = []; try { d = JSON.parse(fs.readFileSync(process.argv[1], "utf8")).result.devices || []; } catch (e) {}
-const phones = d.filter((x) => (x.hardwareProperties || {}).deviceType === "iPhone" && (x.hardwareProperties || {}).reality !== "virtual");
+const phones = d.filter((x) => (x.hardwareProperties || {}).deviceType === "iPhone" && (x.hardwareProperties || {}).reality === "physical");
 const state = (x) => (x.connectionProperties || {}).tunnelState;
 const paired = phones.filter((x) => (x.connectionProperties || {}).pairingState === "paired");
 const pick = paired.find((x) => state(x) === "connected") || paired.find((x) => state(x) !== "unavailable");
