@@ -22,7 +22,7 @@ test('v0.16.55: on a deeper screen the first re-tap scrolls to the top, the seco
 });
 
 test('v0.16.55: every tab has a module to load on touchstart, and the module file exists', () => {
-  eq(Object.keys(TAB_MODULE).sort(), [...TAB_ORDER].sort());
+  eq(JSON.stringify(Object.keys(TAB_MODULE).sort()), JSON.stringify([...TAB_ORDER].sort()));
   for (const name of Object.values(TAB_MODULE)) assert(read(`js/screens/${name}.js`).length > 0, name);
   assert(/nav\.addEventListener\('touchstart'/.test(read('js/app.js')), 'app.js listens for touchstart on the tab bar');
 });
