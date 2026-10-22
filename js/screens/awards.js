@@ -6,6 +6,7 @@ import { esc } from '../ui.js';
 import { streak, LEVELS, xpForLevel, XP_RULES } from '../workouts/awards.js';
 import { myAwards, syncBadges, goalDays } from '../workouts/awards-store.js';
 import { badgeSVG, BADGE_ART, TIER_NAMES } from '../ui/badges.js';
+import { backInfo, howText, wireFlips } from '../ui/badge-flip.js';
 import { icon, emptyState } from '../ui/icons.js';
 import { missionWeekHtml } from '../missions/ui.js';
 import { programsAwardsHtml } from '../body-programs/ui.js';
@@ -26,6 +27,7 @@ export function renderAwards(el) {
     || (a.earned ? (b.earned.at > a.earned.at ? 1 : -1) : BADGE_ART[a.id].tier - BADGE_ART[b.id].tier));
   syncBadges(); // anything earned outside a summary (e.g. a cardio day finishing a streak) is kept from now on
   const got = bs.filter((b) => b.earned);
+  const units = getUnits();
   const dots = Array.from({ length: goal }, (_, i) => `<i class="${i < st.thisWeek.done ? 'on' : ''}"></i>`).join('');
 
   el.innerHTML = `
@@ -59,15 +61,34 @@ export function renderAwards(el) {
       <div class="card">
         <div class="row between center"><p class="label">Badges</p><span class="small muted">${got.length} of ${bs.length}</span></div>
         ${got.length ? '' : emptyState({ icon: 'medal', title: 'No badges yet', text: 'Finish a workout and your first badge unlocks.', action: { href: '#/train', label: 'Start a workout' } })}
+        <p class="small muted">Tap a badge, or drag across it, to turn it over.</p>
         <ul class="aw-badges">
-          ${bs.map((b) => `
-            <li class="${b.earned ? 'on' : ''}">
-              ${badgeSVG(b.id, { earned: !!b.earned, shine: !!b.earned && Date.now() - Date.parse(b.earned.at) < RECENT, size: 76, units: getUnits(), label: `${b.name}${b.earned ? '' : ' (locked)'}` })}
-              <span class="aw-tier">${TIER_NAMES[BADGE_ART[b.id].tier]}</span>
-              <b>${esc(b.name)}</b>
-              <small class="muted">${b.earned ? `Earned ${when(b.earned.at)}` : esc(b.how)}</small>
-            </li>`).join('')}
+          ${bs.map((b, i) => {
+            const tier = TIER_NAMES[BADGE_ART[b.id].tier];
+            const back = backInfo(b, { tierName: tier, units });
+            return `
+            <li class="${b.earned ? 'on' : ''}" style="--i:${Math.min(i, 12)}">
+              <button type="button" class="aw-flip" aria-pressed="false" aria-label="${esc(b.name)}${b.earned ? '' : ', locked'}. Turns over to show its story.">
+                <span class="aw-card">
+                  <span class="aw-face aw-front" aria-hidden="false">
+                    ${badgeSVG(b.id, { earned: !!b.earned, shine: !!b.earned && Date.now() - Date.parse(b.earned.at) < RECENT, size: 76, units })}
+                    <span class="aw-tier">${tier}</span>
+                    <b>${esc(b.name)}</b>
+                    <small class="muted">${b.earned ? `Earned ${when(b.earned.at)}` : esc(howText(b, units))}</small>
+                  </span>
+                  <span class="aw-face aw-back" aria-hidden="true" data-sr="${esc(back.sr)}">
+                    <span class="aw-tier">${tier}</span>
+                    <b>${esc(back.title)}</b>
+                    ${back.lines.map((t) => `<small>${esc(t)}</small>`).join('')}
+                    ${back.bar ? `<span class="aw-pbar" role="progressbar" aria-valuemin="0" aria-valuemax="${back.bar.goal}" aria-valuenow="${back.bar.cur}" aria-label="${esc(back.bar.text)}"><i style="--p:${(back.bar.cur / back.bar.goal).toFixed(3)}"></i></span><small class="aw-ptext">${esc(back.bar.text)}</small>` : ''}
+                  </span>
+                </span>
+              </button>
+            </li>`;
+          }).join('')}
         </ul>
+        <p class="sr-only" role="status" aria-live="polite" id="aw-say"></p>
       </div>
     </section>`;
+  wireFlips(el, (t) => { const s = el.querySelector('#aw-say'); if (s) s.textContent = t; });
 }

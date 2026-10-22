@@ -152,7 +152,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 13. #157 Awards: badges flip in 3D
 - Issue: #157
 - Version: 0.16.52
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Tap toggles; drag rotates with the finger and springs to front/back; light haptic at the flip midpoint.
   - Back shows meaning, how/when earned or progress left (bar), and tier.

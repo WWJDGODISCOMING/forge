@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.52 — Badges flip over to tell their story (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's new
+
+- On Progress > Awards, tap a badge or drag a finger across it and it turns over in 3D.
+- The back shows its meaning, tier and date. Locked ones show a progress bar.
+- Let go mid-turn and it springs to the front or the back, with a light tap.
+- Earned badges glow and catch a sweep of light. Locked ones stay muted.
+- With Reduce Motion on, badges fade between sides instead of turning.
+- VoiceOver reads the back when it comes round.
+
+### Details
+
+- `js/ui/badge-flip.js`: pointer-driven flip (horizontal drag only, so the page still scrolls), transform/opacity only. `awardsFor` badges now carry `progress` ({ cur, goal, unit }) from the running totals; yes/no badges (Full House, Recovery Respect, Comeback) and the weigh-in/body-fat ones show text only.
+
 ## 0.16.51 — Live workout with a lock-screen card (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes. **Needs Refresh Forge on the Mac** (new Swift files, the lock-screen extension target, Info.plist keys). No Xcode steps.

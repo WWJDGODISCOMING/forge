@@ -92,9 +92,9 @@ test('no duplicate against the Apple Health import (#146): by metadata and by th
 });
 
 test('0.16.51 wiring: version, service worker, route, native methods, plist keys, project files', () => {
-  eq(VERSION, '0.16.51');
+  assert(VERSION >= '0.16.51', 'version only moves forward');
   const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
-  assert(read('sw.js').includes("const VERSION = '0.16.51'"));
+  assert(read('sw.js').includes(`const VERSION = '${VERSION}'`));
   for (const f of ['js/workouts/live-core.js', 'js/native/live-workout.js', 'js/screens/live.js', 'css/live.css']) assert(read('sw.js').includes('./' + f), f + ' cached');
   assert(read('index.html').includes('css/live.css'));
   assert(read('js/app.js').includes("live: () => import('./screens/live.js')"));

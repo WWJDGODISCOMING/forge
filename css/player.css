@@ -323,6 +323,35 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .aw-badges li b { font-size: calc(13px * var(--ts)); line-height: 1.2; }
 .aw-badges li small { font-size: calc(11px * var(--ts)); line-height: 1.25; }
 .aw-badges li:not(.on) b { color: var(--muted); }
+/* Flip cards (js/ui/badge-flip.js): the button is the stage, .aw-card turns, both faces share one grid cell. */
+.aw-badges li { display: block; }
+.aw-flip { display: block; width: 100%; min-height: 44px; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: center; cursor: pointer; perspective: 640px; touch-action: pan-y; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; }
+.aw-flip:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: var(--r-md); }
+.aw-card { display: grid; transform-style: preserve-3d; -webkit-transform-style: preserve-3d; transform: rotateY(var(--rot, 0deg)); will-change: transform; }
+.aw-flip:not(.dragging):not(.flipped):active .aw-card { scale: .97; }
+.aw-face { grid-area: 1 / 1; display: grid; justify-items: center; align-content: start; gap: 4px; padding: 6px 2px; border-radius: var(--r-md); -webkit-backface-visibility: hidden; backface-visibility: hidden; }
+.aw-front b, .aw-back b { font-size: calc(13px * var(--ts)); line-height: 1.2; }
+.aw-front small, .aw-back small { font-size: calc(11px * var(--ts)); line-height: 1.25; }
+.aw-back { transform: rotateY(180deg); align-content: center; padding: 8px 6px; background: linear-gradient(160deg, var(--surface-3), var(--deep-fill)); box-shadow: var(--elev-2); border: 1px solid color-mix(in srgb, var(--accent-text) 40%, transparent); color: var(--text-1); }
+.aw-back small { color: var(--text-1); }
+.aw-back .aw-tier { color: var(--accent-text); }
+.aw-pbar { width: 100%; height: 8px; border-radius: 999px; background: var(--bg); overflow: hidden; margin-top: 2px; }
+.aw-pbar i { display: block; height: 100%; width: 100%; transform-origin: left; transform: scaleX(var(--p, 0)); border-radius: 999px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); }
+.aw-ptext { font-weight: 700; }
+/* Earned badges: a soft sweep of light when Awards opens (the glow is .bdg-on). Locked ones stay flat and muted. */
+.aw-badges li.on .bdg-shine { animation: bdg-shine 1100ms calc(350ms + var(--i, 0) * 70ms) var(--ease-in-out) 1 both; }
+@media (prefers-reduced-motion: reduce) {
+  .aw-badges li.on .bdg-shine { animation: none; }
+  .aw-card { transform: none; will-change: auto; }
+  .aw-face { transition: opacity var(--t-med) var(--ease-out); }
+  .aw-back { transform: none; opacity: 0; pointer-events: none; }
+  .aw-flip.flipped .aw-front { opacity: 0; }
+  .aw-flip.flipped .aw-back { opacity: 1; }
+  .aw-flip:active .aw-card { scale: 1; }
+}
+@media (prefers-color-scheme: light) {
+  .aw-back .aw-tier { color: var(--text-1); }
+}
 .aw-tier { font-size: calc(10px * var(--ts)); font-weight: 800; letter-spacing: .06em; color: var(--muted); }
 .aw-filter { display: flex; gap: 6px; }
 .sum-badges { display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; margin: 6px 0 4px; }
