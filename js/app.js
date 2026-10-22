@@ -19,7 +19,8 @@ import { attachPull, detachPull, canPullSync, waitAtMost, PULL_WAIT_MS } from '.
 import { call } from './functions.js';
 import { attachSwipeBack } from './ui/swipeback.js';
 import { skeletonHTML } from './ui/skeleton.js';
-import { tabOf, routeDepth, transitionKind, backTarget, backLabel, redirectRoute, noteRoute, noteNavigation, TITLE_FOR, createScrollMemory } from './nav.js';
+import { tabOf, routeDepth, transitionKind, backTarget, backLabel, redirectRoute, noteRoute, noteNavigation, TITLE_FOR, createScrollMemory, tabTapAction, TAB_MODULE } from './nav.js';
+import { decodeImages } from './ui/decode.js';
 
 const main = document.getElementById('main');
 const nav = document.getElementById('nav');
@@ -316,6 +317,7 @@ async function renderScreen() {
   });
   try {
     await routes[route](...routeParts().slice(1));
+    await decodeImages(main); // photos are decoded before the transition reveals them
     markSeen(true);
     firstPaint();
     if (FULLSCREEN.has(route)) hideNavBar();
@@ -608,18 +610,23 @@ window.addEventListener('hashchange', async () => {
 function onTab(link) {
   const href = link.getAttribute('href');
   const target = href.slice(2);
-  if (target === tabOf(currentRoute())) {
-    if (routeDepth(routeParts()) === 0) {
-      scrollMemory.forget(currentRoute());
-      window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
-      return;
-    }
-    scrollMemory.forget(target);
+  const action = tabTapAction({ sameTab: target === tabOf(currentRoute()), depth: routeDepth(routeParts()), scrollY: window.scrollY });
+  if (action === 'top') {
+    if (routeDepth(routeParts()) === 0) scrollMemory.forget(currentRoute());
+    window.scrollTo({ top: 0, behavior: reducedMotion() ? 'auto' : 'smooth' });
+    return;
   }
+  if (action === 'root') scrollMemory.forget(target);
   workoutTap = false; workoutFromCard = false;
   photosFromCard = false; // a tab-bar tap forgets the card; only Back morphs home
   location.hash = href;
 }
+// A finger landing on a tab starts loading its screen, so the tap itself has nothing left to fetch.
+nav.addEventListener('touchstart', (e) => {
+  const a = e.target.closest && e.target.closest('a');
+  const name = a && TAB_MODULE[a.getAttribute('href').slice(2)];
+  if (name) import(`./screens/${name}.js`).catch(() => {});
+}, { passive: true });
 nav.addEventListener('click', (e) => {
   const a = e.target.closest('a');
   if (!a || e.target.classList.contains('haptic-input')) return;
