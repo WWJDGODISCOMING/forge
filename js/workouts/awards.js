@@ -181,6 +181,24 @@ export const BADGES = [
   { id: 'lv11', name: 'Into the Forge', how: 'Reach level 11 (Hammer Strike)', test: (t) => t.level >= 11 },
 ];
 
+// What each countable badge is measured by: [running total in awardsFor's `t`, target, unit shown on the card back].
+// Badges without an entry (Full House, Recovery Respect, Comeback) are yes/no and show no bar.
+export const METERS = {
+  first: ['workouts', 1, 'workouts'], w10: ['workouts', 10, 'workouts'], w50: ['workouts', 50, 'workouts'],
+  w100: ['workouts', 100, 'workouts'], w250: ['workouts', 250, 'workouts'],
+  pr1: ['prs', 1, 'PRs'], pr10: ['prs', 10, 'PRs'], pr50: ['prs', 50, 'PRs'], pr3: ['maxPrsInWorkout', 3, 'PRs in one workout'],
+  vol1: ['volumeKg', 10000, 'kg lifted'], vol2: ['volumeKg', 100000, 'kg lifted'], vol3: ['volumeKg', 1000000, 'kg lifted'],
+  big: ['maxVolumeKg', 10000, 'kg in one workout'],
+  st4: ['bestStreak', 4, 'weeks'], st12: ['bestStreak', 12, 'weeks'], st26: ['bestStreak', 26, 'weeks'],
+  dawn: ['early', 5, 'early workouts'], night: ['late', 5, 'late workouts'], lv11: ['level', 11, 'level'],
+};
+/** { cur, goal, unit } for a badge from the running totals, or null when it has no count. cur is capped at goal. */
+export function badgeProgress(id, t) {
+  const m = METERS[id];
+  if (!m) return null;
+  return { cur: Math.min(m[1], t[m[0]] || 0), goal: m[1], unit: m[2] };
+}
+
 /**
  * Which workouts get the weekly-goal +100: the one that brings its week to `goal` training days, or, when
  * cardio logged after your last workout of the week completes the goal (lift Mon/Wed, run Fri), that last
@@ -291,7 +309,7 @@ export function awardsFor(workouts, cardio = [], goal = 3, { seen = {}, exercise
     total,
     level: levelFor(total),
     perWorkout,
-    badges: [...BADGES.map((b) => ({ id: b.id, name: b.name, how: b.how, earned: earned[b.id] || null })), ...extraBadges.map((b) => ({ ...b, extra: true }))],
+    badges: [...BADGES.map((b) => ({ id: b.id, name: b.name, how: b.how, earned: earned[b.id] || null, progress: badgeProgress(b.id, t) })), ...extraBadges.map((b) => ({ ...b, extra: true }))],
   };
 }
 
