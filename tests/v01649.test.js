@@ -34,8 +34,8 @@ test('Chipotle burrito = 1,085 cal (issue example)', () => {
 test('half portions halve the numbers and add up without drift', () => {
   const c = chain('chipotle');
   eq(totalsFor(c, { 'white-rice': 0.5 }).kcal, 105);
-  eq(totalsFor(c, { pollo: 0.5, 'white-rice': 0.5 }), { kcal: 195, protein_g: 18, carbs_g: 20, fat_g: 5.5 });
-  eq(totalsFor(c, { cheese: 0.5, 'sour-cream': 0.5, guac: 0.5 }).kcal, 230); // 55 + 55 + 115 = 225 -> whole numbers only once
+  eq(JSON.stringify(totalsFor(c, { pollo: 0.5, 'white-rice': 0.5 })), JSON.stringify({ kcal: 195, protein_g: 18, carbs_g: 20, fat_g: 5.5 }));
+  eq(totalsFor(c, { cheese: 0.5, 'sour-cream': 0.5, guac: 0.5 }).kcal, 225); // 55 + 55 + 115
   eq(totalsFor(c, { 'tomato-salsa': 0.5 }).kcal, 13); // 12.5 rounds once, at the end
 });
 
