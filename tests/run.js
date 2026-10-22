@@ -64,6 +64,7 @@ import './v01644-scan.test.js';
 import './v01645.test.js';
 import './v01648.test.js';
 import './v01649.test.js';
+import './v01650.test.js';
 import './v0153.test.js';
 import './v0154.test.js';
 import './v0154pdf.test.js';

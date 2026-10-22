@@ -131,7 +131,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 11. #147 Apple Health Phase 2: save Forge workouts to Apple Health
 - Issue: #147
 - Version: 0.16.50
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Local Swift plugin `ForgeWorkouts` (requestAuthorization, saveWorkout via `HKWorkoutBuilder` with per-minute active-energy samples summing to kcal, pause events, sync identifier/version metadata, overlappingWorkouts); capgo stays for reads.
   - Re-saving with a higher version replaces, no duplicates; overlaps with a Watch workout are linked, not double-saved.

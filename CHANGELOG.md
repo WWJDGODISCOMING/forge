@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.16.50 — Forge workouts fill your Apple Activity rings (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes. **Needs Refresh Forge on the Mac** (new Swift plugin + Info.plist key).
+
+### What's new
+
+- Forge workouts can now fill your Apple Activity rings. Turn it on in Apple Health.
+- If your Apple Watch recorded the same session, Forge links to it instead of saving twice.
+- Your summary now shows how many calories the workout burned.
+
+### Details
+
+- Settings → Apple Health → "Save Forge workouts to Apple Health" (off by default). Saves an HKWorkout with active-energy samples (`ios/App/App/ForgeWorkoutsPlugin.swift`, `ForgeBridgeViewController`). Editing re-saves with a higher version (no duplicate); deleting in Forge removes it from Health. Offline or locked: retried on the next open (5 tries).
+- Estimate: MET × weight × active hours (`js/workouts/energy.js`; strength 3.5/5/6, conditioning 8). It never feeds progression, deload or recovery.
+- New `NSHealthUpdateUsageDescription`; the share text and docs updated. Heart rate is never written.
+
 ## 0.16.49 — Restaurant meal builder (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes.
