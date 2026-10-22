@@ -1,0 +1,20 @@
+{
+  "id": "taco-bell", "name": "Taco Bell", "build": false, "version": 1,
+  "source": "https://www.tacobell.com/nutrition/info", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "tacos", "label": "Tacos"},
+    {"id": "burritos", "label": "Burritos and specialties"},
+    {"id": "sides", "label": "Sides and sweets"}
+  ],
+  "items": [
+    {"id": "crunchy-taco", "name": "Crunchy Taco", "group": "tacos", "kcal": 170, "protein_g": 8, "carbs_g": 13, "fat_g": 10},
+    {"id": "soft-taco", "name": "Soft Taco", "group": "tacos", "kcal": 180, "protein_g": 9, "carbs_g": 18, "fat_g": 9},
+    {"id": "chalupa", "name": "Chalupa Supreme, beef", "group": "tacos", "kcal": 350, "protein_g": 13, "carbs_g": 30, "fat_g": 20},
+    {"id": "bean-burrito", "name": "Bean Burrito", "group": "burritos", "kcal": 350, "protein_g": 13, "carbs_g": 54, "fat_g": 9},
+    {"id": "crunchwrap", "name": "Crunchwrap Supreme", "group": "burritos", "kcal": 530, "protein_g": 16, "carbs_g": 71, "fat_g": 21},
+    {"id": "quesadilla", "name": "Chicken Quesadilla", "group": "burritos", "kcal": 520, "protein_g": 27, "carbs_g": 38, "fat_g": 28},
+    {"id": "nachos", "name": "Nachos BellGrande", "group": "burritos", "kcal": 740, "protein_g": 16, "carbs_g": 80, "fat_g": 38},
+    {"id": "potatoes", "name": "Cheesy Fiesta Potatoes", "group": "sides", "kcal": 230, "protein_g": 3, "carbs_g": 28, "fat_g": 12},
+    {"id": "twists", "name": "Cinnamon Twists", "group": "sides", "kcal": 170, "protein_g": 1, "carbs_g": 26, "fat_g": 7}
+  ]
+}

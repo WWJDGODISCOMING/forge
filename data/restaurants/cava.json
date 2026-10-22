@@ -1,0 +1,29 @@
+{
+  "id": "cava", "name": "Cava", "build": true, "version": 1,
+  "source": "https://cava.com/nutrition", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "base", "label": "Base", "half": true},
+    {"id": "protein", "label": "Protein", "half": true},
+    {"id": "dips", "label": "Dips and spreads", "half": true},
+    {"id": "toppings", "label": "Toppings", "half": true},
+    {"id": "dressings", "label": "Dressings", "half": true}
+  ],
+  "items": [
+    {"id": "saffron-rice", "name": "Saffron basmati rice", "group": "base", "kcal": 290, "protein_g": 5, "carbs_g": 54, "fat_g": 6},
+    {"id": "brown-rice", "name": "Brown rice", "group": "base", "kcal": 340, "protein_g": 6, "carbs_g": 58, "fat_g": 9},
+    {"id": "supergreens", "name": "SuperGreens", "group": "base", "kcal": 20, "protein_g": 2, "carbs_g": 4, "fat_g": 0},
+    {"id": "pita", "name": "Pita", "group": "base", "kcal": 220, "protein_g": 7, "carbs_g": 42, "fat_g": 3},
+    {"id": "chicken", "name": "Grilled chicken", "group": "protein", "kcal": 250, "protein_g": 32, "carbs_g": 2, "fat_g": 12},
+    {"id": "harissa-chicken", "name": "Harissa honey chicken", "group": "protein", "kcal": 270, "protein_g": 31, "carbs_g": 6, "fat_g": 13},
+    {"id": "meatballs", "name": "Spicy lamb meatballs", "group": "protein", "kcal": 340, "protein_g": 19, "carbs_g": 8, "fat_g": 25},
+    {"id": "falafel", "name": "Falafel", "group": "protein", "kcal": 350, "protein_g": 9, "carbs_g": 30, "fat_g": 22},
+    {"id": "hummus", "name": "Traditional hummus", "group": "dips", "kcal": 70, "protein_g": 2, "carbs_g": 5, "fat_g": 5},
+    {"id": "crazy-feta", "name": "Crazy feta", "group": "dips", "kcal": 140, "protein_g": 4, "carbs_g": 3, "fat_g": 13},
+    {"id": "tzatziki", "name": "Tzatziki", "group": "dips", "kcal": 35, "protein_g": 1, "carbs_g": 3, "fat_g": 2},
+    {"id": "pickled-onions", "name": "Pickled onions", "group": "toppings", "kcal": 15, "protein_g": 0, "carbs_g": 3, "fat_g": 0},
+    {"id": "tomato-cuc", "name": "Tomato and cucumber", "group": "toppings", "kcal": 10, "protein_g": 0, "carbs_g": 2, "fat_g": 0},
+    {"id": "feta", "name": "Feta", "group": "toppings", "kcal": 70, "protein_g": 4, "carbs_g": 1, "fat_g": 6},
+    {"id": "tahini", "name": "Lemon herb tahini", "group": "dressings", "kcal": 70, "protein_g": 1, "carbs_g": 2, "fat_g": 7},
+    {"id": "greek-vin", "name": "Greek vinaigrette", "group": "dressings", "kcal": 80, "protein_g": 0, "carbs_g": 1, "fat_g": 9}
+  ]
+}

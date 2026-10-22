@@ -223,7 +223,10 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           <button type="button" class="icon-btn snap-btn" data-scan-btn title="Scan a barcode" aria-label="Scan a barcode">${icon('barcode', { size: 22 })}</button>
           <label class="icon-btn snap-btn" data-snap-btn title="Take photo of your meal" aria-label="Take photo of your meal">${icon('camera', { size: 22 })}<input type="file" accept="image/*" data-snap-file hidden></label>
         </div>
-        <button class="btn ghost" data-quick-toggle>Quick add: just calories</button>
+        <div class="food-alt" data-alt>
+          <button type="button" class="btn ghost" data-restaurant>${icon('food', { size: 18 })}<span>Restaurant</span></button>
+          <button type="button" class="btn ghost" data-quick-toggle>Quick add: just calories</button>
+        </div>
         <form class="stack" data-quick hidden novalidate>
           <div class="field-grid">
             <label class="field"><span>Calories</span><input name="kcal" type="number" inputmode="numeric" min="1" max="5000" placeholder="600"></label>
@@ -331,7 +334,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       const s = flow.f.selected;
       head.holdLarge?.(!!s); // with a food picked the dock needs the full height
       dock.hidden = !s;
-      $('[data-quick-toggle]', body).hidden = !!s; // no room for it beside the dock at medium
+      $('[data-alt]', body).hidden = !!s; // no room for Restaurant and Quick add beside the dock at medium
       if (s) $('[data-quick]', body).hidden = true;
       if (!s) return;
       head.expand(); // the dock's Add button must be fully on screen
@@ -496,6 +499,12 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       toast(`Added to ${MEAL_LABEL[fields.meal].toLowerCase()} · ${Math.round(fields.kcal * fields.servings).toLocaleString('en-US')} kcal`, 2600, { icon: 'check' });
     };
 
+    $('[data-restaurant]', body).onclick = () => {
+      haptics.select();
+      const m = flow.f.meal;
+      close();
+      setTimeout(() => import('./food-restaurant.js').then((r) => r.openRestaurant({ day, meal: m, onFallback: () => openLogFood({ day, meal: m }) })), 0);
+    };
     const quick = $('[data-quick]', body);
     $('[data-quick-toggle]', body).onclick = () => {
       quick.hidden = !quick.hidden;

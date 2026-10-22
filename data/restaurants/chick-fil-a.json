@@ -1,0 +1,23 @@
+{
+  "id": "chick-fil-a", "name": "Chick-fil-A", "build": false, "version": 1,
+  "source": "https://www.chick-fil-a.com/nutrition-allergens", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "mains", "label": "Sandwiches and nuggets"},
+    {"id": "sides", "label": "Sides"},
+    {"id": "sauces", "label": "Sauces"},
+    {"id": "drinks", "label": "Drinks"}
+  ],
+  "items": [
+    {"id": "sandwich", "name": "Chick-fil-A Chicken Sandwich", "group": "mains", "kcal": 440, "protein_g": 28, "carbs_g": 41, "fat_g": 17},
+    {"id": "spicy", "name": "Spicy Chicken Sandwich", "group": "mains", "kcal": 450, "protein_g": 29, "carbs_g": 41, "fat_g": 19},
+    {"id": "grilled", "name": "Grilled Chicken Sandwich", "group": "mains", "kcal": 390, "protein_g": 28, "carbs_g": 44, "fat_g": 12},
+    {"id": "nuggets8", "name": "Nuggets, 8 count", "group": "mains", "kcal": 250, "protein_g": 28, "carbs_g": 11, "fat_g": 11},
+    {"id": "grilled-nuggets8", "name": "Grilled Nuggets, 8 count", "group": "mains", "kcal": 130, "protein_g": 25, "carbs_g": 4, "fat_g": 3},
+    {"id": "fries-m", "name": "Waffle Potato Fries, medium", "group": "sides", "kcal": 420, "protein_g": 5, "carbs_g": 45, "fat_g": 24},
+    {"id": "fruit-m", "name": "Fruit Cup, medium", "group": "sides", "kcal": 60, "protein_g": 1, "carbs_g": 15, "fat_g": 0},
+    {"id": "cfa-sauce", "name": "Chick-fil-A Sauce", "group": "sauces", "kcal": 140, "protein_g": 0, "carbs_g": 7, "fat_g": 13},
+    {"id": "polynesian", "name": "Polynesian Sauce", "group": "sauces", "kcal": 110, "protein_g": 0, "carbs_g": 13, "fat_g": 6},
+    {"id": "lemonade-m", "name": "Lemonade, medium", "group": "drinks", "kcal": 220, "protein_g": 0, "carbs_g": 55, "fat_g": 0},
+    {"id": "tea-unsweet", "name": "Unsweetened iced tea", "group": "drinks", "kcal": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0}
+  ]
+}

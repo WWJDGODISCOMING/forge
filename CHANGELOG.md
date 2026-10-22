@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.16.49 — Restaurant meal builder (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Log food has a Restaurant button: pick a chain and tap what you ordered.
+- Chipotle, Cava, Sweetgreen and Subway let you build it piece by piece, with half portions.
+- Calories, protein, carbs and fat add up as you tap.
+- Save the order as a meal and as a Favorite, so it shows first in search.
+
+### Details
+
+- Ten chains: Chipotle, Chick-fil-A, Panera, Subway, Starbucks, McDonald's, Taco Bell, Wendy's, Cava, Sweetgreen. Numbers are stored in the app (`data/restaurants/`), so it works offline and with AI off.
+- Not on the list? The sheet points back to Create food and the meal photo estimate.
+- The numbers are a close estimate: chains change recipes and sizes.
+
 ## 0.16.48 — Polish: deficit on Today, change a program's start date, fresher burned (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes.

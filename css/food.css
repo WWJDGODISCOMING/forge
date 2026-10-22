@@ -295,6 +295,35 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .plan-steps { margin: 0; padding-left: 22px; display: flex; flex-direction: column; gap: var(--s-2); }
 @media (prefers-reduced-motion: no-preference) { .plan-open:active { opacity: .7; } }
 
+/* Restaurant meal builder (v0.16.49). Every row keeps its stepper column at a fixed width, so adding items never shifts the list. */
+.food-alt { display: flex; flex-wrap: wrap; gap: var(--s-2); }
+.food-alt > .btn { flex: 1 1 150px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); }
+.food-alt[hidden] { display: none; }
+.rest-chains li { min-height: 52px; }
+.rest-back { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; gap: var(--s-2); }
+.rest-title { margin: 0; }
+.rest-group { margin: var(--s-3) 0 var(--s-2); font-size: calc(15px * var(--ts)); }
+.rest-item { display: flex; align-items: center; gap: var(--s-2); min-height: 56px; border-radius: var(--r-md); }
+.rest-item .food-row { flex: 1; min-width: 0; }
+.rest-item.on { background: var(--accent-tint); }
+.rest-ctl { flex: none; width: 140px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; justify-items: center; }
+.rest-ctl .icon-btn { width: 44px; height: 44px; }
+.rest-ctl [hidden] { display: block; visibility: hidden; }
+.rest-qty { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-1); }
+.rest-fav { display: flex; align-items: center; gap: var(--s-2); min-height: 44px; }
+.rest-fav input { width: 24px; height: 24px; flex: none; }
+.rest-fallback { display: flex; flex-direction: column; gap: var(--s-2); }
+.rest-dock { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: var(--s-3); padding: var(--s-3) var(--s-3) calc(var(--s-3) + var(--safe-bottom)); margin: var(--s-3) calc(var(--s-3) * -1) 0; border-radius: var(--r-lg); background: var(--surface-2); box-shadow: var(--elev-1); }
+.rest-tally { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: var(--s-2); margin: 0; }
+.rest-tally > div { min-width: 0; }
+.rest-tally dt { font-size: calc(12px * var(--ts)); color: var(--text-2); }
+.rest-tally dd { margin: 0; font-weight: 700; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text-1); font-size: calc(16px * var(--ts)); }
+.rest-tally .rest-kcal dd { font-size: calc(22px * var(--ts)); color: var(--accent-text); }
+@media (prefers-reduced-motion: no-preference) {
+  .rest-item.pop { animation: rest-pop .45s ease-out; }
+  @keyframes rest-pop { from { background: color-mix(in srgb, var(--accent) 35%, transparent); } }
+}
+
 /* Barcode scan, brand products and Create food (v0.16.44). Tokens only; nothing here moves. */
 .food-more { display: flex; flex-wrap: wrap; gap: var(--s-2); padding: var(--s-3) 0; }
 .food-more > .btn { flex: 1 1 160px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); }
@@ -302,3 +331,4 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .scan-view video { width: 100%; height: 100%; object-fit: cover; }
 .scan-frame { position: absolute; inset: 22% 10%; border: 2px solid var(--accent); border-radius: var(--r-lg); pointer-events: none; }
 @media (orientation: landscape) and (max-height: 520px) { .scan-view { max-height: 40vh; aspect-ratio: 16 / 7; } }
+

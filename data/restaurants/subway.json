@@ -1,0 +1,32 @@
+{
+  "id": "subway", "name": "Subway", "build": true, "version": 1,
+  "source": "https://www.subway.com/en-us/menunutrition/nutrition", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "bread", "label": "Bread (6 inch)", "half": false},
+    {"id": "protein", "label": "Protein", "half": true},
+    {"id": "cheese", "label": "Cheese", "half": true},
+    {"id": "veg", "label": "Veggies", "half": true},
+    {"id": "sauces", "label": "Sauces", "half": true}
+  ],
+  "items": [
+    {"id": "italian", "name": "Italian bread", "group": "bread", "kcal": 190, "protein_g": 7, "carbs_g": 37, "fat_g": 2},
+    {"id": "wheat", "name": "9-grain wheat bread", "group": "bread", "kcal": 200, "protein_g": 8, "carbs_g": 38, "fat_g": 2.5},
+    {"id": "flatbread", "name": "Flatbread", "group": "bread", "kcal": 220, "protein_g": 7, "carbs_g": 38, "fat_g": 5},
+    {"id": "turkey", "name": "Turkey breast", "group": "protein", "kcal": 60, "protein_g": 10, "carbs_g": 3, "fat_g": 1},
+    {"id": "ham", "name": "Black forest ham", "group": "protein", "kcal": 60, "protein_g": 10, "carbs_g": 2, "fat_g": 1.5},
+    {"id": "chicken", "name": "Rotisserie-style chicken", "group": "protein", "kcal": 100, "protein_g": 17, "carbs_g": 1, "fat_g": 3},
+    {"id": "steak", "name": "Steak", "group": "protein", "kcal": 100, "protein_g": 16, "carbs_g": 3, "fat_g": 3},
+    {"id": "tuna", "name": "Tuna", "group": "protein", "kcal": 250, "protein_g": 14, "carbs_g": 2, "fat_g": 21},
+    {"id": "american", "name": "American cheese", "group": "cheese", "kcal": 40, "protein_g": 2, "carbs_g": 1, "fat_g": 3.5},
+    {"id": "provolone", "name": "Provolone", "group": "cheese", "kcal": 50, "protein_g": 4, "carbs_g": 0, "fat_g": 4},
+    {"id": "lettuce", "name": "Lettuce", "group": "veg", "kcal": 5, "protein_g": 0, "carbs_g": 1, "fat_g": 0},
+    {"id": "tomato", "name": "Tomatoes", "group": "veg", "kcal": 5, "protein_g": 0, "carbs_g": 1, "fat_g": 0},
+    {"id": "cucumber", "name": "Cucumbers", "group": "veg", "kcal": 5, "protein_g": 0, "carbs_g": 1, "fat_g": 0},
+    {"id": "peppers", "name": "Green peppers", "group": "veg", "kcal": 5, "protein_g": 0, "carbs_g": 1, "fat_g": 0},
+    {"id": "avocado", "name": "Avocado", "group": "veg", "kcal": 60, "protein_g": 1, "carbs_g": 3, "fat_g": 5},
+    {"id": "mayo", "name": "Mayonnaise", "group": "sauces", "kcal": 100, "protein_g": 0, "carbs_g": 0, "fat_g": 11},
+    {"id": "mustard", "name": "Yellow mustard", "group": "sauces", "kcal": 5, "protein_g": 0, "carbs_g": 1, "fat_g": 0},
+    {"id": "sweet-onion", "name": "Sweet onion sauce", "group": "sauces", "kcal": 40, "protein_g": 0, "carbs_g": 9, "fat_g": 0},
+    {"id": "ranch", "name": "Ranch", "group": "sauces", "kcal": 110, "protein_g": 0, "carbs_g": 1, "fat_g": 12}
+  ]
+}

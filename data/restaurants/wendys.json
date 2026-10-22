@@ -1,0 +1,19 @@
+{
+  "id": "wendys", "name": "Wendy's", "build": false, "version": 1,
+  "source": "https://www.wendys.com/nutrition-info", "retrieved": "2026-10-22",
+  "groups": [
+    {"id": "burgers", "label": "Burgers and sandwiches"},
+    {"id": "sides", "label": "Sides"},
+    {"id": "sweets", "label": "Frosty"}
+  ],
+  "items": [
+    {"id": "daves-single", "name": "Dave's Single", "group": "burgers", "kcal": 570, "protein_g": 30, "carbs_g": 39, "fat_g": 34},
+    {"id": "daves-double", "name": "Dave's Double", "group": "burgers", "kcal": 810, "protein_g": 48, "carbs_g": 40, "fat_g": 51},
+    {"id": "jr-hamburger", "name": "Jr. Hamburger", "group": "burgers", "kcal": 250, "protein_g": 13, "carbs_g": 26, "fat_g": 11},
+    {"id": "spicy-chicken", "name": "Spicy Chicken Sandwich", "group": "burgers", "kcal": 500, "protein_g": 29, "carbs_g": 50, "fat_g": 19},
+    {"id": "nuggets10", "name": "Chicken Nuggets, 10 piece", "group": "burgers", "kcal": 450, "protein_g": 23, "carbs_g": 26, "fat_g": 29},
+    {"id": "fries-m", "name": "Fries, medium", "group": "sides", "kcal": 350, "protein_g": 5, "carbs_g": 47, "fat_g": 16},
+    {"id": "chili-s", "name": "Chili, small", "group": "sides", "kcal": 170, "protein_g": 13, "carbs_g": 16, "fat_g": 6},
+    {"id": "frosty-s", "name": "Chocolate Frosty, small", "group": "sweets", "kcal": 340, "protein_g": 9, "carbs_g": 54, "fat_g": 9}
+  ]
+}
