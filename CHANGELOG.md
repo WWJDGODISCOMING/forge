@@ -7,7 +7,7 @@ No Cloud Functions or `firestore.rules` changes. No native rebuild.
 ### What's new
 
 - On Progress > Awards, tap a badge or drag a finger across it and it turns over in 3D.
-- The back tells what the badge means, its tier and when you earned it. Locked ones show a progress bar.
+- The back shows its meaning, tier and date. Locked ones show a progress bar.
 - Let go mid-turn and it springs to the front or the back, with a light tap.
 - Earned badges glow and catch a sweep of light. Locked ones stay muted.
 - With Reduce Motion on, badges fade between sides instead of turning.
