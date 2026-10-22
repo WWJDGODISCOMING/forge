@@ -1,6 +1,6 @@
 // Service worker: caches the app so it opens with no signal, and hands off new versions.
 // Bump VERSION here AND in js/version.js on every release.
-const VERSION = '0.16.46';
+const VERSION = '0.16.47';
 const CACHE = `forge-${VERSION}`;
 const FB = 'https://www.gstatic.com/firebasejs/12.19.0';
 // Demo photos live in their own cache (not versioned, not precached): see js/ui/photos.js.
@@ -21,6 +21,7 @@ const SHELL = [
   './css/missions.css',
   './css/report.css',
   './css/food.css',
+  './css/ask.css',
   './css/quicklog.css',
   './css/lock.css',
   './css/mfa.css',
@@ -64,6 +65,9 @@ const SHELL = [
   './js/food/meal-library.js',
   './js/food/meal-plan.js',
   './js/food/meal-ai.js',
+  './js/food/ask-rules.js',
+  './js/food/ask.js',
+  './js/screens/ask.js',
   './js/screens/food-prefs.js',
   './js/screens/protein-goal.js',
   './js/screens/rest-default.js',

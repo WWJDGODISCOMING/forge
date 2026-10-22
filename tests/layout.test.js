@@ -221,6 +221,41 @@ if (standalone) {
 }
 
 if (standalone) {
+  test('layout: Ask Forge: the Food and Today buttons, the sheet and its answer fit at every size, with big tap targets', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    for (const c of SIZES.concat(WIDE).map(([w, h]) => ({ w, h, dark: true })).concat([{ w: 375, h: 667, dark: false }])) {
+      await browser.viewport(c.w, c.h, c.dark);
+      const at = `${c.w}x${c.h}${c.dark ? 'd' : 'l'}`;
+      for (const route of ['today', 'food']) {
+        await browser.open(route, seed());
+        const h = await browser.eval("(() => { const b = document.querySelector('[data-ask-forge]'); return b ? b.getBoundingClientRect().height : 0; })()");
+        if (h < 44) note(`${route}: Ask Forge button is ${Math.round(h)}px tall`, at);
+        if (shots) await browser.screenshot(`${shots}/ask-${route}-${c.w}x${c.h}-${c.dark ? 'dark' : 'light'}.png`);
+      }
+      await browser.eval("document.querySelector('[data-ask-forge]').click()");
+      await wait(450);
+      await browser.eval("(() => { const f = document.querySelector('dialog.sheet form.ask-form'); f.q.value = 'Is a bowl of oatmeal okay?'; f.requestSubmit(); })()");
+      await wait(900);
+      const behind = (v) => browser.eval(`['main', 'nav', 'navbar'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = '${v}'; })`);
+      await behind('hidden');
+      const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: false })})`);
+      await behind('');
+      for (const pr of probs) note(`sheet: ${pr}`, at);
+      const r = await browser.eval(`(() => { const d = document.querySelector('dialog.sheet'); const a = d && d.querySelector('[data-ask-answer]'); const bs = a ? [...a.querySelectorAll('[data-log]')].map((b) => b.getBoundingClientRect().height) : []; return { open: !!d, answer: !!a, buttons: bs, wide: d ? d.scrollWidth > d.clientWidth + 1 : false }; })()`);
+      if (!r.open || !r.answer) note('no answer card', at);
+      if (r.buttons.length !== 2 || r.buttons.some((x) => x < 44)) note(`Log buttons: ${JSON.stringify(r.buttons)}`, at);
+      if (r.wide) note('sheet scrolls sideways', at);
+      if (shots) await browser.screenshot(`${shots}/ask-sheet-${c.w}x${c.h}-${c.dark ? 'dark' : 'light'}.png`);
+    }
+    assert(found.size === 0, `Ask Forge layout: ${[...found].map(([m, w]) => `${m} @ ${w.join(',')}`).join(' | ')}`);
+  });
+}
+
+if (standalone) {
   test("layout: Change today's workout: the sheet, its steps and the Undo toast fit at every size", async () => {
     if (skipReason()) return;
     browser = browser || await launch();

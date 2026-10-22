@@ -97,7 +97,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 8. #155 Ask Forge: 'Can I eat this?' food coach
 - Issue: #155
 - Version: 0.16.47
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Ask sheet on Today and Food (text; dictation via the iOS keyboard).
   - Context via the existing swappable AI interface and Cloud Function (no keys in the front end): eaten kcal/macros, ceiling, protein goal, burned (from #146), the food (USDA/label lookup when possible).

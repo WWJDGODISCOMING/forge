@@ -34,6 +34,7 @@ import { searchFoods, FoodSearchError } from './src/usda.js';
 import { lookupOff } from './src/offood.js';
 import { snapMeal, SnapError } from './src/snap.js';
 import { personalizeMealPlan as buildAiMealPlan, MealAiError } from './src/mealai.js';
+import { askForge as runAskForge, AskForgeError } from './src/askforge.js';
 
 initializeApp();
 const REGION = 'us-east1';
@@ -273,6 +274,23 @@ export const personalizeMealPlan = onCall({ secrets: [XAI_KEY], timeoutSeconds: 
       if (e.code === 'busy') throw new HttpsError('unavailable', 'The AI is busy. Try again in a minute, or use the standard plan.');
       if (e.code === 'garbled') throw new HttpsError('unavailable', 'The AI plan didn’t come out right. Try again, or use the standard plan.');
       throw new HttpsError('unavailable', 'AI meal plans aren’t available right now. The standard plan still works.');
+    }
+    throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
+  }
+});
+
+// ---------- Ask Forge (xAI text): "Can I eat this?" The question and today's numbers go to xAI and are dropped; the rules double-check the verdict ----------
+export const askForge = onCall({ secrets: [XAI_KEY], timeoutSeconds: 40, memory: '256MiB' }, async (req) => {
+  const uid = needUid(req);
+  try {
+    return await runAskForge({ db: db(), uid, data: req.data, apiKey: XAI_KEY.value().trim(), fetch: globalThis.fetch });
+  } catch (e) {
+    if (e instanceof AskForgeError) {
+      if (e.code === 'invalid') throw new HttpsError('invalid-argument', 'That question couldn’t be read. Try asking it another way.');
+      if (e.code === 'limited') throw new HttpsError('resource-exhausted', 'That’s a lot of questions for now. Forge will answer from your numbers instead.');
+      if (e.code === 'busy') throw new HttpsError('unavailable', 'The AI is busy. Forge will answer from your numbers instead.');
+      if (e.code === 'garbled') throw new HttpsError('unavailable', 'The AI answer didn’t come out right. Forge will answer from your numbers instead.');
+      throw new HttpsError('unavailable', 'The AI isn’t available right now. Forge will answer from your numbers instead.');
     }
     throw new HttpsError('internal', 'Something went wrong on Forge’s server.');
   }
