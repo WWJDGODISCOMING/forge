@@ -20,7 +20,9 @@ export function near(actual, expected, tol, msg = '') {
 export async function runAll(log = console.log) {
   let pass = 0;
   let fail = 0;
+  const only = typeof process !== 'undefined' && process.env && process.env.TEST_GREP; // TEST_GREP=onboarding runs only matching names
   for (const t of tests) {
+    if (only && !t.name.includes(only)) continue;
     try {
       await t.fn();
       pass++;

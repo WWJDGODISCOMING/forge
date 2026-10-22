@@ -68,6 +68,7 @@ import './v01650.test.js';
 import './v01651.test.js';
 import './v01652.test.js';
 import './v01653.test.js';
+import './v01654.test.js';
 import './v0153.test.js';
 import './v0154.test.js';
 import './v0154pdf.test.js';

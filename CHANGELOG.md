@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.54 — Easier to read, and onboarding buttons that stay put (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's new
+
+- Light mode: Done set and the How-To pill are easier to read.
+- The selected Settings item on a wide screen is easier to read.
+- Setup buttons no longer overlap anything on short screens.
+
 ## 0.16.53 — Drag your finger across any chart (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.
