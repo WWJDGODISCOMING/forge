@@ -33,7 +33,9 @@
 	<key>NSFaceIDUsageDescription</key>
 	<string>Forge uses Face ID to unlock the app, so your workouts and progress photos stay private. Your face data never leaves your iPhone.</string>
 	<key>NSHealthShareUsageDescription</key>
-	<string>Forge reads your heart rate variability, resting heart rate, sleep, breathing rate, blood oxygen, wrist temperature, cardio fitness, steps, active and resting energy, Apple Watch workouts, heart rate during workouts and exercise minutes from Apple Health to work out your calories burned, your Readiness and Forge Score. Forge saves daily summaries and your Apple Watch workouts (time, length, calories, average and highest heart rate) to your own Forge account. Resting energy stays on this iPhone. It never writes to Apple Health and never uses this data for ads.</string>
+	<string>Forge reads your heart rate variability, resting heart rate, sleep, breathing rate, blood oxygen, wrist temperature, cardio fitness, steps, active and resting energy, Apple Watch workouts, heart rate during workouts and exercise minutes from Apple Health to work out your calories burned, your Readiness and Forge Score. Forge saves daily summaries and your Apple Watch workouts (time, length, calories, average and highest heart rate) to your own Forge account. Resting energy stays on this iPhone. Forge writes only the workouts you finish in Forge, with their active energy, and only when you turn that on in Settings → Apple Health. It never uses this data for ads.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>Forge saves the workouts you finish in Forge to Apple Health, with their duration and estimated or measured active calories, so they count toward your Activity rings.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>

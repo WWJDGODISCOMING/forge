@@ -69,6 +69,7 @@ If it prints a ✗, it says in plain words what to do. Fix that and paste the li
 
 ### 7. Allow notifications and Apple Health
 - The first rest timer asks to send notifications: tap **Allow**.
+- Optional: **Settings → Apple Health → Save Forge workouts to Apple Health** (off by default) sends each workout you finish to Apple Health so it fills your Move and Exercise rings. If your Apple Watch is recording the same session, Forge links to that workout instead. After pulling 0.16.50, run **Refresh Forge** once: it adds a small native plugin (`ForgeWorkoutsPlugin.swift`).
 - In Forge: **Settings → Apple Health → Connect Apple Health**. iOS shows its Health sheet: tap **Turn On All**, then **Allow**. Forge says how many days it saved, and Readiness fills in.
 
 ## Try these on the phone
@@ -138,6 +139,7 @@ then **▶** in Xcode. (The iPhone app carries its own copy of Forge, so GitHub 
 | No haptics | iPhone Settings → Sounds & Haptics → System Haptics on; Forge Settings → Haptic tick on. |
 | No rest notification | iPhone Settings → Notifications → Forge → Allow Notifications. |
 | Apple Health says nothing was shared | Settings → Health → Data Access & Devices → Forge → **Turn On All**, then **Read Apple Health now** in Forge. |
+| Workout not in Fitness | Check Health → Data Access & Devices → Forge → Workouts / Active Energy (write), and that **Settings → Apple Health → Save Forge workouts to Apple Health** is on. |
 | The Connect button says Apple Health isn't available | Run the script again and press ▶; if it still says so, send Claude the Xcode console lines about "Health". |
 
 ## What's in the repo

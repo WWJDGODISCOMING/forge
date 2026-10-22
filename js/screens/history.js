@@ -195,12 +195,17 @@ function openWorkout(id) {
       setEffort(it, same ? null : Number(v));
       if (!same) delete it.effort_skipped;
       patch('workouts', w.id, { exercises: w.exercises });
+      import('../native/workouts-health.js').then((m) => m.resync(w)).catch(() => {}); // Apple Health replaces its copy (higher version)
       const r = exerciseRir(it);
       b.closest('.effort-row').querySelectorAll('[data-effort]').forEach((x) => x.classList.toggle('on', Number(x.dataset.effort.split(':')[1]) === r));
     }));
     $('[data-del]', body).onclick = async () => {
       close();
-      if (await confirmSheet({ title: 'Delete workout?', message: 'It will be removed from your history and PRs on all devices.', confirmLabel: 'Delete', danger: true })) softDelete('workouts', id);
+      if (await confirmSheet({ title: 'Delete workout?', message: 'It will be removed from your history and PRs on all devices.', confirmLabel: 'Delete', danger: true })) {
+        const gone = state.workouts.find((x) => x.id === id);
+        softDelete('workouts', id);
+        if (gone && gone.hk_uuid) import('../native/workouts-health.js').then((m) => m.removeFor(gone)).catch(() => {});
+      }
     };
   });
 }

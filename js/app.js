@@ -375,6 +375,7 @@ let healthAutoAt = 0;
 function autoHealth({ force = false } = {}) {
   if (!isNative() || !allLoaded() || !state.user || (!force && Date.now() - healthAutoAt < 60000)) return; // a foreground call is already throttled by watchForeground
   healthAutoAt = Date.now();
+  import('./native/workouts-health.js').then((m) => m.retryPending()).catch(() => {}); // workouts that couldn't be sent at finish
   import('./screens/apple.js').then((m) => m.autoHealthSync({ force })).catch(() => {});
 }
 // Coming back to the front always re-reads today's burned calories (resting + active), past the 3 minute wait.

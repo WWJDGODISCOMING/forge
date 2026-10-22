@@ -14,6 +14,8 @@ import { shiftDay } from '../health/metrics.js';
 import { NEEDED_DAYS } from '../health/readiness.js';
 import { icon } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
+import { haptic } from '../ui/haptic.js';
+import { requestAccess, sendLastDays, lastSent } from '../native/workouts-health.js';
 import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone } from '../native/autoread.js';
 
 const call = async (...args) => (await import('../functions.js')).call(...args);
@@ -150,6 +152,49 @@ export async function autoHealthSync({ force = false } = {}) {
     if (mode === 'backfill') backfillFailedAt = Date.now(); else if (mode === 'morning') morningFailedAt = Date.now(); else autoFailedAt = Date.now();
     return null;
   }
+}
+
+/** "Last saved: Push day · 182 kcal · 10:42 AM" / "Linked to your Apple Watch workout". */
+function writeStatus() {
+  const w = lastSent();
+  if (!w) return 'Nothing saved yet. Workouts you finish from now on are sent.';
+  if (w.health_write === 'linked') return 'Linked to your Apple Watch workout';
+  const t = new Date(w.finished_at).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+  return `Last saved: ${w.label || 'Workout'}${w.kcal ? ` · ${Math.round(w.kcal)} kcal` : ''} · ${t}`;
+}
+
+function writeCard() {
+  const st = state.settings || {};
+  const on = !!st.health_write_workouts;
+  const left = (state.workouts || []).some((w) => w.status === 'done' && !w.deleted && !w.health_write && Date.now() - Date.parse(w.finished_at) < 7 * 86400000);
+  return `<div class="card stack" data-write>
+    <div class="group"><label class="g-row sw" style="min-height:44px"><span class="g-text"><span>Save Forge workouts to Apple Health</span><small>Fills your Move and Exercise rings and shows in Activity sharing.</small></span><input type="checkbox" switch name="writeworkouts" ${on ? 'checked' : ''}></label></div>
+    ${on ? `<p class="small" data-write-status>${esc(writeStatus())}</p>` : ''}
+    ${on && left ? '<button class="btn ghost bigbtn" data-write-week>Also send the last 7 days</button>' : ''}
+    <p class="small muted">Starting the Apple Watch Workout at the same time gives Watch-measured calories and heart rate. Forge links to it instead of saving a duplicate.</p>
+  </div>`;
+}
+
+const WRITE_DENIED = 'Allow Forge to write Workouts and Active Energy in Settings → Health → Data Access & Devices → Forge.';
+
+async function setWrite(el, box) {
+  if (!box.checked) { patch('settings', 'main', { health_write_workouts: false }); haptic('select'); renderApple(el); return; }
+  const status = await requestAccess();
+  if (status === 'denied' || status === 'unavailable') {
+    box.checked = false;
+    toast(WRITE_DENIED, 6000);
+    return;
+  }
+  patch('settings', 'main', { health_write_workouts: true, health_write_since: new Date().toISOString() });
+  haptic('success');
+  renderApple(el);
+}
+
+async function sendWeek(el, btn) {
+  btn.disabled = true;
+  const n = await sendLastDays(7).catch(() => 0);
+  toast(n ? `Sent ${n} ${n === 1 ? 'workout' : 'workouts'} to Apple Health` : 'Nothing new to send', 3500);
+  renderApple(el);
 }
 
 function nativeCard() {
@@ -338,7 +383,7 @@ export function renderApple(el) {
       <h1>Apple Health</h1>
       ${readErr ? `<div class="notice warn">${esc(serverErrorText(readErr, 'Apple Health'))}</div>` : ''}
       <p class="muted">Bring your Watch’s overnight HRV, resting heart rate, sleep and wrist temperature into Forge for Readiness and your Forge Score. Everything stays in your own Forge account.</p>
-      ${isNative() ? nativeCard() : ''}
+      ${isNative() ? nativeCard() + writeCard() : ''}
       ${statusCard()}
       ${isNative() ? '<details class="card"><summary>Other ways: Shortcut or export file</summary><div class="stack" style="margin-top:12px">' : ''}
       <div class="card stack">
@@ -360,6 +405,10 @@ export function renderApple(el) {
     </section>`;
 
   $$('[data-copy-text]', el).forEach((b) => (b.onclick = () => copyText(b.dataset.copyText, b)));
+  const ww = $('input[name=writeworkouts]', el);
+  if (ww) ww.addEventListener('change', () => setWrite(el, ww));
+  const wk = $('[data-write-week]', el);
+  if (wk) wk.onclick = () => sendWeek(el, wk);
   const nr = $('[data-native-read]', el);
   if (nr) nr.onclick = () => runNative(el);
   $('[data-delete]', el).onclick = () => deleteApple(el);

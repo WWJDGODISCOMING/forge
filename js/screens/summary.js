@@ -20,11 +20,24 @@ import { badgeSVG } from '../ui/badges.js';
 import { levelUp } from '../ui/fx.js';
 import { renderShareCard, shareImage } from '../ui/sharecard.js';
 import { icon } from '../ui/icons.js';
+import { estimateKcal, weightKgFor, kcalLine } from '../workouts/energy.js';
+import { isNative } from '../native/bridge.js';
 
 const fmtDuration = (ms) => {
   const m = Math.round(ms / 60000);
   return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` : `${m} min`;
 };
+
+/** Calories line under the stats: saved/linked numbers first, else the estimate. Plain words about Apple Health. */
+function kcalBlock(w) {
+  const est = estimateKcal(w, weightKgFor(state.weights, state.profile));
+  const shown = w.kcal > 0 ? w : est != null ? { kcal: est, kcal_source: 'estimate' } : null;
+  const line = kcalLine(shown);
+  const linked = w.health_write === 'linked';
+  const noWeight = est == null && !(w.kcal > 0) && isNative() && state.settings && state.settings.health_write_workouts;
+  if (!line && !noWeight) return '';
+  return `<p class="small tcenter" data-kcal style="margin:0">${line ? `<b>${esc(line)}</b>` : ''}${linked ? `<br><span class="muted">Linked to Apple Watch workout${w.avg_hr ? ` · avg ${Math.round(w.avg_hr)} bpm` : ''}</span>` : ''}${noWeight ? '<span class="muted">Add your weight to send calories to Apple Health</span>' : ''}</p>`;
+}
 
 export function renderSummary(el, id) {
   // Use the saved copy only once it says done; until the local snapshot lands, use what finishWorkout() saved.
@@ -92,6 +105,8 @@ export function renderSummary(el, id) {
         <div><span>Volume</span><b><span data-c="vol">${st.volume.toLocaleString()}</span> <small>${u}</small></b></div>
         <div class="${prs.length ? 'gold' : ''}"><span>Records</span><b>${icon('trophy', { filled: true })} <span data-c="prs">${prs.length}</span></b></div>
       </div>
+
+      ${kcalBlock(w)}
 
       ${aw ? `
       <div class="card sum-xp">
