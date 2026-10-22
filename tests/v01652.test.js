@@ -33,7 +33,7 @@ const W = (i) => ({ id: `w${i}`, status: 'done', started_at: `2026-09-${String(1
 test('locked badges carry progress; the bar caps at the goal', () => {
   const a = awardsFor([W(1), W(2), W(3)], [], 3);
   const w10 = a.badges.find((b) => b.id === 'w10');
-  eq(w10.progress, { cur: 3, goal: 10, unit: 'workouts' });
+  eq(JSON.stringify(w10.progress), JSON.stringify({ cur: 3, goal: 10, unit: 'workouts' }));
   eq(a.badges.find((b) => b.id === 'first').progress.cur, 1);
   eq(a.badges.find((b) => b.id === 'full').progress, null, 'yes/no badges have no bar');
   eq(badgeProgress('w10', { workouts: 99 }).cur, 10);
