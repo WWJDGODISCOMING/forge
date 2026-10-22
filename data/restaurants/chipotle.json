@@ -1,5 +1,5 @@
 {
-  "id": "chipotle", "name": "Chipotle", "build": true, "version": 1,
+  "id": "chipotle", "name": "Chipotle", "build": true, "version": 2,
   "source": "https://www.chipotle.com/nutrition-calculator", "retrieved": "2026-10-22",
   "groups": [
     {"id": "wrap", "label": "Tortilla or bowl", "half": false},
@@ -11,8 +11,9 @@
     {"id": "sides", "label": "Sides", "half": false}
   ],
   "items": [
+    {"id": "bowl", "name": "Bowl (no tortilla)", "group": "wrap", "kcal": 0, "protein_g": 0, "carbs_g": 0, "fat_g": 0},
     {"id": "tortilla", "name": "Flour tortilla", "group": "wrap", "kcal": 320, "protein_g": 9, "carbs_g": 50, "fat_g": 9},
-    {"id": "pollo", "name": "Pollo asado (chicken)", "group": "protein", "kcal": 180, "protein_g": 32, "carbs_g": 0, "fat_g": 7},
+    {"id": "pollo", "name": "Chicken", "group": "protein", "kcal": 180, "protein_g": 32, "carbs_g": 0, "fat_g": 7},
     {"id": "steak", "name": "Steak", "group": "protein", "kcal": 150, "protein_g": 21, "carbs_g": 1, "fat_g": 6},
     {"id": "barbacoa", "name": "Barbacoa", "group": "protein", "kcal": 170, "protein_g": 24, "carbs_g": 2, "fat_g": 7},
     {"id": "carnitas", "name": "Carnitas", "group": "protein", "kcal": 210, "protein_g": 23, "carbs_g": 0, "fat_g": 12},

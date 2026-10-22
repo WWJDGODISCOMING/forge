@@ -225,7 +225,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
         </div>
         <div class="food-alt" data-alt>
           <button type="button" class="btn ghost" data-restaurant>${icon('food', { size: 18 })}<span>Restaurant</span></button>
-          <button type="button" class="btn ghost" data-quick-toggle>Quick add: just calories</button>
+          <button type="button" class="btn ghost" data-quick-toggle>Quick add</button>
         </div>
         <form class="stack" data-quick hidden novalidate>
           <div class="field-grid">

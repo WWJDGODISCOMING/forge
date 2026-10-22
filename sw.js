@@ -33,6 +33,7 @@ const SHELL = [
   './js/app.js',
   './js/version.js',
   './js/lock-boot.js',
+  './js/skel-boot.js',
   './js/native/lock.js',
   './js/native/lock-ui.js',
   './js/nav.js',

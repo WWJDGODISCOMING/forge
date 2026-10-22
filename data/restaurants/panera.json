@@ -1,5 +1,5 @@
 {
-  "id": "panera", "name": "Panera", "build": false, "version": 1,
+  "id": "panera", "name": "Panera", "build": false, "version": 2,
   "source": "https://www.panerabread.com/en-us/nutrition.html", "retrieved": "2026-10-22",
   "groups": [
     {"id": "soups", "label": "Soups"},
@@ -12,8 +12,6 @@
     {"id": "broc-bowl", "name": "Broccoli Cheddar Soup, bowl", "group": "soups", "kcal": 360, "protein_g": 14, "carbs_g": 28, "fat_g": 22},
     {"id": "fuji", "name": "Fuji Apple Salad with Chicken, whole", "group": "salads", "kcal": 560, "protein_g": 33, "carbs_g": 40, "fat_g": 31},
     {"id": "greek", "name": "Greek Salad, whole", "group": "salads", "kcal": 400, "protein_g": 8, "carbs_g": 18, "fat_g": 35},
-    {"id": "turkey", "name": "Turkey Sandwich, whole", "group": "sandwiches", "kcal": 780, "protein_g": 48, "carbs_g": 82, "fat_g": 29},
-    {"id": "veggie", "name": "Mediterranean Veggie Sandwich, whole", "group": "sandwiches", "kcal": 640, "protein_g": 22, "carbs_g": 84, "fat_g": 24},
     {"id": "baguette", "name": "Baguette", "group": "sides", "kcal": 180, "protein_g": 6, "carbs_g": 36, "fat_g": 1},
     {"id": "apple", "name": "Apple", "group": "sides", "kcal": 80, "protein_g": 0, "carbs_g": 22, "fat_g": 0},
     {"id": "chips", "name": "Kettle chips, bag", "group": "sides", "kcal": 130, "protein_g": 2, "carbs_g": 16, "fat_g": 7}

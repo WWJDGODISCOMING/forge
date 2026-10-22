@@ -297,7 +297,7 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 
 /* Restaurant meal builder (v0.16.49). Every row keeps its stepper column at a fixed width, so adding items never shifts the list. */
 .food-alt { display: flex; flex-wrap: wrap; gap: var(--s-2); }
-.food-alt > .btn { flex: 1 1 150px; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); }
+.food-alt > .btn { flex: 1 1 140px; white-space: nowrap; min-height: 48px; display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); }
 .food-alt[hidden] { display: none; }
 .rest-chains li { min-height: 52px; }
 .rest-back { align-self: flex-start; min-height: 44px; display: inline-flex; align-items: center; gap: var(--s-2); }
@@ -306,9 +306,11 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .rest-item { display: flex; align-items: center; gap: var(--s-2); min-height: 56px; border-radius: var(--r-md); }
 .rest-item .food-row { flex: 1; min-width: 0; }
 .rest-item.on { background: var(--accent-tint); }
-.rest-ctl { flex: none; width: 140px; display: grid; grid-template-columns: 44px 1fr 44px; align-items: center; justify-items: center; }
+.list .rest-item > .rest-ctl { flex: none; width: 140px; display: grid; flex-direction: unset; grid-template-columns: 44px 1fr 44px; align-items: center; justify-items: center; } /* beats `.list li > div` (a column) */
 .rest-ctl .icon-btn { width: 44px; height: 44px; }
-.rest-ctl [hidden] { display: block; visibility: hidden; }
+.rest-ctl .icon-btn.off { visibility: hidden; } /* the − keeps its space so the + never moves */
+.rest-item .food-sub { flex-wrap: wrap; white-space: normal; overflow: visible; }
+.rest-item .food-sub > span { white-space: nowrap; }
 .rest-qty { font-weight: 700; font-variant-numeric: tabular-nums; color: var(--text-1); }
 .rest-fav { display: flex; align-items: center; gap: var(--s-2); min-height: 44px; }
 .rest-fav input { width: 24px; height: 24px; flex: none; }

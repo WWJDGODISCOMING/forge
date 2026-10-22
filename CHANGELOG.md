@@ -16,6 +16,7 @@ No Cloud Functions or `firestore.rules` changes.
 - Ten chains: Chipotle, Chick-fil-A, Panera, Subway, Starbucks, McDonald's, Taco Bell, Wendy's, Cava, Sweetgreen. Numbers are stored in the app (`data/restaurants/`), so it works offline and with AI off.
 - Not on the list? The sheet points back to Create food and the meal photo estimate.
 - The numbers are a close estimate: chains change recipes and sizes.
+- Review round 1: the first tap on an item is now a full portion (½ is a second choice, from − on a full portion); the −/count/+ stepper keeps its place so rows never shift; saved orders are named for what you ordered ("Big Mac") and list the items, and saving the same order twice reuses the Favorite; the meal, name and Favorite choice sit on a confirm step next to the Log button; Quick add is one line; corrected Wendy's chili and Cava numbers, and dropped items whose numbers could not be confirmed (`notes/restaurant-data.md`); Chipotle gets a Bowl option; the first paint of wide screens (Play, Today, Train, Body…) claims its width so there is no layout shift.
 
 ## 0.16.48 — Polish: deficit on Today, change a program's start date, fresher burned (2026-10-22)
 

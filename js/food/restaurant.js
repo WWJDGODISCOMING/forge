@@ -1,7 +1,8 @@
 // Restaurant meal builder (v0.16.49): pure logic, no DOM. A chain file (data/restaurants/<id>.json) lists items in
-// groups. Picking an item sets a quantity: groups with `half: true` (build-your-own components) go 0.5 → 1 → 1.5…,
-// the others count whole items. Totals are summed at full precision and rounded once, so ten half portions never
+// groups. Picking an item sets a quantity: + always starts at one full portion; groups with `half: true` (build-your-own
+// components) then go 1 → 1.5 → 2… and − goes … → 1 → ½ → 0, so a half is something you choose, never the default. Totals are summed at full precision and rounded once, so ten half portions never
 // drift from the printed numbers.
+import { LIMITS } from './core.js';
 export const CHAIN_IDS = ['chipotle', 'chick-fil-a', 'panera', 'subway', 'starbucks', 'mcdonalds', 'taco-bell', 'wendys', 'cava', 'sweetgreen'];
 export const MAX_QTY = 6;
 
@@ -32,10 +33,12 @@ export function validateChain(c) {
   return bad;
 }
 
-/** The next quantity when you tap + or − on an item: half-capable groups move by 0.5, others by 1. 0 = removed. */
+/** The next quantity when you tap + or −. + from 0 is one full portion; half-capable groups then move by 0.5, others by 1. 0 = removed. */
 export function stepQty(qty, dir, half) {
+  const q = qty || 0;
+  if (q === 0) return dir > 0 ? 1 : 0;
   const step = half ? 0.5 : 1;
-  const n = Math.round(((qty || 0) + dir * step) * 100) / 100;
+  const n = Math.round((q + dir * step) * 100) / 100;
   return Math.min(MAX_QTY, Math.max(0, n));
 }
 
@@ -58,14 +61,30 @@ export function picked(chain, sel) {
 
 export const qtyLabel = (q) => (q === 0.5 ? 'Half' : q === 1 ? '' : q % 1 === 0.5 ? `${Math.floor(q)}½×` : `${q}×`);
 
-/** One-line summary of the order, used in the saved meal's portion text (max 40 letters for logs). */
-export function orderSummary(chain, sel) {
-  const n = picked(chain, sel).length;
-  return `${n} ${n === 1 ? 'item' : 'items'}`;
+const qtyText = (q) => (q === 1 ? '' : q === 0.5 ? '½ ' : q % 1 === 0.5 ? `${Math.floor(q)}½ × ` : `${q} × `);
+
+/** The order in words for the saved meal's portion text: "Big Mac, Fries (M)", "Chicken, ½ White rice…". Trimmed to the 40-letter cap with "…". */
+export function orderSummary(chain, sel, max = LIMITS.serving) {
+  const text = picked(chain, sel).map(({ item, qty }) => `${qtyText(qty)}${item.name}`).join(', ');
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text;
+}
+
+/** What to call the order: your own name, else the item when there is just one, else "<Chain> order". */
+export function orderName(chain, sel, custom) {
+  const own = String(custom || '').trim();
+  if (own) return own;
+  const p = picked(chain, sel);
+  return p.length === 1 ? p[0].item.name : `${chain.name} order`;
 }
 
 /** Fields for a My foods record (the order saved as one favorite food, per serving = the whole order). */
 export function favoriteFood(chain, sel, name) {
   const t = totalsFor(chain, sel);
-  return { name: String(name || '').trim() || `${chain.name} order`, serving: orderSummary(chain, sel), ...t, favorite: true };
+  return { name: orderName(chain, sel, name), serving: orderSummary(chain, sel), ...t, favorite: true };
+}
+
+/** An existing My foods record with the same name and macros, so saving the same order twice reuses it. */
+export function findSameFood(foods, food) {
+  const key = (f) => [String(f.name || '').trim().toLowerCase(), f.kcal, f.protein_g, f.carbs_g, f.fat_g].join('|');
+  return (foods || []).find((f) => !f.deleted_at && !f.deleted && key(f) === key(food)) || null;
 }

@@ -1,5 +1,5 @@
 {
-  "id": "sweetgreen", "name": "Sweetgreen", "build": true, "version": 1,
+  "id": "sweetgreen", "name": "Sweetgreen", "build": true, "version": 2,
   "source": "https://www.sweetgreen.com/nutrition", "retrieved": "2026-10-22",
   "groups": [
     {"id": "base", "label": "Base", "half": true},
@@ -13,7 +13,6 @@
     {"id": "wild-rice", "name": "Wild rice", "group": "base", "kcal": 190, "protein_g": 6, "carbs_g": 38, "fat_g": 2},
     {"id": "quinoa", "name": "Warm quinoa", "group": "base", "kcal": 170, "protein_g": 6, "carbs_g": 29, "fat_g": 3},
     {"id": "chicken", "name": "Roasted chicken", "group": "protein", "kcal": 140, "protein_g": 24, "carbs_g": 1, "fat_g": 4},
-    {"id": "blackened", "name": "Blackened chicken", "group": "protein", "kcal": 180, "protein_g": 25, "carbs_g": 2, "fat_g": 8},
     {"id": "falafel", "name": "Falafel", "group": "protein", "kcal": 210, "protein_g": 7, "carbs_g": 22, "fat_g": 11},
     {"id": "tofu", "name": "Organic tofu", "group": "protein", "kcal": 130, "protein_g": 13, "carbs_g": 3, "fat_g": 8},
     {"id": "avocado", "name": "Avocado", "group": "toppings", "kcal": 120, "protein_g": 2, "carbs_g": 6, "fat_g": 11},
