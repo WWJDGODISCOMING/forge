@@ -1,9 +1,9 @@
 // v0.16.51: live workout. Synthetic data only.
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
 import {
   LIVE_KINDS, newLive, pauseLive, resumeLive, endLive, activeMs, isPaused, fmtElapsed, fmtDistance, fmtPace,
-  activeKcal, totalKcal, liveToCardio, alreadyLive,
+  activeKcal, totalKcal, liveToCardio, alreadyLive, adoptNativePauses, endPayload, healthWriteWanted,
 } from '../js/workouts/live-core.js';
 import { planWorkoutImport } from '../js/health/apple-workouts.js';
 import { VERSION } from '../js/version.js';
@@ -106,4 +106,118 @@ test('0.16.51 wiring: version, service worker, route, native methods, plist keys
   assert(proj.includes('ForgeLiveWorkout.swift in Sources') && proj.includes('ForgeLiveShared.swift in Sources'));
   assert(read('ios/App/App/ForgeLiveWorkout.swift').includes('HKLiveWorkoutBuilder'));
   assert(read('ios/App/ForgeLiveActivity/ForgeLiveActivityBundle.swift').includes('DynamicIsland'));
+});
+
+test('iPhone-only end: the MET estimate is the fallback energy when weight is known, 0 when it is not (the rings still move)', () => {
+  const ended = endLive(newLive('run', T0, 'live_f'), T0 + 30 * MIN);
+  const withWeight = endPayload(ended, { weightKg: 80, settings: { health_write_workouts: true } });
+  eq(withWeight.fallbackKcal, Math.round(9.8 * 80 * 0.5));
+  assert(withWeight.fallbackKcal > 0);
+  eq(endPayload(ended, { weightKg: null, settings: { health_write_workouts: true } }).fallbackKcal, 0);
+  eq(withWeight.end, ended.ended_at);
+});
+
+test('Apple Health write for a live workout follows the same off-by-default switch as #147', () => {
+  const ended = endLive(newLive('walk', T0, 'live_h'), T0 + 10 * MIN);
+  assert(!healthWriteWanted(undefined) && !healthWriteWanted({}) && !healthWriteWanted({ health_write_workouts: false }));
+  assert(healthWriteWanted({ health_write_workouts: true }));
+  eq(endPayload(ended, { weightKg: 70, settings: {} }).save, false, 'a missing setting means no Health write');
+  eq(endPayload(ended, { weightKg: 70, settings: null }).save, false);
+  eq(endPayload(ended, { weightKg: 70, settings: { health_write_workouts: true } }).save, true);
+});
+
+test('pause AND resume on the lock screen while backgrounded: the phone keeps the pauses, so Forge and Health agree', () => {
+  // The screen never heard: the user paused at +10 and resumed at +14 from the lock screen; the app came back at +20.
+  const s = newLive('run', T0, 'live_lock');
+  const back = adoptNativePauses(s, { pauses: [{ start: T0 + 10 * MIN, end: T0 + 14 * MIN }] });
+  assert(!isPaused(back));
+  eq(activeMs(back, T0 + 20 * MIN), 16 * MIN, '20 minutes minus the 4 paused');
+  eq(activeMs(s, T0 + 20 * MIN), 20 * MIN, 'without the phone\'s list the paused time was counted');
+  // a pause still open when the app comes back
+  const open = adoptNativePauses(s, { pauses: [], pausedAt: T0 + 18 * MIN });
+  assert(isPaused(open));
+  eq(activeMs(open, T0 + 30 * MIN), 18 * MIN);
+  // end: the phone's closed pause list and elapsed time make the Forge row
+  const ended = adoptNativePauses(endLive(s, T0 + 30 * MIN), { pauses: [{ start: T0 + 10 * MIN, end: T0 + 14 * MIN }, { start: T0 + 20 * MIN, end: T0 + 22 * MIN }] });
+  eq(activeMs(ended, ended.ended_at), 24 * MIN);
+  eq(liveToCardio(ended, { hk: { uuid: 'U-9', kcal: 200 }, weightKg: 80 }).fields.duration_min, 24);
+  eq(liveToCardio(ended, { hk: { uuid: 'U-9', kcal: 200, elapsedMs: 31 * MIN }, weightKg: 80 }).fields.duration_min, 31, 'the phone\'s own elapsed time is the truth');
+  // junk from native is ignored
+  eq(adoptNativePauses(s, {}), s);
+  eq(adoptNativePauses(s, { pauses: [{ start: 'x', end: 1 }, { start: 5, end: 2 }] }).pauses.length, 0);
+});
+
+test('Swift keeps the real pause / resume moments, returns them with the elapsed time, prepares the session, reports failures', () => {
+  const sw = readFileSync(new URL('../ios/App/App/ForgeLiveWorkout.swift', import.meta.url), 'utf8');
+  assert(sw.includes('pauseLog.append') && sw.includes('"pauses"') && sw.includes('"elapsed"') && sw.includes('"elapsedMs"') && sw.includes('"pausedAt"'));
+  assert(sw.includes('session.prepare()') && sw.indexOf('session.prepare()') < sw.indexOf('session.startActivity(with: start)'), 'prepare before the session starts');
+  assert(/didFailWithError[\s\S]*"failed"/.test(sw), 'a failed session tells the screen');
+});
+
+test('the Xcode project has a real ForgeLiveActivity extension target that Refresh Forge builds and embeds', () => {
+  const proj = readFileSync(new URL('../ios/App/App.xcodeproj/project.pbxproj', import.meta.url), 'utf8');
+  const bare = proj.replace(/\/\*[\s\S]*?\*\//g, '').replace(/"[^"]*"/g, '""');
+  eq(bare.split('{').length, bare.split('}').length, 'braces balance');
+  eq(bare.split('(').length, bare.split(')').length, 'parentheses balance');
+  const defined = new Set([...proj.matchAll(/\b([0-9A-F]{24})\b(?: \/\*[^*]*\*\/)? = \{/g)].map((m) => m[1]));
+  const used = new Set(proj.match(/\b[0-9A-F]{24}\b/g));
+  for (const id of used) assert(defined.has(id), `${id} is used but never defined`);
+  const obj = (id) => {
+    const at = proj.search(new RegExp(`\\b${id}\\b(?: /\\*[^*]*\\*/)? = \\{`));
+    const i = proj.indexOf('{', at);
+    let depth = 0;
+    for (let j = i; j < proj.length; j++) { if (proj[j] === '{') depth++; else if (proj[j] === '}' && --depth === 0) return proj.slice(i, j + 1); }
+    return '';
+  };
+  const ids = (text) => [...text.matchAll(/\b([0-9A-F]{24})\b/g)].map((m) => m[1]);
+  const isa = (id, kind) => new RegExp(`isa = ${kind};`).test(obj(id));
+  const targets = [...defined].filter((id) => isa(id, 'PBXNativeTarget')).map((id) => ({ id, t: obj(id) }));
+  const ext = targets.find((x) => /name = ForgeLiveActivity;/.test(x.t));
+  const app = targets.find((x) => /name = App;/.test(x.t));
+  assert(ext && app, 'both targets exist');
+  assert(ext.t.includes('productType = "com.apple.product-type.app-extension"'));
+  // The file names each target's Sources phase builds
+  const sourcesOf = (t) => {
+    const phase = ids(t.t).find((id) => isa(id, 'PBXSourcesBuildPhase'));
+    const files = obj(phase).replace(/^[\s\S]*?files = \(/, '');
+    return ids(files).map((bf) => { const ref = obj(bf).match(/fileRef = ([0-9A-F]{24})/); return ref ? (obj(ref[1]).match(/path = ([\w.]+);/) || [])[1] : null; });
+  };
+  const extSrc = sourcesOf(ext), appSrc = sourcesOf(app);
+  assert(extSrc.includes('ForgeLiveActivityBundle.swift') && extSrc.includes('ForgeLiveShared.swift'), 'extension sources: ' + extSrc);
+  assert(appSrc.includes('ForgeLiveShared.swift') && appSrc.includes('ForgeLiveWorkout.swift'), 'app sources: ' + appSrc);
+  // App depends on the extension and embeds it in Foundation Extensions (dstSubfolderSpec 13)
+  const dep = ids(app.t).map(obj).find((o) => /isa = PBXTargetDependency;/.test(o));
+  assert(dep && dep.includes(`target = ${ext.id}`), 'App depends on the extension');
+  const embed = ids(app.t).map(obj).find((o) => /isa = PBXCopyFilesBuildPhase;/.test(o));
+  assert(embed && /dstSubfolderSpec = 13;/.test(embed) && embed.includes('ForgeLiveActivity.appex'), 'embedded in Foundation Extensions');
+  // Build settings
+  const cfgs = (t) => ids(obj(ids(t.t).find((id) => isa(id, 'XCConfigurationList')))).map(obj).filter((o) => /isa = XCBuildConfiguration;/.test(o));
+  const extCfgs = cfgs(ext), appCfgs = cfgs(app);
+  eq(extCfgs.length, 2);
+  for (const c of extCfgs) {
+    for (const need of ['PRODUCT_BUNDLE_IDENTIFIER = com.christianeverett.forge.ForgeLiveActivity;', 'CODE_SIGN_STYLE = Automatic;', 'INFOPLIST_FILE = ForgeLiveActivity/Info.plist;',
+      'IPHONEOS_DEPLOYMENT_TARGET = 17.0;', 'SKIP_INSTALL = YES;', 'SWIFT_VERSION = 5.0;', 'TARGETED_DEVICE_FAMILY = 1;',
+      'LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks @executable_path/../../Frameworks";']) assert(c.includes(need), need);
+    assert(!c.includes('DEVELOPMENT_TEAM'), 'no hard-coded team');
+    assert(!/APPLICATION_GROUPS|app-group/i.test(c), 'no App Group');
+    for (const key of ['MARKETING_VERSION', 'CURRENT_PROJECT_VERSION']) eq(c.match(new RegExp(`${key} = ([^;]+);`))[1], appCfgs[0].match(new RegExp(`${key} = ([^;]+);`))[1], key + ' matches the app');
+  }
+  for (const c of appCfgs) assert(c.includes('IPHONEOS_DEPLOYMENT_TARGET = 15.0;'), 'the app stays at iOS 15');
+  assert(existsSync(new URL('../ios/App/ForgeLiveActivity/Info.plist', import.meta.url)));
+  assert(readFileSync(new URL('../scripts/Refresh Forge.command', import.meta.url), 'utf8').includes('ForgeLiveActivity'), 'Refresh Forge knows the extension');
+  const setup = readFileSync(new URL('../docs/ios-setup.md', import.meta.url), 'utf8');
+  assert(!/New → Target/.test(setup) && setup.includes('nothing to do'), 'no manual Xcode step is asked for');
+});
+
+test('Health copy matches the behaviour: off until switched on, distance listed; discard, run/walk icons and the live chip exist', () => {
+  const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
+  const plist = read('ios/App/App/Info.plist');
+  assert(plist.includes('walking and running distance') && plist.includes('It is off until you turn it on'));
+  assert(read('docs/app-store-checklist.md').includes('off by default, for live workouts too'));
+  const screen = read('js/screens/live.js');
+  assert(screen.includes('data-discard') && screen.includes('live.discard()') && screen.includes('data-health') && screen.includes('SHORT_WORKOUT'));
+  assert(!read('js/native/live-workout.js').includes('!== false'));
+  const icons = read('js/ui/icons.js');
+  assert(/^\s+run: /m.test(icons) && /^\s+walk: /m.test(icons));
+  assert(read('js/screens/train.js').includes('bindLiveChips') && read('js/screens/today.js').includes('livePillHtml'));
 });

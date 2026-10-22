@@ -7,7 +7,7 @@ import { put, newRecord } from '../db.js';
 import { plugin } from './bridge.js';
 import { weightKgFor } from '../workouts/energy.js';
 import { unit } from '../workouts/plan.js';
-import { newLive, pauseLive, resumeLive, endLive, liveToCardio, LIVE_KINDS } from '../workouts/live-core.js';
+import { newLive, pauseLive, resumeLive, endLive, liveToCardio, adoptNativePauses, endPayload, LIVE_KINDS } from '../workouts/live-core.js';
 
 const KEY = 'forge.live';
 const hk = () => plugin('ForgeWorkouts');
@@ -46,10 +46,12 @@ export function restore() {
 function onNative(e) {
   if (!session || !e) return;
   const at = Number(e.at) || Date.now();
-  if (e.paused === true) session = pauseLive(session, at);
+  if (Array.isArray(e.pauses)) session = adoptNativePauses(session, e); // the phone saw every pause, even ones while we were in the background
+  else if (e.paused === true) session = pauseLive(session, at);
   else if (e.paused === false) session = resumeLive(session, at);
   metrics = {
     ...metrics,
+    failed: e.failed === true ? true : metrics.failed,
     kcal: Number.isFinite(e.kcal) ? e.kcal : metrics.kcal,
     distanceM: Number.isFinite(e.distanceM) ? e.distanceM : metrics.distanceM,
     hr: Number.isFinite(e.hr) && e.hr > 0 ? e.hr : metrics.hr,
@@ -105,13 +107,13 @@ export async function resume() {
 /** Finish: save to Apple Health (native) and to Forge once, without doubling. → { id, fields } or null when nothing was started. */
 export async function finish() {
   if (!session) return null;
-  const ended = endLive(session, Date.now());
+  let ended = endLive(session, Date.now());
   const p = hk();
   let saved = null;
   if (p && metrics.nativeLive) {
     try {
-      const wanted = state.settings ? state.settings.health_write_workouts !== false : true;
-      saved = await p.endLive({ save: wanted, fallbackKcal: Math.round(metrics.kcal || 0), end: ended.ended_at, pauses: ended.pauses });
+      saved = await p.endLive(endPayload(ended, { weightKg: weightKg(), settings: state.settings }));
+      if (saved && Array.isArray(saved.pauses)) ended = adoptNativePauses(ended, saved); // lock-screen pauses the screen never heard
     } catch { saved = null; }
   }
   const row = liveToCardio(ended, { hk: saved, weightKg: weightKg() });

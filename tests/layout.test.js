@@ -91,15 +91,19 @@ for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844
       await browser.viewport(w, h, dark);
       await browser.open('live', seed());
       await browser.eval("document.querySelector('[data-kind=run]').click(); document.querySelector('[data-start]').click()");
-      await new Promise((r) => setTimeout(r, 800));
+      await new Promise((r) => setTimeout(r, 4300)); // the 3-2-1, then the running screen
       await browser.eval("document.querySelector('[data-pause]').click()");
       await new Promise((r) => setTimeout(r, 400));
-      const r = await browser.eval("(() => { const b = document.querySelector('[data-pause]').getBoundingClientRect(); const e = document.querySelector('[data-end]').getBoundingClientRect(); return { over: document.documentElement.scrollWidth > innerWidth + 1, pause: Math.round(b.height), end: Math.round(e.height), tiles: document.querySelectorAll('.live-tile').length }; })()");
+      const r = await browser.eval("(() => { const b = document.querySelector('[data-pause]').getBoundingClientRect(); const e = document.querySelector('[data-end]').getBoundingClientRect(); const wide = [...document.querySelectorAll('.live-tv')].filter((n) => n.scrollWidth > n.clientWidth).length; const wrapped = [...document.querySelectorAll('.live-tl')].filter((n) => n.scrollWidth > n.clientWidth).length; return { over: document.documentElement.scrollWidth > innerWidth + 1, tall: document.documentElement.scrollHeight > innerHeight + 1, bottom: Math.round(Math.max(b.bottom, e.bottom)), h: innerHeight, pause: Math.round(b.height), end: Math.round(e.height), wide, wrapped, tiles: document.querySelectorAll('.live-tile').length }; })()");
       if (shots) await browser.screenshot(`${shots}/live-running-${w}x${h}-${dark ? 'dark' : 'light'}.png`);
       await browser.eval("localStorage.removeItem('forge.live')");
       assert(r && !r.over, 'the live screen overflows sideways');
       assert(r.pause >= 44 && r.end >= 44, `Pause ${r.pause}px / End ${r.end}px tall`);
       assert(r.tiles === 5, `expected 5 tiles for a run, got ${r.tiles}`);
+      assert(r.bottom <= r.h, `Pause/End bottom at ${r.bottom}px, below the ${r.h}px screen`);
+      assert(!r.tall, 'the running screen scrolls: it must fit one screen');
+      assert(r.wide === 0, `${r.wide} tile value(s) wider than their tile`);
+      assert(r.wrapped === 0, `${r.wrapped} tile label(s) cut off`);
     });
   }
 }

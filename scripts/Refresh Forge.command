@@ -155,7 +155,7 @@ build_app() {
     -allowProvisioningUpdates -allowProvisioningDeviceRegistration DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic build
 }
 build_failed() {
-  if grep -qE 'No Account for Team|Signing for "App" requires a development team|No profiles for '"'$BUNDLE_ID'" "$STEP"; then
+  if grep -qE 'No Account for Team|Signing for "(App|ForgeLiveActivity)" requires a development team|No profiles for '"'$BUNDLE_ID" "$STEP"; then
     stop "Xcode isn’t signed in to your Apple ID." "Open Xcode → Settings → Accounts, sign in with your Apple ID, close Xcode, then try again."
   elif grep -qiE 'The device is locked|passcode protected|Developer Mode is disabled|Could not connect to the device' "$STEP"; then phone_help "The Mac couldn’t reach your iPhone."
   elif grep -qiE '10 App IDs|App ID limit|maximum number of (registered )?App IDs' "$STEP"; then
@@ -174,7 +174,7 @@ remove_forge_profiles() {
       [ -f "$f" ] || continue
       appid="$(security cms -D -i "$f" 2> /dev/null | plutil -extract Entitlements.application-identifier raw -o - - 2> /dev/null)"
       case "$appid" in
-        *."$BUNDLE_ID") rm -f "$f" && removed=$((removed + 1)); printf 'Removed the old signing profile %s (%s)\n' "$f" "$appid" >> "$LOG" ;;
+        *."$BUNDLE_ID"|*."$BUNDLE_ID".ForgeLiveActivity) rm -f "$f" && removed=$((removed + 1)); printf 'Removed the old signing profile %s (%s)\n' "$f" "$appid" >> "$LOG" ;;
       esac
     done
   done

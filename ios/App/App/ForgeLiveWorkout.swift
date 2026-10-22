@@ -23,10 +23,15 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     private var useMiles = true
     private var lastActivityPush = Date.distantPast
     private var paused = false
+    // The real pause / resume moments from the session delegate. The WebView hears nothing while the app is in the
+    // background, so a pause + resume on the lock screen is only known here; JS reads these back (liveState / endLive).
+    private let pauseLock = NSLock()
+    private var pauseStart: Date?
+    private var pauseLog: [(start: Date, end: Date)] = []
     #if canImport(ActivityKit)
     private var activity: Any? // Activity<ForgeLiveAttributes>, kept untyped so this file compiles below iOS 16.2
     #endif
-    /// Sends {paused, at, kcal, distanceM, hr} to JS.
+    /// Sends {paused, at, kcal, distanceM, hr, elapsed, pauses, pausedAt} to JS.
     var onUpdate: (([String: Any]) -> Void)?
 
     init(store: HKHealthStore) { self.store = store }
@@ -48,6 +53,8 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         self.id = id; self.weightKg = weightKg; self.indoor = indoor; self.title = title
         self.showsDistance = showsDistance; self.useMiles = useMiles
         self.session = session; self.builder = builder; self.paused = false
+        pauseLock.lock(); pauseStart = nil; pauseLog = []; pauseLock.unlock()
+        session.prepare() // gets the sensors ready before the clock starts
         session.startActivity(with: start)
         try await builder.beginCollection(withStart: start)
         let hasActivity = startActivity()
@@ -79,10 +86,25 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         return (kcal, meters, hr, 0)
     }
 
+    private func ms(_ d: Date) -> Double { d.timeIntervalSince1970 * 1000 }
+
+    /// Closed pauses as [{start, end}] in ms, plus the start of one still open. `closeAt` closes an open pause (used at the end).
+    private func pauseInfo(closeAt: Date? = nil) -> (list: [[String: Double]], open: Double?) {
+        pauseLock.lock(); defer { pauseLock.unlock() }
+        var list = pauseLog.map { ["start": ms($0.start), "end": ms($0.end)] }
+        var open: Double? = nil
+        if let p = pauseStart {
+            if let c = closeAt { list.append(["start": ms(p), "end": ms(max(c, p))]) } else { open = ms(p) }
+        }
+        return (list, open)
+    }
+
     func snapshot() -> [String: Any] {
         let s = stats()
-        var out: [String: Any] = ["paused": paused, "at": Date().timeIntervalSince1970 * 1000, "kcal": s.kcal, "distanceM": s.meters]
+        let p = pauseInfo()
+        var out: [String: Any] = ["paused": paused, "at": ms(Date()), "kcal": s.kcal, "distanceM": s.meters, "elapsed": s.elapsed * 1000, "pauses": p.list]
         if let hr = s.hr { out["hr"] = hr }
+        if let o = p.open { out["pausedAt"] = o }
         return out
     }
 
@@ -91,13 +113,21 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     func workoutSession(_ workoutSession: HKWorkoutSession, didChangeTo toState: HKWorkoutSessionState, from fromState: HKWorkoutSessionState, date: Date) {
         if toState == .paused || toState == .running {
             paused = toState == .paused
+            pauseLock.lock()
+            if toState == .paused { if pauseStart == nil { pauseStart = date } }
+            else if let p = pauseStart { pauseLog.append((p, date)); pauseStart = nil }
+            pauseLock.unlock()
             var snap = snapshot()
             snap["at"] = date.timeIntervalSince1970 * 1000
             DispatchQueue.main.async { self.onUpdate?(snap); self.pushActivity(force: true) }
         }
     }
 
-    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {}
+    func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
+        var snap = snapshot()
+        snap["failed"] = true // the screen says "Kept in Forge only" and its own clock carries on
+        DispatchQueue.main.async { self.onUpdate?(snap) }
+    }
 
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {}
 
@@ -113,10 +143,13 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         guard let session = session, let builder = builder else { return [:] }
         defer { cleanup() }
         session.end()
+        let closed = pauseInfo(closeAt: endDate).list
         if !save {
+            // Nothing goes to Apple Health, but JS still gets the phone's own clock and numbers for the Forge row.
             try? await builder.endCollection(withEnd: endDate)
+            let st = stats()
             builder.discardWorkout()
-            return [:]
+            return ["elapsed": st.elapsed * 1000, "elapsedMs": st.elapsed * 1000, "pauses": closed, "kcal": st.kcal, "distanceM": st.meters]
         }
         // iPhone alone often measures no active energy: fall back to the estimate JS passed in so the rings still move.
         let before = stats()
@@ -141,7 +174,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
             hrMax = st.maximumQuantity()?.doubleValue(for: u)
         }
         guard let workout = try await builder.finishWorkout() else { throw NSError(domain: "Forge", code: 2, userInfo: [NSLocalizedDescriptionKey: "Couldn't save the workout."]) }
-        var out: [String: Any] = ["uuid": workout.uuid.uuidString, "kcal": end.kcal > 0 ? end.kcal : fallbackKcal, "distanceM": end.meters]
+        var out: [String: Any] = ["uuid": workout.uuid.uuidString, "kcal": end.kcal > 0 ? end.kcal : fallbackKcal, "distanceM": end.meters, "elapsedMs": end.elapsed * 1000, "pauses": closed]
         if let a = hrAvg { out["avgHr"] = a }
         if let m = hrMax { out["maxHr"] = m }
         return out
@@ -151,6 +184,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         endActivity()
         ForgeLiveBridge.togglePause = nil
         session = nil; builder = nil; paused = false
+        pauseLock.lock(); pauseStart = nil; pauseLog = []; pauseLock.unlock()
     }
 
     // MARK: Live Activity (lock screen + Dynamic Island)

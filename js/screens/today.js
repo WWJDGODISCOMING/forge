@@ -44,6 +44,7 @@ import { weekTitle } from '../health/weektext.js';
 import { loadExpiryInfo, refreshDue } from '../native/expiry.js';
 import { todayBalanceLine, todayDeficitHtml } from './balance-ui.js';
 import { askButton, bindAsk } from './ask.js';
+import { livePillHtml, bindLiveChips } from '../ui/live-chip.js';
 import { refreshBannerHtml, openRefreshSheet } from '../native/refresh-ui.js';
 
 /** Today's food against targets, for the rings. */
@@ -283,6 +284,7 @@ export function renderToday(el) {
         <h1>${greeting()}</h1>
       </header>
 
+      ${livePillHtml()}
       <div class="alert-slot" data-alert-slot>${alert.html}</div>
 
       <div class="today-cols" data-today-cols>
@@ -351,6 +353,7 @@ export function renderToday(el) {
     $('[data-weight-why-text]', el).hidden = !open;
   };
   bindAsk(el);
+  bindLiveChips(el);
   $('[data-food-log]', el).onclick = () => import('./food.js').then((m) => m.openLogFood());
   const why = $('[data-ready-why]', el);
   if (why) why.onclick = () => {

@@ -31,6 +31,7 @@ import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
 import { gymChoices, switchAction, SWITCH_CONFIRM, RESUME_JOINT_NOTE } from '../workouts/gym-switch-core.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
+import { currentChipText, bindLiveChips } from '../ui/live-chip.js';
 import {
   LENGTHS, blankEdits, takeSnapshot, restoreSnapshot, isChanged, pickedIds, withSwapAvoid, carryRest, swapResult, swapMessage, noSwapReason, lengthMessage,
 } from '../workouts/change.js';
@@ -166,7 +167,7 @@ export function renderTrain(el) {
 
       <div class="tools">
         <a class="tool" href="#/timer"><span class="t-ic" aria-hidden="true">${icon('timer')}</span>Timer</a>
-        <a class="tool" href="#/live" data-live><span class="t-ic" aria-hidden="true">${icon('play')}</span>Live workout</a>
+        <a class="tool" href="#/live" data-live><span class="t-ic" aria-hidden="true">${icon('play')}</span><span data-live-label data-idle="Live workout">${currentChipText() || 'Live workout'}</span></a>
         <button class="tool" data-cardio><span class="t-ic" aria-hidden="true">${icon('bike')}</span>Log cardio</button>
         <button class="tool" data-plates><span class="t-ic" aria-hidden="true">${icon('dumbbell')}</span>Plates</button>
         <a class="tool" href="#/library"><span class="t-ic" aria-hidden="true">${icon('book')}</span>Exercises</a>
@@ -211,6 +212,7 @@ export function renderTrain(el) {
   $('[data-focus]', el).onclick = () => openFocusPicker();
   $('[data-cardio]', el).onclick = () => openCardioLog();
   $('[data-plates]', el).onclick = () => openPlateCalculator();
+  bindLiveChips(el);
 }
 
 // Two columns (>= 840px). The DOM stays in the phone's reading order and the cards only move into columns while the

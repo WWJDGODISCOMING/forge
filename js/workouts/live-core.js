@@ -42,6 +42,30 @@ export function endLive(s, at) {
   return { ...r, ended_at: Math.max(at, s.started_at) };
 }
 
+/**
+ * Take the pauses native recorded as the truth. While the app is in the background the WebView hears nothing, so a
+ * pause and a resume done on the lock screen are only known to the phone: `pauses` is [{start,end}] in ms and
+ * `pausedAt` is set while a pause is still open. Anything missing or malformed leaves the session alone.
+ */
+export function adoptNativePauses(s, { pauses, pausedAt } = {}) {
+  if (!Array.isArray(pauses)) return s;
+  const list = pauses.map((p) => ({ start: Number(p && p.start), end: Number(p && p.end) })).filter((p) => Number.isFinite(p.start) && Number.isFinite(p.end) && p.end >= p.start);
+  const open = Number.isFinite(Number(pausedAt)) && pausedAt != null ? Number(pausedAt) : null;
+  return { ...s, pauses: list, pausedAt: open };
+}
+
+/** Saving to Apple Health is a choice made in Settings → Apple Health: off until switched on (same rule as #147). */
+export const healthWriteWanted = (settings) => !!(settings && settings.health_write_workouts);
+
+/**
+ * What to hand the phone when the workout ends. `fallbackKcal` is the MET estimate (0 without a weight, never an
+ * invented number); the phone only writes it when it measured no energy of its own, so the rings still move.
+ */
+export function endPayload(ended, { weightKg = null, settings = null } = {}) {
+  const est = activeKcal(ended.kind, activeMs(ended, ended.ended_at), weightKg, 0);
+  return { save: healthWriteWanted(settings), fallbackKcal: est > 0 ? est : 0, end: ended.ended_at, pauses: ended.pauses };
+}
+
 /** Active (moving) milliseconds: elapsed time minus pauses. */
 export function activeMs(s, now) {
   const stop = isEnded(s) ? s.ended_at : isPaused(s) ? s.pausedAt : now;
@@ -92,7 +116,7 @@ export function totalKcal(active, ms, weightKg) {
  * Carries ForgeWorkoutId-style identity (`live_…` id + hk_uuid) so the Apple Health importer (#146) never adds it twice.
  */
 export function liveToCardio(s, { hk = null, weightKg = null, now = s.ended_at } = {}) {
-  const ms = activeMs(s, now);
+  const ms = hk && hk.elapsedMs > 0 ? hk.elapsedMs : activeMs(s, now); // the phone's own clock is the truth when it kept one
   const kcal = activeKcal(s.kind, ms, weightKg, hk && hk.kcal);
   const km = hk && hk.distanceM > 0 && LIVE_KINDS[s.kind].distance ? Math.round(hk.distanceM / 10) / 100 : null;
   const day = new Date(s.started_at).toLocaleDateString('en-CA');
