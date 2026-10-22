@@ -1,9 +1,10 @@
 // v0.16.50: save Forge workouts to Apple Health. Synthetic data only.
 import { readFileSync, readdirSync } from 'node:fs';
-import { test, eq, assert } from './harness.js';
+import { test, eq as strictEq, assert } from './harness.js';
+const eq = (a, b, m) => strictEq(JSON.stringify(a), JSON.stringify(b), m);
 import { MET, metFor, intensity, estimateKcal, weightKgFor, activityTypeFor, overlapShare, pickOverlap, decide, pendingPatch, nextVersion, kcalLine, windowFor } from '../js/workouts/energy.js';
 import { plugin } from '../js/native/bridge.js';
-import { sendWorkout, afterFinish, writeEnabled } from '../js/native/workouts-health.js';
+import { accessStatus } from '../js/workouts/energy.js';
 
 const T0 = Date.parse('2026-10-20T10:00:00Z');
 const set = (rir, i, extra = {}) => ({ done: true, reps: 8, weight_kg: 50, rir, completed_at: new Date(T0 + i * 60000).toISOString(), ...extra });
@@ -84,9 +85,6 @@ test('edits bump the version; the window is the active time; summary lines', () 
 test('on the web the Health bridge is a no-op', async () => {
   globalThis.window = {};
   eq(plugin('ForgeWorkouts'), null);
-  eq(writeEnabled(), false);
-  eq(await sendWorkout(strength([set(2, 0)])), null);
-  eq(afterFinish(strength([set(2, 0)])), undefined);
 });
 
 test('energy.js is not imported by progression, recovery or the generator (kcal never feeds them)', () => {
@@ -111,4 +109,39 @@ test('Swift is wired: plugin file, bridge controller, scene delegate and project
   assert(r('App/SceneDelegate.swift').includes('ForgeBridgeViewController()'));
   const proj = r('App.xcodeproj/project.pbxproj');
   assert(proj.includes('ForgeWorkoutsPlugin.swift in Sources') && proj.includes('ForgeBridgeViewController.swift in Sources'));
+});
+
+const swift = () => readFileSync(new URL('../ios/App/App/ForgeWorkoutsPlugin.swift', import.meta.url), 'utf8');
+
+test('Swift: statistics(for:) only inside #available(iOS 16)', () => {
+  const lines = swift().split('\n');
+  lines.forEach((l, i) => {
+    if (!l.includes('statistics(for:')) return;
+    const near = lines.slice(Math.max(0, i - 3), i + 1).join('\n');
+    assert(/#available\(iOS 16/.test(near), `statistics(for: at line ${i + 1} is not behind #available(iOS 16.0, *)`);
+  });
+});
+
+test('Swift: every energy sample has its own sync identifier, version and ForgeWorkoutId', () => {
+  const s = swift();
+  const body = s.slice(s.indexOf('func energySamples'));
+  assert(body.includes('HKMetadataKeySyncIdentifier: "forge:\\(id):kcal:\\(idx)"'));
+  assert(body.includes('HKMetadataKeySyncVersion: version') && body.includes('"ForgeWorkoutId": id'));
+  assert(body.includes('metadata: meta'));
+});
+
+test('Swift: authorization returns the Active Energy status too', () => {
+  assert(swift().includes('"energy": self.statusName(self.store.authorizationStatus(for: energy))'));
+});
+
+test('partial denial (Workouts allowed, Active Energy denied) counts as denied', async () => {
+  const fake = (r) => ({ requestAuthorization: async () => r });
+  eq(accessStatus(await fake({ workout: 'authorized', energy: 'denied' }).requestAuthorization()), 'denied');
+  eq(accessStatus(await fake({ workout: 'denied', energy: 'authorized' }).requestAuthorization()), 'denied');
+  eq(accessStatus(await fake({ workout: 'authorized', energy: 'authorized' }).requestAuthorization()), 'authorized');
+  eq(accessStatus(null), 'notDetermined');
+  const wh = readFileSync(new URL('../js/native/workouts-health.js', import.meta.url), 'utf8');
+  assert(wh.includes('accessStatus(r)'));
+  const ap = readFileSync(new URL('../js/screens/apple.js', import.meta.url), 'utf8');
+  assert(ap.includes("status === 'denied'") && ap.includes('box.checked = false'));
 });

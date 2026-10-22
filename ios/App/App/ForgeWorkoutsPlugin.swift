@@ -68,7 +68,10 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
         store.requestAuthorization(toShare: [workout, energy], read: [workout, energy, hr]) { [weak self] _, error in
             guard let self = self else { return }
             if let error = error { call.reject(error.localizedDescription); return }
-            call.resolve(["workout": self.statusName(self.store.authorizationStatus(for: workout))])
+            call.resolve([
+                "workout": self.statusName(self.store.authorizationStatus(for: workout)),
+                "energy": self.statusName(self.store.authorizationStatus(for: energy)),
+            ])
         }
     }
 
@@ -106,7 +109,7 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
         builder.beginCollection(withStart: start) { [weak self] ok, error in
             guard let self = self else { return }
             if !ok { call.reject(error?.localizedDescription ?? "Couldn't start the workout."); return }
-            let samples = self.energySamples(type: energyType, kcal: kcal, start: start, end: end, pauses: pauses)
+            let samples = self.energySamples(id: id, version: version, type: energyType, kcal: kcal, start: start, end: end, pauses: pauses)
             var events: [HKWorkoutEvent] = []
             for (a, b) in pauses {
                 events.append(HKWorkoutEvent(type: .pause, dateInterval: DateInterval(start: a, duration: 0), metadata: nil))
@@ -140,7 +143,7 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     /// About one sample per minute across the active time (pauses left out); the pieces add up to `kcal`.
-    private func energySamples(type: HKQuantityType, kcal: Double, start: Date, end: Date, pauses: [(Date, Date)]) -> [HKQuantitySample] {
+    private func energySamples(id: String, version: Int, type: HKQuantityType, kcal: Double, start: Date, end: Date, pauses: [(Date, Date)]) -> [HKQuantitySample] {
         if kcal <= 0 { return [] }
         var spans: [(Date, Date)] = []
         var cursor = start
@@ -167,7 +170,13 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
             let share = idx == pieces.count - 1 ? left : kcal * p.1.timeIntervalSince(p.0) / total
             left -= share
             if share <= 0 { continue }
-            out.append(HKQuantitySample(type: type, quantity: HKQuantity(unit: kcalUnit, doubleValue: share), start: p.0, end: p.1))
+            // Each piece carries its own sync identifier + version so a re-save replaces it in place (no doubled calories).
+            let meta: [String: Any] = [
+                HKMetadataKeySyncIdentifier: "forge:\(id):kcal:\(idx)",
+                HKMetadataKeySyncVersion: version,
+                "ForgeWorkoutId": id,
+            ]
+            out.append(HKQuantitySample(type: type, quantity: HKQuantity(unit: kcalUnit, doubleValue: share), start: p.0, end: p.1, device: .local(), metadata: meta))
         }
         return out
     }
@@ -213,7 +222,8 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
 
     private func workoutStats(_ w: HKWorkout, _ done: @escaping (Double?, Double?) -> Void) {
         var kcal: Double? = nil
-        if let t = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
+        if #available(iOS 16.0, *),
+           let t = HKObjectType.quantityType(forIdentifier: .activeEnergyBurned),
            let q = w.statistics(for: t)?.sumQuantity() {
             kcal = q.doubleValue(for: kcalUnit)
         } else if let total = w.totalEnergyBurned {

@@ -84,6 +84,12 @@ export function overlapShare(a, b) {
 }
 
 /** The overlapping non-Forge workout to link to: the most-overlapping one that reaches LINK_OVERLAP, else null. */
+/** requestAuthorization result → 'denied' if either Workouts or Active Energy was refused (separate toggles in the iOS sheet). */
+export function accessStatus(r) {
+  if (r && (r.workout === 'denied' || r.energy === 'denied')) return 'denied';
+  return (r && r.workout) || 'notDetermined';
+}
+
 export function pickOverlap(win, workouts) {
   let best = null;
   let bestShare = 0;

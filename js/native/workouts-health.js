@@ -5,7 +5,7 @@
 import { state } from '../state.js';
 import { patch } from '../db.js';
 import { plugin } from './bridge.js';
-import { estimateKcal, weightKgFor, windowFor, activityTypeFor, decide, pendingPatch, nextVersion } from '../workouts/energy.js';
+import { estimateKcal, weightKgFor, windowFor, activityTypeFor, decide, pickOverlap, accessStatus, pendingPatch, nextVersion } from '../workouts/energy.js';
 
 const hk = () => plugin('ForgeWorkouts');
 const SOURCE_NAME = 'Forge';
@@ -20,7 +20,10 @@ const stored = (w) => state.workouts.find((x) => x.id === w.id) || w;
 export async function requestAccess() {
   const p = hk();
   if (!p) return 'unavailable';
-  try { const r = await p.requestAuthorization(); return (r && r.workout) || 'notDetermined'; } catch { return 'denied'; }
+  try {
+    const r = await p.requestAuthorization();
+    return accessStatus(r);
+  } catch { return 'denied'; }
 }
 
 /** Link, measure or estimate for one finished workout, and save the outcome on it. Returns the patch (or null). */
@@ -33,7 +36,7 @@ export async function sendWorkout(w0) {
   try {
     const { workouts } = await p.overlappingWorkouts(win);
     let measuredKcal = 0;
-    if (!(workouts || []).length) measuredKcal = ((await p.activeEnergySum(win)) || {}).kcal || 0;
+    if (!pickOverlap(win, workouts || [])) measuredKcal = ((await p.activeEnergySum(win)) || {}).kcal || 0;
     const d = decide({ win, overlaps: workouts || [], measuredKcal, estimate });
     if (d.action === 'skip') return null; // no weight and nothing measured: nothing to write
     if (d.action === 'link') { patch('workouts', w.id, d.patch); return d.patch; }
