@@ -40,7 +40,7 @@ body.playing .navbar { display: none; }
 .fig-wrap svg { height: 100%; width: auto; max-width: 100%; display: block; }
 .next-fig svg { width: 100%; height: 100%; display: block; }
 .pl-demo-cap { display: none; }
-.pl-howto { position: absolute; right: 10px; bottom: 10px; font-size: calc(12px * var(--ts)); font-weight: 800; padding: 6px 10px; border-radius: 999px; background: var(--scrim); color: var(--accent-text); }
+.pl-howto { position: absolute; right: 10px; bottom: 10px; font-size: calc(12px * var(--ts)); font-weight: 800; padding: 6px 10px; border-radius: 999px; background: var(--surface-1); color: var(--accent-text); box-shadow: var(--elev-1); } /* opaque so the label keeps 4.5:1 over any photo, light and dark */
 .pl-muscles { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; padding: 18px; }
 .chip-m { font-size: calc(13px * var(--ts)); padding: 5px 10px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
 .chip-m.p { background: var(--ember-tint); color: var(--ember); }
@@ -107,6 +107,7 @@ body.playing .navbar { display: none; }
   box-shadow: 0 10px 30px var(--accent-glow); transition: background var(--t-med), transform var(--t-fast) var(--ease-out);
 }
 .pl-done:active { transform: scale(.97); }
+@media (prefers-color-scheme: light) { .pl-done:not(.is-done) { color: var(--text-1); } } /* white on the lime fill was 1.2:1; near-black is 16:1 */
 .pl-done.is-done { background: var(--accent-tint); color: var(--accent-text); box-shadow: none; }
 /* Done set stays pinned to the bottom of the screen (clear of the home indicator), however short the phone. */
 .pl-dock { position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 8px; margin: auto 0 0; margin-inline: calc((100% - 100vw) / 2); padding: 10px calc((100vw - 100%) / 2) calc(var(--safe-bottom) + 4px); background: var(--tabbar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); } /* full-bleed (viewport-wide even past the 560px column) glass like the tab bar, so no box shows over the glow */

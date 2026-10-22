@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.54 — Easier to read, and onboarding buttons that stay put (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's fixed
+
+- Light mode: the Done set button and the How-To pill in the workout player are easier to read.
+- The selected item in the wide Settings list is easier to read, light and dark.
+- Setup buttons no longer overlap each other or the content on short screens, and nothing shows underneath them.
+- Tests: a contrast test for each of these, an onboarding check at the short sizes, and a way to run one test by name (`TEST_GREP`).
+
 ## 0.16.53 — Drag your finger across any chart (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.

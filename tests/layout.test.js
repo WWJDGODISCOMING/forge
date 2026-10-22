@@ -141,6 +141,32 @@ if (standalone) {
       assert(got.left >= 0 && got.right <= got.vw + 1 && Math.abs(got.bottom - got.vh) <= 1, `prompt off-screen at ${tag}: ${JSON.stringify(got)}`);
     }
   });
+  test('layout: onboarding buttons never overlap each other or the content on short screens (every step, 44px targets)', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    const probe = `(() => {
+      const bar = document.querySelector('.onboard .sticky-actions'); if (!bar) return null;
+      const bs = [...bar.querySelectorAll('button')].map((b) => b.getBoundingClientRect());
+      const hit = (a, b) => a.left < b.right - 0.5 && a.right > b.left + 0.5 && a.top < b.bottom - 0.5 && a.bottom > b.top + 0.5;
+      let btnOverlap = 0; for (let i = 0; i < bs.length; i++) for (let j = i + 1; j < bs.length; j++) if (hit(bs[i], bs[j])) btnOverlap++;
+      window.scrollTo({ top: 1e6, behavior: 'instant' });
+      const br = bar.getBoundingClientRect();
+      const content = [...document.querySelectorAll('.onboard form input, .onboard form select, .onboard form label, .onboard form .chip, .onboard form p, .onboard form h2')].filter((e) => !bar.contains(e) && e.offsetParent && e.getBoundingClientRect().height > 0);
+      const covered = content.filter((e) => hit(e.getBoundingClientRect(), br)).map((e) => e.tagName + '.' + e.className).slice(0, 3);
+      return { n: bs.length, small: bs.filter((q) => q.height < 43.5 || q.width < 43.5).length, btnOverlap, covered, off: bs.filter((q) => q.left < 0 || q.right > innerWidth + 0.5 || q.bottom > innerHeight + 0.5).length };
+    })()`;
+    for (const [w, h, dark] of [[320, 568, true], [375, 667, true], [375, 667, false], [390, 844, true], [466, 678, true], [678, 466, true], [844, 390, true], [626, 890, false], [890, 626, true]]) {
+      await browser.viewport(w, h, dark);
+      await browser.open('profile', seed());
+      for (let step = 0; step < 4; step++) {
+        const got = await browser.eval(probe);
+        const tag = `${w}x${h}${dark ? 'd' : 'l'} step ${step + 1}`;
+        assert(got && got.n >= 1, `onboarding actions missing at ${tag}`);
+        assert(got.small === 0 && got.btnOverlap === 0 && got.off === 0 && got.covered.length === 0, `onboarding buttons at ${tag}: ${JSON.stringify(got)}`);
+        if (step < 3) { await browser.eval("window.scrollTo({ top: 0, behavior: 'instant' }); document.querySelector('.onboard button[type=submit]').click()"); await new Promise((r) => setTimeout(r, 400)); }
+      }
+    }
+  });
   test('layout: History Reps left row fits at 320 and 390, normal and large text, every button 44px', async () => {
     if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
     browser = browser || await launch();
