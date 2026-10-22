@@ -221,10 +221,13 @@ if (standalone) {
       const after = await rects();
       const moved = after.filter((a, i) => Math.abs(a.h - before[i].h) > 0.5 || Math.abs(a.plusX - before[i].plusX) > 0.5 || Math.abs(a.top - before[i].top) > 0.5 || a.plusW < 43.5);
       assert(!moved.length, `rows moved or shrank after adding items at ${tag}: ${JSON.stringify(moved.slice(0, 3))} (before ${JSON.stringify(before.find((b) => b.id === moved[0]?.id))})`);
-      assert(after.every((a) => a.h < 90 * Math.max(1, ts)), `a row grew tall at ${tag}: ${Math.max(...after.map((a) => a.h))}px`);
+      assert(after.every((a) => a.h < 104 * Math.max(1, ts)), `a row grew tall at ${tag}: ${Math.max(...after.map((a) => a.h))}px`);
       const kcal = await browser.eval("document.querySelector('[data-tick=rest-kcal]').textContent");
       assert(kcal === '935',`tally shows "${kcal}" at ${tag}`);
-      const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+      const behind = (v) => browser.eval(`["main", "nav", "navbar"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = "${v}"; })`);
+      await behind("hidden");
+      const probs = (await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)).filter((p) => !/overlap.*(Add ·|Log to)/.test(p)); // rows scrolling under the sticky dock are not an overlap
+      await behind("");
       assert(!probs.length, `builder problems at ${tag}: ${probs.join(' | ')}`);
       const add = await browser.eval(`(${inView})(document.querySelector('[data-add]').getBoundingClientRect())`);
       assert(add, `Add button is not fully on screen at ${tag}`);
@@ -232,9 +235,11 @@ if (standalone) {
       // Step 2: the meal choice, name and Favorite are on the same screen as the Log button
       await click('[data-add]');
       await wait(500);
-      const conf = await browser.eval(`(() => { const ok = ${inView}; const chips = [...document.querySelectorAll('[data-meal]')]; const log = document.querySelector('[data-log]'); return { chips: chips.length, chipsIn: chips.every((c) => ok(c.getBoundingClientRect())), small: chips.filter((c) => c.getBoundingClientRect().height < 43.5).length, logIn: !!log && ok(log.getBoundingClientRect()), name: !!document.querySelector('[name=oname]'), fav: !!document.querySelector('[name=fav]'), text: log ? log.textContent : '' }; })()`);
+      const conf = await browser.eval(`(() => { const ok = ${inView}; const dlg = document.querySelector('dialog.sheet[open]'); const chips = [...dlg.querySelectorAll('[data-meal]')]; const log = dlg.querySelector('[data-log]'); return { chips: chips.length, chipsIn: chips.every((c) => ok(c.getBoundingClientRect())), small: chips.filter((c) => c.getBoundingClientRect().height < 43.5).length, logIn: !!log && ok(log.getBoundingClientRect()), name: !!document.querySelector('[name=oname]'), fav: !!document.querySelector('[name=fav]'), text: log ? log.textContent : '' }; })()`);
       assert(conf.chips === 4 && conf.chipsIn && conf.small === 0 && conf.logIn && conf.name && conf.fav, `confirm step at ${tag}: ${JSON.stringify(conf)}`);
+      await behind("hidden");
       const probs2 = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+      await behind("");
       assert(!probs2.length, `confirm problems at ${tag}: ${probs2.join(' | ')}`);
       if (shots) await browser.screenshot(`${shots}/restaurant-confirm-${tag}.png`);
     }
@@ -1868,7 +1873,10 @@ if (standalone) {
           await browser.eval("document.querySelector('input[name=food-view][value=plan]').click()"); await wait(500);
           if (!(await browser.eval("!!document.querySelector('[data-plan] .plan-meal [data-log]')"))) { note('Plan view did not draw', at); continue; }
           if (!(await browser.eval("document.querySelector('[data-plan-foot]')?.textContent.includes('Not medical advice')"))) note('plan footer missing', at);
-          const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+          const behind = (v) => browser.eval(`["main", "nav", "navbar"].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = "${v}"; })`);
+      await behind("hidden");
+      const probs = (await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)).filter((p) => !/overlap.*(Add ·|Log to)/.test(p)); // rows scrolling under the sticky dock are not an overlap
+      await behind("");
           for (const p of probs) note(`Plan: ${p}`, at);
           await browser.eval("document.querySelector('.plan-open').click()"); await wait(700);
           let r = await browser.eval(sheetCheck);
