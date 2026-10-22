@@ -1,5 +1,29 @@
 # Changelog
 
+## 0.16.53 — Drag your finger across any chart (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's new
+
+- Drag a finger across any chart and a line snaps to each reading.
+- You get a bigger dot, a label like 209.1 lb · Oct 15, and the trend.
+- A light tap for each reading you pass. Let go and the line fades.
+- On Today, dragging the little weight chart shows that day in the card.
+- A quick swipe sideways slides to earlier or later dates.
+- The arrows under a chart step one reading at a time.
+- The page still scrolls. Reading starts on a sideways move or a long press.
+- VoiceOver can adjust each chart and reads the date, value and trend.
+- With Reduce Motion on, the line just appears and disappears.
+- After a swipe back in time, a **Back to latest** button brings the chart home. Leaving Body or a metric always reopens at the latest data.
+- Stepping earlier or later with the arrows, keys or VoiceOver past the edge of the window keeps your place (the reading just before or after) and keeps focus on the same control.
+- The trend line in the label is easier to read in dark mode.
+- Scrubbing covers the weight, metric, Today and exercise Progress charts; the Goal path chart is not scrubbable yet.
+
+### Details
+
+- `js/ui/scrub.js` (new): `bindScrub`, `scrubLayer`, `scrubBar`, pointer events only. `scrubmath.js` gains `scrubIntent`, `isFlick`, `stepIndex`, `spokenPoint` (tested). `weightChartSVG` takes `endDay` for the panned window.
+
 ## 0.16.52 — Badges flip over to tell their story (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.

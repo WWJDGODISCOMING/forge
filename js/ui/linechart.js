@@ -3,8 +3,7 @@
 // Same classes as the weight chart (grid, axis, dot, trend), so it themes the same. Pure markup.
 import { daysBetween, addDays } from '../weight/smoothing.js';
 import { formatDay } from '../ui.js';
-import { tick } from './haptic.js';
-import { labelPlace, tickGate } from './scrubmath.js';
+import { scrubLayer } from './scrub.js';
 import { axisNeedsYear, dotStyle } from './chartmath.js';
 import { parsePath, toPath, areaPath, prepareMorph, morphFrame } from './pathmorph.js';
 
@@ -80,7 +79,8 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
   const ds = dotStyle(points.length, 2.4);
   const dots = points.map((p) => `<circle cx="${x(p.day).toFixed(1)}" cy="${y(p.v).toFixed(1)}" r="${ds.r}" class="dot${ds.dense ? ' dense' : ''}"/>`).join('');
   const yr = axisNeedsYear(start, end) ? { year: 'numeric', month: 'short', day: 'numeric' } : undefined;
-  const scrub = points.map((p) => [Number(x(p.day).toFixed(1)), Number(y(p.v).toFixed(1)), p.day, p.t != null ? String(p.t) : axisLabel(p.v, nt.decimals + 1)]);
+  const avgText = (v) => `${axisLabel(v, nt.decimals + 1)}${unit ? ` ${unit}` : ''}`;
+  const scrub = points.map((p, i) => [Number(x(p.day).toFixed(1)), Number(y(p.v).toFixed(1)), p.day, p.t != null ? String(p.t) : axisLabel(p.v, nt.decimals + 1), `7-day avg ${avgText(line[i].v)}`]);
   const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="${attr(label)}" data-scrub="${attr(JSON.stringify(scrub))}">
     ${unit ? `<text x="${L - 6}" y="10" class="axis unit" text-anchor="end">${attr(unit)}</text>` : ''}
@@ -88,12 +88,13 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
     ${prev.length > 1 ? `<path d="${path(rolling(prev))}" class="prev"/>` : ''}
     ${line.length > 1 ? areaFill(path(line), x(line[0].day).toFixed(1), x(line[line.length - 1].day).toFixed(1), (height - B).toFixed(1)) : ''}
     ${dots}<path d="${path(line)}" class="trend" pathLength="1"/>
-    <g class="scrub" visibility="hidden"><line y1="${T}" y2="${height - B}" class="scrub-line"/><circle r="4.5" class="scrub-dot"/></g>
-    <g class="scrub-pill" opacity="0" pointer-events="none"><rect rx="9" height="22"/><text y="15" text-anchor="middle"/></g>
+    ${scrubLayer(T, height - B)}
     <text x="${L}" y="${height - 6}" class="axis">${formatDay(start, yr)}</text>
     <text x="${width - R}" y="${height - 6}" class="axis" text-anchor="end">${formatDay(end, yr)}</text>
   </svg>`;
 }
+
+export { bindScrub, scrubBar, scrubLayer, nearestIndex, backToLatestHtml, bindBackToLatest } from './scrub.js';
 
 /** Class that holds the draw-in until the screen has landed. Set once at mount, so timing never changes mid-animation; range/unit taps have no view transition and start at once. */
 export function chartWait() {
@@ -151,73 +152,3 @@ export function morphChart(svg, from, ms = 450) {
   morphRaf = requestAnimationFrame(step);
 }
 
-/** Index of the point nearest to x (points sorted by x). Pure. */
-export function nearestIndex(xs, x) {
-  if (!xs.length) return -1;
-  let lo = 0;
-  let hi = xs.length - 1;
-  while (hi - lo > 1) { const mid = (lo + hi) >> 1; if (xs[mid] < x) lo = mid; else hi = mid; }
-  return Math.abs(xs[lo] - x) <= Math.abs(xs[hi] - x) ? lo : hi;
-}
-
-/**
- * Touch or drag across a chart to read a value: a line and dot on the nearest reading, and its date and value in
- * `readout`. Lifting the finger keeps the last one shown; a tap outside the chart clears it. Returns an unbind.
- */
-export function bindScrub(svg, readout, { dayText = (d) => formatDay(d, { weekday: 'short', month: 'short', day: 'numeric' }) } = {}) {
-  if (!svg || !svg.dataset.scrub) return () => {};
-  let pts;
-  try { pts = JSON.parse(svg.dataset.scrub); } catch { return () => {}; }
-  if (!pts.length) return () => {};
-  const xs = pts.map((p) => p[0]);
-  const g = svg.querySelector('.scrub');
-  const ln = g && g.querySelector('line');
-  const dot = g && g.querySelector('circle');
-  const idle = readout ? readout.textContent : '';
-  const pill = svg.querySelector('.scrub-pill');
-  const pillBox = pill && pill.querySelector('rect');
-  const pillText = pill && pill.querySelector('text');
-  const gate = tickGate(35);
-  const vbW = svg.viewBox.baseVal.width;
-  // The floating label lives inside the SVG, so showing it never reflows the card.
-  const place = (px, py, label) => {
-    pillText.textContent = label;
-    const tw = pillText.getComputedTextLength ? pillText.getComputedTextLength() : 0;
-    const w = Math.min((tw || label.length * 6.5) + 18, vbW - 8);
-    const { x, y } = labelPlace({ px, py, w, h: 22, minX: 4, maxX: vbW - 4, minY: 2 });
-    pillBox.setAttribute('x', x.toFixed(1)); pillBox.setAttribute('y', y.toFixed(1)); pillBox.setAttribute('width', w.toFixed(1));
-    pillText.setAttribute('x', (x + w / 2).toFixed(1)); pillText.setAttribute('y', (y + 15).toFixed(1));
-    pill.setAttribute('opacity', '1');
-  };
-  const show = (ev) => {
-    const box = svg.getBoundingClientRect();
-    const vb = svg.viewBox.baseVal;
-    const sx = ((ev.clientX - box.left) / box.width) * vb.width;
-    const i = nearestIndex(xs, sx);
-    if (i < 0) return;
-    const [px, py, day, text] = pts[i];
-    if (g) { g.setAttribute('visibility', 'visible'); ln.setAttribute('x1', px); ln.setAttribute('x2', px); dot.setAttribute('cx', px); dot.setAttribute('cy', py); }
-    const label = `${dayText(day)} · ${text}`;
-    if (readout) readout.textContent = label;
-    if (pill) place(px, py, label);
-    if (gate(i, performance.now())) tick();
-  };
-  const clear = () => { if (g) g.setAttribute('visibility', 'hidden'); if (pill) pill.setAttribute('opacity', '0'); if (readout) readout.textContent = idle; };
-  const down = (ev) => { svg.setPointerCapture && ev.pointerId != null && svg.setPointerCapture(ev.pointerId); show(ev); };
-  const move = (ev) => { if (ev.buttons || ev.pointerType === 'touch' || ev.pointerType === 'mouse') show(ev); };
-  let unbind = () => {};
-  const outside = (ev) => {
-    if (!svg.isConnected) return unbind(); // the screen changed: stop listening
-    if (!svg.contains(ev.target)) clear();
-  };
-  svg.style.touchAction = 'pan-y'; // vertical scrolling still works; horizontal drags scrub
-  svg.addEventListener('pointerdown', down);
-  svg.addEventListener('pointermove', move);
-  document.addEventListener('pointerdown', outside);
-  unbind = () => {
-    svg.removeEventListener('pointerdown', down);
-    svg.removeEventListener('pointermove', move);
-    document.removeEventListener('pointerdown', outside);
-  };
-  return unbind;
-}

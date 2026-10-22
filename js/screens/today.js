@@ -1,5 +1,6 @@
 import { state, units as getUnits } from '../state.js';
-import { esc, $, isStandalone, isIOS } from '../ui.js';
+import { esc, $, isStandalone, isIOS, formatDay } from '../ui.js';
+import { bindScrub } from '../ui/scrub.js';
 import { weightToDisplay, weightUnit } from '../units.js';
 import { trendChange } from '../weight/smoothing.js';
 import { sparklineSVG } from '../weight/chart.js';
@@ -198,6 +199,27 @@ const LEFT_SLOTS = new Set(['1']); // Ask Coach stays first on the left; workout
 const FLEX_SLOTS = ['3', '4', '6', '9', '10']; // rings, missions, weight, readiness, insights: they go on whichever side leaves the two columns closest in height (a rest day has no workout card, so the right column is shorter)
 let wideQuery = null;
 let wideListener = null;
+/** Drag across the weight sparkline: the card's number, date and trend show the touched day, then spring back on lift. */
+function bindSparkScrub(el) {
+  const spark = $('svg.spark-scrub', el);
+  const num = $('.weight-card .hero-num [data-count]', el);
+  const when = $('[data-weight-when]', el);
+  const trend = $('[data-weight-trend]', el);
+  if (!spark || !num || !when || !trend) return;
+  const pts = JSON.parse(spark.dataset.scrub);
+  const was = { num: num.textContent, when: when.textContent, trend: trend.innerHTML };
+  bindScrub(spark, null, {
+    slider: false,
+    onSelect: (i) => {
+      if (i == null) { num.textContent = was.num; when.textContent = was.when; trend.innerHTML = was.trend; return; }
+      const [, , day, text, tr] = pts[i];
+      num.textContent = text.split(' ')[0];
+      when.textContent = formatDay(day, { weekday: 'short', month: 'short', day: 'numeric' });
+      trend.textContent = tr;
+    },
+  });
+}
+
 function arrangeTodayCols(el) {
   if (typeof matchMedia !== 'function') return;
   if (wideQuery && wideListener) wideQuery.removeEventListener('change', wideListener);
@@ -318,7 +340,7 @@ export function renderToday(el) {
             <p class="hero-num">${reading ? `<span data-count data-tick="today-weight">${weightToDisplay(reading.kg, u).toFixed(1)}</span> <small>${weightUnit(u)}</small>` : '—'}</p>
             <p class="small ${tone}" data-weight-trend>${!latest || change == null ? 'Log a few days to see your trend' : `<span class="nw">Trend ${weightToDisplay(latest.trend, u).toFixed(1)}</span> · <span class="nw">${arrow} ${Math.abs(weightToDisplay(change, u)).toFixed(1)} this week</span>`}</p>
           </div>
-          ${sparklineSVG(series)}
+          ${sparklineSVG(series, 30, 120, 36, u)}
         </div>
         <div class="row between center weight-actions">
           <button class="weight-why small" type="button" data-layout-ok data-weight-why aria-expanded="false" aria-controls="weight-why-text">What’s trend weight?</button>
@@ -346,6 +368,7 @@ export function renderToday(el) {
     </section>`;
 
   arrangeTodayCols(el);
+  bindSparkScrub(el);
   $('[data-log]', el).onclick = openLogWeight;
   $('[data-weight-why]', el).onclick = (e) => {
     const open = e.currentTarget.getAttribute('aria-expanded') !== 'true';

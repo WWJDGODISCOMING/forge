@@ -14,7 +14,11 @@ import { setsPerMuscle } from '../workouts/sets-per-muscle.js';
 import { legActivity, legSummary, LEG_MUSCLES } from '../workouts/leg-activity.js';
 import { sourceTag } from '../health/apple-workouts.js';
 
+import { bindScrub } from '../ui/scrub.js';
+import { scrubLayer, scrubBar } from '../ui/linechart.js';
+
 let trendId = null;
+let unbindScrub = () => {};
 
 function mondayOf(key) {
   const [y, m, d] = key.split('-').map(Number);
@@ -142,6 +146,8 @@ export function renderHistory(el) {
 
   const sel = $('[data-trend]', el);
   if (sel) sel.addEventListener('change', () => { trendId = sel.value; renderHistory(el); });
+  unbindScrub();
+  unbindScrub = bindScrub($('[data-trend] ~ svg.chart', el), $('[data-trend] ~ .scrub-bar [data-readout]', el), { dayText: (d) => formatDay(d, { month: 'short', day: 'numeric' }) });
   el.querySelectorAll('[data-leg]').forEach((b) => b.addEventListener('click', () => openLegActivity(leg)));
   el.querySelectorAll('[data-w]').forEach((li) => li.addEventListener('click', () => openWorkout(li.dataset.w)));
   el.querySelectorAll('[data-c]').forEach((li) => li.addEventListener('click', () => openCardio(li.dataset.c)));
@@ -162,13 +168,16 @@ function trendChart(id, u) {
   const d = pts.map((p, i) => `${i ? 'L' : 'M'}${x(i).toFixed(1)},${y(p.v).toFixed(1)}`).join(' ');
   const b = bestOf(ex, [{ weight: 1, reps: 1 }]).unit;
   const label = ex.timed ? 'seconds' : b === 'reps' ? 'best reps' : `est. 1RM (${u})`;
-  return `<svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" aria-label="${esc(ex.name)} ${label} over time">
+  const unitText = ex.timed ? 's' : b === 'reps' ? 'reps' : u;
+  const scrub = pts.map((p, i) => [Number(x(i).toFixed(1)), Number(y(p.v).toFixed(1)), p.day, `${Math.round(p.v * 10) / 10} ${unitText}`]);
+  return `<svg viewBox="0 0 ${W} ${Hh}" class="chart" role="img" aria-label="${esc(ex.name)} ${label} over time" data-scrub="${esc(JSON.stringify(scrub))}">
     <line x1="${L}" x2="${W - R}" y1="${y(max)}" y2="${y(max)}" class="grid"/><line x1="${L}" x2="${W - R}" y1="${y(min)}" y2="${y(min)}" class="grid"/>
     <text x="${L - 6}" y="${y(max) + 4}" class="axis" text-anchor="end">${Math.round(max)}</text>
     <text x="${L - 6}" y="${y(min) + 4}" class="axis" text-anchor="end">${Math.round(min)}</text>
     <path d="${d}" class="trend"/>${pts.map((p, i) => `<circle cx="${x(i)}" cy="${y(p.v)}" r="3" class="dot strong"/>`).join('')}
+    ${scrubLayer(T, Hh - B)}
     <text x="${L}" y="${Hh - 6}" class="axis">${formatDay(pts[0].day)}</text><text x="${W - R}" y="${Hh - 6}" class="axis" text-anchor="end">${formatDay(pts[pts.length - 1].day)}</text>
-  </svg><p class="small muted">${esc(label)}</p>`;
+  </svg>${scrubBar()}<p class="small muted">${esc(label)}</p>`;
 }
 
 function openWorkout(id) {

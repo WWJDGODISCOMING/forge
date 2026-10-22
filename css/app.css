@@ -338,8 +338,11 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .chart .trend { fill: none; stroke: var(--accent-text); stroke-width: calc(3px * var(--ck, 1)); stroke-linecap: round; stroke-linejoin: round; }
 .chart .scrub-pill rect { fill: var(--surface-3); stroke: var(--separator); stroke-width: 1; }
 .chart .scrub-pill text { fill: var(--text-1); font-size: calc(12px * var(--ts) * var(--ck, 1)); font-weight: 600; font-family: var(--font); font-variant-numeric: tabular-nums; }
-.chart .scrub-pill { transition: opacity .15s ease-out; }
-@media (prefers-reduced-motion: reduce) { .chart .scrub-pill { transition: none; } }
+.chart .scrub-pill .scrub-sub { font-weight: 500; fill: var(--text-1); } /* --text-2 on --surface-3 was 4.16:1 in dark */
+/* The scrub layer is invisible until bindScrub() adds .on, and fades out when the finger lifts. Opacity only, so Reduce Motion just drops the fade. */
+.chart .scrub, .chart .scrub-pill, .spark .scrub { opacity: 0; transition: opacity .2s ease-out; pointer-events: none; }
+.chart .scrub.on, .chart .scrub-pill.on, .spark .scrub.on { opacity: 1; transition-duration: .08s; }
+@media (prefers-reduced-motion: reduce) { .chart .scrub, .chart .scrub-pill, .spark .scrub { transition: none; } }
 .chart .area-a { stop-color: var(--accent-text); }
 /* Draw-in (1 s, like the Score rings; held back while a screen transition runs, see chartWait()): pathLength=1 makes the dash maths length-independent; only the line and its fill move. A re-render builds a fresh SVG, so it replays cleanly. */
 @media (prefers-reduced-motion: no-preference) {
@@ -636,8 +639,17 @@ body.tour-on main { padding-bottom: 360px; } /* room to scroll the last cards ab
 .chart .bar-top { stroke: var(--accent-text); stroke-opacity: .15; stroke-width: 1; stroke-dasharray: 1 4; }
 .chart .bar-label { fill: var(--accent-text); opacity: .75; }
 .chart .scrub-line { stroke: var(--text-2); stroke-width: 1; }
-.chart .scrub-dot { fill: var(--accent-text); stroke: var(--bg); stroke-width: 2; }
+.chart .scrub-dot, .spark .scrub-dot { fill: var(--accent-text); stroke: var(--bg); stroke-width: 2; }
+.chart .scrub-halo, .spark .scrub-halo { fill: var(--accent-text); opacity: .22; }
+.spark .scrub-line { stroke: var(--text-2); stroke-width: 1; }
+.spark-scrub { overflow: visible; touch-action: pan-y; cursor: ew-resize; }
+.chart:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; border-radius: var(--r-s, 8px); }
 .chart-readout { min-height: 1.4em; font-variant-numeric: tabular-nums; }
+.scrub-bar { display: flex; align-items: center; gap: var(--s-2, 8px); }
+.scrub-bar .chart-readout { flex: 1; min-width: 0; text-align: center; margin: 0; }
+.scrub-step.prev svg { transform: scaleX(-1); }
+.scrub-step { background: transparent; color: var(--text-2); }
+.scrub-step:active { background: var(--surface-2); }
 /* Saved data-check reports: the row is the box; the tick-to-compare label inside it has no box of its own. */
 .dc-saved li { padding: 0; }
 .dc-saved li > .choice { flex: 1; }

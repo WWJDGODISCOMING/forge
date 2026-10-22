@@ -6,7 +6,7 @@ import { state, units as getUnits } from '../state.js';
 import { esc, $, $$, sheet, todayKey } from '../ui.js';
 import { addDays, daysBetween } from '../weight/smoothing.js';
 import { weightToDisplay } from '../units.js';
-import { lineChartSVG, bindScrub, unitOf, grabChart, morphChart } from '../ui/linechart.js';
+import { lineChartSVG, bindScrub, scrubBar, backToLatestHtml, bindBackToLatest, unitOf, grabChart, morphChart } from '../ui/linechart.js';
 import { metricDef, metricPoints, metricEmptyChoice, dailySeries, fmtMetric, heightM, periodAverage } from '../withings/body.js';
 import { trendMetric, trendsFor, notEnoughText } from '../health/trends.js';
 import { intel } from '../health/intel.js';
@@ -17,6 +17,13 @@ import { vo2Series } from '../health/longevity.js';
 import { isNative } from '../native/bridge.js';
 let unbindScrub = () => {};
 let morphFrom = null; // the old range's paths, for one render
+let panDays = 0; // how far back the chart window has been swiped
+let panKey = '';
+let restoreScrub = null; // { day, dir, focus } after an arrow / key step panned the window
+
+/** Open every metric chart at the latest data again (the router calls this when you leave a metric screen). */
+export function resetMetricPan() { panDays = 0; panKey = ''; restoreScrub = null; }
+export const metricPanDays = () => panDays;
 
 let range = 90; // 7 / 28 / 90 / 365 days, or 0 for everything
 let explainers = null;
@@ -75,10 +82,24 @@ export function renderMetric(el, key) {
       : `Over the last 4 weeks this is going ${tr.direction} by about ${fmtAmount(key, tr.slopePerWeek, u)} a week.`;
   const disp = (v) => (def.kind === 'mass' ? weightToDisplay(v, u) : v);
   const last = daily[daily.length - 1];
-  const end = todayKey();
+  if (panKey !== key) { panKey = key; panDays = 0; }
+  if (!range) panDays = 0;
+  const today = todayKey();
+  const end = addDays(today, -panDays); // swiping the chart slides this window back in time
   const days = range || (daily.length ? Math.max(7, daysBetween(daily[0].day, end)) : 30);
   const from = addDays(end, -days);
-  const shown = daily.filter((p) => p.day >= from);
+  const shown = daily.filter((p) => p.day >= from && p.day <= end);
+  const restore = restoreScrub;
+  restoreScrub = null;
+  const onPan = range && daily.length ? (dir, o = {}) => {
+    const step = Math.max(1, Math.round(range / 2));
+    const next = Math.max(0, panDays - dir * step); // dir -1 = earlier
+    if ((dir < 0 && from <= daily[0].day) || next === panDays) return false; // already at the first reading, or back at today
+    panDays = next;
+    restoreScrub = o.selectDay ? { day: o.selectDay, dir, focus: o.focus } : null;
+    renderMetric(el, key);
+    return true;
+  } : null;
   const prevFrom = addDays(from, -days);
   const prev = range ? daily.filter((p) => p.day >= prevFrom && p.day < from).map((p) => ({ day: addDays(p.day, days), v: disp(p.v) })) : [];
   const avgNow = periodAverage(daily, from, addDays(end, 1));
@@ -110,8 +131,9 @@ export function renderMetric(el, key) {
         <div class="seg small" role="radiogroup" aria-label="Range">
           ${[[7, '7d'], [28, '28d'], [90, '90d'], [365, '1y'], [0, 'All']].map(([d, l]) => `<label><input type="radio" name="range" value="${d}" ${range === d ? 'checked' : ''}><span>${l}</span></label>`).join('')}
         </div>
-        ${shown.length ? lineChartSVG(shown.map((p) => ({ day: p.day, v: disp(p.v), t: fmt(p.v) })), { prev, bars, unit: unitOf(fmt), label: `${def.label} chart`, fromDay: from, toDay: end }) : '<p class="muted small">No readings in this range.</p>'}
-        ${shown.length ? '<p class="small muted chart-readout" data-readout aria-live="polite">Touch the chart to read a day.</p>' : ''}
+        ${shown.length ? lineChartSVG(shown.map((p) => ({ day: p.day, v: disp(p.v), t: fmt(p.v) })), { prev, bars, unit: unitOf(fmt), label: `${def.label} chart`, fromDay: from, toDay: end }) : `<p class="muted small">No readings in this range.</p>`}
+        ${shown.length ? scrubBar() : ''}
+        ${range && panDays ? backToLatestHtml() : ''}
         <p class="small muted legend"><span class="nw"><span class="key dot"></span>readings</span> <span class="nw"><span class="key line"></span>7-day average</span> ${prev.length ? '<span class="nw"><span class="key dash prev-key"></span>previous period</span>' : ''} ${bars.length ? '<span class="nw"><span class="key bar"></span>training sets/week</span>' : ''}</p>
         ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Show weekly training sets</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
         ${trendLine ? `<p data-trend-line>${esc(trendLine)}</p>` : ''}
@@ -122,9 +144,10 @@ export function renderMetric(el, key) {
 
   $('[data-explain]', el).onclick = () => openExplainer(key);
   unbindScrub();
-  unbindScrub = bindScrub($('svg.chart', el), $('[data-readout]', el));
+  unbindScrub = bindScrub($('svg.chart', el), $('[data-readout]', el), { onPan, restore });
   if (morphFrom) { morphChart($('svg.chart', el), morphFrom); morphFrom = null; }
-  $$('input[name=range]', el).forEach((r) => r.addEventListener('change', () => { morphFrom = grabChart(el); range = Number(r.value); renderMetric(el, key); }));
+  $$('input[name=range]', el).forEach((r) => r.addEventListener('change', () => { morphFrom = grabChart(el); range = Number(r.value); panDays = 0; renderMetric(el, key); }));
+  bindBackToLatest(el, () => { panDays = 0; renderMetric(el, key); });
   const sets = $('input[name=sets]', el);
   if (sets) sets.addEventListener('change', () => renderMetric(el, key));
 }
