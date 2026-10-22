@@ -99,7 +99,7 @@ for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844
       await browser.eval("localStorage.removeItem('forge.live')");
       assert(r && !r.over, 'the live screen overflows sideways');
       assert(r.pause >= 44 && r.end >= 44, `Pause ${r.pause}px / End ${r.end}px tall`);
-      assert(r.tiles === 4, `expected 4 tiles for a run, got ${r.tiles}`);
+      assert(r.tiles === 5, `expected 5 tiles for a run, got ${r.tiles}`);
     });
   }
 }
