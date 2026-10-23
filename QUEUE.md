@@ -261,5 +261,14 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - History sheet with past sets and a trend; Replace uses joint-aware swaps; tests.
   - Duo-ready, palette/depth tokens.
 
+## 25. #195 Train: Switch workout + time/place chips
+- Issue: #195
+- Version: 0.16.64
+- Status: todo
+- Acceptance:
+  - Switch sheet: muscle groups, saved workouts, from scratch (with save).
+  - Duration and location chips regenerate today's workout; joint-aware.
+  - Duo-ready, haptics, tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
