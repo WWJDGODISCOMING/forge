@@ -14,7 +14,7 @@ import { shiftDay } from '../health/metrics.js';
 import { NEEDED_DAYS } from '../health/readiness.js';
 import { icon } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
-import { haptic } from '../ui/haptic.js';
+import { haptics } from '../ui/haptic.js';
 import { requestAccess, sendLastDays, lastSent } from '../native/workouts-health.js';
 import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone } from '../native/autoread.js';
 
@@ -178,7 +178,7 @@ function writeCard() {
 const WRITE_DENIED = 'Allow Forge to write Workouts and Active Energy in Settings → Health → Data Access & Devices → Forge.';
 
 async function setWrite(el, box) {
-  if (!box.checked) { patch('settings', 'main', { health_write_workouts: false }); haptic('select'); renderApple(el); return; }
+  if (!box.checked) { patch('settings', 'main', { health_write_workouts: false }); haptics.select(); renderApple(el); return; }
   const status = await requestAccess();
   if (status === 'denied' || status === 'unavailable') {
     box.checked = false;
@@ -186,7 +186,7 @@ async function setWrite(el, box) {
     return;
   }
   patch('settings', 'main', { health_write_workouts: true, health_write_since: new Date().toISOString() });
-  haptic('success');
+  haptics.success();
   renderApple(el);
 }
 
