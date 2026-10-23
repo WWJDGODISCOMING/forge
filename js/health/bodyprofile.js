@@ -20,8 +20,8 @@ export const cutsFor = (sex, which) => (CUTS[sex] || { [which]: CUTS.male[which]
 export const bandOf = (v, cuts) => cuts.filter((c) => v >= c).length;
 
 // Where inside its cell a dot may sit (fractions of the cell). Vertically it stays above the "You" label at the cell's foot.
-const X_IN = [0.2, 0.8];
-const Y_IN = [0.2, 0.6];
+const X_IN = [0.18, 0.82];
+const Y_IN = [0.18, 0.82];
 /** 0 to 1: how far the value is through its band; the open-ended outer bands get a span as wide as their neighbour. */
 export function bandFraction(v, cuts, band) {
   const lo = band === 0 ? Math.max(0, cuts[0] - (cuts[1] - cuts[0])) : cuts[band - 1];
@@ -100,7 +100,7 @@ function lastWeekOf(docs, last, place) {
 
 
 export const LINE_MIN = 0.11; // cells (about 6 px): closer than this, the two readings count as the same spot
-const APART = 0.55; // cells (about 30 px): how far the Last week ring is kept from You, so both stay visible and a line fits
+const APART = 0.75; // cells (about 42 px): how far the Last week ring is kept from You, so both stay visible and a 14 px+ dashed line fits between them
 
 /**
  * Where to draw You and the Last week ring, in grid units, and whether a line joins them. The line shows for any move

@@ -2198,13 +2198,26 @@ if (standalone && (!only || only.includes('train'))) {
           if (getComputedStyle(e).overflow === 'visible') continue;
           const k = q(e); if (l.left < k.left - 0.5 || l.right > k.right + 0.5 || l.top < k.top - 0.5) clipped = true;
         }
-        return { marker: true, you: true, since: !!card.querySelector('[data-bp-since]'), line: !!a, lineLen: a ? Math.hypot(a.x2.baseVal.value - a.x1.baseVal.value, a.y2.baseVal.value - a.y1.baseVal.value) : 0,
+        let linePx = 0; let headHitsRing = false;
+        if (a) {
+          const s = a.ownerSVGElement; const sr = q(s); const vb = s.viewBox.baseVal;
+          const px = (x, y) => [sr.left + x / vb.width * sr.width, sr.top + y / vb.height * sr.height];
+          const [p1, p2] = [px(a.x1.baseVal.value, a.y1.baseVal.value), px(a.x2.baseVal.value, a.y2.baseVal.value)];
+          linePx = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]);
+          const pl = s.querySelector('polyline');
+          for (let i = 0; i < pl.points.numberOfItems; i++) {
+            const pt = pl.points.getItem(i); const [hx, hy] = px(pt.x, pt.y);
+            if (hx >= g.left && hx <= g.right && hy >= g.top && hy <= g.bottom) headHitsRing = true;
+          }
+        }
+        return { marker: true, you: true, since: !!card.querySelector('[data-bp-since]'), line: !!a, linePx, headHitsRing,
           labelOk: l.left >= 0 && l.right <= innerWidth && l.left >= c.left - 0.5 && l.right <= c.right + 0.5 && !clipped,
           labelWrap: l.height > parseFloat(getComputedStyle(lab).fontSize) * 2, apart };
       })()`);
       if (!r || !r.marker || !r.you) { bad.push(`${tag}: marker or You dot missing ${JSON.stringify(r)}`); continue; }
       if (!r.since) bad.push(`${tag}: since-line missing`);
-      if (!r.line || r.lineLen < 0.05) bad.push(`${tag}: no line between the two dots for a within-cell move ${JSON.stringify(r)}`);
+      if (!r.line || r.linePx < 14) bad.push(`${tag}: the drawn line between the two dots is missing or under 14px ${JSON.stringify(r)}`);
+      if (r.headHitsRing) bad.push(`${tag}: the arrowhead overlaps the Last week ring ${JSON.stringify(r)}`);
       if (!r.labelOk || r.labelWrap) bad.push(`${tag}: the Last week label is clipped or wraps ${JSON.stringify(r)}`);
       if (r.apart < 16) bad.push(`${tag}: the ring hides under You (${Math.round(r.apart)}px apart)`);
       if (shots) await browser.screenshot(`${shots}/body-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}-bodyprofile.png`);

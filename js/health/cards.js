@@ -169,9 +169,13 @@ function bpArrow(from, to) {
   const len = Math.hypot(x2 - x1, y2 - y1);
   const ux = (x2 - x1) / len;
   const uy = (y2 - y1) / len;
-  const [ex, ey] = [x2 - ux * 0.26, y2 - uy * 0.26]; // stop short of the You dot
-  const [sx, sy] = [x1 + ux * 0.14, y1 + uy * 0.14]; // and of the ring
-  const head = [[ex - ux * 0.16 - uy * 0.1, ey - uy * 0.16 + ux * 0.1], [ex, ey], [ex - ux * 0.16 + uy * 0.1, ey - uy * 0.16 - ux * 0.1]].map((q) => q.map((n) => n.toFixed(3)).join(',')).join(' ');
+  const gapEnd = Math.min(0.23, len * 0.35); // stop just short of the You dot (9px dot + 4px glow)
+  const gapStart = Math.min(0.13, len * 0.2); // and of the ring (7px)
+  const [ex, ey] = [x2 - ux * gapEnd, y2 - uy * gapEnd];
+  const [sx, sy] = [x1 + ux * gapStart, y1 + uy * gapStart];
+  const hl = Math.min(0.16, (len - gapEnd - gapStart) * 0.4); // the head is at most 40% of the drawn segment
+  const hw = hl * 0.625;
+  const head = [[ex - ux * hl - uy * hw, ey - uy * hl + ux * hw], [ex, ey], [ex - ux * hl + uy * hw, ey - uy * hl - ux * hw]].map((q) => q.map((n) => n.toFixed(3)).join(',')).join(' ');
   const size = 4 + 3 * BP_GAP;
   return `<svg class="bp-arrow" viewBox="0 0 ${size} ${size}" preserveAspectRatio="none" aria-hidden="true" data-bp-arrow><line x1="${sx.toFixed(3)}" y1="${sy.toFixed(3)}" x2="${ex.toFixed(3)}" y2="${ey.toFixed(3)}"/><polyline points="${head}"/></svg>`;
 }
