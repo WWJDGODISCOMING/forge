@@ -6,9 +6,10 @@ No Cloud Functions or `firestore.rules` changes. No native rebuild.
 
 ### What's new
 
-- Body profile shows a ringed Last week dot, with a dashed line to your You dot.
+- Body profile shows a ringed Last week dot, with a dashed line to your You dot. Both dots sit at their exact spot inside the square, so even a small week shows how you moved.
 - A line under the grid says how lean mass and fat changed since last week.
 - Tap the Last week dot to see its date and values.
+- The Last week label no longer gets cut off at large text sizes, and the body numbers tiles (like Fat-free mass) no longer clip.
 
 ## 0.16.57 — A rest timer that feels alive (2026-10-23)
 

@@ -48,7 +48,7 @@ for (const route of standalone ? ROUTES : []) {
     const found = new Map();
     for (const c of group) {
       await browser.viewport(c.w, c.h, c.dark);
-      await browser.open(route, seed({ long: c.long, over: c.over, active: route === 'play', program: route === 'program' }));
+      await browser.open(route, seed({ long: c.long, over: c.over, active: route === 'play', program: route === 'program', comp: route === 'body' }));
       const cls = await browser.eval('window.__cls || 0'); // before any text-size change
       if (c.ts) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${c.ts}')`); await new Promise((r) => setTimeout(r, 300)); }
       const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: !!c.ts })})`);
@@ -2171,6 +2171,46 @@ if (standalone && (!only || only.includes('train'))) {
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });
+
+  test('layout: Body profile shows the Last week marker, line and since-line, unclipped, and is shot for review', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const bad = [];
+    const cases = [[320, 568, true, 1], [320, 568, true, 1.3], [390, 844, true, 1], [390, 844, false, 1], [390, 844, true, 1.3], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1]];
+    for (const [w, h, dark, ts] of cases) {
+      await browser.viewport(w, h, dark);
+      await browser.open('body', seed({ comp: true }));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+      await browser.eval("document.querySelector('[data-bodyprofile]') && document.querySelector('[data-bodyprofile]').scrollIntoView({ block: 'center', behavior: 'instant' })"); await wait(300);
+      const tag = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? 'T' : ''}`;
+      const r = await browser.eval(`(() => {
+        const card = document.querySelector('[data-bodyprofile]'); if (!card) return null;
+        const b = card.querySelector('[data-bp-last]');
+        const you = card.querySelector('.bp-now');
+        if (!b || !you) return { marker: !!b, you: !!you };
+        const lab = b.querySelector('span'); const ring = b.querySelector('i');
+        const q = (e) => e.getBoundingClientRect(); const l = q(lab); const c = q(card); const y = q(you); const g = q(ring);
+        const a = card.querySelector('[data-bp-arrow] line');
+        const apart = Math.hypot((y.left + y.right) / 2 - (g.left + g.right) / 2, (y.top + y.bottom) / 2 - (g.top + g.bottom) / 2);
+        let clipped = false;
+        for (let e = lab.parentElement; e && e !== card; e = e.parentElement) {
+          if (getComputedStyle(e).overflow === 'visible') continue;
+          const k = q(e); if (l.left < k.left - 0.5 || l.right > k.right + 0.5 || l.top < k.top - 0.5) clipped = true;
+        }
+        return { marker: true, you: true, since: !!card.querySelector('[data-bp-since]'), line: !!a, lineLen: a ? Math.hypot(a.x2.baseVal.value - a.x1.baseVal.value, a.y2.baseVal.value - a.y1.baseVal.value) : 0,
+          labelOk: l.left >= 0 && l.right <= innerWidth && l.left >= c.left - 0.5 && l.right <= c.right + 0.5 && !clipped,
+          labelWrap: l.height > parseFloat(getComputedStyle(lab).fontSize) * 2, apart };
+      })()`);
+      if (!r || !r.marker || !r.you) { bad.push(`${tag}: marker or You dot missing ${JSON.stringify(r)}`); continue; }
+      if (!r.since) bad.push(`${tag}: since-line missing`);
+      if (!r.line || r.lineLen < 0.05) bad.push(`${tag}: no line between the two dots for a within-cell move ${JSON.stringify(r)}`);
+      if (!r.labelOk || r.labelWrap) bad.push(`${tag}: the Last week label is clipped or wraps ${JSON.stringify(r)}`);
+      if (r.apart < 16) bad.push(`${tag}: the ring hides under You (${Math.round(r.apart)}px apart)`);
+      if (shots) await browser.screenshot(`${shots}/body-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}-bodyprofile.png`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
 }
 
 test('layout: close the browser', async () => {
@@ -2189,7 +2229,7 @@ if (standalone) {
       tests.splice(0, tests.length, ...keep);
     } else {
       // Bin-pack by estimated cost (renders): a route group costs its size count, anything else ~3. Every shard computes the same split.
-      const cost = (t) => { const m = /\(sizes (\d+)\/(\d+)\)/.exec(t.name); return m ? (Number(m[1]) < Number(m[2]) ? CHUNK : CASES.length - CHUNK * (Number(m[2]) - 1)) : 3; };
+      const cost = (t) => { const m = /\(sizes (\d+)\/(\d+)\)/.exec(t.name); return m ? (Number(m[1]) < Number(m[2]) ? CHUNK : CASES.length - CHUNK * (Number(m[2]) - 1)) : /Body profile shows/.test(t.name) ? 9 : 3; };
       const bins = Array.from({ length: shard[1] }, () => ({ load: 0, names: new Set() }));
       tests.filter((t) => t.name !== CLOSE).map((t, i) => ({ t, i, c: cost(t) })).sort((a, b) => b.c - a.c || a.i - b.i).forEach(({ t, c }) => {
         const bin = bins.reduce((lo, b) => (b.load < lo.load ? b : lo));

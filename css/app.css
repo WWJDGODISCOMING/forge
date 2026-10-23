@@ -540,8 +540,8 @@ body.resting main { padding-bottom: calc(var(--safe-bottom) + 170px); }
 @media (prefers-reduced-motion: reduce) { .ring-arc, .ring-arc.ring-over { transition: none; transition-delay: 0s; } }
 
 /* ---------- Body composition (v0.4.0) ---------- */
-.bc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: var(--s-2); margin-top: var(--s-2); }
-.bc-tile { display: grid; gap: 2px; padding: var(--s-3); border-radius: var(--r-md); background: var(--surface-2); color: var(--text-1); text-decoration: none; }
+.bc-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(calc(96px * var(--ts)), 1fr)); gap: var(--s-2); margin-top: var(--s-2); }
+.bc-tile { display: grid; gap: 2px; padding: var(--s-3) var(--s-2); border-radius: var(--r-md); background: var(--surface-2); color: var(--text-1); text-decoration: none; }
 .bc-tile span { font-size: calc(12px * var(--ts)); color: var(--text-2); }
 .bc-tile b { font-size: calc(17px * var(--ts)); font-variant-numeric: tabular-nums; }
 .bc-tile small { font-size: calc(11px * var(--ts)); }
