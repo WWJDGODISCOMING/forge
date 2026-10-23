@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.55 — Tabs that feel native (2026-10-22)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's new
+
+- Tap your current tab to scroll up; tap again to return to its start.
+- Tabs start loading the moment your finger lands on them.
+- Photos are ready before a screen slides in, so you never see one half drawn.
+
 ## 0.16.54 — Easier to read, and onboarding buttons that stay put (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.

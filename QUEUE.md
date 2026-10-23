@@ -184,7 +184,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 16. #58 slice: consistent native navigation (item 9)
 - Issue: #58
 - Version: 0.16.55
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Check the CHANGELOG first and only build what is not shipped yet.
   - Large-title collapse with nav-bar blur on every root screen; tab re-tap scrolls to top, second re-tap pops to root (with a test).

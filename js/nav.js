@@ -116,6 +116,20 @@ export function backLabel(parts) {
 /** Large-title screens that should not show the title of their own sub-page (Progress shows one header). */
 export const TITLE_FOR = { trends: 'Progress', score: 'Progress', weekly: 'Progress' };
 
+/**
+ * What tapping a tab does (iOS rules). Another tab: switch. The tab you're on: a deeper screen scrolls to the top first
+ * and a second tap pops to the tab's root; on a root it scrolls to the top (nothing more to pop).
+ * Returns 'switch' | 'top' | 'root'.
+ */
+export function tabTapAction({ sameTab, depth, scrollY }) {
+  if (!sameTab) return 'switch';
+  if (depth === 0) return 'top';
+  return scrollY > 8 ? 'top' : 'root';
+}
+
+/** The screen module each tab opens, so it can be loaded the moment a finger lands on the tab. */
+export const TAB_MODULE = { today: 'today', train: 'train', food: 'food', body: 'body', score: 'score' };
+
 /** Per-tab scroll memory: tab roots restore where you left them; detail screens always start at the top. */
 export function createScrollMemory() {
   const saved = new Map();
