@@ -616,8 +616,8 @@ if (!standalone) {
       const timer = setTimeout(() => {
         p.kill('SIGKILL');
         const started = out.split('\n').filter((l) => l.includes('▶'));
-        out += `\nshard ${i + 1} timed out after 9 min. Last test started: ${started.length ? started[started.length - 1].trim() : '(none)'}`;
-      }, 540000); // under the 15 minute job cap in tests.yml
+        out += `\nshard ${i + 1} timed out after 14 min. Last test started: ${started.length ? started[started.length - 1].trim() : '(none)'}`;
+      }, 840000); // under the 20 minute job cap in tests.yml (the sweep grew to ~9 min on slow runners)
       p.on('close', (status) => { clearTimeout(timer); resolve({ status, out }); });
     }));
     const results = await Promise.all(runs);
