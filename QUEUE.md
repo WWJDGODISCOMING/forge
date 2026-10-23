@@ -209,6 +209,17 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Compare the shipped CHANGELOG to #58 items 5-8 and build the largest remaining gap only (one slice); name it in the PR title.
   - Before/after renders per #58 (same fixture, dark + light); contrast AA; at most one accent-filled control per screen.
 
+## 18b. #196 BUG: live workout discard/end/restore + Start ignored
+- Issue: #196
+- Version: 0.16.59
+- Status: todo
+- Acceptance:
+  - Discard/End fully stop timer, HealthKit session, Live Activity and persisted state; no auto-restore after.
+  - No unstyled flash on restore; End always opens the confirm sheet.
+  - Start workout works or explains an active session with an End option.
+  - Faster resume (cached Today, no long skeleton).
+  - Regression tests for every case above.
+
 ## 19. #187 Body profile: show where I was last week
 - Issue: #187
 - Version: 0.16.58
