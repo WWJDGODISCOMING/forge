@@ -4,7 +4,7 @@ import { myBodyMeasures } from '../derived.js';
 import { state, units as getUnits } from '../state.js';
 import { $, todayKey } from '../ui.js';
 import { topInsights, dismissInsight, intel, currentGoalPath, currentEnergy, currentBodyProfile } from '../health/intel.js';
-import { insightCardsHtml, bindInsightCards, goalPathHtml, bodyProfileHtml } from '../health/cards.js';
+import { insightCardsHtml, bindInsightCards, goalPathHtml, bodyProfileHtml, bindBodyProfile } from '../health/cards.js';
 import { currentRecovery, historyIndex } from '../workouts/plan.js';
 import { freshCount, recoverySubtitle } from '../workouts/recovery.js';
 import { BODY_METRICS, metricSeries, dailySeries, latestAndChange, fmtMetric, heightM, lastWeighInDay, compositionGap, staleCaption, daysBetween, OLD_READING_DAYS } from '../withings/body.js';
@@ -87,7 +87,7 @@ export function renderBody(el) {
       <div class="col col-b">
       ${programsCard()}
       ${compositionCard()}
-      ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}) : ''}
+      ${myBodyMeasures().length ? bodyProfileHtml(currentBodyProfile(), state.profile || {}, getUnits()) : ''}
       </div>
       <div class="col col-d">
       <div data-photos-slot></div>
@@ -101,6 +101,7 @@ export function renderBody(el) {
     </section>`;
 
   bindInsightCards(el, dismissInsight);
+  bindBodyProfile(el);
   bindProgramsCard(el);
   bindWeight(el, () => renderBody(el));
   import('../photos/cards.js').then((m) => m.mountBodyPhotosCard($('[data-photos-slot]', el)));

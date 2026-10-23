@@ -181,6 +181,16 @@ svg.sc-hero { overflow: visible; }
 .bp-cell.c2.r0, .bp-cell.c2.r1, .bp-cell.c3.r0, .bp-cell.c3.r1 { background: var(--good-tint); }
 .bp-now { width: 18px; height: 18px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-tint); }
 .bp-trail { width: 8px; height: 8px; border-radius: 50%; background: var(--text-2); opacity: .45; margin: 1px; }
+.bp-gridbox { position: relative; min-width: 0; }
+.bp-arrow { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+.bp-arrow line, .bp-arrow polyline { fill: none; stroke: var(--text-2); stroke-width: 1.5px; vector-effect: non-scaling-stroke; stroke-linecap: round; stroke-linejoin: round; }
+.bp-arrow line { stroke-dasharray: 3 3; }
+.bp-last { position: absolute; inset: 0; z-index: 1; display: grid; place-items: center; background: none; border: 0; padding: 0; margin: 0; min-height: 0; color: var(--text-1); font: inherit; cursor: pointer; }
+.bp-last i { width: 14px; height: 14px; border-radius: 50%; border: 2.5px solid var(--text-1); box-sizing: border-box; }
+.bp-last span { position: absolute; top: 2px; left: 0; right: 0; text-align: center; font-size: calc(10px * var(--ts)); font-weight: 800; line-height: 1; white-space: nowrap; }
+.bp-last.same i { transform: translate(-14px, -6px); }
+.bp-last:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; border-radius: var(--r-sm); }
+.bp-detail { background: var(--surface-2); border-radius: var(--r-sm); padding: var(--s-2); }
 .bp-x { display: flex; justify-content: space-between; min-width: 0; color: var(--text-2); font-size: calc(12px * var(--ts)); font-weight: 700; }
 
 /* Compact insight cards (Today) */

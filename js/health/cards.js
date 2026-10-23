@@ -5,6 +5,7 @@ import { addDays, daysBetween } from '../weight/smoothing.js';
 import { weightToDisplay, weightUnit, formatWeight } from '../units.js';
 import { FFMI_BANDS, FMI_BANDS } from './bodyprofile.js';
 import { icon, emptyState } from '../ui/icons.js';
+import { haptics } from '../ui/haptic.js';
 import { chartWidth } from '../ui/charts.js';
 
 const fmtDate = (key, withYear = false) => new Date(`${key}T12:00:00`).toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) }).replace(/ /g, ' '); // a date never splits across lines
@@ -147,7 +148,39 @@ export function goalPathHtml(path, energy, { series, today, goalKg, units }) {
 
 // ---- body profile ----
 
-export function bodyProfileHtml(bp, { sex, age }) {
+// A change in lean or fat mass in the user's unit, one decimal, with a real minus sign ("+0.1 lb", "−0.2 lb").
+function signed(kg, units) {
+  const v = Number(weightToDisplay(kg, units).toFixed(1));
+  return `${v > 0 ? '+' : v < 0 ? '−' : '±'}${Math.abs(v).toFixed(1)} ${weightUnit(units)}`;
+}
+
+// A thin dashed line with a small head from last week's cell to this week's, over the grid (a 4×4 viewBox).
+function bpArrow(from, to) {
+  const pt = (b) => [b.col + 0.5, 3 - b.row + 0.5];
+  const [x1, y1] = pt(from);
+  const [x2, y2] = pt(to);
+  const len = Math.hypot(x2 - x1, y2 - y1);
+  const ux = (x2 - x1) / len;
+  const uy = (y2 - y1) / len;
+  const [ex, ey] = [x2 - ux * 0.3, y2 - uy * 0.3]; // stop short of the You dot
+  const [sx, sy] = [x1 + ux * 0.2, y1 + uy * 0.2];
+  const head = [[ex - ux * 0.16 - uy * 0.1, ey - uy * 0.16 + ux * 0.1], [ex, ey], [ex - ux * 0.16 + uy * 0.1, ey - uy * 0.16 - ux * 0.1]].map((p) => p.map((n) => n.toFixed(3)).join(',')).join(' ');
+  return `<svg class="bp-arrow" viewBox="0 0 4 4" preserveAspectRatio="none" aria-hidden="true" data-bp-arrow><line x1="${sx.toFixed(3)}" y1="${sy.toFixed(3)}" x2="${ex.toFixed(3)}" y2="${ey.toFixed(3)}"/><polyline points="${head}"/></svg>`;
+}
+
+/** Tapping the Last week marker shows or hides its date and values, with a light haptic. */
+export function bindBodyProfile(root) {
+  const b = root.querySelector('[data-bp-last]');
+  const d = root.querySelector('[data-bp-detail]');
+  if (!b || !d) return;
+  b.onclick = () => {
+    haptics.light();
+    d.hidden = !d.hidden;
+    b.setAttribute('aria-expanded', String(!d.hidden));
+  };
+}
+
+export function bodyProfileHtml(bp, { sex, age }, units = 'imperial') {
   const who = `${sex === 'male' ? 'men' : sex === 'female' ? 'women' : 'adults'}${age ? `, you are ${age}` : ''}`;
   let inner;
   if (bp.status === 'needs-height') {
@@ -156,20 +189,24 @@ export function bodyProfileHtml(bp, { sex, age }) {
     inner = emptyState({ art: 'scale', icon: 'scale', title: 'Needs body fat from your scale', text: 'Body Profile needs your height plus fat mass or fat-free mass. Weigh in on a smart scale barefoot and it appears.', action: { href: '#/withings', label: 'Scale settings' } });
   } else {
     const cells = [];
+    const lw = bp.lastWeek;
     for (let row = 3; row >= 0; row--) {
       for (let col = 0; col < 4; col++) {
         const dots = [
           ...bp.trail.filter((t) => t.col === col && t.row === row).map((t) => `<i class="bp-trail" title="${esc(t.month)}"></i>`),
+          lw && lw.col === col && lw.row === row ? `<button type="button" class="bp-last${bp.col === col && bp.row === row ? ' same' : ''}" data-bp-last aria-expanded="false" aria-label="Last week, ${esc(fmtDate(lw.day))}. Tap for details."><i aria-hidden="true"></i><span aria-hidden="true">Last week</span></button>` : '',
           bp.col === col && bp.row === row ? '<i class="bp-now" aria-hidden="true"></i><span class="bp-you" aria-hidden="true">You</span>' : '',
         ].join('');
         cells.push(`<div class="bp-cell r${row} c${col}">${dots}</div>`);
       }
     }
     inner = `<div class="bp-wrap"><span class="bp-y">Fat →</span>
-      <div class="bp-grid" role="img" aria-label="You: lean mass ${FFMI_BANDS[bp.col]}, body fat ${FMI_BANDS[bp.row]}">${cells.join('')}</div>
+      <div class="bp-gridbox"><div class="bp-grid" role="img" aria-label="You: lean mass ${FFMI_BANDS[bp.col]}, body fat ${FMI_BANDS[bp.row]}">${cells.join('')}</div>${lw && (lw.col !== bp.col || lw.row !== bp.row) ? bpArrow(lw, bp) : ''}</div>
       <span></span><div class="bp-x"><span>Low</span><span>Lean mass →</span><span>High</span></div></div>
       <p><b>Lean mass: ${FFMI_BANDS[bp.col]}</b> (FFMI ${bp.ffmi.toFixed(1)}) · <b>Body fat: ${FMI_BANDS[bp.row]}</b> (FMI ${bp.fmi.toFixed(1)})</p>
-      <p class="small muted">The bright dot (You) is now. Faint dots are earlier months. Ranges are approximate and not adjusted for age.</p>`;
+      ${lw ? `<p class="small" data-bp-since>Since last week: lean mass <b>${signed(lw.dLeanKg, units)}</b>, fat <b>${signed(lw.dFatKg, units)}</b></p>
+      <p class="small bp-detail" data-bp-detail hidden role="status">Last week, ${esc(fmtDate(lw.day))}: lean mass ${formatWeight(lw.ffmKg, units)}, fat ${formatWeight(lw.fatKg, units)}. FFMI ${lw.ffmi.toFixed(1)}, FMI ${lw.fmi.toFixed(1)}.</p>` : ''}
+      <p class="small muted">The bright dot (You) is now.${lw ? ' The ringed dot is last week.' : ''} Faint dots are earlier months. Ranges are approximate and not adjusted for age.</p>`;
   }
   return `<div class="card stack" data-bodyprofile>
     <p class="label">Body profile</p>${inner}

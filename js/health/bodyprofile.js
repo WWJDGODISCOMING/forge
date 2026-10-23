@@ -31,7 +31,7 @@ export function indices(m, heightM) {
   if (!Number.isFinite(fat) && Number.isFinite(ffm) && Number.isFinite(w)) fat = w - ffm;
   if (!Number.isFinite(ffm) && Number.isFinite(fat) && Number.isFinite(w)) ffm = w - fat;
   if (!Number.isFinite(fat) || !Number.isFinite(ffm)) return null;
-  return { ffmi: ffm / (heightM * heightM), fmi: fat / (heightM * heightM) };
+  return { ffmi: ffm / (heightM * heightM), fmi: fat / (heightM * heightM), fatKg: fat, ffmKg: ffm };
 }
 
 /**
@@ -47,7 +47,7 @@ export function bodyProfile({ measures, heightM, sex }) {
     .map((d) => ({ day: d.day, ix: indices(d.metrics, heightM) })).filter((d) => d.ix).sort((a, b) => (a.day < b.day ? -1 : 1));
   if (!docs.length) return { status: 'needs-comp', trail: [] };
   const last = docs[docs.length - 1];
-  const place = (ix) => ({ ...ix, col: bandOf(ix.ffmi, ffmiCuts), row: bandOf(ix.fmi, fmiCuts) });
+  const place = (ix) => ({ ffmi: ix.ffmi, fmi: ix.fmi, col: bandOf(ix.ffmi, ffmiCuts), row: bandOf(ix.fmi, fmiCuts) });
   const months = new Map();
   for (const d of docs) {
     const k = d.day.slice(0, 7);
@@ -57,6 +57,27 @@ export function bodyProfile({ measures, heightM, sex }) {
     months.set(k, m);
   }
   const trail = [...months].map(([month, m]) => ({ month, ...place({ ffmi: m.f / m.n, fmi: m.m / m.n }) })).slice(-6);
-  return { status: 'ok', ...place(last.ix), day: last.day, trail };
+  return { status: 'ok', ...place(last.ix), day: last.day, trail, lastWeek: lastWeekOf(docs, last, place) };
+}
+
+const WEEK_MIN = 5;
+const WEEK_MAX = 10;
+const dayNum = (key) => Date.parse(`${key}T12:00:00Z`) / 86400000;
+
+/**
+ * The reading closest to 7 days before the latest one, if it is 5 to 10 days back; otherwise null.
+ * { day, ffmi, fmi, col, row, ffmKg, fatKg, dLeanKg, dFatKg } (the deltas are latest minus then, in kg).
+ */
+function lastWeekOf(docs, last, place) {
+  let best = null;
+  for (const d of docs) {
+    const gap = dayNum(last.day) - dayNum(d.day);
+    if (gap < WEEK_MIN || gap > WEEK_MAX) continue;
+    const off = Math.abs(gap - 7);
+    if (!best || off < best.off || (off === best.off && d.day > best.d.day)) best = { d, off };
+  }
+  if (!best) return null;
+  const { ix, day } = best.d;
+  return { day, ...place(ix), ffmKg: ix.ffmKg, fatKg: ix.fatKg, dLeanKg: last.ix.ffmKg - ix.ffmKg, dFatKg: last.ix.fatKg - ix.fatKg };
 }
 
