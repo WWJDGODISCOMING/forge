@@ -440,6 +440,15 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
   .pl-next-name { overflow: visible; text-overflow: clip; }
   .pl-nav button { min-height: 44px; }
   .pl-count { font-size: calc(12px * var(--ts)); }
+  /* Rest screen: ring on the left, label, buttons and Up next on the right, so Skip rest never leaves the screen. */
+  .player.rest { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; column-gap: 24px; align-content: start; }
+  .player.rest .pl-top { grid-column: 1 / -1; }
+  .player.rest .rest-label { grid-column: 2; grid-row: 2; margin-top: 0; align-self: end; }
+  .player.rest .rest-ring { grid-column: 1; grid-row: 2 / 5; width: min(100%, 50dvh); margin: 0 auto; align-self: center; }
+  .player.rest .rest-ring b { font-size: 56px; }
+  .player.rest .rest-ctl { grid-column: 2; grid-row: 3; }
+  .player.rest .next-card { grid-column: 2; grid-row: 4; align-self: start; margin-top: 4px; grid-template-columns: 64px 1fr; padding: 8px; }
+  .player.rest .next-fig { width: 64px; height: 64px; }
 }
 
 /* Narrow right column (678 wide with the 47 px side insets leaves 280 px): the steppers stack, so weights like 102.5 get the whole row. */

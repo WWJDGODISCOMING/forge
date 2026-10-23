@@ -126,7 +126,8 @@ for (const [w, h] of standalone && (!only || only.includes('rest')) ? [[390, 844
         const a = lum(px(getComputedStyle(ring.querySelector('.rg-a')).stopColor)), b = lum(px(getComputedStyle(document.body).backgroundColor));
         const sv = ring.querySelector('svg');
         return { urgent: ring.classList.contains('is-urgent'), stroke: getComputedStyle(fg).stroke, svgFilter: getComputedStyle(sv).filter, fgFilter: getComputedStyle(fg).filter,
-          contrast: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), over: document.documentElement.scrollWidth > innerWidth + 1, btn: Math.round(document.querySelector('[data-skiprest]').getBoundingClientRect().height) };
+          contrast: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), over: document.documentElement.scrollWidth > innerWidth + 1, btn: Math.round(document.querySelector('[data-skiprest]').getBoundingClientRect().height),
+          skipBottom: Math.round(document.querySelector('[data-skiprest]').getBoundingClientRect().bottom), nextTop: (() => { const n = document.querySelector('.next-card'); return n ? Math.round(n.getBoundingClientRect().top) : null; })(), nextBottom: (() => { const n = document.querySelector('.next-card'); return n ? Math.round(n.getBoundingClientRect().bottom) : null; })(), vh: innerHeight };
       })()`);
       if (shots && r) await browser.screenshot(`${shots}/rest-${w}x${h}-${dark ? 'dark' : 'light'}.png`);
       await browser.eval("localStorage.removeItem('forge.rest')");
@@ -136,6 +137,8 @@ for (const [w, h] of standalone && (!only || only.includes('rest')) ? [[390, 844
       assert(r.svgFilter.includes('drop-shadow') && r.fgFilter === 'none', 'the glow must be on the svg, not the circle');
       assert(r.contrast >= 3, `lightest gradient stop is ${r.contrast.toFixed(2)}:1 against the background (needs 3:1)`);
       assert(!r.over && r.btn >= 44, 'the rest screen overflows sideways or the Skip button is under 44 px');
+      assert(r.skipBottom <= r.vh, `Skip rest bottom at ${r.skipBottom}px, below the ${r.vh}px screen`);
+      assert(r.nextTop !== null && r.nextTop < r.vh, `the Up next card top is at ${r.nextTop}px, off the ${r.vh}px screen`);
     });
   }
 }
