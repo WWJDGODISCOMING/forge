@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.57 — A rest timer that feels alive (2026-10-23)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's new
+
+- The rest ring has a soft gradient and glow, and pulses gently in the last 10 seconds.
+- In the iPhone app you feel a light tap on each of the last 3 seconds.
+- Tapping −15 s or +15 s glides the ring to its new fill.
+
 ## 0.16.56 — Line up your progress photos in the camera (2026-10-23)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.

@@ -13,6 +13,7 @@ import { restInfo, onRestChange, adjustRest, stopRest, fmtClock, setWantAwake, u
 import { coach } from '../ui/sound.js';
 import { powerUp, prExplosion, enqueue } from '../ui/fx.js';
 import { onFrame, reducedMotion, viewTransition, EASE } from '../ui/motion.js';
+import { fillOf, easedFill, dashOffset, isUrgent } from '../ui/restring.js';
 import { mountFigure, hasFigure } from '../ui/figure.js';
 import { photoLoop, hasPhotos, photoFallback } from '../ui/photos.js';
 import { hapticInput, onHapticTap, haptics } from '../ui/haptic.js';
@@ -594,6 +595,7 @@ function tickTimed(el) {
 }
 
 // ---------- full-screen rest ----------
+const NUDGE_MS = 320;
 function drawRest(el) {
   const r = restInfo();
   if (!r) return drawSet(el);
@@ -608,7 +610,7 @@ function drawRest(el) {
       </header>
       <p class="rest-label">${esc(r.label)}</p>
       <div class="rest-ring" style="view-transition-name: pl-hero">
-        <svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="50" r="45" class="ring-bg"/><circle cx="50" cy="50" r="45" class="ring-fg" data-restfg/></svg>
+        <svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="restGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="rg-a"/><stop offset="1" class="rg-b"/></linearGradient></defs><circle cx="50" cy="50" r="45" class="ring-bg"/><circle cx="50" cy="50" r="45" class="ring-fg" data-restfg/></svg>
         <b data-restclock>${fmtClock(r.left)}</b>
       </div>
       <div class="row gap rest-ctl">
@@ -624,7 +626,16 @@ function drawRest(el) {
     </section>`;
   const nf = $('[data-nextfig]', el);
   if (nf && nextEx && hasFigure(nextEx.id)) mountFigure(nf, nextEx, { isPaused: () => paused() });
-  $$('[data-adj]', el).forEach((b) => (b.onclick = () => adjustRest(Number(b.dataset.adj))));
+  // A ±15 s nudge changes the ring's fill at once; remember the gap so the frame task glides it closed.
+  let nudge = null, shown = r.total > 0 ? r.left / r.total : 0, paintRing = () => {};
+  $$('[data-adj]', el).forEach((b) => (b.onclick = () => {
+    const before = shown;
+    adjustRest(Number(b.dataset.adj));
+    const info = restInfo();
+    if (info && !info.paused && !reducedMotion()) nudge = { gap: before - fillOf(info.left, info.total), t0: performance.now() };
+    paintRing(); // paused: the frame task is stopped, so draw once here
+    haptics.select();
+  }));
   $('[data-skiprest]', el).onclick = () => {
     stopRest();
   };
@@ -638,10 +649,25 @@ function drawRest(el) {
   // workout pauses (Resume re-renders, which starts a fresh one).
   const fg = $('[data-restfg]', el);
   if (fg) {
-    onFrame(() => {
+    const ringEl = fg.closest('.rest-ring');
+    const paint = () => {
       const info = restInfo();
-      if (!info || !fg.isConnected) return false;
-      fg.style.strokeDashoffset = String(283 * (1 - info.left / info.total));
+      if (!info || !fg.isConnected) return null;
+      let fill = fillOf(info.left, info.total);
+      if (nudge) {
+        const p = (performance.now() - nudge.t0) / NUDGE_MS;
+        if (p >= 1) nudge = null;
+        else fill = easedFill(fill, nudge.gap, p);
+      }
+      shown = fill;
+      fg.style.strokeDashoffset = String(dashOffset(fill));
+      ringEl.classList.toggle('is-urgent', isUrgent(info.left) && !info.paused);
+      return info;
+    };
+    paintRing = paint;
+    onFrame(() => {
+      const info = paint();
+      if (!info) return false;
       return !info.paused && !paused();
     });
   }

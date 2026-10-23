@@ -3,6 +3,8 @@
 // backgrounded (iPhone freezes web timers while locked; when you come back the time is still right).
 // The rest timer can pause (with the workout) and carries a "next up" preview for the full-screen rest.
 import { unlockAudio as unlock, beep as coachBeep, coach } from './ui/sound.js';
+import { haptics } from './ui/haptic.js';
+import { countdownSecond } from './ui/restring.js';
 import { syncRestNotification, haptic as nativeHaptic } from './native/bridge.js';
 
 export const unlockAudio = unlock;
@@ -140,10 +142,11 @@ function run() {
       rest.said10 = true;
       coach.tenSeconds();
     }
-    const whole = Math.ceil(left);
-    if (whole <= 3 && whole >= 1 && whole !== rest.ticked) {
+    const whole = countdownSecond(left, rest.ticked);
+    if (whole) {
       rest.ticked = whole;
       coachBeep(660, 90);
+      haptics.light();
     }
     if (left <= 0) {
       coach.restOver();

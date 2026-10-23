@@ -125,8 +125,12 @@ body.playing .navbar { display: none; }
 .player.rest { justify-content: flex-start; }
 .rest-label { text-align: center; font: 900 calc(15px * var(--ts)) var(--font); letter-spacing: .14em; color: var(--muted); margin-top: 10px; }
 .rest-ring { position: relative; width: min(300px, 78vw); aspect-ratio: 1; margin: 6px auto; display: grid; place-items: center; }
-.rest-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
-.rest-ring .ring-fg { stroke: var(--ember); stroke-width: 5; }
+.rest-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 55%, transparent)); } /* on the svg, not the circle: iPhone Safari skips filters on SVG children */
+.rest-ring .ring-fg { stroke: var(--ember); stroke: url(#restGrad) var(--ember); stroke-width: 6; } /* in CSS: it beats a stroke attribute */
+.rest-ring .rg-a { stop-color: color-mix(in srgb, var(--ember) 70%, white); }
+.rest-ring .rg-b { stop-color: var(--ember); }
+.rest-ring.is-urgent { animation: rest-pulse 1s ease-in-out infinite; }
+@keyframes rest-pulse { 50% { transform: scale(1.025); } }
 .rest-ring .ring-bg { stroke-width: 5; }
 .rest-ring b { font: 900 72px var(--num); font-variant-numeric: tabular-nums; letter-spacing: -0.03em; }
 .rest-ctl { display: grid; grid-template-columns: 1fr 1.4fr 1fr; }
@@ -210,6 +214,7 @@ body.playing .navbar { display: none; }
   @keyframes mflash-fade { 30% { box-shadow: inset 0 0 60px color-mix(in srgb, var(--ember) 33%, transparent); } }
   .mus-bar i.grow-in { animation: none; transform: none; }
   .pr-trophy { animation: none; }
+  .rest-ring.is-urgent { animation: none; }
 }
 .ov-complete .ov-big { font-size: clamp(34px, 9vw, 44px); line-height: 1.1; }
 
@@ -435,6 +440,15 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
   .pl-next-name { overflow: visible; text-overflow: clip; }
   .pl-nav button { min-height: 44px; }
   .pl-count { font-size: calc(12px * var(--ts)); }
+  /* Rest screen: ring on the left, label, buttons and Up next on the right, so Skip rest never leaves the screen. */
+  .player.rest { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto auto auto 1fr; column-gap: 24px; align-content: start; }
+  .player.rest .pl-top { grid-column: 1 / -1; }
+  .player.rest .rest-label { grid-column: 2; grid-row: 2; margin-top: 0; align-self: end; }
+  .player.rest .rest-ring { grid-column: 1; grid-row: 2 / 5; width: min(100%, 50dvh); margin: 0 auto; align-self: center; }
+  .player.rest .rest-ring b { font-size: 56px; }
+  .player.rest .rest-ctl { grid-column: 2; grid-row: 3; }
+  .player.rest .next-card { grid-column: 2; grid-row: 4; align-self: start; margin-top: 4px; grid-template-columns: 64px 1fr; padding: 8px; }
+  .player.rest .next-fig { width: 64px; height: 64px; }
 }
 
 /* Narrow right column (678 wide with the 47 px side insets leaves 280 px): the steppers stack, so weights like 102.5 get the whole row. */
