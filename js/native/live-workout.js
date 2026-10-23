@@ -17,6 +17,15 @@ let session = null; // the core session
 let metrics = { kcal: 0, distanceM: 0, hr: null, nativeLive: false, activity: false };
 const listeners = new Set();
 let handle = null;
+const NATIVE_WAIT_MS = 4000; // a native call that never answers must not keep a workout alive
+const EMPTY = () => ({ kcal: 0, distanceM: 0, hr: null, nativeLive: false, activity: false });
+const gone = new Set(); // ids of workouts that were ended or discarded: nothing may bring them back
+
+/** Wait for a native call, but never longer than NATIVE_WAIT_MS. Never throws. */
+const quick = (promise) => new Promise((resolve) => {
+  const t = setTimeout(() => resolve(null), NATIVE_WAIT_MS);
+  Promise.resolve(promise).then((v) => { clearTimeout(t); resolve(v); }, () => { clearTimeout(t); resolve(null); });
+});
 
 export const weightKg = () => weightKgFor(state.weights, state.profile);
 export const current = () => session;
@@ -30,13 +39,20 @@ function save() {
   try { if (session && !session.ended_at) s.setItem(KEY, JSON.stringify({ session, metrics })); else s.removeItem(KEY); } catch { /* private mode */ }
 }
 
-/** Pick up a workout left running (the app was closed or reloaded). */
+/** True while a live workout is running or paused (the one answer for Start, the chips and the live screen). */
+export const isActive = () => !!(session && !session.ended_at);
+
+/** Pick up a workout left running (the app was closed or reloaded). Safe to call any number of times. */
 export function restore() {
   if (session) return session;
   const s = store();
   try {
     const raw = s && s.getItem(KEY);
-    if (raw) { const o = JSON.parse(raw); session = o.session; metrics = { ...metrics, ...o.metrics }; }
+    if (raw) {
+      const o = JSON.parse(raw);
+      const ok = o && o.session && LIVE_KINDS[o.session.kind] && !o.session.ended_at && !gone.has(o.session.id);
+      if (ok) { session = o.session; metrics = { ...metrics, ...o.metrics }; } else s.removeItem(KEY); // a stale or finished leftover is dropped, not revived
+    }
   } catch { session = null; }
   if (session) attach();
   return session;
@@ -44,7 +60,7 @@ export function restore() {
 
 /** Native tells us the truth about pause/resume (the Live Activity button) and the live numbers. */
 function onNative(e) {
-  if (!session || !e) return;
+  if (!session || !e || (e.id && e.id !== session.id)) return;
   const at = Number(e.at) || Date.now();
   if (Array.isArray(e.pauses)) session = adoptNativePauses(session, e); // the phone saw every pause, even ones while we were in the background
   else if (e.paused === true) session = pauseLive(session, at);
@@ -108,29 +124,32 @@ export async function resume() {
 export async function finish() {
   if (!session) return null;
   let ended = endLive(session, Date.now());
+  const native = metrics.nativeLive;
+  const weight = weightKg();
+  gone.add(ended.id);
+  session = null; // cleared first: from here nothing can restore it, whatever the native side does
+  metrics = EMPTY();
+  save(); emit();
   const p = hk();
   let saved = null;
-  if (p && metrics.nativeLive) {
-    try {
-      saved = await p.endLive(endPayload(ended, { weightKg: weightKg(), settings: state.settings }));
-      if (saved && Array.isArray(saved.pauses)) ended = adoptNativePauses(ended, saved); // lock-screen pauses the screen never heard
-    } catch { saved = null; }
+  if (p && native) {
+    saved = await quick(p.endLive(endPayload(ended, { weightKg: weight, settings: state.settings })));
+    if (saved && Array.isArray(saved.pauses)) ended = adoptNativePauses(ended, saved); // lock-screen pauses the screen never heard
   }
-  const row = liveToCardio(ended, { hk: saved, weightKg: weightKg() });
+  const row = liveToCardio(ended, { hk: saved, weightKg: weight });
   if (!(state.cardio || []).some((c) => c.id === row.id)) put('cardio_sessions', newRecord(row.fields, { id: row.id, source: 'forge_live' }));
-  session = null;
-  metrics = { kcal: 0, distanceM: 0, hr: null, nativeLive: false, activity: false };
-  save(); emit();
   return row;
 }
 
 /** Throw the workout away (nothing is saved to Forge or Health). */
 export async function discard() {
   const p = hk();
-  if (p && metrics.nativeLive) { try { await p.endLive({ save: false }); } catch { /* gone anyway */ } }
-  session = null;
-  metrics = { kcal: 0, distanceM: 0, hr: null, nativeLive: false, activity: false };
+  const native = metrics.nativeLive;
+  if (session) gone.add(session.id);
+  session = null; // cleared first, so the screen, the chips and a reload all see "no workout" at once
+  metrics = EMPTY();
   save(); emit();
+  if (p && native) await quick(p.endLive({ save: false })); // stops the HealthKit session and the Live Activity
 }
 
 /** Re-sync after the app comes back to the front: native may have paused it from the lock screen. */

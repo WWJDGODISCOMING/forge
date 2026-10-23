@@ -31,6 +31,7 @@ import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
 import { gymChoices, switchAction, SWITCH_CONFIRM, RESUME_JOINT_NOTE } from '../workouts/gym-switch-core.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
+import * as liveWorkout from '../native/live-workout.js';
 import { currentChipText, bindLiveChips } from '../ui/live-chip.js';
 import {
   LENGTHS, blankEdits, takeSnapshot, restoreSnapshot, isChanged, pickedIds, withSwapAvoid, carryRest, swapResult, swapMessage, noSwapReason, lengthMessage,
@@ -72,8 +73,32 @@ export function previewPlan() {
   return plan;
 }
 
+/** A live cardio workout is still running: explain, and let them open it or end it and carry on. */
+function liveBlocksStart(plan) {
+  haptics.warning && haptics.warning();
+  sheet('A live workout is running', (body, close) => {
+    body.innerHTML = `
+      <p class="muted">Finish or end it first, then start this workout.</p>
+      <div class="stack">
+        <button class="btn bigbtn" data-open>Open live workout</button>
+        <button class="btn bigbtn ghost live-discard" data-endit>End it and start this workout</button>
+        <button class="btn ghost bigbtn" data-no>Not now</button>
+      </div>`;
+    body.querySelector('[data-open]').onclick = () => { close(); location.hash = '#/live'; };
+    body.querySelector('[data-no]').onclick = () => close();
+    body.querySelector('[data-endit]').onclick = async () => {
+      close();
+      const s = liveWorkout.current();
+      if (s && Date.now() - s.started_at >= 60000) await liveWorkout.finish(); else await liveWorkout.discard();
+      startPlan(plan);
+    };
+  });
+}
+
 /** Start a previewed plan (Train or Today): unlock audio on this tap, cache today's photos, go. */
 export function startPlan(plan) {
+  liveWorkout.restore();
+  if (liveWorkout.isActive()) return liveBlocksStart(plan); // never a silent no-op: say why, and offer to end it
   haptics.medium();
   unlockAudio(); // this tap unlocks sound + voice for the 3-2-1 GO on iPhone
   startWorkout(plan);

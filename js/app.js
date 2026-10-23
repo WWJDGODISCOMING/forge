@@ -153,6 +153,12 @@ const FULLSCREEN = new Set(['play', 'summary', 'profile', 'live']);
 const routeParts = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'today').split('/');
 const currentRoute = () => routeParts()[0];
 const allLoaded = () => LOADED_KEYS.every((k) => state.loaded[k]);
+// Coming back to the app, the skeleton waits for every collection. A returning user gets the real screen once their
+// profile and settings are in and the skeleton has had a moment (later snapshots redraw it), so it never sits there.
+const SKELETON_MAX_MS = 500;
+let skeletonSince = 0;
+let skeletonTimer = null;
+const mayDrawEarly = () => !!(seenBefore() && state.loaded.profile && state.loaded.settings && state.profile && skeletonSince && Date.now() - skeletonSince >= SKELETON_MAX_MS);
 
 let pendingRender = false;
 let lastRoute = null;
@@ -266,7 +272,9 @@ async function renderScreen() {
     main.querySelector('[data-retry]').onclick = () => location.reload();
     return;
   }
-  if (state.user === undefined || (state.user && !allLoaded())) {
+  if (state.user === undefined || (state.user && !allLoaded() && !mayDrawEarly())) {
+    if (!skeletonSince) skeletonSince = Date.now();
+    if (!skeletonTimer) skeletonTimer = setTimeout(() => { skeletonTimer = null; renderScreen(); }, SKELETON_MAX_MS + 20);
     // A skeleton of the screen that's about to appear, never a spinner. Tab bar shows if you've been here before.
     nav.hidden = !seenBefore() || FULLSCREEN.has(currentRoute());
     hideNavBar();
@@ -277,6 +285,7 @@ async function renderScreen() {
     return;
   }
   skeletonFor = null;
+  skeletonSince = 0;
   if (!state.user) {
     markSeen(false);
     nav.hidden = true;

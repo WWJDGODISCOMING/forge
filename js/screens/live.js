@@ -1,7 +1,7 @@
 // Live cardio workout screen (#/live): pick Jog in place / Walk / Run, a 3-2-1, then a big running timer with active and
 // total kcal, heart rate when the phone has it (a paired Watch), and distance + pace for walk and run. Pause, resume,
 // end (or discard an accidental start). The numbers come from js/workouts/live-core.js; the work is in js/native/live-workout.js.
-import { esc, $, confirmSheet, sheet, toast } from '../ui.js';
+import { esc, $, sheet, toast } from '../ui.js';
 import { state } from '../state.js';
 import { patch } from '../db.js';
 import { plugin } from '../native/bridge.js';
@@ -154,8 +154,19 @@ function endChoice(ms) {
           <button class="btn ghost bigbtn" data-keep>Keep going</button>
         </div>`;
       body.querySelector('[data-save]').onclick = () => done('save', closeSheet);
-      body.querySelector('[data-discard]').onclick = () => done('discard', closeSheet);
       body.querySelector('[data-keep]').onclick = () => done(null, closeSheet);
+      // Discard asks once more inside this same sheet (a second sheet opening on top of a closing one is what lost the tap before).
+      body.querySelector('[data-discard]').onclick = () => {
+        body.innerHTML = `
+          <p class="muted">Nothing is saved to Forge or Apple Health.</p>
+          <div class="stack">
+            <button class="btn bigbtn danger live-discard" data-sure>Yes, discard it</button>
+            <button class="btn ghost bigbtn" data-keep>Keep going</button>
+          </div>`;
+        haptics.warning && haptics.warning();
+        body.querySelector('[data-sure]').onclick = () => done('discard', closeSheet);
+        body.querySelector('[data-keep]').onclick = () => done(null, closeSheet);
+      };
     });
     const obs = new MutationObserver(() => {
       if (!document.querySelector('dialog.sheet') && !answered) { answered = true; resolve(null); }
@@ -171,19 +182,21 @@ function showRunning(el) {
   setWantAwake(true);
   paint(el);
   $('[data-pause]', el).onclick = async () => {
+    if (!live.current()) return renderLive(el);
     haptics.medium && haptics.medium();
     if (isPaused(live.current())) await live.resume(); else await live.pause();
     paint(el);
   };
   $('[data-end]', el).onclick = async () => {
     haptics.light && haptics.light();
-    const choice = await endChoice(activeMs(live.current(), Date.now()));
+    const cur = live.current();
+    if (!cur) return renderLive(el); // already ended somewhere else: show the truth, never a dead button
+    const choice = await endChoice(activeMs(cur, Date.now()));
     if (choice === 'discard') {
-      const sure = await confirmSheet({ title: 'Discard this workout?', message: 'Nothing is saved to Forge or Apple Health.', confirmLabel: 'Discard', danger: true });
-      if (!sure) return;
       stopTicking();
-      await live.discard();
+      const gone = live.discard(); // the state is cleared before this returns; the native stop finishes in the background
       location.hash = '#/train';
+      await gone;
       return;
     }
     if (choice !== 'save') return;
@@ -196,7 +209,7 @@ function showRunning(el) {
   clearInterval(tickId);
   tickId = setInterval(() => { if (!el.isConnected) return stopTicking(); paint(el); }, 250);
   if (offChange) offChange();
-  offChange = live.onChange((s2) => { if (!s2) return; paint(el); });
+  offChange = live.onChange((s2) => { if (!s2) { if (el.isConnected && $('.live', el)?.dataset.kind) renderLive(el); return; } paint(el); });
   live.refresh().then(() => paint(el));
 }
 

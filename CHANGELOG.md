@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.59 — Live workouts that actually end (2026-10-23)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's fixed
+
+- Discard and End now stop the workout straight away and it stays stopped. No more coming back to the Jog screen.
+- The End sheet always opens, and Discard asks once more inside the same sheet.
+- Start workout tells you when a live workout is still running, and lets you open it or end it.
+- Coming back to the app shows Today sooner instead of a long grey skeleton.
+
 ## 0.16.58 — Where you were last week (2026-10-23)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.
