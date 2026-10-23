@@ -45,7 +45,7 @@ export function summaryAwards(w) {
 
 /** After the summary has shown its badges: remember them. */
 export function rememberBadges(badges) {
-  if (!state.settings || !badges.length) return;
+  if (state.partial || !state.settings || !badges.length) return; // never from a screen drawn before everything loaded
   const seen = seenNow() || {};
   const add = Object.fromEntries(badges.filter((b) => b.earned && !seen[b.id]).map((b) => [b.id, b.earned.at]));
   if (Object.keys(add).length) patch('settings', 'main', { awards_seen: { ...seen, ...add } });

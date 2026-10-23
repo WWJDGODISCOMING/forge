@@ -108,11 +108,12 @@ export function awardOpts() {
 
 /** First run: remember today as the day missions started counting. A no-op once saved. */
 export function ensureStarted() {
-  if (!state.settings || state.settings.missions_started) return;
+  if (state.partial || !state.settings || state.settings.missions_started) return;
   patch('settings', 'main', { missions_started: today() });
 }
 
 export function setMissionSetting(key, value) {
+  if (state.partial) return;
   patch('settings', 'main', { [key]: value });
 }
 
@@ -124,7 +125,7 @@ export function seenToday() {
 
 /** Remember today's done missions; keeps the last 14 days. Writes only when something changed. */
 export function rememberDone(ids) {
-  if (!state.settings) return;
+  if (state.partial || !state.settings) return;
   const day = today();
   const seen = (state.settings.missions_seen) || {};
   const have = new Set(seen[day] || []);
@@ -143,7 +144,7 @@ export function celebratedTier(day = today()) {
 }
 
 export function recordCelebrated(tier, day = today()) {
-  if (!state.settings) return;
+  if (state.partial || !state.settings) return;
   const next = recordTier(state.settings.missions_cele, day, tier);
   state.settings.missions_cele = next; // right away, so a re-render before the save lands can't replay it
   patch('settings', 'main', { missions_cele: next });
@@ -153,7 +154,7 @@ export function recordCelebrated(tier, day = today()) {
 export const perfectWeekEnds = () => [...((state.settings && state.settings.perfect_weeks) || [])].sort();
 
 export function recordPerfectWeek(day = today()) {
-  if (!state.settings) return;
+  if (state.partial || !state.settings) return;
   const next = [...new Set([...perfectWeekEnds(), day])].sort();
   state.settings.perfect_weeks = next;
   patch('settings', 'main', { perfect_weeks: next });

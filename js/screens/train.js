@@ -32,6 +32,7 @@ import { haptic } from '../native/bridge.js';
 import { gymChoices, switchAction, SWITCH_CONFIRM, RESUME_JOINT_NOTE } from '../workouts/gym-switch-core.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
 import * as liveWorkout from '../native/live-workout.js';
+import { activeMs, LIVE_SHORT_MS } from '../workouts/live-core.js';
 import { currentChipText, bindLiveChips } from '../ui/live-chip.js';
 import {
   LENGTHS, blankEdits, takeSnapshot, restoreSnapshot, isChanged, pickedIds, withSwapAvoid, carryRest, swapResult, swapMessage, noSwapReason, lengthMessage,
@@ -76,12 +77,15 @@ export function previewPlan() {
 /** A live cardio workout is still running: explain, and let them open it or end it and carry on. */
 function liveBlocksStart(plan) {
   haptics.warning && haptics.warning();
+  const s0 = liveWorkout.current();
+  const keep = !!s0 && activeMs(s0, Date.now()) >= LIVE_SHORT_MS; // a minute or more is saved, never silently thrown away
   sheet('A live workout is running', (body, close) => {
     body.innerHTML = `
       <p class="muted">Finish or end it first, then start this workout.</p>
       <div class="stack">
         <button class="btn bigbtn" data-open>Open live workout</button>
-        <button class="btn bigbtn ghost live-discard" data-endit>End it and start this workout</button>
+        <button class="btn bigbtn ghost live-discard" data-endit>${keep ? 'Save it and start this workout' : 'Discard it and start this workout'}</button>
+        <p class="small muted" data-endit-note>${keep ? 'Your live workout is saved first.' : 'It is under a minute, so it is thrown away.'}</p>
         <button class="btn ghost bigbtn" data-no>Not now</button>
       </div>`;
     body.querySelector('[data-open]').onclick = () => { close(); location.hash = '#/live'; };
@@ -89,7 +93,7 @@ function liveBlocksStart(plan) {
     body.querySelector('[data-endit]').onclick = async () => {
       close();
       const s = liveWorkout.current();
-      if (s && Date.now() - s.started_at >= 60000) await liveWorkout.finish(); else await liveWorkout.discard();
+      if (s && activeMs(s, Date.now()) >= LIVE_SHORT_MS) await liveWorkout.finish(); else await liveWorkout.discard();
       startPlan(plan);
     };
   });

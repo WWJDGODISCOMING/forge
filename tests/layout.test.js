@@ -108,6 +108,70 @@ for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844
   }
 }
 
+// Live workout sheets (v0.16.59): "End this workout?" with its "Yes, discard it" step, and "A live workout is running" when
+// Start workout is tapped mid-session. Phone, both Duo postures folded and unfolded, and large text; copy and buttons must fit.
+const LIVE_SEED = (ms) => `(() => { const n = Date.now(); localStorage.setItem('forge.live', JSON.stringify({ session: { id: 'live_shot', kind: 'walk', started_at: n - ${ms}, ended_at: null, pauses: [], pausedAt: null }, metrics: {} })); })();`;
+const SHEET_PROBE = "(() => { const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null; const bs = [...d.querySelectorAll('button')].filter((b) => b.offsetParent); const r = d.getBoundingClientRect(); return { over: d.scrollWidth > d.clientWidth + 1, off: bs.some((b) => b.getBoundingClientRect().right > innerWidth + 1 || b.getBoundingClientRect().left < -1), short: bs.filter((b) => b.getBoundingClientRect().height < 44).length, clipped: bs.filter((b) => b.scrollWidth > b.clientWidth + 1).length, n: bs.length, top: Math.round(r.top), h: innerHeight }; })()";
+for (const [w, h, ts] of standalone && (!only || only.includes('live')) ? [[390, 844, 1], [390, 844, 1.35], [466, 678, 1], [678, 466, 1], [626, 890, 1], [890, 626, 1]] : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text' : ''}`;
+  test(`layout: live: the End sheet and its discard step fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('live', seed(), LIVE_SEED(125000));
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await browser.eval("document.querySelector('[data-end]').click()");
+    await new Promise((r) => setTimeout(r, 700));
+    const a = await browser.eval(SHEET_PROBE);
+    if (shots) await browser.screenshot(`${shots}/live-end-sheet-${tag}.png`);
+    assert(a && a.n === 3, `End sheet: expected End and save / Discard / Keep going, got ${a && a.n}`);
+    await browser.eval("document.querySelector('dialog.sheet[open] [data-discard]').click()");
+    await new Promise((r) => setTimeout(r, 300));
+    const b = await browser.eval(SHEET_PROBE);
+    if (shots) await browser.screenshot(`${shots}/live-discard-sheet-${tag}.png`);
+    assert(b && b.n === 2 && await browser.eval("!!document.querySelector('dialog.sheet[open] [data-sure]')"), 'the discard step asks inside the same sheet');
+    for (const [name, r] of [['End', a], ['Discard', b]]) {
+      assert(!r.over && !r.off, `${name} sheet overflows sideways`);
+      assert(r.short === 0, `${name} sheet has ${r.short} button(s) under 44px`);
+      assert(r.clipped === 0, `${name} sheet has ${r.clipped} clipped button label(s)`);
+      assert(r.top >= 0, `${name} sheet is taller than the screen`);
+    }
+    await browser.eval("localStorage.removeItem('forge.live')");
+  });
+
+  test(`layout: live: the "A live workout is running" sheet fits at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('train', seed(), LIVE_SEED(125000));
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    const hasStart = await browser.eval("!!document.querySelector('main [data-start], #main [data-start]')");
+    assert(hasStart, 'Train has no Start workout button in this seed');
+    await browser.eval("document.querySelector('#main [data-start]').click()");
+    await new Promise((r) => setTimeout(r, 700));
+    const r = await browser.eval(SHEET_PROBE);
+    if (shots) await browser.screenshot(`${shots}/live-blocked-start-sheet-${tag}.png`);
+    assert(r && r.n === 3, `expected Open / Save it and start / Not now, got ${r && r.n}`);
+    assert(await browser.eval("document.querySelector('dialog.sheet[open] [data-endit]').textContent.includes('Save it and start')"), 'a workout of a minute or more says it is saved');
+    assert(!r.over && !r.off, 'the sheet overflows sideways');
+    assert(r.short === 0, `${r.short} button(s) under 44px`);
+    assert(r.clipped === 0, `${r.clipped} clipped button label(s)`);
+    await browser.eval("localStorage.removeItem('forge.live')");
+  });
+}
+
+// Cold start on #/live with no workout running: the picker, never the big timer (and nothing from a finished leftover).
+test('layout: live: a cold #/live with no workout shows the picker, not the timer; a finished leftover is dropped', async () => {
+  if (!standalone || (only && !only.includes('live')) || skipReason()) return;
+  browser = browser || await launch();
+  await browser.viewport(390, 844, true);
+  await browser.open('live', seed(), "localStorage.setItem('forge.live', JSON.stringify({ session: { id: 'live_old', kind: 'walk', started_at: 1, ended_at: 9, pauses: [], pausedAt: null }, metrics: {} }));");
+  const r = await browser.eval("({ picker: !!document.querySelector('[data-start]'), clock: !!document.querySelector('[data-clock]'), left: localStorage.getItem('forge.live'), css: getComputedStyle(document.querySelector('.live')).position })");
+  assert(r.picker && !r.clock, 'the picker is shown, not the running timer');
+  assert(r.left === null, 'the finished leftover was removed');
+  assert(r.css === 'fixed', 'the live styles are loaded when the screen is drawn');
+});
+
 // Rest screen: #/play mid-rest (8 s left of 90, so the urgent pulse is on), phone and Duo sizes, dark and light.
 // The seeded rest is saved the way the timer saves it; Date.now is frozen so the 8 s stay put for the render.
 const REST_SEED = "(() => { const n = Date.now(); Date.now = () => n; localStorage.setItem('forge.rest', JSON.stringify({ end: n + 8000, total: 90, label: 'REST', next: { name: 'Push-up', detail: '2 x 10' }, pausedLeft: null })); })();";

@@ -26,6 +26,9 @@ export const state = {
   serverErrors: {}, // Firestore error code per server-written collection, e.g. { health_daily: 'permission-denied' }
   sync: typeof navigator === 'undefined' || navigator.onLine ? 'synced' : 'offline',
 
+  /** True while signed in and a collection is still loading: a screen drawn now may show it, but must not remember or save anything from it. */
+  get partial() { return !!this.user && LOADED_KEYS.some((k) => !this.loaded[k]); },
+
   set(patch) {
     Object.assign(this, patch);
     listeners.forEach((fn) => fn(patch));

@@ -10,7 +10,7 @@ import { unit } from '../workouts/plan.js';
 import { icon } from '../ui/icons.js';
 import { haptics } from '../ui/haptic.js';
 import { setWantAwake } from '../timer.js';
-import { LIVE_KINDS, LIVE_ORDER, activeMs, isPaused, fmtElapsed, fmtDistance, fmtPace, activeKcal, totalKcal, liveSummaryLine, healthWriteWanted, liveNote } from '../workouts/live-core.js';
+import { LIVE_KINDS, LIVE_ORDER, LIVE_SHORT_MS, activeMs, isPaused, fmtElapsed, fmtDistance, fmtPace, activeKcal, totalKcal, liveSummaryLine, healthWriteWanted, liveNote } from '../workouts/live-core.js';
 import * as live from '../native/live-workout.js';
 
 let tickId = null;
@@ -22,7 +22,7 @@ const stopTicking = () => { clearInterval(tickId); tickId = null; clearTimeout(c
 export function leaveLive() { stopTicking(); }
 
 const KIND_ICON = { jog_in_place: 'run', walk: 'walk', run: 'run' };
-const SHORT_WORKOUT = 60000; // under a minute an End is most likely an accidental start
+const SHORT_WORKOUT = LIVE_SHORT_MS;
 const COUNTDOWN_FROM = 3;
 
 /** One line to flip Settings → Apple Health → Save Forge workouts, right where the choice matters. iPhone app only. */
@@ -194,13 +194,16 @@ function showRunning(el) {
     const choice = await endChoice(activeMs(cur, Date.now()));
     if (choice === 'discard') {
       stopTicking();
-      const gone = live.discard(); // the state is cleared before this returns; the native stop finishes in the background
+      const stopping = live.discard(); // the state is cleared before this returns; the native stop finishes in the background
       location.hash = '#/train';
-      await gone;
+      await stopping;
       return;
     }
     if (choice !== 'save') return;
     stopTicking();
+    for (const b of el.querySelectorAll('[data-pause], [data-end]')) b.disabled = true; // the phone can take a few seconds to answer: show it's working, never a dead-looking button
+    const endBtn = $('[data-end]', el);
+    if (endBtn) endBtn.textContent = 'Saving…';
     const row = await live.finish();
     haptics.success && haptics.success();
     if (row) el.innerHTML = `<section class="live">${doneHtml(row, unit() === 'kg' ? 'km' : 'mi')}</section>`;

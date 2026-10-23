@@ -11,6 +11,7 @@ export const LIVE_KINDS = {
   walk: { label: 'Walk', hk: 'walking', indoor: false, distance: true, met: 3.8 },
   run: { label: 'Run', hk: 'running', indoor: false, distance: true, met: 9.8 },
 };
+export const LIVE_SHORT_MS = 60000; // under a minute an End is most likely an accidental start: Discard is suggested, and a blocked Start throws it away
 export const LIVE_ORDER = ['jog_in_place', 'walk', 'run'];
 export const RESTING_KCAL_PER_KG_HOUR = 1; // resting energy, a standard rule of thumb (1 kcal per kg per hour)
 
