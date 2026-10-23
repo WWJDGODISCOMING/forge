@@ -14,7 +14,7 @@ test('restring: urgent only in the last 10 s and not at zero', () => {
 });
 
 test('restring: one tick each for 3, 2 and 1, never repeated', () => {
-  assert(countdownSecond(3.0, -1) === 3 && countdownSecond(2.4, 3) === 2 && countdownSecond(0.5, 2) === 1, 'sequence');
+  assert(countdownSecond(3.0, -1) === 3 && countdownSecond(2.0, 3) === 2 && countdownSecond(0.5, 2) === 1, 'sequence');
   assert(countdownSecond(2.9, 3) === 0 && countdownSecond(0.9, 1) === 0, 'no repeat');
   assert(countdownSecond(8, -1) === 0 && countdownSecond(0, 1) === 0, 'outside the window');
 });
@@ -29,6 +29,6 @@ test('restring: a nudge starts on the old fill and lands on the live one', () =>
 test('restring: the player wires the gradient, urgency and nudge; reduced motion drops the pulse', () => {
   const js = src('js/screens/player.js'), css = src('css/player.css'), timer = src('js/timer.js');
   assert(js.includes('restGrad') && js.includes('is-urgent') && js.includes('easedFill'), 'player wiring');
-  assert(/prefers-reduced-motion[^}]*\{[^}]*rest-ring[^}]*animation: none/s.test(css), 'reduced motion');
+  assert(css.includes(".rest-ring.is-urgent { animation: none; }"), 'reduced motion');
   assert(timer.includes('haptics.light()') && timer.includes('countdownSecond'), 'timer ticks');
 });

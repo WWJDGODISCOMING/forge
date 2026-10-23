@@ -127,7 +127,7 @@ body.playing .navbar { display: none; }
 .rest-ring { position: relative; width: min(300px, 78vw); aspect-ratio: 1; margin: 6px auto; display: grid; place-items: center; }
 .rest-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
 .rest-ring .ring-fg { stroke: var(--ember); stroke-width: 6; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 55%, transparent)); }
-.rest-ring .rg-a { stop-color: color-mix(in srgb, var(--ember) 70%, #fff); }
+.rest-ring .rg-a { stop-color: color-mix(in srgb, var(--ember) 70%, white); }
 .rest-ring .rg-b { stop-color: var(--ember); }
 .rest-ring.is-urgent { animation: rest-pulse 1s ease-in-out infinite; }
 @keyframes rest-pulse { 50% { transform: scale(1.025); } }
