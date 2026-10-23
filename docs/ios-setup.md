@@ -144,6 +144,17 @@ then **▶** in Xcode. (The iPhone app carries its own copy of Forge, so GitHub 
 | Workout not in Fitness | Check Health → Data Access & Devices → Forge → Workouts / Active Energy (write), and that **Settings → Apple Health → Save Forge workouts to Apple Health** is on. |
 | The Connect button says Apple Health isn't available | Run the script again and press ▶; if it still says so, send Claude the Xcode console lines about "Health". |
 
+## Native pieces: what we use and what we decided (#58 item 10)
+
+| Piece | Decision |
+|---|---|
+| **Tab bar** | **Keep the CSS glass bar.** The spike weighed a `UITabBar` hosted over the WKWebView (true system material, Liquid Glass on iOS 26) against the CSS bar (`backdrop-filter` blur, safe-area padding, per-tab icons and the tap/re-tap rules in `js/nav.js`). A hosted `UITabBar` would need a custom Swift plugin, a second source of truth for the active tab and badges, and its own handling of the Duo fold and landscape layouts, for a bar that already reads as system glass. A side-by-side recording on a device is still worth making when Christian next has the Mac: if the CSS bar is visibly different from a system one in the recording, reopen this. Until then the decision stands. |
+| **Share, save, print** | Shipped in 0.15.4 with `@capacitor/share` and `@capacitor/filesystem`; the doctor PDF is built in the app. |
+| **Camera for progress photos** | The app opens its own full-screen viewfinder (`js/photos/viewfinder.js`) with last time's photo of that pose as a ghost (faint, stronger, off), a shutter, flip and cancel. It uses the web camera API the app already uses for barcodes, so it needs only `NSCameraUsageDescription` (already in `Info.plist`) and no new plugin. `@capacitor/camera` can't draw an overlay, so it was not added. If the camera can't open, Take photo falls back to the system picker. Safari keeps the system picker. |
+| **Barcode** | The camera reader (`js/screens/food-scan.js`, EAN-13/8, UPC-A/E, check digit, same code on two frames) already runs in the app. `@capacitor-mlkit/barcode-scanning` was **not** added: it needs a native build that can't be checked outside Xcode, and the current reader works. Reopen if it misses codes on real packaging. |
+| **Live Activity** | Shipped (`ios/App/ForgeLiveActivity/`). |
+| **Widgets** | Later (WidgetKit). |
+
 ## What's in the repo
 
 - `ios/`: the Xcode project, already set up: HealthKit entitlement (`App.entitlements`), the Apple Health privacy text and portrait-only in `Info.plist`, the Forge icon and dark launch screen. You never edit these by hand.
