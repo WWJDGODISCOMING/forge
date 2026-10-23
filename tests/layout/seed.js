@@ -9,7 +9,7 @@ export const REST_DAY = '2026-10-13T12:00:00';
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** @param {{long?: boolean, empty?: boolean}} opt  long: long names + 4-digit calories; empty: a brand-new account */
-export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, program = false, mealPrefs = null, burn = true, now = new Date(WORKOUT_DAY).getTime() } = {}) {
+export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, program = false, mealPrefs = null, burn = true, comp = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
   const rec = (id, extra = {}) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
   const profile = rec('main', {
     goal: 'lose_fat', sex: 'male', age: 37, heightCm: 180, weightKg: 88, targetWeightKg: 80, activity: 'light',
@@ -52,6 +52,8 @@ export function seed({ long = false, empty = false, active = false, effort = fal
     out.body_measures.push(rec(`b${k}`, {
       measured_at: new Date(t).toISOString(), day: dayKey(t), weight_kg: 87.5 - k * 0.2,
       ...(full ? { fat_ratio_pct: 24.1 - k * 0.3, fat_mass_kg: 21, fat_free_mass_kg: 66, muscle_mass_kg: 62, hydration_kg: 48, bone_mass_kg: 3.3 } : {}),
+      // comp: Body profile and the composition tiles read `metrics` (off by default so other screens keep their usual content). It reads `metrics`: the 1-day and 8-day readings sit in one cell (180 cm: FFMI 20.5 vs 19.8, FMI 6.5 vs 7.3) but visibly apart
+      ...(full && comp ? { metrics: { weight_kg: 87.5 - k * 0.2, fat_mass_kg: 21 + k * 2.5, fat_free_mass_kg: 66.5 - k * 2.5 } } : {}),
       heart_pulse_bpm: 74 - k,
     }));
   });

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.58 — Where you were last week (2026-10-23)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's new
+
+- Body profile shows a ringed Last week dot, with a line to your You dot.
+- A line under the grid says how lean mass and fat changed since last week.
+- Tap the Last week dot to see its date and values.
+- The Last week label and body number tiles no longer get cut off.
+
 ## 0.16.57 — A rest timer that feels alive (2026-10-23)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.

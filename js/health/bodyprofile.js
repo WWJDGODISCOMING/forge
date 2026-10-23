@@ -19,6 +19,16 @@ export const cutsFor = (sex, which) => (CUTS[sex] || { [which]: CUTS.male[which]
 /** 0–3: how many cut points the value has reached. */
 export const bandOf = (v, cuts) => cuts.filter((c) => v >= c).length;
 
+// Where inside its cell a dot may sit (fractions of the cell). Vertically it stays above the "You" label at the cell's foot.
+const X_IN = [0.18, 0.82];
+const Y_IN = [0.18, 0.82];
+/** 0 to 1: how far the value is through its band; the open-ended outer bands get a span as wide as their neighbour. */
+export function bandFraction(v, cuts, band) {
+  const lo = band === 0 ? Math.max(0, cuts[0] - (cuts[1] - cuts[0])) : cuts[band - 1];
+  const hi = band === 3 ? cuts[2] + (cuts[2] - cuts[1]) : cuts[band];
+  return Math.min(1, Math.max(0, (v - lo) / (hi - lo)));
+}
+
 /** FFMI and FMI from one reading { weight_kg, fat_mass_kg, fat_free_mass_kg }; null if it can't be worked out. */
 export function indices(m, heightM) {
   if (!heightM || !m) return null;
@@ -31,7 +41,7 @@ export function indices(m, heightM) {
   if (!Number.isFinite(fat) && Number.isFinite(ffm) && Number.isFinite(w)) fat = w - ffm;
   if (!Number.isFinite(ffm) && Number.isFinite(fat) && Number.isFinite(w)) ffm = w - fat;
   if (!Number.isFinite(fat) || !Number.isFinite(ffm)) return null;
-  return { ffmi: ffm / (heightM * heightM), fmi: fat / (heightM * heightM) };
+  return { ffmi: ffm / (heightM * heightM), fmi: fat / (heightM * heightM), fatKg: fat, ffmKg: ffm };
 }
 
 /**
@@ -47,7 +57,14 @@ export function bodyProfile({ measures, heightM, sex }) {
     .map((d) => ({ day: d.day, ix: indices(d.metrics, heightM) })).filter((d) => d.ix).sort((a, b) => (a.day < b.day ? -1 : 1));
   if (!docs.length) return { status: 'needs-comp', trail: [] };
   const last = docs[docs.length - 1];
-  const place = (ix) => ({ ...ix, col: bandOf(ix.ffmi, ffmiCuts), row: bandOf(ix.fmi, fmiCuts) });
+  const place = (ix) => {
+    const col = bandOf(ix.ffmi, ffmiCuts);
+    const row = bandOf(ix.fmi, fmiCuts);
+    // x, y: a continuous spot inside the band's cell, in grid units (0 to 4 across, 0 at the top)
+    const fx = bandFraction(ix.ffmi, ffmiCuts, col);
+    const fy = bandFraction(ix.fmi, fmiCuts, row);
+    return { ffmi: ix.ffmi, fmi: ix.fmi, col, row, x: col + X_IN[0] + (X_IN[1] - X_IN[0]) * fx, y: 3 - row + Y_IN[1] - (Y_IN[1] - Y_IN[0]) * fy };
+  };
   const months = new Map();
   for (const d of docs) {
     const k = d.day.slice(0, 7);
@@ -57,6 +74,60 @@ export function bodyProfile({ measures, heightM, sex }) {
     months.set(k, m);
   }
   const trail = [...months].map(([month, m]) => ({ month, ...place({ ffmi: m.f / m.n, fmi: m.m / m.n }) })).slice(-6);
-  return { status: 'ok', ...place(last.ix), day: last.day, trail };
+  return { status: 'ok', ...place(last.ix), day: last.day, trail, lastWeek: lastWeekOf(docs, last, place) };
 }
 
+const WEEK_MIN = 5;
+const WEEK_MAX = 10;
+const dayNum = (key) => Date.parse(`${key}T12:00:00Z`) / 86400000;
+
+/**
+ * The reading closest to 7 days before the latest one, if it is 5 to 10 days back; otherwise null.
+ * { day, ffmi, fmi, col, row, ffmKg, fatKg, dLeanKg, dFatKg } (the deltas are latest minus then, in kg).
+ */
+function lastWeekOf(docs, last, place) {
+  let best = null;
+  for (const d of docs) {
+    const gap = dayNum(last.day) - dayNum(d.day);
+    if (gap < WEEK_MIN || gap > WEEK_MAX) continue;
+    const off = Math.abs(gap - 7);
+    if (!best || off < best.off || (off === best.off && d.day > best.d.day)) best = { d, off };
+  }
+  if (!best) return null;
+  const { ix, day } = best.d;
+  return { day, ...place(ix), ffmKg: ix.ffmKg, fatKg: ix.fatKg, dLeanKg: last.ix.ffmKg - ix.ffmKg, dFatKg: last.ix.fatKg - ix.fatKg };
+}
+
+
+export const LINE_MIN = 0.11; // cells (about 6 px): closer than this, the two readings count as the same spot
+const APART = 0.75; // cells (about 42 px): how far the Last week ring is kept from You, so both stay visible and a 14 px+ dashed line fits between them
+
+/**
+ * Where to draw You and the Last week ring, in grid units, and whether a line joins them. The line shows for any move
+ * of LINE_MIN or more. When both sit in one cell and are closer than APART, the ring is moved away from You (along the
+ * move where it fits in the cell) so neither hides the other.
+ */
+export function markPositions(bp) {
+  const you = { x: bp.x, y: bp.y, col: bp.col, row: bp.row };
+  const lw = bp.lastWeek;
+  if (!lw) return { you, last: null, line: false };
+  const true0 = Math.hypot(lw.x - bp.x, lw.y - bp.y);
+  const line = true0 >= LINE_MIN || lw.col !== bp.col || lw.row !== bp.row;
+  const last = { x: lw.x, y: lw.y, col: lw.col, row: lw.row };
+  const sameCell = lw.col === bp.col && lw.row === bp.row;
+  const want = line ? APART : APART * 0.8;
+  if (sameCell && true0 < want) {
+    const base = true0 > 1e-6 ? Math.atan2(lw.y - bp.y, lw.x - bp.x) : Math.PI;
+    const clamp = (v, [a, b], o) => Math.min(o + b, Math.max(o + a, v));
+    let best = null;
+    for (const k of [0, 1, -1, 2, -2, 3, -3, 4]) {
+      const a = base + k * Math.PI / 4;
+      const c = { x: clamp(bp.x + want * Math.cos(a), X_IN, bp.col), y: clamp(bp.y + want * Math.sin(a), Y_IN, 3 - bp.row) };
+      const d = Math.hypot(c.x - bp.x, c.y - bp.y);
+      if (!best || d > best.d + 0.01) best = { ...c, d };
+      if (d >= want - 0.01) break;
+    }
+    last.x = best.x; last.y = best.y;
+  }
+  return { you, last, line };
+}

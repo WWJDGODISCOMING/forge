@@ -223,7 +223,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 19. #187 Body profile: show where I was last week
 - Issue: #187
 - Version: 0.16.58
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Distinct, clearly labeled 'Last week' marker on the Body profile grid from the scale reading closest to 7 days ago (5-10 day window; hidden otherwise), with a subtle line/arrow to the current 'You' dot.
   - One plain line under the grid: 'Since last week: lean mass ±x, fat ±y'.
