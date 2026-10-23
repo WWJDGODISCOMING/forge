@@ -152,6 +152,7 @@ then **▶** in Xcode. (The iPhone app carries its own copy of Forge, so GitHub 
 | **Share, save, print** | Shipped in 0.15.4 with `@capacitor/share` and `@capacitor/filesystem`; the doctor PDF is built in the app. |
 | **Camera for progress photos** | The app opens its own full-screen viewfinder (`js/photos/viewfinder.js`) with last time's photo of that pose as a ghost (faint, stronger, off), a shutter, flip and cancel. It uses the web camera API the app already uses for barcodes, so it needs only `NSCameraUsageDescription` (already in `Info.plist`) and no new plugin. `@capacitor/camera` can't draw an overlay, so it was not added. If the camera can't open, Take photo falls back to the system picker. Safari keeps the system picker. |
 | **Barcode** | The camera reader (`js/screens/food-scan.js`, EAN-13/8, UPC-A/E, check digit, same code on two frames) already runs in the app. `@capacitor-mlkit/barcode-scanning` was **not** added: it needs a native build that can't be checked outside Xcode, and the current reader works. Reopen if it misses codes on real packaging. |
+| **Meal photos** | Meal photos keep the system camera: there is no earlier shot to line up with, so a ghost viewfinder adds nothing. A recorded decision, not a gap. |
 | **Live Activity** | Shipped (`ios/App/ForgeLiveActivity/`). |
 | **Widgets** | Later (WidgetKit). |
 
