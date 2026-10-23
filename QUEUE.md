@@ -204,7 +204,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 18. #58 slice: remaining audit gaps (items 5-8)
 - Issue: #58
 - Version: 0.16.57
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Compare the shipped CHANGELOG to #58 items 5-8 and build the largest remaining gap only (one slice); name it in the PR title.
   - Before/after renders per #58 (same fixture, dark + light); contrast AA; at most one accent-filled control per screen.
