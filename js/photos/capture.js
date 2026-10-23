@@ -8,6 +8,7 @@ import { prepareJpeg } from './image.js';
 import { keepStorage } from './store.js';
 import { bodyOn, fmtKg, photoUrl } from './metrics.js';
 import { haptics } from '../ui/haptic.js';
+import { canViewfinder, openViewfinder, systemCameraHtml } from './viewfinder.js';
 
 /**
  * openCapture({ store, sessions, day, onSaved }). `sessions` (newest first) supply the ghost of each pose's
@@ -21,6 +22,7 @@ export function openCapture({ store, sessions, day = todayKey(), onSaved }) {
       const list = sessionsWithPose(sessions, pose);
       return list.length ? list[list.length - 1].poses[pose] : null;
     };
+    const useViewfinder = canViewfinder();
     body.innerHTML = `
       <div class="stack pc">
         <p class="muted">Take any of these. Each one is optional.</p>
@@ -30,7 +32,7 @@ export function openCapture({ store, sessions, day = todayKey(), onSaved }) {
             <div class="pc-side">
               <b>${p.label}</b>
               <small class="muted" data-hint></small>
-              <label class="btn small">${icon('camera')}<span>Take photo</span><input type="file" accept="image/*" capture="environment" hidden data-file></label>
+              ${useViewfinder ? `<button class="btn small" type="button" data-cam>${icon('camera')}<span>Take photo</span></button>` : systemCameraHtml()}
               <label class="btn small ghost"><span>Choose from library</span><input type="file" accept="image/*" hidden data-file></label>
             </div>
           </div>`).join('')}
@@ -58,26 +60,65 @@ export function openCapture({ store, sessions, day = todayKey(), onSaved }) {
     };
     POSES.forEach((p) => paint(p.key));
 
+    const swaps = []; // one per pose, in POSES order: swap Take photo for the system camera
+    const wireFiles = {}; // pose → attach the change handler to a file input
+    const wireFile = (input, pose) => wireFiles[pose](input);
     for (const p of POSES) {
       const row = q(`[data-pose="${p.key}"]`);
-      row.querySelectorAll('[data-file]').forEach((input) => {
+      const ingest = async (file) => {
+        q('[data-err]').textContent = '';
+        q('[data-hint]', row).textContent = 'Getting it ready…';
+        try {
+          const out = await prepareJpeg(file);
+          if (picked[p.key]) URL.revokeObjectURL(picked[p.key].url);
+          picked[p.key] = { ...out, url: URL.createObjectURL(out.blob) };
+          ghostOn[p.key] = !!last(p.key);
+        } catch {
+          q('[data-err]').textContent = 'That picture couldn’t be opened. Try another one.';
+        }
+        paint(p.key);
+      };
+      wireFiles[p.key] = (input) => {
         input.addEventListener('change', async () => {
           const file = input.files && input.files[0];
           input.value = '';
-          if (!file) return;
-          q('[data-err]').textContent = '';
-          q('[data-hint]', row).textContent = 'Getting it ready…';
-          try {
-            const out = await prepareJpeg(file);
-            if (picked[p.key]) URL.revokeObjectURL(picked[p.key].url);
-            picked[p.key] = { ...out, url: URL.createObjectURL(out.blob) };
-            ghostOn[p.key] = !!last(p.key);
-          } catch {
-            q('[data-err]').textContent = 'That picture couldn’t be opened. Try another one.';
-          }
-          paint(p.key);
+          if (file) await ingest(file);
         });
-      });
+      };
+      row.querySelectorAll('[data-file]').forEach((input) => wireFiles[p.key](input));
+      const cam = q('[data-cam]', row);
+      if (cam) {
+        // Swap this row's button for the real system-camera label, so the next tap is a genuine user gesture
+        // (a programmatic click after the permission prompt is ignored by WebKit).
+        swaps.push((note) => {
+          const btn = q('[data-cam]', row);
+          if (!btn) return;
+          const tmp = document.createElement('div');
+          tmp.innerHTML = systemCameraHtml();
+          const label = tmp.firstElementChild;
+          btn.replaceWith(label);
+          wireFile(label.querySelector('[data-file]'), p.key);
+          if (note) {
+            const m = document.createElement('small');
+            m.className = 'error';
+            m.setAttribute('role', 'status');
+            m.textContent = note;
+            label.before(m);
+          }
+        });
+        cam.addEventListener('click', async () => {
+          haptics.light();
+          const prev = last(p.key);
+          try {
+            const file = await openViewfinder({ label: p.label, ghostUrl: prev ? photoUrl(prev) : '' });
+            if (file) await ingest(file);
+          } catch {
+            // The camera wouldn't open (permission off). Remember it for the whole sheet: every pose goes straight
+            // to the system camera, and this row says why.
+            swaps.forEach((swap, i) => swap(POSES[i].key === p.key ? 'Camera is off for Forge. Use the button below, or turn it on in Settings → Forge → Camera.' : ''));
+          }
+        });
+      }
       q('.pc-thumb', row).addEventListener('click', () => {
         ghostOn[p.key] = !ghostOn[p.key];
         paint(p.key);

@@ -194,7 +194,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 17. #58 slice: native pieces not covered by #147/#153 (item 10)
 - Issue: #58
 - Version: 0.16.56
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Check the CHANGELOG first and only build what is not shipped yet.
   - Tab-bar spike decision (native UITabBar vs CSS) written in `docs/ios-setup.md`.

@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.56 — Line up your progress photos in the camera (2026-10-23)
+
+No Cloud Functions or `firestore.rules` changes. No native rebuild.
+
+### What's new
+
+- In the iPhone app, Take photo shows last time's photo faintly in the camera.
+- Tap Last time to strengthen or hide the outline. You can also flip the camera.
+- If the camera can't open, you get the normal picker. Safari is unchanged.
+
 ## 0.16.55 — Tabs that feel native (2026-10-22)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.
