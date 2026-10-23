@@ -30,6 +30,17 @@ export function createLiveSession(deps) {
   });
   const call = (p, name, ...args) => { try { return typeof p[name] === 'function' ? p[name](...args) : null; } catch { return null; } };
 
+  // Native endLive calls that haven't settled yet. The phone keeps reporting a workout until its end finishes, and a
+  // second endLive on the same HealthKit builder could double-save or throw, so nothing sends another while one is out.
+  let endsInFlight = 0;
+  /** endLive with the cap. → { value, timedOut }. A timed-out call stays counted until the phone finally answers. */
+  function endNative(p, payload, onSettled) {
+    const raw = call(p, 'endLive', payload);
+    endsInFlight += 1;
+    Promise.resolve(raw).then((v) => v, () => null).then((v) => { endsInFlight -= 1; if (onSettled) onSettled(v); });
+    return quick(raw);
+  }
+
   const emit = () => listeners.forEach((fn) => { try { fn(session, metrics); } catch { /* a screen went away */ } });
   function save() {
     const s = d.storage();
@@ -72,13 +83,14 @@ export function createLiveSession(deps) {
     if (reconciling) return reconciling;
     reconciling = (async () => {
       const p = d.plugin();
-      if (isActive() || !p || typeof p.liveState !== 'function' || typeof p.endLive !== 'function') return 'none';
+      if (isActive() || endsInFlight > 0 || !p || typeof p.liveState !== 'function' || typeof p.endLive !== 'function') return 'none'; // an end already out: wait for it
       const r = (await quick(call(p, 'liveState'), wait)).value;
-      if (isActive() || !r || typeof r !== 'object' || !Object.keys(r).length) return 'none'; // nothing running on the phone (or JS started one meanwhile)
+      if (isActive() || endsInFlight > 0 || !r || typeof r !== 'object' || r.ending || !Object.keys(r).length) return 'none'; // nothing running on the phone, one already ending, or JS started one meanwhile
       // The phone's snapshot carries an id on newer builds; without one, the only thing it can be is the workout that just timed out, or a stray.
       const mine = capped && (!r.id || r.id === capped.id);
       const payload = mine ? capped.payload : { save: false };
-      const res = await quick(call(p, 'endLive', payload), d.waitMs);
+      const id = mine ? capped.id : null;
+      const res = await endNative(p, payload, () => { if (id && capped && capped.id === id) capped = null; });
       if (!res.timedOut) capped = null;
       return 'ended';
     })().finally(() => { reconciling = null; });
@@ -170,10 +182,13 @@ export function createLiveSession(deps) {
     const p = d.plugin();
     let saved = null;
     if (p && native) {
-      const r = await quick(call(p, 'endLive', payload));
+      const id = ended.id;
+      const r = await endNative(p, payload, () => { if (capped && capped.id === id) capped = null; }); // answered late: the phone has ended it
       saved = r.value;
       if (saved && Array.isArray(saved.pauses)) ended = adoptNativePauses(ended, saved); // lock-screen pauses the screen never heard
-      if (r.timedOut) { capped = { id: ended.id, payload }; reconcile().catch(() => {}); } // the phone may still be running it: try again, off the user's time
+      // Timed out: the phone may still be ending it. Remembered so a later launch or return to the front can retry, but
+      // only once the first call has settled (reconcile() does nothing while it is out).
+      if (r.timedOut) capped = { id, payload };
     }
     const row = liveToCardio(ended, { hk: saved, weightKg: weight });
     if (!(d.cardio() || []).some((c) => c.id === row.id)) d.saveRow(row);
@@ -190,8 +205,7 @@ export function createLiveSession(deps) {
     save(); emit();
     capped = null;
     if (p && native) {
-      const r = await quick(call(p, 'endLive', { save: false })); // stops the HealthKit session and the Live Activity
-      if (r.timedOut) reconcile().catch(() => {});
+      await endNative(p, { save: false }); // stops the HealthKit session and the Live Activity; a timeout is retried by a later reconcile()
     }
   }
 

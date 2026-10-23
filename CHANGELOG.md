@@ -2,10 +2,11 @@
 
 ## 0.16.59 — Live workouts that actually end (2026-10-23)
 
-No Cloud Functions or `firestore.rules` changes. No native rebuild.
+No Cloud Functions or `firestore.rules` changes. Swift changed (`ForgeLiveWorkout.swift`), so this needs a native rebuild to get the phone-side part; the web part works without it.
 
 ### What's new
 
+- A slow End can no longer be ended twice or saved twice.
 - Discard and End stop a live workout for good.
 - End always opens its sheet, and Discard asks inside it.
 - Start workout says if a live workout is still running.

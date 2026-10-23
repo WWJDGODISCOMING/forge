@@ -16,17 +16,17 @@ test('version is 0.16.59 in js and sw', () => {
 test('discard clears the session and storage before it waits on native, and native waits are capped', () => {
   const src = read('js/native/live-session.js');
   const d = body(src, 'async function discard', 'async function refresh');
-  assert(d.indexOf('session = null') < d.indexOf("'endLive'"), 'state cleared first');
-  assert(d.indexOf('save()') < d.indexOf("'endLive'"), 'storage cleared first');
-  assert(d.includes('quick('), 'native stop is time-boxed');
+  assert(d.indexOf('session = null') < d.indexOf('endNative('), 'state cleared first');
+  assert(d.indexOf('save()') < d.indexOf('endNative('), 'storage cleared first');
+  assert(d.includes('endNative('), 'native stop is time-boxed');
   assert(d.includes('gone.add'));
 });
 
 test('end clears the session before the native save, so nothing can restore it', () => {
   const f = body(read('js/native/live-session.js'), 'async function finish', 'async function discard');
-  assert(f.indexOf('session = null') < f.indexOf("'endLive'"), 'cleared first');
+  assert(f.indexOf('session = null') < f.indexOf('endNative('), 'cleared first');
   assert(f.includes('gone.add'));
-  assert(f.includes('quick('));
+  assert(f.includes('endNative('));
 });
 
 test('restore is idempotent and drops finished, unknown or discarded leftovers', () => {

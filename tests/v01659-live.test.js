@@ -20,6 +20,7 @@ function rig({ hang = [], settings = { health_write_workouts: true }, nativeId =
   let nativeRunning = null; // what the "phone" thinks is running
   let listener = null;
   let hung = hang;
+  const releases = [];
   const never = new Promise(() => {});
   const plugin = {
     requestAuthorization: async () => ({}),
@@ -34,7 +35,7 @@ function rig({ hang = [], settings = { health_write_workouts: true }, nativeId =
     },
     endLive: (o) => {
       calls.push(['endLive', o]);
-      if (hung.includes('endLive')) return never;
+      if (hung.includes('endLive')) return new Promise((res) => { releases.push(() => { nativeRunning = null; res({ uuid: 'hk-1' }); }); }); // answers only when released
       nativeRunning = null;
       return Promise.resolve(o && o.save === false ? {} : { uuid: 'hk-1', kcal: 50, elapsedMs: 120000 });
     },
@@ -43,7 +44,7 @@ function rig({ hang = [], settings = { health_write_workouts: true }, nativeId =
     plugin: () => plugin, storage: () => storage, waitMs: WAIT, settings: () => settings, weightKg: () => 70, miles: () => true,
     cardio: () => rows, saveRow: (r) => rows.push({ id: r.id, ...r.fields }),
   });
-  return { live, store, calls, rows, plugin, emit: (e) => listener && listener(e), stray: (id) => { nativeRunning = { id }; }, running: () => nativeRunning, setHang: (h) => { hung = h; } };
+  return { live, store, calls, rows, plugin, emit: (e) => listener && listener(e), stray: (id) => { nativeRunning = { id }; }, running: () => nativeRunning, setHang: (h) => { hung = h; }, release: () => { releases.splice(0).forEach((f) => f()); } };
 }
 const endCalls = (r) => r.calls.filter((c) => c[0] === 'endLive');
 
@@ -169,19 +170,46 @@ test('native zombie: reconcile leaves a running Forge workout alone', async () =
   eq(endCalls(r).length, 0);
 });
 
-test('native zombie: after a timed-out end, the same workout is ended again with the user\'s Health setting', async () => {
+for (const kind of KINDS) {
+  for (const how of ['finish', 'discard']) {
+    test(`${kind}: a capped ${how} sends exactly one native end while it is pending, and nothing after it settles`, async () => {
+      const r = rig({ hang: ['endLive'] });
+      await r.live.start(kind);
+      await r.live[how](); // times out; the phone keeps reporting the workout until the first end settles
+      await tick(WAIT * 2);
+      eq(await r.live.reconcile(), 'none', 'no second end while the first is out');
+      r.live.restore(); await r.live.refresh(); // launch / foreground paths too
+      await tick(WAIT * 2);
+      eq(endCalls(r).length, 1, 'exactly one endLive');
+      assert(r.running(), 'the phone still reports it (hung)');
+      r.release(); // the first end finally settles and the phone is clear
+      await tick(5);
+      eq(await r.live.reconcile(), 'none');
+      eq(endCalls(r).length, 1, 'still exactly one');
+    });
+  }
+}
+
+test('reconcile treats a phone snapshot marked ending as nothing running', async () => {
+  const r = rig();
+  r.plugin.liveState = async () => ({ ending: true, id: 'x' });
+  eq(await r.live.reconcile(), 'none');
+  eq(endCalls(r).length, 0);
+});
+
+test('native zombie: once the timed-out end has settled but the phone still holds the workout, it is ended again without saving a second time', async () => {
   for (const nativeId of [true, false]) { // newer builds report the id; older ones don't
     const r = rig({ hang: ['endLive'], nativeId });
     await r.live.start('walk');
     const id = r.live.current().id;
     await r.live.finish(); // times out; the phone still thinks it is running
-    await tick(WAIT * 3); // the background reconcile also times out (the phone is still silent)
+    r.release(); // the first call settles without clearing the phone (e.g. it failed)
+    await tick(5);
     r.setHang([]);
     r.stray(id);
     eq(await r.live.reconcile(), 'ended');
     const last = endCalls(r).pop();
-    eq(last[1].save, true, `nativeId ${nativeId}: saved as the user asked`);
-    assert(last[1].end > 0);
+    eq(last[1].save, false, `nativeId ${nativeId}: the first call settled (it saved), so the retry never saves again`);
     eq(r.running(), null);
   }
 });
@@ -190,7 +218,8 @@ test('native zombie: a different stray id is ended with save:false, even right a
   const r = rig({ hang: ['endLive'] });
   await r.live.start('run');
   await r.live.finish();
-  await tick(WAIT * 3);
+  r.release();
+  await tick(5);
   r.setHang([]);
   r.stray('someone-else');
   await r.live.reconcile();
