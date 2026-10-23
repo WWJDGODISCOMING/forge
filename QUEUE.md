@@ -228,6 +228,16 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - You dot stays clear of its 'You' label at all text sizes, including large text (review comment on PR #189).
   - No-overlap layout assert (dot bounds never intersect label bounds), tested at large text.
 
+## 18d. #199 Apple Watch: show distance, pace and calories in the Live Activity
+- Issue: #199
+- Version: 0.16.61
+- Status: todo
+- Acceptance:
+  - Add .supplementalActivityFamilies([.small]) and a dedicated .small layout via @Environment(\.activityFamily) (watch Smart Stack + CarPlay): elapsed time, distance, pace, active cal (total cal if it fits); legible on Ultra 49mm and 41mm.
+  - Compact/minimal Dynamic Island unchanged; values update with existing content-state pushes.
+  - Compiles for extension deployment target iOS 17 (guard iOS 18 APIs with #available); no watchOS app target.
+  - iOS change: needs a Mac mini Refresh to install.
+
 ## 19. #187 Body profile: show where I was last week
 - Issue: #187
 - Version: 0.16.58
@@ -240,7 +250,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 
 ## 20. #190 Goal date with adaptive recommendations
 - Issue: #190
-- Version: 0.16.61
+- Version: 0.16.62
 - Status: todo
 - Acceptance:
   - Settings toggle + goal date; off hides it all.
@@ -250,7 +260,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 
 ## 21. #191 Workout summary: totals (volume, reps, time under tension)
 - Issue: #191
-- Version: 0.16.62
+- Version: 0.16.63
 - Status: todo
 - Acceptance:
   - Stat row (calories, volume, reps, hold time) with vs-last-time; per-set lines; in share image; tests.
@@ -258,7 +268,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 
 ## 22. #192 Workout player: show all sets up front, each editable
 - Issue: #192
-- Version: 0.16.63
+- Version: 0.16.64
 - Status: todo
 - Acceptance:
   - All sets visible and editable, add set, current highlighted, RIR kept; tests.
@@ -266,7 +276,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 
 ## 23. #193 Workout player: rest timer per exercise
 - Issue: #193
-- Version: 0.16.64
+- Version: 0.16.65
 - Status: todo
 - Acceptance:
   - Per-exercise rest on/off + duration, warm-up vs working, persisted, used by rest ring; tests.
@@ -274,7 +284,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 
 ## 24. #194 Workout player: History and Replace buttons
 - Issue: #194
-- Version: 0.16.65
+- Version: 0.16.66
 - Status: todo
 - Acceptance:
   - History sheet with past sets and a trend; Replace uses joint-aware swaps; tests.
@@ -282,7 +292,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 
 ## 25. #195 Train: Switch workout + time/place chips
 - Issue: #195
-- Version: 0.16.66
+- Version: 0.16.67
 - Status: todo
 - Acceptance:
   - Switch sheet: muscle groups, saved workouts, from scratch (with save).
