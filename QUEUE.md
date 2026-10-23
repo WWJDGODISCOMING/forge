@@ -219,5 +219,15 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Tap the marker for its date and values, light haptic.
   - Duo folded/unfolded layouts, palette and depth tokens, tests.
 
+## 20. #190 Goal date with adaptive recommendations
+- Issue: #190
+- Version: 0.16.59
+- Status: todo
+- Acceptance:
+  - Settings toggle + goal date; off hides it all.
+  - Small-print recommended calories under the fixed ceiling; ceiling never auto-changes.
+  - Body 'Goal path' chart: required pace vs actual trend, ahead/on track/behind, daily recalculation.
+  - Safety caps (max ~1%/wk, safe intake floor, realistic-date suggestion), with tests. Duo-ready.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
