@@ -32,3 +32,11 @@ test('restring: the player wires the gradient, urgency and nudge; reduced motion
   assert(css.includes(".rest-ring.is-urgent { animation: none; }"), 'reduced motion');
   assert(timer.includes('haptics.light()') && timer.includes('countdownSecond'), 'timer ticks');
 });
+
+test('restring: the CSS paints the ring with the gradient (a CSS stroke beats a stroke attribute)', () => {
+  const css = src('css/player.css'), line = css.split('\n').find((l) => l.startsWith('.rest-ring .ring-fg'));
+  assert(line && /stroke:\s*url\(#restGrad\)/.test(line), 'ring-fg stroke uses #restGrad');
+  assert(!/filter:/.test(line), 'the glow is not on the circle');
+  assert(/\.rest-ring svg \{[^}]*drop-shadow/.test(css), 'the glow is on the svg');
+  assert(!/stroke="url\(#restGrad\)"/.test(src('js/screens/player.js')), 'no competing stroke attribute');
+});

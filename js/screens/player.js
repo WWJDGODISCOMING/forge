@@ -610,7 +610,7 @@ function drawRest(el) {
       </header>
       <p class="rest-label">${esc(r.label)}</p>
       <div class="rest-ring" style="view-transition-name: pl-hero">
-        <svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="restGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="rg-a"/><stop offset="1" class="rg-b"/></linearGradient></defs><circle cx="50" cy="50" r="45" class="ring-bg"/><circle cx="50" cy="50" r="45" class="ring-fg" data-restfg stroke="url(#restGrad)"/></svg>
+        <svg viewBox="0 0 100 100" aria-hidden="true"><defs><linearGradient id="restGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0" class="rg-a"/><stop offset="1" class="rg-b"/></linearGradient></defs><circle cx="50" cy="50" r="45" class="ring-bg"/><circle cx="50" cy="50" r="45" class="ring-fg" data-restfg/></svg>
         <b data-restclock>${fmtClock(r.left)}</b>
       </div>
       <div class="row gap rest-ctl">
@@ -627,12 +627,13 @@ function drawRest(el) {
   const nf = $('[data-nextfig]', el);
   if (nf && nextEx && hasFigure(nextEx.id)) mountFigure(nf, nextEx, { isPaused: () => paused() });
   // A ±15 s nudge changes the ring's fill at once; remember the gap so the frame task glides it closed.
-  let nudge = null, shown = r.total > 0 ? r.left / r.total : 0;
+  let nudge = null, shown = r.total > 0 ? r.left / r.total : 0, paintRing = () => {};
   $$('[data-adj]', el).forEach((b) => (b.onclick = () => {
     const before = shown;
     adjustRest(Number(b.dataset.adj));
     const info = restInfo();
-    if (info && !reducedMotion()) nudge = { gap: before - fillOf(info.left, info.total), t0: performance.now() };
+    if (info && !info.paused && !reducedMotion()) nudge = { gap: before - fillOf(info.left, info.total), t0: performance.now() };
+    paintRing(); // paused: the frame task is stopped, so draw once here
     haptics.select();
   }));
   $('[data-skiprest]', el).onclick = () => {
@@ -649,9 +650,9 @@ function drawRest(el) {
   const fg = $('[data-restfg]', el);
   if (fg) {
     const ringEl = fg.closest('.rest-ring');
-    onFrame((t) => {
+    const paint = () => {
       const info = restInfo();
-      if (!info || !fg.isConnected) return false;
+      if (!info || !fg.isConnected) return null;
       let fill = fillOf(info.left, info.total);
       if (nudge) {
         const p = (performance.now() - nudge.t0) / NUDGE_MS;
@@ -661,6 +662,12 @@ function drawRest(el) {
       shown = fill;
       fg.style.strokeDashoffset = String(dashOffset(fill));
       ringEl.classList.toggle('is-urgent', isUrgent(info.left) && !info.paused);
+      return info;
+    };
+    paintRing = paint;
+    onFrame(() => {
+      const info = paint();
+      if (!info) return false;
       return !info.paused && !paused();
     });
   }

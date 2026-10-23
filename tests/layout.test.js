@@ -108,6 +108,38 @@ for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844
   }
 }
 
+// Rest screen: #/play mid-rest (8 s left of 90, so the urgent pulse is on), phone and Duo sizes, dark and light.
+// The seeded rest is saved the way the timer saves it; Date.now is frozen so the 8 s stay put for the render.
+const REST_SEED = "(() => { const n = Date.now(); Date.now = () => n; localStorage.setItem('forge.rest', JSON.stringify({ end: n + 8000, total: 90, label: 'REST', next: { name: 'Push-up', detail: '2 x 10' }, pausedLeft: null })); })();";
+for (const [w, h] of standalone && (!only || only.includes('rest')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
+  for (const dark of [true, false]) {
+    test(`layout: rest: the rest ring fits and reads at ${w}x${h} ${dark ? 'dark' : 'light'}`, async () => {
+      if (skipReason()) return;
+      browser = browser || await launch();
+      await browser.viewport(w, h, dark);
+      await browser.open('play', seed({ active: true, effort: true }), REST_SEED);
+      const r = await browser.eval(`(() => {
+        const ring = document.querySelector('.rest-ring'); if (!ring) return null;
+        const fg = ring.querySelector('.ring-fg');
+        const px = (c) => { const k = document.createElement('canvas').getContext('2d'); k.fillStyle = '#000'; k.fillStyle = c; k.fillRect(0, 0, 1, 1); return k.getImageData(0, 0, 1, 1).data; };
+        const lum = (d) => { const f = (v) => { v /= 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; }; return 0.2126 * f(d[0]) + 0.7152 * f(d[1]) + 0.0722 * f(d[2]); };
+        const a = lum(px(getComputedStyle(ring.querySelector('.rg-a')).stopColor)), b = lum(px(getComputedStyle(document.body).backgroundColor));
+        const sv = ring.querySelector('svg');
+        return { urgent: ring.classList.contains('is-urgent'), stroke: getComputedStyle(fg).stroke, svgFilter: getComputedStyle(sv).filter, fgFilter: getComputedStyle(fg).filter,
+          contrast: (Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05), over: document.documentElement.scrollWidth > innerWidth + 1, btn: Math.round(document.querySelector('[data-skiprest]').getBoundingClientRect().height) };
+      })()`);
+      if (shots && r) await browser.screenshot(`${shots}/rest-${w}x${h}-${dark ? 'dark' : 'light'}.png`);
+      await browser.eval("localStorage.removeItem('forge.rest')");
+      assert(r, 'the rest screen did not draw');
+      assert(r.urgent, 'the ring is not in its urgent (last 10 s) state');
+      assert(r.stroke.includes('url('), `ring stroke is ${r.stroke}, not the gradient`);
+      assert(r.svgFilter.includes('drop-shadow') && r.fgFilter === 'none', 'the glow must be on the svg, not the circle');
+      assert(r.contrast >= 3, `lightest gradient stop is ${r.contrast.toFixed(2)}:1 against the background (needs 3:1)`);
+      assert(!r.over && r.btn >= 44, 'the rest screen overflows sideways or the Skip button is under 44 px');
+    });
+  }
+}
+
 for (const route of standalone ? ['today', 'train', 'body', 'score', 'settings'] : []) {
   test(`layout: ${route}: the nav bar collapses once the large title scrolls under it, and not before`, async () => {
     if (skipReason()) return;

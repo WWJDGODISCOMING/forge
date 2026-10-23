@@ -125,8 +125,8 @@ body.playing .navbar { display: none; }
 .player.rest { justify-content: flex-start; }
 .rest-label { text-align: center; font: 900 calc(15px * var(--ts)) var(--font); letter-spacing: .14em; color: var(--muted); margin-top: 10px; }
 .rest-ring { position: relative; width: min(300px, 78vw); aspect-ratio: 1; margin: 6px auto; display: grid; place-items: center; }
-.rest-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); }
-.rest-ring .ring-fg { stroke: var(--ember); stroke-width: 6; filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 55%, transparent)); }
+.rest-ring svg { position: absolute; inset: 0; transform: rotate(-90deg); filter: drop-shadow(0 0 3px color-mix(in srgb, var(--ember) 55%, transparent)); } /* on the svg, not the circle: iPhone Safari skips filters on SVG children */
+.rest-ring .ring-fg { stroke: var(--ember); stroke: url(#restGrad) var(--ember); stroke-width: 6; } /* in CSS: it beats a stroke attribute */
 .rest-ring .rg-a { stop-color: color-mix(in srgb, var(--ember) 70%, white); }
 .rest-ring .rg-b { stop-color: var(--ember); }
 .rest-ring.is-urgent { animation: rest-pulse 1s ease-in-out infinite; }
