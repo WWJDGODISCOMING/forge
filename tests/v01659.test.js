@@ -24,7 +24,7 @@ test('discard clears the session and storage before it waits on native, and nati
 
 test('end clears the session before the native save, so nothing can restore it', () => {
   const f = body(read('js/native/live-workout.js'), 'export async function finish', 'export async function discard');
-  assert(f.indexOf('session = null') < f.indexOf('endLive('), 'cleared first');
+  assert(f.indexOf('session = null') < f.indexOf('p.endLive('), 'cleared first');
   assert(f.includes('gone.add'));
   assert(f.includes('quick('));
 });
