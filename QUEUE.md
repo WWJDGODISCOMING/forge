@@ -229,5 +229,37 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Body 'Goal path' chart: required pace vs actual trend, ahead/on track/behind, daily recalculation.
   - Safety caps (max ~1%/wk, safe intake floor, realistic-date suggestion), with tests. Duo-ready.
 
+## 21. #191 Workout summary: totals (volume, reps, time under tension)
+- Issue: #191
+- Version: 0.16.60
+- Status: todo
+- Acceptance:
+  - Stat row (calories, volume, reps, hold time) with vs-last-time; per-set lines; in share image; tests.
+  - Duo-ready, palette/depth tokens.
+
+## 22. #192 Workout player: show all sets up front, each editable
+- Issue: #192
+- Version: 0.16.61
+- Status: todo
+- Acceptance:
+  - All sets visible and editable, add set, current highlighted, RIR kept; tests.
+  - Duo-ready, palette/depth tokens.
+
+## 23. #193 Workout player: rest timer per exercise
+- Issue: #193
+- Version: 0.16.62
+- Status: todo
+- Acceptance:
+  - Per-exercise rest on/off + duration, warm-up vs working, persisted, used by rest ring; tests.
+  - Duo-ready, palette/depth tokens.
+
+## 24. #194 Workout player: History and Replace buttons
+- Issue: #194
+- Version: 0.16.63
+- Status: todo
+- Acceptance:
+  - History sheet with past sets and a trend; Replace uses joint-aware swaps; tests.
+  - Duo-ready, palette/depth tokens.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
