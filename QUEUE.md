@@ -209,5 +209,15 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Compare the shipped CHANGELOG to #58 items 5-8 and build the largest remaining gap only (one slice); name it in the PR title.
   - Before/after renders per #58 (same fixture, dark + light); contrast AA; at most one accent-filled control per screen.
 
+## 19. #187 Body profile: show where I was last week
+- Issue: #187
+- Version: 0.16.58
+- Status: todo
+- Acceptance:
+  - Distinct, clearly labeled 'Last week' marker on the Body profile grid from the scale reading closest to 7 days ago (5-10 day window; hidden otherwise), with a subtle line/arrow to the current 'You' dot.
+  - One plain line under the grid: 'Since last week: lean mass ±x, fat ±y'.
+  - Tap the marker for its date and values, light haptic.
+  - Duo folded/unfolded layouts, palette and depth tokens, tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
