@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.61 — Apple Watch shows distance, pace and calories (2026-10-24)
+
+No Cloud Functions or `firestore.rules` changes. Swift changed (`ForgeLiveActivityBundle.swift`), so this needs a Mac mini Refresh to install on the phone.
+
+### What's new
+
+- Apple Watch now shows time, distance, pace and calories for a live workout.
+- The lock screen and Dynamic Island look the same as before.
+
 ## 0.16.60 — Body profile: the You dot no longer covers its label (2026-10-24)
 
 No Cloud Functions or `firestore.rules` changes.
