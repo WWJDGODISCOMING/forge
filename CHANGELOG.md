@@ -4,7 +4,7 @@
 
 No Cloud Functions or `firestore.rules` changes.
 
-### What's fixed
+### What's new
 
 - The "You" label moves to the top of its cell when the dot is in the lower half, so the two never overlap, including at large text sizes.
 - The layout check now fails if the dot covers the label, and runs at 160% text.
