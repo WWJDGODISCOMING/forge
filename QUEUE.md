@@ -212,7 +212,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 18b. #196 BUG: live workout discard/end/restore + Start ignored
 - Issue: #196
 - Version: 0.16.59
-- Status: in-review
+- Status: done
 - Acceptance:
   - Discard/End fully stop timer, HealthKit session, Live Activity and persisted state; no auto-restore after.
   - No unstyled flash on restore; End always opens the confirm sheet.
