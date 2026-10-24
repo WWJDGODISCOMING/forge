@@ -7,6 +7,7 @@
 // - Never above the user's ceiling when losing: the ceiling is the official number.
 // - If the date can't be met within those limits, say so and suggest the earliest realistic date instead.
 import { addDays, daysBetween } from '../weight/smoothing.js';
+import { weightToDisplay, weightUnit } from '../units.js';
 import { KCAL_PER_KG, CALORIE_FLOORS, MAX_LOSS_PCT, MAX_GAIN_PCT, MAX_SURPLUS_KCAL } from './targets.js';
 
 const ON_TRACK_BAND = 0.15; // within 15% of the pace you need counts as on track
@@ -95,4 +96,14 @@ export function paceWords(plan) {
     case 'behind': return { label: 'Behind', text: 'A little behind the pace for your date. That is okay: small steady changes add up, and you can move the date.' };
     default: return { label: 'Getting started', text: 'Keep weighing in. After a couple of weeks Forge can tell how you are doing against your date.' };
   }
+}
+
+/** The weekly check-in line: this week's trend change next to the weekly change the date needs. */
+export function weekLine(plan, units) {
+  const unit = weightUnit(units);
+  const f = (kg) => weightToDisplay(Math.abs(kg), units).toFixed(1);
+  const need = `Your date needs about ${f(plan.requiredKgPerWeek)} ${unit} a week ${plan.losing ? 'down' : 'up'}.`;
+  if (plan.weekKg == null) return `This week: keep weighing in. ${need}`;
+  const dir = plan.weekKg < -0.04 ? 'down' : plan.weekKg > 0.04 ? 'up' : 'steady';
+  return `This week: ${dir === 'steady' ? 'steady' : `${dir} ${f(plan.weekKg)} ${unit}`}. ${need}`;
 }

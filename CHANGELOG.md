@@ -7,9 +7,11 @@ No Cloud Functions or `firestore.rules` changes.
 ### What's new
 
 - Settings has a Goal date switch (off by default), a date and your goal weight.
-- With it on, Food shows a small line under your calorie ceiling: "To hit Dec 20: ~1,650 cal/day". Your ceiling itself never changes.
-- Body has a Goal path button: your trend against the pace your date needs, ahead / on track / behind, and a weekly check-in.
-- Never suggests more than about 1% of body weight a week or less than a safe calorie floor. If the date is too tight, it suggests a realistic one.
+- Food shows a small calories-a-day hint to hit your date. Your ceiling never changes.
+- Body has a Goal path button: your trend against the pace your date needs.
+- It says ahead, on track or behind, with a weekly check-in.
+- Never more than about 1% of body weight a week, or below a safe calorie floor.
+- If the date is too tight, it suggests a realistic one.
 
 ## 0.16.61 — Apple Watch shows distance, pace and calories (2026-10-24)
 

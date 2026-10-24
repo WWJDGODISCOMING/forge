@@ -5,7 +5,7 @@ import { esc, $, sheet, todayKey } from '../ui.js';
 import { haptics } from '../ui/haptic.js';
 import { addDays, daysBetween, trendChange } from '../weight/smoothing.js';
 import { weightToDisplay, weightUnit, formatWeight } from '../units.js';
-import { goalDateSettings, goalDatePlan, recommendLine, paceWords } from '../nutrition/goaldate.js';
+import { goalDateSettings, goalDatePlan, recommendLine, paceWords, weekLine } from '../nutrition/goaldate.js';
 import { intel, currentGoalPath } from '../health/intel.js';
 import { currentTargets, weightSeries } from '../derived.js';
 import { balanceOn } from './balance-ui.js';
@@ -87,16 +87,6 @@ export function goalDateSvg(plan, series, today, units, width = chartWidth(), he
     <text x="${L}" y="${height - 5}" class="axis">${fmtDay(from)}</text>
     <text x="${width - R}" y="${height - 5}" class="axis" text-anchor="end">${fmtDay(endDay)}</text>
   </svg>`;
-}
-
-/** The weekly check-in line: this week's trend change next to the weekly change the date needs. */
-export function weekLine(plan, units) {
-  const unit = weightUnit(units);
-  const f = (kg) => weightToDisplay(Math.abs(kg), units).toFixed(1);
-  const need = `Your date needs about ${f(plan.requiredKgPerWeek)} ${unit} a week ${plan.losing ? 'down' : 'up'}.`;
-  if (plan.weekKg == null) return `This week: keep weighing in. ${need}`;
-  const dir = plan.weekKg < -0.04 ? 'down' : plan.weekKg > 0.04 ? 'up' : 'steady';
-  return `This week: ${dir === 'steady' ? 'steady' : `${dir} ${f(plan.weekKg)} ${unit}`}. ${need}`;
 }
 
 export function goalDateSheetHtml(plan, units = getUnits()) {

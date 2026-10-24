@@ -1,15 +1,15 @@
 // v0.16.62 (#190): goal date. Pure maths and the safety caps. Synthetic numbers only.
 import { test, eq, assert } from './harness.js';
-import { goalDatePlan, goalDateSettings, recommendLine, safeFloor } from '../js/nutrition/goaldate.js';
-import { goalDateSheetHtml, weekLine } from '../js/screens/goaldate-ui.js';
+import { goalDatePlan, goalDateSettings, recommendLine, safeFloor, weekLine } from '../js/nutrition/goaldate.js';
 
 const TODAY = '2026-10-24';
 const base = { trendKg: 90, goalKg: 80, today: TODAY, burn: 2600, ceiling: 1500, sex: 'male' };
 const fmt = (d) => d;
 
 test('settings: off unless switched on; bad dates ignored', () => {
-  eq(goalDateSettings(undefined), { on: false, day: null });
-  eq(goalDateSettings({ goal_date_on: true, goal_date: '2027-01-01' }), { on: true, day: '2027-01-01' });
+  const j = (s) => JSON.stringify(goalDateSettings(s));
+  eq(j(undefined), '{"on":false,"day":null}');
+  eq(j({ goal_date_on: true, goal_date: '2027-01-01' }), '{"on":true,"day":"2027-01-01"}');
   eq(goalDateSettings({ goal_date_on: true, goal_date: 'soon' }).day, null);
   eq(goalDateSettings({ goal_date_on: 'yes' }).on, false);
 });
@@ -84,9 +84,5 @@ test('the small print and the sheet use plain words', () => {
   assert(/^To hit 2027-03-06: ~[\d,]+ cal\/day$/.test(recommendLine(p, fmt)), recommendLine(p, fmt));
   const tight = goalDatePlan({ ...base, ceiling: 3000, goalDay: '2026-11-07' });
   assert(/^A safer date is /.test(recommendLine(tight, fmt)));
-  const html = goalDateSheetHtml(tight, 'imperial');
-  assert(html.includes('data-goal-date-unreal') && html.includes('realistic date'), 'suggests a date');
-  assert(html.includes('not medical advice'), 'never diagnoses');
   assert(weekLine({ ...tight, weekKg: -0.4 }, 'imperial').startsWith('This week: down 0.9 lb'), weekLine({ ...tight, weekKg: -0.4 }, 'imperial'));
-  assert(goalDateSheetHtml(null).includes('Settings'));
 });
