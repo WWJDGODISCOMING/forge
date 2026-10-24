@@ -6,8 +6,8 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- The workout player lists every set of the exercise from the start: reps and weight (or seconds).
-- The current set is lit, finished sets show a check (and their reps left), the rest are prefilled.
+- The workout player lists every set up front, with reps and weight.
+- The current set is lit, done sets get a check, the rest are prefilled.
 - Tap any row to jump to that set; the steppers change it, and the change sticks.
 - "Add set" row at the end of the list.
 - The big rep counter and the reps-left chips stay for the current set.

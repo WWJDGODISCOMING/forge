@@ -529,7 +529,7 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .why-body { padding: 0 var(--s-4) var(--s-4); }
 @media (prefers-reduced-motion: reduce) { .why-chev { transition: none; } }
 
-/* All sets up front (#192): a compact, scrollable list under the steppers. */
+/* All sets up front : a compact, scrollable list under the steppers. */
 .pl-sets { display: flex; flex-direction: column; gap: 4px; max-height: 188px; overflow-y: auto; overscroll-behavior: contain; }
 .pl-set { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 12px; border: 0; border-radius: 12px; background: var(--surface); color: var(--text); font: 600 calc(15px * var(--ts)) var(--font); text-align: left; cursor: pointer; }
 .pl-set-n { flex: none; width: 28px; text-align: center; font: 800 calc(15px * var(--ts)) var(--num); color: var(--text-2); display: grid; place-items: center; }
@@ -542,4 +542,4 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .pl-set.done .pl-set-n { color: var(--accent-text); }
 .pl-set.add { background: transparent; color: var(--text-2); box-shadow: inset 0 0 0 1px var(--surface-2); }
 @media (max-height: 700px) { .pl-sets { max-height: 96px; } }
-@media (max-height: 600px) { .pl-sets { max-height: 48px; } }
+@media (max-height: 600px) { .pl-sets { max-height: none; overflow: visible; flex-direction: row; } .pl-set:not(.current):not(.add) { display: none; } .pl-set { flex: 1; min-width: 0; } }

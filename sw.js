@@ -216,6 +216,7 @@ const SHELL = [
   './js/workouts/rings.js',
   './js/workouts/clock.js',
   './js/workouts/session-core.js',
+  './js/workouts/setlist.js',
   './js/workouts/preview.js',
   './js/functions.js',
   './js/export-body.js',
