@@ -6,7 +6,7 @@ No Cloud Functions or `firestore.rules` changes. Swift changed (`ForgeLiveActivi
 
 ### What's new
 
-- The Apple Watch Smart Stack (and CarPlay) now shows time, distance, pace and active calories for a live workout, not just the timer.
+- Apple Watch now shows time, distance, pace and calories for a live workout.
 - The lock screen and Dynamic Island look the same as before.
 
 ## 0.16.60 — Body profile: the You dot no longer covers its label (2026-10-24)
