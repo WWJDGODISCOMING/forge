@@ -6,7 +6,7 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- The You dot no longer covers its label, even at large text.
+- The You label now stays clear of the You dot, the Last week marker and its label, the arrow and the faint dots, even at large text.
 
 ## 0.16.59 — Live workouts that actually end (2026-10-23)
 

@@ -180,8 +180,107 @@ function bpArrow(from, to) {
   return `<svg class="bp-arrow" viewBox="0 0 ${size} ${size}" preserveAspectRatio="none" aria-hidden="true" data-bp-arrow><line x1="${sx.toFixed(3)}" y1="${sy.toFixed(3)}" x2="${ex.toFixed(3)}" y2="${ey.toFixed(3)}"/><polyline points="${head}"/></svg>`;
 }
 
-/** Tapping the Last week marker shows or hides its date and values, with a light haptic. */
+// Where the "You" label and the "Last week" pill go so nothing covers anything. All numbers are px inside the grid box.
+// g: { box:{w,h}, cell:{l,t,r,b}, you:{x,y,r,glow}, ring:{x,y,r}, pill:{l,r,h}, label:{w,h}, line:{x1,y1,x2,y2}|null, trails:[rect], below }
+// Returns { pill: 'above'|'below', dx, dy } (the label's centre, relative to the You dot) and `clear`, true when every
+// mark is clear of the label. The label must sit inside its cell and clear of the dot, ring, pill, arrow and trail dots;
+// the soft glow around the dot and the pill covering the You dot or leaving the grid are only avoided when there is room.
+const BP_PILL_GAP = 10;
+const bpHit = (a, b) => a.l < b.r && a.r > b.l && a.t < b.b && a.b > b.t;
+const bpPad = (r, p) => ({ l: r.l - p, t: r.t - p, r: r.r + p, b: r.b + p });
+const bpCircle = (c, r, rc) => Math.hypot(c.x - Math.max(rc.l, Math.min(c.x, rc.r)), c.y - Math.max(rc.t, Math.min(c.y, rc.b))) < r;
+function bpSegment(s, rc) {
+  const n = Math.max(2, Math.ceil(Math.hypot(s.x2 - s.x1, s.y2 - s.y1) / 2));
+  for (let i = 0; i <= n; i++) {
+    const x = s.x1 + (s.x2 - s.x1) * i / n;
+    const y = s.y1 + (s.y2 - s.y1) * i / n;
+    if (x > rc.l && x < rc.r && y > rc.t && y < rc.b) return true;
+  }
+  return false;
+}
+export function bpPlace(g) {
+  const { box, cell, you, ring, pill, label, line, trails, below } = g;
+  const { w, h } = label;
+  const cands = [];
+  for (const d of [you.glow + 2, you.r + 2]) {
+    for (const s of below ? [1, -1] : [-1, 1]) for (const x of [0, -w / 2, w / 2, -w, w]) cands.push({ dx: x, dy: s * (d + h / 2) });
+    for (const s of [1, -1]) for (const y of [0, -h / 2, h / 2]) cands.push({ dx: s * (d + w / 2), dy: y });
+  }
+  const pillRect = (mode) => {
+    const t = mode === 'above' ? ring.y - BP_PILL_GAP - pill.h : ring.y + BP_PILL_GAP;
+    return { l: pill.l, r: pill.r, t, b: t + pill.h };
+  };
+  let best = null;
+  ['above', 'below'].forEach((mode, mi) => {
+    const pr = pillRect(mode);
+    const pillBad = pr.l < 0 || pr.r > box.w || pr.t < 0 || pr.b > box.h || bpCircle(you, you.r + 2, pr) ? 1 : 0;
+    cands.forEach((c, ci) => {
+      const cx = you.x + c.dx;
+      const cy = you.y + c.dy;
+      const r = { l: cx - w / 2, t: cy - h / 2, r: cx + w / 2, b: cy + h / 2 };
+      if (r.l < 1 || r.r > box.w - 1 || r.t < 1 || r.b > box.h - 1) return;
+      const spill = r.l < cell.l + 1 || r.r > cell.r - 1 || r.t < cell.t + 1 || r.b > cell.b - 1 ? 1 : 0; // only at very large text, when the cell is too small for the label
+      if (bpCircle(you, you.r + 1, r) || bpCircle(ring, ring.r + 2, r) || bpHit(r, bpPad(pr, 2))) return;
+      if (line && bpSegment(line, bpPad(r, 4))) return;
+      if (trails.some((t) => bpHit(r, bpPad(t, 1)))) return;
+      const key = [pillBad, spill, bpCircle(you, you.glow, r) ? 1 : 0, mi, ci];
+      const i = best ? key.findIndex((k, j) => k !== best.key[j]) : 0;
+      if (!best || (i >= 0 && key[i] < best.key[i])) best = { key, pill: mode, dx: c.dx, dy: c.dy };
+    });
+  });
+  return best ? { pill: best.pill, dx: best.dx, dy: best.dy, clear: true, spill: best.key[1] === 1 } : { pill: 'above', dx: 0, dy: (below ? 1 : -1) * (you.r + 2 + h / 2), clear: false };
+}
+
+// Measure the real marks (text size and screen width change their sizes) and place the label and pill with bpPlace.
+function bpLayout(root) {
+  const box = root.querySelector('.bp-gridbox');
+  const label = root.querySelector('.bp-you');
+  const dot = root.querySelector('.bp-now');
+  if (!box || !label || !dot) return;
+  const b = root.querySelector('[data-bp-last]');
+  const bx = box.getBoundingClientRect();
+  const rel = (e) => { const r = e.getBoundingClientRect(); return { l: r.left - bx.left, t: r.top - bx.top, r: r.right - bx.left, b: r.bottom - bx.top }; };
+  const mid = (r) => ({ x: (r.l + r.r) / 2, y: (r.t + r.b) / 2 });
+  const d = rel(dot);
+  const cell = box.querySelector(`.bp-cell.r${label.dataset.row}.c${label.dataset.col}`);
+  if (!cell) return;
+  const you = { ...mid(d), r: (d.r - d.l) / 2, glow: (d.r - d.l) / 2 + 4 };
+  const lr = rel(label);
+  const g = { box: { w: bx.width, h: bx.height }, cell: rel(cell), you, label: { w: lr.r - lr.l, h: lr.b - lr.t }, below: true, line: null, ring: { x: -99, y: -99, r: 0 }, pill: { l: -99, r: -99, h: 0 }, trails: [...box.querySelectorAll('.bp-trail')].map(rel) };
+  const cr = g.cell;
+  g.below = you.y - cr.t < (cr.b - cr.t) / 2;
+  if (b) {
+    const ring = rel(b.querySelector('i'));
+    const pill = rel(b.querySelector('span'));
+    g.ring = { ...mid(ring), r: (ring.r - ring.l) / 2 + 1 };
+    g.pill = { l: pill.l, r: pill.r, h: pill.b - pill.t };
+    const a = box.querySelector('[data-bp-arrow] line');
+    if (a) {
+      const s = a.ownerSVGElement;
+      const sr = rel(s);
+      const vb = s.viewBox.baseVal;
+      const px = (x, y) => [sr.l + x / vb.width * (sr.r - sr.l), sr.t + y / vb.height * (sr.b - sr.t)];
+      const [p1, p2] = [px(a.x1.baseVal.value, a.y1.baseVal.value), px(a.x2.baseVal.value, a.y2.baseVal.value)];
+      g.line = { x1: p1[0], y1: p1[1], x2: p2[0], y2: p2[1] };
+    }
+  }
+  const p = bpPlace(g);
+  if (b) b.classList.toggle('below', p.pill === 'below');
+  label.style.transform = `translate(-50%, -50%) translate(${p.dx.toFixed(1)}px, ${p.dy.toFixed(1)}px)`;
+  label.dataset.placed = !p.clear ? 'crowded' : p.spill ? 'spill' : 'clear';
+}
+
+/** Tapping the Last week marker shows or hides its date and values, with a light haptic. Also places the You label. */
 export function bindBodyProfile(root) {
+  const card = root.querySelector('[data-bodyprofile]');
+  if (card && card.querySelector('.bp-you')) {
+    const run = () => bpLayout(card);
+    run();
+    if (typeof ResizeObserver === 'function') {
+      const ro = new ResizeObserver(run);
+      card.querySelectorAll('.bp-gridbox, .bp-you, .bp-last span').forEach((e) => ro.observe(e));
+    }
+  }
   const b = root.querySelector('[data-bp-last]');
   const d = root.querySelector('[data-bp-detail]');
   if (!b || !d) return;
@@ -207,13 +306,12 @@ export function bodyProfileHtml(bp, { sex, age }, units = 'imperial') {
       for (let col = 0; col < 4; col++) {
         const dots = [
           ...bp.trail.filter((t) => t.col === col && t.row === row).map((t) => `<i class="bp-trail" title="${esc(t.month)}"></i>`),
-          bp.col === col && bp.row === row ? `<span class="bp-you${bp.y - (3 - row) > 0.5 ? ' up' : ''}" aria-hidden="true">You</span>` : '', // the label sits on the side of the cell away from the dot
         ].join('');
         cells.push(`<div class="bp-cell r${row} c${col}">${dots}</div>`);
       }
     }
     const side = mk.last ? (mk.last.col === 0 ? ' l0' : mk.last.col === 3 ? ' l3' : '') : '';
-    const over = `<div class="bp-over">${mk.line ? bpArrow(mk.last, mk.you) : ''}<i class="bp-now" style="${bpSpot(mk.you)}" aria-hidden="true"></i>${mk.last ? `<button type="button" class="bp-last${side}" style="${bpSpot(mk.last)}" data-bp-last aria-expanded="false" aria-label="Last week, ${esc(fmtDate(lw.day))}. Tap for details."><i aria-hidden="true"></i><span aria-hidden="true">Last week</span></button>` : ''}</div>`;
+    const over = `<div class="bp-over">${mk.line ? bpArrow(mk.last, mk.you) : ''}<i class="bp-now" style="${bpSpot(mk.you)}" aria-hidden="true"></i><span class="bp-you" style="${bpSpot(mk.you)}" data-row="${bp.row}" data-col="${bp.col}" aria-hidden="true">You</span>${mk.last ? `<button type="button" class="bp-last${side}" style="${bpSpot(mk.last)}" data-bp-last aria-expanded="false" aria-label="Last week, ${esc(fmtDate(lw.day))}. Tap for details."><i aria-hidden="true"></i><span aria-hidden="true">Last week</span></button>` : ''}</div>`;
     const here = `You: lean mass ${FFMI_BANDS[bp.col]}, body fat ${FMI_BANDS[bp.row]}`;
     const then = lw ? `. Last week: lean mass ${FFMI_BANDS[lw.col]}, body fat ${FMI_BANDS[lw.row]}` : '';
     inner = `<div class="bp-wrap"><span class="bp-y">Fat →</span>
