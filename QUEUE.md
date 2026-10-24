@@ -251,7 +251,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 20. #190 Goal date with adaptive recommendations
 - Issue: #190
 - Version: 0.16.62
-- Status: in-review
+- Status: done (PR #202)
 - Acceptance:
   - Settings toggle + goal date; off hides it all.
   - Small-print recommended calories under the fixed ceiling; ceiling never auto-changes.
