@@ -32,6 +32,20 @@ export function comparableWorkout(w, all) {
   return prev[0] || null;
 }
 
+/** Short source tag shown on the Calories tile. */
+export const KCAL_TAG = { apple_watch: 'Apple Watch', measured: 'measured', estimate: 'est.' };
+
+/** The calories to show for a workout: { kcal, source: 'apple_watch'|'measured'|'estimate' } (saved number first, else the estimate), or null. */
+export function kcalReading(w, estimate) {
+  if (w && w.kcal > 0) return { kcal: Math.round(w.kcal), source: w.kcal_source === 'apple_watch' || w.kcal_source === 'measured' ? w.kcal_source : 'estimate' };
+  return estimate != null && estimate > 0 ? { kcal: Math.round(estimate), source: 'estimate' } : null;
+}
+
+/** Last time's calories, only when it is the same kind of number (never a Watch number against an estimate); else null. */
+export function kcalComparable(cur, prev) {
+  return cur && prev && cur.source === prev.source ? prev.kcal : null;
+}
+
 /** '2:05' style hold time; '45 s' under a minute. */
 export function fmtHold(sec) {
   const s = Math.max(0, Math.round(sec));

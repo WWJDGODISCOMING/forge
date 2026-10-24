@@ -175,9 +175,13 @@ body.playing .navbar { display: none; }
 .sum-stats span { color: var(--muted); font-size: calc(13px * var(--ts)); font-weight: 700; }
 .sum-stats b { font: 900 30px var(--num); font-variant-numeric: tabular-nums; }
 .sum-stats b small { font-size: calc(14px * var(--ts)); color: var(--muted); }
-.sum-stats.three { grid-template-columns: repeat(3, 1fr); }
-.sum-stats.three b { font-size: calc(26px * var(--ts)); }
+/* Three across on a phone, but they drop to two (then one) on a small screen or at big text, so "Records" and "1:05" never clip. */
+.sum-stats.three { grid-template-columns: repeat(auto-fit, minmax(calc(96px * var(--ts)), 1fr)); }
+.sum-stats.three > div { min-width: 0; }
+.sum-stats.three b { font-size: calc(26px * var(--ts)); white-space: nowrap; }
 .sum-totals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+@media (max-width: 340px) { .sum-totals { grid-template-columns: 1fr; } }
+.sum-totals b { white-space: nowrap; }
 .sum-totals > div { background: var(--surface); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
 .sum-totals > div > span { color: var(--muted); font-size: calc(13px * var(--ts)); font-weight: 700; }
 .sum-totals b { font: 900 30px var(--num); font-variant-numeric: tabular-nums; }

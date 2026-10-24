@@ -9,6 +9,25 @@ import { shareNative } from '../native/share.js';
 /** No-break spaces after "→" and before a trailing unit, so "→ 212 lb" never splits. Pure; exported for tests. */
 export const glue = (text) => String(text).replace(/ → /g, ' →\u00a0').replace(/ (lb|kg|reps|s)(?=$|[\s,.)])/g, '\u00a0$1');
 
+/**
+ * Fit one line of text into `max` px on the canvas: shrink the font from `size` down to `min`, then cut with "…".
+ * Leaves ctx.font set to the size it used. `keep` characters at the end are never cut (e.g. "· 45 min · 12 sets").
+ * Exported for tests (any ctx with font + measureText works).
+ */
+export function fitText(ctx, text, max, { weight = 700, size = 30, min = 20, family = FONT, keep = 0 } = {}) {
+  const s = String(text);
+  let px = size;
+  for (; px >= min; px -= 2) {
+    ctx.font = `${weight} ${px}px ${family}`;
+    if (ctx.measureText(s).width <= max) return s;
+  }
+  ctx.font = `${weight} ${min}px ${family}`;
+  const tail = keep ? s.slice(-keep) : '';
+  let head = keep ? s.slice(0, -keep) : s;
+  while (head.length > 1 && ctx.measureText(`${head}…${tail}`).width > max) head = head.slice(0, -1);
+  return `${head.trimEnd()}…${tail}`;
+}
+
 const W = 1080;
 const H = 1350;
 const FONT = '-apple-system, "SF Pro Display", system-ui, "Segoe UI", Roboto, sans-serif';
@@ -66,8 +85,9 @@ export async function renderShareCard(card) {
   ctx.font = `900 112px ${FONT}`;
   ctx.fillText(`Workout #${card.number}`, 72, 250);
   ctx.fillStyle = '#9AA1AB';
-  ctx.font = `600 38px ${FONT}`;
-  ctx.fillText([card.label, card.time, `${card.sets} sets`].filter(Boolean).join(' · '), 72, 308);
+  // Label · time · sets, kept inside the 936 px between the margins: shrinks, then the label is cut (time and sets stay).
+  const rest = [card.time, `${card.sets} sets`].filter(Boolean).join(' · ');
+  ctx.fillText(fitText(ctx, card.label ? `${card.label} · ${rest}` : rest, W - 144, { weight: 600, size: 38, min: 26, keep: rest.length + 3 }), 72, 308);
 
   // Stats: up to 2 × 2 tiles (calories, volume, reps, hold time) with the change vs last time; Time and Sets sit in the subtitle.
   const tiles = (card.totals && card.totals.length ? card.totals : [{ label: 'Volume', value: `${card.volume} ${card.unit}`, delta: '' }]).slice(0, 4);
@@ -78,15 +98,13 @@ export async function renderShareCard(card) {
     ctx.fillStyle = '#172430';
     ctx.fill();
     ctx.fillStyle = '#9AA1AB';
-    ctx.font = `700 28px ${FONT}`;
-    ctx.fillText(t.label.toUpperCase(), x + 32, y + 46);
+    const inner = 460 - 64; // tile width minus its padding
+    ctx.fillText(fitText(ctx, t.label.toUpperCase(), inner, { weight: 700, size: 28, min: 20 }), x + 32, y + 46);
     ctx.fillStyle = '#DADDE4';
-    ctx.font = `900 54px ${FONT}`;
-    ctx.fillText(t.value, x + 32, y + 108);
+    ctx.fillText(fitText(ctx, t.value, inner, { weight: 900, size: 54, min: 30 }), x + 32, y + 108);
     if (t.delta) {
       ctx.fillStyle = t.delta.startsWith('+') ? '#C6FF3D' : '#9AA1AB';
-      ctx.font = `700 26px ${FONT}`;
-      ctx.fillText(t.delta, x + 32, y + 144);
+      ctx.fillText(fitText(ctx, t.delta, inner, { weight: 700, size: 26, min: 18 }), x + 32, y + 144);
     }
   });
 

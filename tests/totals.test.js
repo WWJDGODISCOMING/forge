@@ -1,5 +1,6 @@
 import { test, eq, assert } from './harness.js';
-import { workoutTotals, comparableWorkout, fmtHold, deltaText, setLine } from '../js/workouts/totals.js';
+import { workoutTotals, comparableWorkout, fmtHold, deltaText, setLine, kcalReading, kcalComparable, KCAL_TAG } from '../js/workouts/totals.js';
+import { fitText } from '../js/ui/sharecard.js';
 
 const lib = {
   bench: { id: 'bench', load: 'barbell' },
@@ -64,4 +65,43 @@ test('totals: hold time formatting and set lines', () => {
   eq(setLine({ reps: 45, weight: null }, lib.plank, 'lb'), '45 s');
   eq(setLine({ reps: 20, weight: 10 }, lib.vest, 'kg'), '20 s x 10 kg');
   assert(!setLine({ reps: 8, weight: 0 }, lib.bench, 'lb').includes('x'));
+});
+
+test('calories: a saved number wins, else the estimate, and each carries its source', () => {
+  const r = (w, e) => { const k = kcalReading(w, e); return `${k.kcal} ${k.source}`; };
+  eq(r({ kcal: 312.4, kcal_source: 'apple_watch' }, 250), '312 apple_watch');
+  eq(r({ kcal: 280, kcal_source: 'measured' }, 250), '280 measured');
+  eq(r({ kcal: 280 }, 250), '280 estimate');
+  eq(r({}, 249.6), '250 estimate');
+  eq(kcalReading({}, null), null);
+  eq(KCAL_TAG.estimate, 'est.');
+});
+
+test('calories: the change shows only against the same kind of number', () => {
+  const watch = { kcal: 300, source: 'apple_watch' };
+  const est = { kcal: 250, source: 'estimate' };
+  eq(kcalComparable(watch, { kcal: 280, source: 'apple_watch' }), 280);
+  eq(kcalComparable(est, { kcal: 240, source: 'estimate' }), 240);
+  eq(kcalComparable(watch, est), null);
+  eq(kcalComparable(est, { kcal: 300, source: 'measured' }), null);
+  eq(kcalComparable(est, null), null);
+});
+
+test('share image: fitText keeps long labels and big numbers inside their box', () => {
+  // A stand-in canvas: each character is 0.55 of the font size wide.
+  const ctx = { font: '', measureText(t) { const px = Number(/(\d+)px/.exec(this.font)[1]); return { width: t.length * px * 0.55 }; } };
+  const px = () => Number(/(\d+)px/.exec(ctx.font)[1]);
+  const wide = (t) => ctx.measureText(t).width;
+  const rest = '1:05 · 24 sets';
+  const sub = `Upper body strength and shoulders, heavy day with the long name · ${rest}`;
+  const a = fitText(ctx, sub, 936, { weight: 600, size: 38, min: 26, keep: rest.length + 3 });
+  assert(wide(a) <= 936, `subtitle is ${wide(a)}px`);
+  assert(a.endsWith(` · ${rest}`) && a.includes('…'), `the label is cut and time and sets stay: ${a}`);
+  const v = fitText(ctx, '12,345 lb', 396, { weight: 900, size: 54, min: 30 });
+  assert(wide(v) <= 396 && v === '12,345 lb', 'a 5-digit volume fits as is or shrunk');
+  const huge = fitText(ctx, '1,234,567,890 lb', 396, { weight: 900, size: 54, min: 30 });
+  assert(wide(huge) <= 396 && px() >= 30, 'an absurdly long value still fits, never below the smallest size');
+  const d = fitText(ctx, '−1,234 vs last, which is a very long change line', 396, { weight: 700, size: 26, min: 18 });
+  assert(wide(d) <= 396, 'the change line fits');
+  eq(fitText(ctx, 'Push', 936, { size: 38, min: 26 }), 'Push');
 });

@@ -2398,6 +2398,84 @@ if (standalone && (!only || only.includes('train'))) {
   });
 }
 
+// Workout summary (v0.16.63): the Time/Sets/Records row, the Calories/Volume/Reps/Hold tiles with "vs last", and one line per set.
+// Seeds a finished workout (weighted with a PR, per-arm, timed and bodyweight moves, a 5-digit volume, 1:05 long) and an earlier one with
+// the same label. Cases: compare (earlier calories also an estimate), mixed (earlier calories from the Watch: no calories change shown),
+// first (no earlier workout). Nothing may overflow, clip or wrap (values stay on one line).
+const SUM_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [678, 466, true, 1], [626, 890, true, 1]];
+function summarySeed(kind) {
+  const data = seed();
+  const now = new Date(WORKOUT_DAY).getTime();
+  const rec = (id, extra) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
+  const set = (reps, kg) => ({ warmup: false, done: true, reps, weight_kg: kg, plan_reps: reps, plan_weight_kg: kg });
+  const moves = (k) => [
+    { exercise_id: 'db_bench_press', role: 'main', superset: null, sets: Array.from({ length: 5 }, () => set(12, 100 + k)) }, // 5 x 12 x ~220 lb = 5-digit volume
+    { exercise_id: 'db_one_arm_row', role: 'accessory', superset: null, sets: [set(10, 30 + k), set(10, 30 + k)] }, // per arm: both sides count
+    { exercise_id: 'plank', role: 'accessory', superset: null, sets: [set(45 + k, null)] }, // timed
+    { exercise_id: 'pushup', role: 'accessory', superset: null, sets: [set(15 + k, null)] }, // bodyweight
+  ];
+  const t = now - 3600000;
+  data.workouts.push(rec('sumnow', { status: 'done', label: 'Upper body', day_type: 'upper', started_at: new Date(t).toISOString(), finished_at: new Date(t + 3900000).toISOString(), duration_ms: 3900000, location_id: 'l1',
+    prs: [{ exercise_id: 'db_bench_press', label: 'Dumbbell Bench Press: 220 lb x 12', prev: 210 }], exercises: moves(0) }));
+  if (kind !== 'first') {
+    const p = now - 7 * 86400000;
+    data.workouts.push(rec('sumprev', { status: 'done', label: 'Upper body', day_type: 'upper', started_at: new Date(p).toISOString(), finished_at: new Date(p + 3000000).toISOString(), duration_ms: 3000000, location_id: 'l1',
+      ...(kind === 'mixed' ? { kcal: 410, kcal_source: 'apple_watch' } : { kcal: 300, kcal_source: 'estimate' }), prs: [], exercises: moves(-5) }));
+  }
+  return data;
+}
+const SUM_PROBE = `(() => {
+  const vw = innerWidth;
+  const q = (s) => [...document.querySelectorAll(s)];
+  const off = (e) => { const r = e.getBoundingClientRect(); return r.right > vw + 1 || r.left < -1; };
+  const clipped = (e) => e.scrollWidth > e.clientWidth + 1;
+  const wraps = (e) => e.getBoundingClientRect().height > parseFloat(getComputedStyle(e).fontSize) * 1.9;
+  const bad = [];
+  for (const sel of ['.sum-stats.three', '.sum-totals']) {
+    const box = document.querySelector(sel);
+    if (!box) { bad.push(sel + ' is missing'); continue; }
+    if (off(box) || clipped(box)) bad.push(sel + ' overflows');
+    for (const tile of box.children) {
+      if (off(tile) || clipped(tile)) bad.push(sel + ' tile "' + tile.textContent.trim().slice(0, 24) + '" overflows or clips');
+      for (const v of tile.querySelectorAll('b')) if (wraps(v) || clipped(v)) bad.push(sel + ' value "' + v.textContent.trim() + '" wraps or clips');
+      for (const s of tile.querySelectorAll('span, em')) if (off(s) || clipped(s)) bad.push(sel + ' text "' + s.textContent.trim() + '" clips');
+    }
+  }
+  const lines = q('.sum-list small.muted');
+  for (const l of lines) if (off(l) || clipped(l)) bad.push('set lines clip: ' + l.textContent.slice(0, 30));
+  const tiles = q('.sum-totals > div').map((d) => ({ label: d.children[0].textContent.trim(), value: d.querySelector('b').textContent.trim(), em: d.querySelector('em') ? d.querySelector('em').textContent.trim() : '' }));
+  const main = document.querySelector('#main');
+  return { bad, over: document.documentElement.scrollWidth > vw + 1, tiles, three: q('.sum-stats.three > div').map((d) => d.textContent.trim()),
+    sets: lines.map((l) => l.innerText.split('\\n')), kcalMentions: (main.innerText.match(/kcal/g) || []).length };
+})()`;
+for (const [w, h, dark, ts] of standalone && (!only || only.includes('summary')) ? SUM_SIZES : []) {
+  const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: summary: stats row, totals tiles and set lines fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    for (const kind of ['compare', ...(w === 390 && dark ? ['mixed', 'first'] : [])]) {
+      await browser.viewport(w, h, dark);
+      await browser.open('summary/sumnow', summarySeed(kind));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const r = await browser.eval(SUM_PROBE);
+      if (shots) await browser.screenshot(`${shots}/summary-${kind}-${tag}.png`);
+      assert(!r.over, `${kind}: the page scrolls sideways`);
+      assert(r.bad.length === 0, `${kind}: ${r.bad.join('; ')}`);
+      assert(r.three.length === 3 && /^Time/.test(r.three[0]) && /^Sets/.test(r.three[1]) && /^Records/.test(r.three[2]), `${kind}: stats row reads ${JSON.stringify(r.three)}`);
+      assert(/1:05/.test(r.three[0]), `${kind}: time reads ${r.three[0]}`);
+      const by = Object.fromEntries(r.tiles.map((t) => [t.label.split(' ')[0], t]));
+      assert(r.tiles.length === 4, `${kind}: ${r.tiles.length} totals tiles`);
+      assert(/^Calories · est\.$/.test(r.tiles[0].label) && /kcal$/.test(r.tiles[0].value), `${kind}: calories tile reads ${JSON.stringify(r.tiles[0])}`);
+      assert(r.kcalMentions === 1, `${kind}: calories appear ${r.kcalMentions} times`);
+      assert(/^1\d,\d{3} lb$/.test(by.Volume.value), `${kind}: volume reads ${by.Volume.value}`);
+      assert(r.sets[0][0] === '12 reps x 220.5 lb' && r.sets.some((l) => l[0] === '45 s') && r.sets.some((l) => l[0] === '15 reps'), `${kind}: set lines read ${JSON.stringify(r.sets)}`);
+      if (kind === 'first') assert(r.tiles.every((t) => t.em === 'First time'), `${kind}: tiles read ${JSON.stringify(r.tiles)}`);
+      if (kind === 'compare') assert(r.tiles.every((t) => /vs last$/.test(t.em)), `${kind}: tiles read ${JSON.stringify(r.tiles)}`);
+      if (kind === 'mixed') assert(r.tiles[0].em === '' && r.tiles.slice(1).every((t) => /vs last$/.test(t.em)), `${kind}: calories must show no change against a Watch number, got ${JSON.stringify(r.tiles)}`);
+    }
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;
