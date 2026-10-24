@@ -48,19 +48,30 @@ export async function launch() {
   const chrome = findChrome();
   const srv = await serve();
   const port = srv.address().port;
-  const dir = mkdtempSync(join(tmpdir(), 'forge-layout-'));
-  const proc = spawn(chrome, ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars', '--remote-debugging-port=0',
-    `--user-data-dir=${dir}`, '--no-first-run', '--disable-extensions', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
-  const wsUrl = await new Promise((resolve, reject) => {
-    let buf = '';
-    const t = setTimeout(() => reject(new Error('Chrome did not start')), 20000);
-    proc.stderr.on('data', (d) => {
-      buf += d;
-      const m = buf.match(/DevTools listening on (ws:\/\/\S+)/);
-      if (m) { clearTimeout(t); resolve(m[1]); }
+  // Shared CI runners sometimes start Chrome slowly or not at all; try up to 3 times before failing.
+  const start = () => {
+    const dir = mkdtempSync(join(tmpdir(), 'forge-layout-'));
+    const p = spawn(chrome, ['--headless=new', '--no-sandbox', '--disable-gpu', '--disable-dev-shm-usage', '--hide-scrollbars', '--remote-debugging-port=0',
+      `--user-data-dir=${dir}`, '--no-first-run', '--disable-extensions', 'about:blank'], { stdio: ['ignore', 'ignore', 'pipe'] });
+    const url = new Promise((resolve, reject) => {
+      let buf = '';
+      const t = setTimeout(() => reject(new Error('Chrome did not start')), 40000);
+      p.stderr.on('data', (d) => {
+        buf += d;
+        const m = buf.match(/DevTools listening on (ws:\/\/\S+)/);
+        if (m) { clearTimeout(t); resolve(m[1]); }
+      });
+      p.on('exit', () => { clearTimeout(t); reject(new Error('Chrome exited early')); });
     });
-    proc.on('exit', () => reject(new Error('Chrome exited early')));
-  });
+    return { p, dir, url };
+  };
+  let proc, dir, wsUrl, lastErr;
+  for (let attempt = 1; attempt <= 3 && !wsUrl; attempt++) {
+    const s = start();
+    try { wsUrl = await s.url; proc = s.p; dir = s.dir; }
+    catch (e) { lastErr = e; try { s.p.kill('SIGKILL'); } catch {} try { rmSync(s.dir, { recursive: true, force: true }); } catch {} }
+  }
+  if (!wsUrl) { srv.close(); throw lastErr; }
   const dbgPort = new URL(wsUrl).port;
   const target = await (await fetch(`http://127.0.0.1:${dbgPort}/json/new?about:blank`, { method: 'PUT' })).json();
   const ws = new WebSocket(target.webSocketDebuggerUrl);
