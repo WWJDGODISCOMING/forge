@@ -5,6 +5,7 @@ import './units.test.js';
 import './targets.test.js';
 import './smoothing.test.js';
 import './workouts.test.js';
+import './totals.test.js';
 import './csv.test.js';
 import './session.test.js';
 import './figure.test.js';

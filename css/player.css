@@ -175,6 +175,14 @@ body.playing .navbar { display: none; }
 .sum-stats span { color: var(--muted); font-size: calc(13px * var(--ts)); font-weight: 700; }
 .sum-stats b { font: 900 30px var(--num); font-variant-numeric: tabular-nums; }
 .sum-stats b small { font-size: calc(14px * var(--ts)); color: var(--muted); }
+.sum-stats.three { grid-template-columns: repeat(3, 1fr); }
+.sum-stats.three b { font-size: 26px; }
+.sum-totals { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; margin-top: 10px; }
+.sum-totals > div { background: var(--surface); border-radius: 18px; padding: 14px; display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.sum-totals > div > span { color: var(--muted); font-size: calc(13px * var(--ts)); font-weight: 700; }
+.sum-totals b { font: 900 30px var(--num); font-variant-numeric: tabular-nums; }
+.sum-totals b small { font-size: calc(14px * var(--ts)); color: var(--muted); }
+.sum-totals .vs { align-self: flex-start; font-style: normal; white-space: normal; }
 .sum-stats .gold { border-color: var(--gold); }
 .sum-stats .gold b { color: var(--gold); }
 .sum-list li { align-items: flex-start; gap: 12px; }

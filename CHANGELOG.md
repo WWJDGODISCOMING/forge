@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.63 — Workout summary totals (2026-10-24)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- The workout summary has a stat row under the title: calories, volume, reps and hold time.
+- Each one shows the change since your last workout of the same day.
+- Moves done one side at a time count both sides.
+- Every set reads like "10 reps x 30 lb".
+- The share image shows the same totals.
+
 ## 0.16.62 — Goal date with adaptive recommendations (2026-10-24)
 
 No Cloud Functions or `firestore.rules` changes.

@@ -33,7 +33,7 @@ function roundRect(ctx, x, y, w, h, r) {
 }
 
 /**
- * card: { number, date, label, time, sets, volume, unit, prs: [{ name, what }] (or label strings), muscles: {muscle: 0..1},
+ * card: { number, date, label, time, sets, volume, unit, totals: [{ label, value, delta }], prs: [{ name, what }] (or label strings), muscles: {muscle: 0..1},
  *         level: { level, name }, streak, xp }
  * Resolves to a PNG Blob.
  */
@@ -65,39 +65,42 @@ export async function renderShareCard(card) {
   ctx.fillStyle = '#DADDE4';
   ctx.font = `900 112px ${FONT}`;
   ctx.fillText(`Workout #${card.number}`, 72, 250);
-  if (card.label) {
-    ctx.fillStyle = '#9AA1AB';
-    ctx.font = `600 38px ${FONT}`;
-    ctx.fillText(card.label, 72, 308);
-  }
+  ctx.fillStyle = '#9AA1AB';
+  ctx.font = `600 38px ${FONT}`;
+  ctx.fillText([card.label, card.time, `${card.sets} sets`].filter(Boolean).join(' · '), 72, 308);
 
-  // Stats: 2 × 2 tiles.
-  const tiles = [['Time', card.time], ['Sets', String(card.sets)], ['Volume', `${card.volume} ${card.unit}`], ['Records', `🏆 ${card.prs.length}`]];
-  tiles.forEach(([k, v], i) => {
+  // Stats: up to 2 × 2 tiles (calories, volume, reps, hold time) with the change vs last time; Time and Sets sit in the subtitle.
+  const tiles = (card.totals && card.totals.length ? card.totals : [{ label: 'Volume', value: `${card.volume} ${card.unit}`, delta: '' }]).slice(0, 4);
+  tiles.forEach((t, i) => {
     const x = 72 + (i % 2) * 476;
-    const y = 360 + Math.floor(i / 2) * 170;
-    roundRect(ctx, x, y, 460, 150, 32);
-    ctx.fillStyle = i === 3 && card.prs.length ? 'rgba(198,255,61,.14)' : '#172430';
+    const y = 340 + Math.floor(i / 2) * 180;
+    roundRect(ctx, x, y, 460, 164, 32);
+    ctx.fillStyle = '#172430';
     ctx.fill();
     ctx.fillStyle = '#9AA1AB';
-    ctx.font = `700 30px ${FONT}`;
-    ctx.fillText(k.toUpperCase(), x + 32, y + 52);
-    ctx.fillStyle = i === 3 && card.prs.length ? '#C6FF3D' : '#DADDE4';
-    ctx.font = `900 60px ${FONT}`;
-    ctx.fillText(v, x + 32, y + 120);
+    ctx.font = `700 28px ${FONT}`;
+    ctx.fillText(t.label.toUpperCase(), x + 32, y + 46);
+    ctx.fillStyle = '#DADDE4';
+    ctx.font = `900 54px ${FONT}`;
+    ctx.fillText(t.value, x + 32, y + 108);
+    if (t.delta) {
+      ctx.fillStyle = t.delta.startsWith('+') ? '#C6FF3D' : '#9AA1AB';
+      ctx.font = `700 26px ${FONT}`;
+      ctx.fillText(t.delta, x + 32, y + 144);
+    }
   });
 
   // Muscles worked.
   try {
     const img = await loadSvg(bodyMapStandalone(card.muscles));
-    ctx.drawImage(img, 120, 715, 420, 420);
+    ctx.drawImage(img, 120, 730, 420, 420);
   } catch { /* map is optional */ }
   ctx.fillStyle = '#9AA1AB';
   ctx.font = `700 28px ${FONT}`;
   ctx.fillText('MUSCLES WORKED', 160, 1160);
 
   // PRs, level, streak.
-  let y = 760;
+  let y = 770;
   ctx.font = `800 34px ${FONT}`;
   ctx.fillStyle = '#C6FF3D';
   // Each PR: the exercise (white) over what you beat (gold), each wrapped to the column, never cut mid-word.
