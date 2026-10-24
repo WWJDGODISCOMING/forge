@@ -62,28 +62,92 @@ private func distance(_ s: ForgeLiveAttributes.ContentState, _ a: ForgeLiveAttri
     return String(format: "%.2f", v)
 }
 
+// The Smart Stack (Apple Watch) and CarPlay layout, iOS 18+. Short rows, big numbers, nothing tappable.
+@available(iOS 17.0, *)
+struct SmallLiveView: View {
+    let context: ActivityViewContext<ForgeLiveAttributes>
+    var body: some View {
+        let s = context.state
+        let a = context.attributes
+        VStack(alignment: .leading, spacing: 2) {
+            ClockText(state: s).font(.system(size: 24, weight: .heavy, design: .rounded)).monospacedDigit()
+            HStack(spacing: 10) {
+                if a.showsDistance {
+                    Stat(value: distance(s, a), label: a.useMiles ? "MI" : "KM")
+                    Stat(value: s.avgPace, label: "PACE")
+                }
+                Stat(value: "\(s.activeKcal)", label: "ACTIVE CAL")
+            }
+            .minimumScaleFactor(0.6).lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// Picks the layout: .small on the watch and CarPlay (iOS 18+), the usual card everywhere else.
+@available(iOS 17.0, *)
+struct LiveCardView: View {
+    let context: ActivityViewContext<ForgeLiveAttributes>
+    var body: some View {
+        if #available(iOS 18.0, *) {
+            FamilyCardView(context: context)
+        } else {
+            MediumLiveView(context: context)
+        }
+    }
+}
+
+@available(iOS 18.0, *)
+struct FamilyCardView: View {
+    @Environment(\.activityFamily) private var family
+    let context: ActivityViewContext<ForgeLiveAttributes>
+    var body: some View {
+        if family == .small { SmallLiveView(context: context) } else { MediumLiveView(context: context) }
+    }
+}
+
+@available(iOS 17.0, *)
+struct MediumLiveView: View {
+    let context: ActivityViewContext<ForgeLiveAttributes>
+    var body: some View {
+        let s = context.state
+        HStack(alignment: .center, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(context.attributes.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(slate)
+                ClockText(state: s).font(.system(size: 40, weight: .heavy, design: .rounded)).monospacedDigit()
+                HStack(spacing: 18) {
+                    if context.attributes.showsDistance {
+                        Stat(value: distance(s, context.attributes), label: context.attributes.useMiles ? "MI" : "KM")
+                        Stat(value: s.avgPace, label: "PACE")
+                    }
+                    Stat(value: "\(s.activeKcal)", label: "ACTIVE CAL")
+                    Stat(value: "\(s.totalKcal)", label: "TOTAL CAL")
+                }
+            }
+            Spacer(minLength: 0)
+            PauseButton(paused: s.paused)
+        }
+        .padding(16)
+    }
+}
+
+// supplementalActivityFamilies needs iOS 18; the extension still deploys to iOS 17.
+extension WidgetConfiguration {
+    @WidgetConfigurationBuilder
+    func withSmallFamily() -> some WidgetConfiguration {
+        if #available(iOS 18.0, *) {
+            self.supplementalActivityFamilies([.small])
+        } else {
+            self
+        }
+    }
+}
+
 @available(iOS 17.0, *)
 struct ForgeLiveActivityWidget: Widget {
     var body: some WidgetConfiguration {
         ActivityConfiguration(for: ForgeLiveAttributes.self) { context in
-            let s = context.state
-            HStack(alignment: .center, spacing: 14) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(context.attributes.title).font(.system(size: 13, weight: .semibold)).foregroundStyle(slate)
-                    ClockText(state: s).font(.system(size: 40, weight: .heavy, design: .rounded)).monospacedDigit()
-                    HStack(spacing: 18) {
-                        if context.attributes.showsDistance {
-                            Stat(value: distance(s, context.attributes), label: context.attributes.useMiles ? "MI" : "KM")
-                            Stat(value: s.avgPace, label: "PACE")
-                        }
-                        Stat(value: "\(s.activeKcal)", label: "ACTIVE CAL")
-                        Stat(value: "\(s.totalKcal)", label: "TOTAL CAL")
-                    }
-                }
-                Spacer(minLength: 0)
-                PauseButton(paused: s.paused)
-            }
-            .padding(16)
+            LiveCardView(context: context)
             .activityBackgroundTint(navy)
             .activitySystemActionForegroundColor(cyan)
         } dynamicIsland: { context in
@@ -109,5 +173,6 @@ struct ForgeLiveActivityWidget: Widget {
             }
             .keylineTint(cyan)
         }
+        .withSmallFamily()
     }
 }
