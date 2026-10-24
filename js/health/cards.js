@@ -118,7 +118,7 @@ export function goalPathSvg(path, series, today, goalKg, units, { width = chartW
   </svg>`;
 }
 
-export function goalPathHtml(path, energy, { series, today, goalKg, units }) {
+export function goalPathHtml(path, energy, { series, today, goalKg, units, extra = '' }) {
   const unit = weightUnit(units);
   const perWeek = (kg) => `${weightToDisplay(Math.abs(kg), units).toFixed(1)} ${unit}`;
   let head;
@@ -142,7 +142,7 @@ export function goalPathHtml(path, energy, { series, today, goalKg, units }) {
   return `<div class="card stack" data-goalpath>
     <p class="label">Goal path</p>
     ${head}${chart}${pace}${en}
-    <p class="small muted">Based on your last 4 weeks. The range shows how much your weigh-ins bounce around.</p>
+    <p class="small muted">Based on your last 4 weeks. The range shows how much your weigh-ins bounce around.</p>${extra}
   </div>`;
 }
 

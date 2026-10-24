@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.16.62 — Goal date with adaptive recommendations (2026-10-24)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Settings has a Goal date switch (off by default), a date and your goal weight.
+- Food shows a small calories-a-day hint to hit your date. Your ceiling never changes.
+- Body has a Plan for your date button: your trend against the pace you need.
+- It says ahead, on track or behind, with a weekly check-in.
+- Never more than about 1% of body weight a week, or below a safe calorie floor.
+- If the date is too tight, it suggests a realistic one.
+- The hint follows your date, and says when your ceiling is already ahead of it.
+- Close to the calorie floor, it says so calmly instead of showing a pace.
+- Settings tells you when the date or goal weight is missing or out of range.
+
 ## 0.16.61 — Apple Watch shows distance, pace and calories (2026-10-24)
 
 No Cloud Functions or `firestore.rules` changes. Swift changed (`ForgeLiveActivityBundle.swift`), so this needs a Mac mini Refresh to install on the phone.

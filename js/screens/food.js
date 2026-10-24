@@ -4,6 +4,7 @@
 import { state, units } from '../state.js';
 import { put, patch, softDelete, newRecord } from '../db.js';
 import { balanceBlock, openBalanceSheet } from './balance-ui.js';
+import { goalDateFoodHtml } from './goaldate-ui.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { currentTargets } from '../derived.js';
 import { FLOOR_SOURCE } from '../nutrition/targets.js';
@@ -121,6 +122,7 @@ export function renderFood(el) {
       <div class="col col-b">
       <div class="card stack" data-food-totals>
         ${meter('Calories', tot.kcal, t && t.calories, 'kcal', { big: true })}
+        ${goalDateFoodHtml()}
         ${balanceBlock(day)}
         ${meter('Protein', tot.protein_g, t && t.proteinG, 'g', { big: true })}
         <div class="food-minor">

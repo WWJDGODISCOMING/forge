@@ -18,7 +18,7 @@ export function seed({ long = false, empty = false, active = false, effort = fal
     ...(mealPrefs ? { meal_prefs: mealPrefs } : {}),
     ...(why ? { protectJoints: ['knee', 'shoulder'] } : {}), // plan notes for Train's Why card
   });
-  const settings = rec('main', { units: 'imperial', player: 'guided', haptics: true, missions_started: dayKey(now - 3 * DAY), ...(program ? { body_program: { id: 'cut4', started: dayKey(now - 9 * DAY) } } : {}) });
+  const settings = rec('main', { units: 'imperial', player: 'guided', haptics: true, goal_date_on: true, goal_date: '2027-03-01', missions_started: dayKey(now - 3 * DAY), ...(program ? { body_program: { id: 'cut4', started: dayKey(now - 9 * DAY) } } : {}) });
   const locations = [
     rec('l1', { name: long ? 'Downtown Athletic Club & Pool' : 'Home gym', preset: 'home', equipment: [...HOME_PRESET], weight_inventory: {}, is_default: true }),
     rec('l2', { name: long ? 'Hotel fitness room (3rd floor)' : 'Travel', preset: 'travel', equipment: [...TRAVEL_PRESET], weight_inventory: {}, is_default: false }),
