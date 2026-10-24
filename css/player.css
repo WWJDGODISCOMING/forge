@@ -528,3 +528,18 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .why-head[aria-expanded="true"] .why-chev { transform: rotate(90deg); }
 .why-body { padding: 0 var(--s-4) var(--s-4); }
 @media (prefers-reduced-motion: reduce) { .why-chev { transition: none; } }
+
+/* All sets up front (#192): a compact, scrollable list under the steppers. */
+.pl-sets { display: flex; flex-direction: column; gap: 4px; max-height: 188px; overflow-y: auto; overscroll-behavior: contain; }
+.pl-set { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 12px; border: 0; border-radius: 12px; background: var(--surface); color: var(--text); font: 600 calc(15px * var(--ts)) var(--font); text-align: left; cursor: pointer; }
+.pl-set-n { flex: none; width: 28px; text-align: center; font: 800 calc(15px * var(--ts)) var(--num); color: var(--text-2); display: grid; place-items: center; }
+.pl-set-v { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+.pl-set-v b { font-weight: 800; }
+.pl-set-rir { flex: none; color: var(--text-2); font-size: calc(12px * var(--ts)); font-weight: 700; }
+.pl-set.current { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--volt); }
+.pl-set.current .pl-set-n { color: var(--text); }
+.pl-set.done { background: transparent; }
+.pl-set.done .pl-set-n { color: var(--accent-text); }
+.pl-set.add { background: transparent; color: var(--text-2); box-shadow: inset 0 0 0 1px var(--surface-2); }
+@media (max-height: 700px) { .pl-sets { max-height: 96px; } }
+@media (max-height: 600px) { .pl-sets { max-height: 48px; } }
