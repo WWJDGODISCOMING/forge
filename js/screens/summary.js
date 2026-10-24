@@ -20,23 +20,22 @@ import { badgeSVG } from '../ui/badges.js';
 import { levelUp } from '../ui/fx.js';
 import { renderShareCard, shareImage } from '../ui/sharecard.js';
 import { icon } from '../ui/icons.js';
-import { estimateKcal, weightKgFor, kcalLine } from '../workouts/energy.js';
+import { estimateKcal, weightKgFor } from '../workouts/energy.js';
 import { isNative } from '../native/bridge.js';
+import { workoutTotals, comparableWorkout, fmtHold, deltaText, setLine, kcalReading, kcalComparable, KCAL_TAG } from '../workouts/totals.js';
 
 const fmtDuration = (ms) => {
   const m = Math.round(ms / 60000);
   return m >= 60 ? `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}` : `${m} min`;
 };
 
-/** Calories line under the stats: saved/linked numbers first, else the estimate. Plain words about Apple Health. */
+/** Notes under the totals about Apple Health (the calories number itself is the Calories tile). Plain words. */
 function kcalBlock(w) {
   const est = estimateKcal(w, weightKgFor(state.weights, state.profile));
-  const shown = w.kcal > 0 ? w : est != null ? { kcal: est, kcal_source: 'estimate' } : null;
-  const line = kcalLine(shown);
   const linked = w.health_write === 'linked';
   const noWeight = est == null && !(w.kcal > 0) && isNative() && state.settings && state.settings.health_write_workouts;
-  if (!line && !noWeight) return '';
-  return `<p class="small tcenter" data-kcal style="margin:0">${line ? `<b>${esc(line)}</b>` : ''}${linked ? `<br><span class="muted">Linked to Apple Watch workout${w.avg_hr ? ` · avg ${Math.round(w.avg_hr)} bpm` : ''}</span>` : ''}${noWeight ? '<span class="muted">Add your weight to send calories to Apple Health</span>' : ''}</p>`;
+  if (!linked && !noWeight) return '';
+  return `<p class="small tcenter" data-kcal style="margin:0">${linked ? `<span class="muted">Linked to Apple Watch workout${w.avg_hr ? ` · avg ${Math.round(w.avg_hr)} bpm` : ''}</span>` : ''}${noWeight ? '<span class="muted">Add your weight to send calories to Apple Health</span>' : ''}</p>`;
 }
 
 export function renderSummary(el, id) {
@@ -93,18 +92,39 @@ export function renderSummary(el, id) {
   const celebrating = cel && Date.now() < cel.until;
   const celebrate = new Set(celebrating ? cel.ids : []);
 
+  // Totals row: calories, volume, reps and hold time, each against the last workout of the same plan day.
+  const lookup = (xid) => exerciseById(xid);
+  const toDisp = (kg) => toUnit(kg, u);
+  const tot = workoutTotals(w, lookup, toDisp);
+  const prevW = comparableWorkout(w, state.workouts);
+  const prevTot = prevW ? workoutTotals(prevW, lookup, toDisp) : null;
+  const wKg = weightKgFor(state.weights, state.profile);
+  const kcalNow = kcalReading(w, estimateKcal(w, wKg));
+  const kcalPrev = prevW ? kcalReading(prevW, estimateKcal(prevW, wKg)) : null;
+  const whole = (v) => Math.round(v).toLocaleString();
+  const tiles = [
+    kcalNow && { k: 'kcal', label: `Calories · ${KCAL_TAG[kcalNow.source]}`, now: kcalNow.kcal, prev: kcalComparable(kcalNow, kcalPrev), fmt: whole, unit: 'kcal' },
+    tot.volume > 0 && { k: 'vol', label: 'Volume', now: tot.volume, prev: prevTot && prevTot.volume, fmt: whole, unit: u },
+    tot.reps > 0 && { k: 'reps', label: 'Reps', now: tot.reps, prev: prevTot && prevTot.reps, fmt: whole, unit: '' },
+    tot.holdSec > 0 && { k: 'hold', label: 'Hold time', now: tot.holdSec, prev: prevTot && prevTot.holdSec, fmt: fmtHold, unit: '' },
+  ].filter(Boolean).map((t) => ({ ...t, d: t.prev == null ? null : deltaText(t.now, t.prev, t.fmt) }));
+  const totalsHtml = tiles.length ? `<div class="sum-totals" data-totals>${tiles.map((t) => `
+        <div><span>${t.label}</span><b><span data-c="${t.k}">${esc(t.fmt(t.now))}</span>${t.unit ? ` <small>${esc(t.unit)}</small>` : ''}</b>
+          ${t.d || !prevW ? `<em class="vs ${t.d ? t.d.tone : 'new'}">${t.d ? esc(t.d.text) : 'First time'}</em>` : ''}</div>`).join('')}</div>` : '';
+
   el.innerHTML = `
     <section class="summary">
       <p class="label tcenter">${new Date(w.started_at).toLocaleDateString([], { weekday: 'long', month: 'short', day: 'numeric' })}</p>
       <h1 class="sum-title" data-title>Workout #${number}</h1>
       <p class="tcenter muted">${esc(w.label || '')}${w.deload ? ' · deload' : ''}</p>
 
-      <div class="sum-stats">
+      <div class="sum-stats three">
         <div><span>Time</span><b data-c="time">${fmtDuration(durationMs)}</b></div>
         <div><span>Sets</span><b data-c="sets">${st.sets}</b></div>
-        <div><span>Volume</span><b><span data-c="vol">${st.volume.toLocaleString()}</span> <small>${u}</small></b></div>
         <div class="${prs.length ? 'gold' : ''}"><span>Records</span><b>${icon('trophy', { filled: true })} <span data-c="prs">${prs.length}</span></b></div>
       </div>
+
+      ${totalsHtml}
 
       ${kcalBlock(w)}
 
@@ -135,7 +155,7 @@ export function renderSummary(el, id) {
             <span class="sum-check" aria-hidden="true">${icon('check')}</span>
             <div class="grow">
               <b>${esc(r.ex.name)}</b>
-              <small class="muted">${r.sets.map((s) => `${s.weight ? `${s.weight}×` : ''}${s.reps}${r.ex.timed ? 's' : ''}`).join(' · ')}</small>
+              <small class="muted">${r.sets.map((s) => esc(setLine(s, r.ex, u))).join('<br>')}</small>
               ${r.exPrs.map((p) => `<span class="sum-pr">${icon('trophy', { filled: true })} ${esc(p.label.split(': ').slice(1).join(': ') || p.label)}${p.prev != null ? ` <s>${Math.round(p.prev * 10) / 10}</s>` : ''}</span>`).join('')}
             </div>
             ${r.vs ? `<span class="vs ${r.vs.tone}">${esc(r.vs.text)}</span>` : '<span class="vs new">First time</span>'}
@@ -157,7 +177,7 @@ export function renderSummary(el, id) {
     const t = $('[data-title]', el);
     if (t && !reducedMotion()) t.animate([{ transform: 'scale(1.4)', opacity: 0 }, { transform: 'scale(1)', opacity: 1 }], { duration: 420, easing: EASE.bounce, delay: 200, fill: 'backwards' });
     countUp($('[data-c="sets"]', el), st.sets, { delay: 400 });
-    countUp($('[data-c="vol"]', el), st.volume, { delay: 500, dur: 1100 });
+    for (const t of tiles) countUp($(`[data-c="${t.k}"]`, el), t.now, { delay: 500, dur: 1100, format: t.fmt });
     countUp($('[data-c="prs"]', el), prs.length, { delay: 600 });
     const time = $('[data-c="time"]', el);
     if (time && !reducedMotion()) countUp(time, durationMs / 1000, { delay: 400, dur: 1000, format: (v) => (durationMs >= 3600000 ? fmtDuration(v * 1000) : fmtClock(v)) });
@@ -196,7 +216,8 @@ export function renderSummary(el, id) {
   let blob = null;
   const card = {
     number, date: new Date(w.started_at).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }), label: w.label || '',
-    time: fmtDuration(durationMs), sets: st.sets, volume: st.volume.toLocaleString(), unit: u,
+    time: fmtDuration(durationMs), sets: st.sets, volume: tot.volume.toLocaleString(), unit: u,
+    totals: tiles.map((t) => ({ label: t.label, value: `${t.fmt(t.now)}${t.unit ? ` ${t.unit}` : ''}`, delta: t.d ? t.d.text : '' })),
     prs: prs.map((p) => {
       const name = exerciseById(p.exercise_id)?.name || '';
       const label = p.label || '';
