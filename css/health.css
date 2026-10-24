@@ -178,7 +178,7 @@ svg.sc-hero { overflow: visible; }
 .bp-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; min-width: 0; }
 .bp-cell { position: relative; min-width: 0; aspect-ratio: 1; background: var(--surface-2); border-radius: var(--r-sm); display: grid; place-items: center; overflow: hidden; }
 /* The You label lives in the overlay; bindBodyProfile moves it (transform) clear of the dot, ring, pill, arrow and trail dots. */
-.bp-you { position: absolute; z-index: 2; transform: translate(-50%, -50%) translate(0, 16px); white-space: nowrap; pointer-events: auto; font-size: calc(10px * var(--ts)); font-weight: 800; color: var(--text-1); line-height: 1; }
+.bp-you { position: absolute; z-index: 2; transform: translate(-50%, -50%) translate(0, 16px); white-space: nowrap; pointer-events: none; font-size: calc(10px * var(--ts)); font-weight: 800; color: var(--text-1); line-height: 1; }
 .bp-cell.c2.r0, .bp-cell.c2.r1, .bp-cell.c3.r0, .bp-cell.c3.r1 { background: var(--good-tint); }
 .bp-over { position: absolute; inset: 0; pointer-events: none; }
 .bp-now { position: absolute; width: 18px; height: 18px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 0 4px var(--accent-tint); transform: translate(-50%, -50%); }

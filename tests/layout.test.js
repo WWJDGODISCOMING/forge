@@ -2288,8 +2288,16 @@ if (standalone && (!only || only.includes('train'))) {
           const gb = q(card.querySelector('.bp-gridbox'));
           const spillOk = (${ts} >= 1.6 || (${ts} >= 1.3 && innerWidth <= 320)) && yb.left >= gb.left - 0.5 && yb.right <= gb.right + 0.5 && yb.top >= gb.top - 0.5 && yb.bottom <= gb.bottom + 0.5;
           if (!ce || (!spillOk && (yb.left < ce.left - 0.5 || yb.right > ce.right + 0.5 || yb.top < ce.top - 0.5 || yb.bottom > ce.bottom + 0.5))) overlaps.push('outside its cell');
+          // the label ignores taps in the app, so let it be hit-tested here to prove nothing is drawn over it
+          yl.style.pointerEvents = 'auto';
           const top = document.elementFromPoint((yb.left + yb.right) / 2, (yb.top + yb.bottom) / 2);
+          yl.style.pointerEvents = '';
           if (top !== yl) overlaps.push('covered by ' + (top ? top.tagName + '.' + top.className : 'nothing'));
+          if (getComputedStyle(yl).pointerEvents !== 'none') overlaps.push('label takes taps');
+          const gx = (g.left + g.right) / 2; const gy = (g.top + g.bottom) / 2;
+          const dx = (yb.left + yb.right) / 2 - gx; const dy = (yb.top + yb.bottom) / 2 - gy; const dd = Math.hypot(dx, dy) || 1;
+          const tapEl = document.elementFromPoint(gx + dx / dd * 15, gy + dy / dd * 15);
+          if (!tapEl || tapEl.closest('[data-bp-last]') !== b) overlaps.push('Last week tap area stolen by ' + (tapEl ? tapEl.tagName + '.' + tapEl.className : 'nothing'));
           if (yb.left < 0 || yb.right > innerWidth) overlaps.push('off screen');
           for (const tr of card.querySelectorAll('.bp-trail')) if (hit(q(tr), yb)) overlaps.push('trail dot');
           if (a) {
