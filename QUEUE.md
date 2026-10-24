@@ -269,7 +269,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 22. #192 Workout player: show all sets up front, each editable
 - Issue: #192
 - Version: 0.16.64
-- Status: todo
+- Status: in-review
 - Acceptance:
   - All sets visible and editable, add set, current highlighted, RIR kept; tests.
   - Duo-ready, palette/depth tokens.

@@ -3,7 +3,7 @@
 // Supersets alternate (A1 → A2 → rest). Timed sets count in and finish themselves. Boxing rounds call combos.
 import { state } from '../state.js';
 import { esc, $, $$, toast } from '../ui.js';
-import { live, syncLive, save, completeSet, undoSet, elapsed, paused, checkAway, describeStep, upNext, flush } from '../workouts/live.js';
+import { live, syncLive, save, completeSet, editDoneSetLive, undoSet, elapsed, paused, checkAway, describeStep, upNext, flush } from '../workouts/live.js';
 import { buildQueue, nextOpenStep, setLabel, supersetTag } from '../workouts/session-core.js';
 import { exerciseById } from '../workouts/library.js';
 import { historyIndex, unit } from '../workouts/plan.js';
@@ -22,6 +22,7 @@ import { openHowTo } from './session.js';
 import { COMBOS } from './timer.js';
 import { icon } from '../ui/icons.js';
 import { checkSvg } from '../ui/checkdraw.js';
+import { setRows, setValues, addSet, editSet } from '../workouts/setlist.js';
 import { shouldAskEffort, setEffort, EFFORT_CHOICES, effortLabel } from '../workouts/effort.js';
 
 const BOXING = new Set(['shadowboxing', 'heavy_bag_rounds', 'db_shadowboxing', 'boxing_footwork', 'slip_and_roll']);
@@ -250,9 +251,7 @@ function drawSet(el) {
 
   if (!draft || draft.key !== `${i}:${j}`) {
     // Prefill: what's logged → the plan → the last set you did of this exercise (so set 2 starts where set 1 ended).
-    const before = it.sets.slice(0, j).filter((x) => x.done && !x.warmup === !s.warmup).pop() || it.sets.slice(0, j).filter((x) => x.done).pop();
-    const kg = s.weight_kg ?? s.plan_weight_kg ?? (before ? before.weight_kg : null);
-    const reps = s.reps ?? s.plan_reps ?? (before ? before.reps : null) ?? ex.reps[1];
+    const { kg, reps } = setValues(it, j, ex.reps[1]);
     draft = { key: `${i}:${j}`, weight: kg != null ? round1(toUnit(kg, u)) : null, reps, rir: s.rir ?? null };
     // Still no weight on a loaded lift: start at the empty bar, or the dumbbell/kettlebell you last used
     // today (else your lightest one). Machines and cables wait for a tap on "Set weight".
@@ -309,6 +308,7 @@ function drawSet(el) {
         ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv>${draft.weight ?? '—'}</b><small>${u}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
         <div class="stepper"><button data-r="-1" aria-label="${isTimed ? 'Fewer seconds' : 'Fewer reps'}">−</button><div><b data-rv>${draft.reps}</b><small>${isTimed ? 'sec' : 'reps'}</small></div><button data-r="1" aria-label="${isTimed ? 'More seconds' : 'More reps'}">+</button></div>
       </div>
+      <div class="pl-setbox" data-setlist>${setListHtml(it, j, ex, u, showWeight, isTimed)}</div>
       ${it.note && REASON_RE.test(it.note) && lbl.n === 1 && !s.warmup ? `<p class="pl-reason">${esc(it.note)}</p>` : ''}
       <p class="pl-last">${prevSet ? `Last time: ${prevSet.weight ? `${prevSet.weight} ${u} × ` : ''}${prevSet.reps}${isTimed ? 's' : ''}` : it.note ? esc(it.note) : '&nbsp;'}</p>
 
@@ -350,6 +350,47 @@ function drawSet(el) {
     openPaused(() => { if (timed) resumeTimed(el); renderPlayer(el); });
   };
 
+  const paintList = () => {
+    const box = $('[data-setlist]', el);
+    if (box) { box.innerHTML = setListHtml(it, j, ex, u, showWeight, isTimed); wireList(); }
+  };
+  const wireList = () => {
+    $$('[data-setrow]', el).forEach((b) => b.addEventListener('click', () => {
+      const n = Number(b.dataset.setrow);
+      if (n === j) return;
+      haptics.select();
+      const st = q.findIndex((x) => x.i === i && x.j === n);
+      if (st >= 0) go(el, st, st > k ? 'push' : 'pop');
+    }));
+    const add = $('[data-addset]', el);
+    if (add) add.addEventListener('click', () => {
+      haptics.select();
+      addSet(it);
+      save();
+      toast('Set added.');
+      drawSet(el);
+    });
+    const cur = $('.pl-set.current', el);
+    if (cur && cur.scrollIntoView) cur.scrollIntoView({ block: 'nearest' });
+  };
+  wireList();
+  const persist = () => {
+    const edit = { kg: draft.weight != null ? fromUnit(draft.weight, u) : undefined, reps: draft.reps };
+    if (s.done) {
+      const res = editDoneSetLive(i, j, edit);
+      if (!res.ok) { // not saved: say why and show what the set really has
+        toast(res.error);
+        draft = null;
+        drawSet(el);
+        return;
+      }
+    } else {
+      editSet(it, j, edit);
+      save();
+    }
+    paintList();
+  };
+
   const sync = () => {
     const hr = $('[data-hero-n]', el);
     if (hr) hr.textContent = draft.reps;
@@ -371,20 +412,24 @@ function drawSet(el) {
   $$('[data-w]', el).forEach((b) => b.addEventListener('click', () => {
     draft.weight = stepWeight(ex, draft.weight, Number(b.dataset.w));
     sync();
+    persist();
   }));
   const setW = $('[data-hero-w]', el);
   if (setW) setW.addEventListener('click', () => {
     if (draft.weight != null) return;
     draft.weight = stepWeight(ex, null, 1);
     sync();
+    persist();
   });
   $$('[data-r]', el).forEach((b) => b.addEventListener('click', () => {
     const d = Number(b.dataset.r) * (isTimed ? 5 : 1);
     draft.reps = Math.max(1, (draft.reps || 0) + d);
     sync();
+    persist();
   }));
   $$('[data-rir]', el).forEach((b) => b.addEventListener('click', () => {
     draft.rir = b.dataset.rir === 'null' ? null : Number(b.dataset.rir);
+    if (s.done) { s.rir = draft.rir; save(); paintList(); }
     $$('[data-rir]', el).forEach((x) => {
       const on = x === b;
       x.classList.toggle('on', on);
@@ -424,6 +469,20 @@ function drawSet(el) {
   };
 
   if (isLastSet && lbl.of > 1 && !s.done) coach.lastSet();
+}
+
+/** Every set of this exercise as a row: check when done, the current one lit, the rest prefilled and tappable. */
+function setListHtml(it, j, ex, u, showWeight, isTimed) {
+  const rows = setRows(it, j, ex.reps[1]).map((r) => {
+    const amount = isTimed ? `${r.reps ?? '–'} s` : `${r.reps ?? '–'} reps`;
+    const load = showWeight ? `${r.kg != null ? `${round1(toUnit(r.kg, u))} ${u}` : `– ${u}`} × ` : '';
+    const rir = r.state === 'done' && r.rir != null ? `<small class="pl-set-rir">${r.rir >= 4 ? '4+' : r.rir} left</small>` : '';
+    const name = r.warmup ? `Warm-up ${r.label.slice(1)}` : `Set ${r.label}`;
+    return `<div role="listitem" class="pl-li"><button class="pl-set ${r.state}" data-setrow="${r.j}" ${r.state === 'current' ? 'aria-current="step"' : ''} aria-label="${name}, ${load}${amount}${r.state === 'done' ? ', done' : ''}">
+      <span class="pl-set-n">${r.state === 'done' ? icon('check', { size: 16 }) : r.label}</span><span class="pl-set-v">${load}<b>${amount}</b></span>${rir}</button></div>`;
+  }).join('');
+  // Add set sits outside the scrolling list, so it is always in view.
+  return `<div class="pl-sets" role="list" aria-label="All sets">${rows}</div><button class="pl-set add" data-addset aria-label="Add set"><span class="pl-set-n">+</span><span class="pl-set-v">Add set</span></button>`;
 }
 
 function go(el, to, kind) {
