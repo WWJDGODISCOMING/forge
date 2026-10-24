@@ -299,5 +299,14 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Duration and location chips regenerate today's workout; joint-aware.
   - Duo-ready, haptics, tests.
 
+## 26. #203 Past days: each day's missions
+- Issue: #203
+- Version: 0.16.68
+- Status: todo
+- Acceptance:
+  - Tap any day (Awards week strip or Past days list) to see that day's missions with real values: weigh-in, steps, calories vs ceiling, protein, workouts.
+  - Prev/next day, calm empty state, read-only, works with AI off.
+  - Duo-ready, large text, tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
