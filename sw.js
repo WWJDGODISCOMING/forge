@@ -93,6 +93,7 @@ const SHELL = [
   './js/workouts/focus.js',
   './js/workouts/effort.js',
   './js/workouts/energy.js',
+  './js/workouts/totals.js',
   './js/workouts/live-core.js',
   './js/ui/focus-chips.js',
   './js/ui/protect-joints.js',

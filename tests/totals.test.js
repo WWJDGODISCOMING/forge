@@ -53,7 +53,7 @@ test('totals: delta text and tone', () => {
   eq(deltaText(80, 100).tone, 'down');
   eq(deltaText(5, 5).tone, 'same');
   eq(deltaText(5, null), null);
-  eq(deltaText(95, 60, fmtHold).text, '+0:35 vs last');
+  eq(deltaText(95, 60, fmtHold).text, '+35 s vs last');
 });
 
 test('totals: hold time formatting and set lines', () => {
