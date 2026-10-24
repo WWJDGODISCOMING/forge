@@ -261,7 +261,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 21. #191 Workout summary: totals (volume, reps, time under tension)
 - Issue: #191
 - Version: 0.16.63
-- Status: in-review
+- Status: done (PR #204)
 - Acceptance:
   - Stat row (calories, volume, reps, hold time) with vs-last-time; per-set lines; in share image; tests.
   - Duo-ready, palette/depth tokens.
