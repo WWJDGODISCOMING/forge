@@ -153,6 +153,15 @@ const FULLSCREEN = new Set(['play', 'summary', 'profile', 'live']);
 const routeParts = () => (location.hash.replace(/^#\/?/, '').split('?')[0] || 'today').split('/');
 const currentRoute = () => routeParts()[0];
 const allLoaded = () => LOADED_KEYS.every((k) => state.loaded[k]);
+// Coming back to the app, the skeleton waits for every collection. A returning user gets the real screen once their
+// profile and settings are in and the skeleton has had a moment (later snapshots redraw it), so it never sits there.
+const SKELETON_MAX_MS = 500;
+let skeletonSince = 0;
+let skeletonTimer = null;
+// The early draw is read-only: only the two tab roots that read happily from partial data, and `state.partial` tells the
+// parts that remember or save things (missions seen, badges, celebrations) to wait for the full data and the redraw that follows.
+const EARLY_ROUTES = new Set(['today', 'train']);
+const mayDrawEarly = () => !!(seenBefore() && EARLY_ROUTES.has(currentRoute()) && state.loaded.profile && state.loaded.settings && state.profile && skeletonSince && Date.now() - skeletonSince >= SKELETON_MAX_MS);
 
 let pendingRender = false;
 let lastRoute = null;
@@ -266,7 +275,9 @@ async function renderScreen() {
     main.querySelector('[data-retry]').onclick = () => location.reload();
     return;
   }
-  if (state.user === undefined || (state.user && !allLoaded())) {
+  if (state.user === undefined || (state.user && !allLoaded() && !mayDrawEarly())) {
+    if (!skeletonSince) skeletonSince = Date.now();
+    if (!skeletonTimer) skeletonTimer = setTimeout(() => { skeletonTimer = null; renderScreen(); }, SKELETON_MAX_MS + 20);
     // A skeleton of the screen that's about to appear, never a spinner. Tab bar shows if you've been here before.
     nav.hidden = !seenBefore() || FULLSCREEN.has(currentRoute());
     hideNavBar();
@@ -277,6 +288,7 @@ async function renderScreen() {
     return;
   }
   skeletonFor = null;
+  skeletonSince = 0;
   if (!state.user) {
     markSeen(false);
     nav.hidden = true;
@@ -386,6 +398,14 @@ function autoHealth({ force = false } = {}) {
 }
 // Coming back to the front always re-reads today's burned calories (resting + active), past the 3 minute wait.
 if (isNative()) import('./native/autoread.js').then((m) => m.watchForeground(document, () => autoHealth({ force: true })));
+// A live workout the phone still holds but Forge has lost (a native end that timed out, cleared storage) is ended on launch and on every return to the front.
+if (isNative()) {
+  import('./native/live-workout.js').then((m) => {
+    m.restore();
+    m.reconcile();
+    return import('./native/autoread.js').then((a) => a.watchForeground(document, () => m.refresh()));
+  }).catch(() => {});
+}
 // ...and a cheap re-read of today's steps and energy about every 5 minutes while Today or Food is showing (js/screens/apple.js refreshToday).
 if (isNative()) setInterval(() => { if (document.visibilityState === 'visible' && ['today', 'food'].includes(currentRoute()) && allLoaded() && state.user) import('./screens/apple.js').then((m) => m.refreshToday()).catch(() => {}); }, 5 * 60 * 1000);
 

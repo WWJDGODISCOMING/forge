@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.16.59 — Live workouts that actually end (2026-10-23)
+
+No Cloud Functions or `firestore.rules` changes. Swift changed (`ForgeLiveWorkout.swift`), so this needs a native rebuild to get the phone-side part; the web part works without it.
+
+### What's new
+
+- A slow End can no longer be ended twice or saved twice.
+- Discard and End stop a live workout for good.
+- End always opens its sheet, and Discard asks inside it.
+- Start workout says if a live workout is still running.
+- Today shows up sooner when you reopen the app.
+- Jog in place, Walk and Run all end the same way. If your iPhone is slow to answer, End still finishes within a few seconds.
+- If the iPhone is still running a workout that Forge lost track of, Forge now stops it when you open the app.
+- "A live workout is running" tells you whether the workout will be saved (a minute or more) or thrown away.
+
 ## 0.16.58 — Where you were last week (2026-10-23)
 
 No Cloud Functions or `firestore.rules` changes. No native rebuild.

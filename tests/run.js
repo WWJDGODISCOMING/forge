@@ -102,6 +102,8 @@ import './v01638.test.js';
 import './v01640.test.js';
 import './v01647.test.js';
 import './v01658.test.js';
+import './v01659.test.js';
+import './v01659-live.test.js';
 import './layout.test.js';
 import { VERSION } from '../js/version.js';
 

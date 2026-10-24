@@ -36,12 +36,16 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
 
     init(store: HKHealthStore) { self.store = store }
 
-    var isRunning: Bool { session != nil }
+    // Set the moment end() starts and cleared by cleanup(): while an end is in flight the workout is not "running", so a
+    // second endLive (or the JS reconcile) resolves [:] instead of ending the same builder twice.
+    private var ending = false
+
+    var isRunning: Bool { session != nil && !ending }
 
     // MARK: start
 
     func start(id: String, type: HKWorkoutActivityType, indoor: Bool, start: Date, weightKg: Double, title: String, showsDistance: Bool, useMiles: Bool) async throws -> Bool {
-        if session != nil { throw NSError(domain: "Forge", code: 1, userInfo: [NSLocalizedDescriptionKey: "A workout is already running."]) }
+        if session != nil || ending { throw NSError(domain: "Forge", code: 1, userInfo: [NSLocalizedDescriptionKey: "A workout is already running."]) }
         let config = HKWorkoutConfiguration()
         config.activityType = type
         config.locationType = indoor ? .indoor : .outdoor
@@ -102,7 +106,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     func snapshot() -> [String: Any] {
         let s = stats()
         let p = pauseInfo()
-        var out: [String: Any] = ["paused": paused, "at": ms(Date()), "kcal": s.kcal, "distanceM": s.meters, "elapsed": s.elapsed * 1000, "pauses": p.list]
+        var out: [String: Any] = ["id": id, "paused": paused, "at": ms(Date()), "kcal": s.kcal, "distanceM": s.meters, "elapsed": s.elapsed * 1000, "pauses": p.list]
         if let hr = s.hr { out["hr"] = hr }
         if let o = p.open { out["pausedAt"] = o }
         return out
@@ -140,7 +144,8 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
 
     /// Ends the session. save == false throws the workout away. Returns what to put on the Forge row.
     func end(save: Bool, fallbackKcal: Double, endDate: Date) async throws -> [String: Any] {
-        guard let session = session, let builder = builder else { return [:] }
+        guard !ending, let session = session, let builder = builder else { return [:] }
+        ending = true
         defer { cleanup() }
         session.end()
         let closed = pauseInfo(closeAt: endDate).list
@@ -183,7 +188,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     private func cleanup() {
         endActivity()
         ForgeLiveBridge.togglePause = nil
-        session = nil; builder = nil; paused = false
+        session = nil; builder = nil; paused = false; ending = false
         pauseLock.lock(); pauseStart = nil; pauseLog = []; pauseLock.unlock()
     }
 

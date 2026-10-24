@@ -3,7 +3,7 @@ import { esc } from '../ui.js';
 import { icon } from '../ui/icons.js';
 import { checkSvg } from '../ui/checkdraw.js';
 import { badgeSVG } from '../ui/badges.js';
-import { units as getUnits } from '../state.js';
+import { state, units as getUnits } from '../state.js';
 import { rememberBadges } from '../workouts/awards-store.js';
 import { celebrateMissions } from './celebrate.js';
 import { todayMissions, seenToday, weekProgress, unseenMissionBadges, MISSION_XP } from './store.js';
@@ -41,6 +41,7 @@ export function missionsCard() {
 
 /** After Today renders: celebrate what is new. */
 export function afterMissionsRender() {
+  if (state.partial) return; // drawn from partial data: nothing is celebrated or marked seen until everything has loaded and Today redraws
   celebrateMissions(); // marks missions seen itself, once the card has really been shown
 }
 
@@ -73,6 +74,7 @@ const shone = new Set();
 
 /** A small card per newly earned weigh-in streak or body-comp badge: art, name, +100 XP and a link to Awards. */
 export function badgeCelebrationCards() {
+  if (state.partial) return '';
   for (const b of unseenMissionBadges()) shown.set(b.id, b);
   const units = getUnits();
   return [...shown.values()].map((b) => {
@@ -91,6 +93,7 @@ export function badgeCelebrationCards() {
  * shine isn't cut off by the re-render), or when it's dismissed or "See awards" is tapped. Never before it was seen.
  */
 export function afterBadgeCelebrations(el) {
+  if (state.partial) return;
   const remember = (id) => {
     const fresh = unseenMissionBadges().filter((b) => b.id === id);
     if (fresh.length) rememberBadges(fresh);
