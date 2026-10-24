@@ -4,6 +4,7 @@ import { myBodyMeasures } from '../derived.js';
 import { state, units as getUnits } from '../state.js';
 import { $, todayKey } from '../ui.js';
 import { topInsights, dismissInsight, intel, currentGoalPath, currentEnergy, currentBodyProfile } from '../health/intel.js';
+import { goalDateButtonHtml, bindGoalDateButton } from './goaldate-ui.js';
 import { insightCardsHtml, bindInsightCards, goalPathHtml, bodyProfileHtml, bindBodyProfile } from '../health/cards.js';
 import { currentRecovery, historyIndex } from '../workouts/plan.js';
 import { freshCount, recoverySubtitle } from '../workouts/recovery.js';
@@ -67,7 +68,7 @@ function insightCards() {
 /** Goal path for the Body tab (also used on the weight screen). */
 export function goalPathCard() {
   const goalKg = state.profile && state.profile.targetWeightKg;
-  return goalPathHtml(currentGoalPath(), currentEnergy(), { series: intel().weights, today: todayKey(), goalKg, units: getUnits() });
+  return goalPathHtml(currentGoalPath(), currentEnergy(), { series: intel().weights, today: todayKey(), goalKg, units: getUnits(), extra: goalDateButtonHtml() });
 }
 
 export function renderBody(el) {
@@ -103,6 +104,7 @@ export function renderBody(el) {
   bindInsightCards(el, dismissInsight);
   bindBodyProfile(el);
   bindProgramsCard(el);
+  bindGoalDateButton(el);
   bindWeight(el, () => renderBody(el));
   import('../photos/cards.js').then((m) => m.mountBodyPhotosCard($('[data-photos-slot]', el)));
 }

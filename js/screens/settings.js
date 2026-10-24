@@ -6,8 +6,10 @@ import { photoStatus, downloadAllPhotos } from '../ui/photos.js';
 import { patch, deleteAllUserData, clearLocalCache } from '../db.js';
 import { signOut, deleteAccount, authErrorMessage } from '../auth.js';
 import { exportJSON, exportWeightsCSV, exportWorkoutsCSV, exportCardioCSV, exportBodyCSV, exportFoodCSV } from '../export.js';
-import { esc, $, $$, sheet, toast, confirmSheet } from '../ui.js';
-import { formatHeight, formatWeight } from '../units.js';
+import { esc, $, $$, sheet, toast, confirmSheet, todayKey } from '../ui.js';
+import { formatHeight, formatWeight, weightToDisplay, weightFromInput, weightUnit } from '../units.js';
+import { goalDateSettings } from '../nutrition/goaldate.js';
+import { addDays } from '../weight/smoothing.js';
 import { GOALS } from '../nutrition/targets.js';
 import { VERSION } from '../version.js';
 import { unlockAudio, coach, sfx, beep } from '../ui/sound.js';
@@ -47,6 +49,7 @@ export function renderSettings(el) {
   const coachMode = st.audio_coach || 'voice';
   const sfxOn = st.sfx !== false;
   const hapOn = st.haptics !== false;
+  const gd = goalDateSettings(st);
   const hapSupport = hapticSupport();
   const ms = missionSettings();
   const nav = (href, ic, title, sub, attrs = '') => `
@@ -63,6 +66,11 @@ export function renderSettings(el) {
       <div class="group" data-tour="settings-profile">
         <a class="g-row" href="#/profile"><span class="g-ic">${icon('person')}</span><span class="g-text"><span>${esc(GOALS[p.goal]?.label || 'Profile')}</span><small>${esc(p.age)} yrs · ${formatHeight(p.heightCm, u)}${p.targetWeightKg ? ` · goal ${formatWeight(p.targetWeightKg, u, 0)}` : ''}</small></span><span class="chev">${icon('chev')}</span></a>
         <button type="button" class="g-row" data-protein-goal><span class="g-ic">${icon('food')}</span><span class="g-text"><span>Protein goal</span><small>${esc(proteinSummary())}</small></span><span class="chev">${icon('chev')}</span></button>
+        <label class="g-row sw"><span class="g-text"><span>Goal date</span><small>Pick when you want to reach your goal weight. Forge shows a small calorie hint under your ceiling and a Goal path chart. Your ceiling never changes on its own.</small></span><input type="checkbox" switch name="goaldate" ${gd.on ? 'checked' : ''}></label>
+        <div class="g-row col static goal-date-fields" data-goal-date-fields ${gd.on ? '' : 'hidden'}>
+          <label class="field"><span>Goal date</span><input type="date" name="goaldate_day" value="${esc(gd.day || '')}" min="${esc(addDays(todayKey(), 1))}"></label>
+          <label class="field"><span>Goal weight (${weightUnit(u)})</span><input type="number" inputmode="decimal" step="0.1" name="goaldate_kg" value="${p.targetWeightKg ? weightToDisplay(p.targetWeightKg, u).toFixed(1) : ''}"></label>
+        </div>
         <button type="button" class="g-row" data-food-prefs><span class="g-ic">${icon('food')}</span><span class="g-text"><span>Food preferences</span><small>${esc(prefsSummary())}</small></span><span class="chev">${icon('chev')}</span></button>
         <label class="g-row sw"><span class="g-text"><span>Ask Forge AI</span><small>Sends your question, the food, today’s calories and protein (eaten, goals and calories burned) and your food preferences to xAI for a friendlier answer. Off: answered from your numbers. Forge may look up the food’s calories (food name only).</small></span><input type="checkbox" switch name="askai" ${st.ask_ai === true ? 'checked' : ''}></label>
         <label class="g-row sw"><span class="g-text"><span>Meal plan AI</span><small>Sends your food preferences to xAI to personalize your meal plan.</small></span><input type="checkbox" switch name="mealai" ${st.meal_ai === true ? 'checked' : ''}></label>
@@ -205,6 +213,18 @@ export function renderSettings(el) {
   });
   $('input[name=askai]', el).addEventListener('change', (e) => { patch('settings', 'main', { ask_ai: e.target.checked }); haptics.select(); });
   $('input[name=mealai]', el).addEventListener('change', (e) => { patch('settings', 'main', { meal_ai: e.target.checked }); haptics.select(); });
+  $('input[name=goaldate]', el).addEventListener('change', (e) => {
+    patch('settings', 'main', { goal_date_on: e.target.checked });
+    $('[data-goal-date-fields]', el).hidden = !e.target.checked;
+    haptics.select();
+  });
+  $('input[name=goaldate_day]', el).addEventListener('change', (e) => {
+    if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { patch('settings', 'main', { goal_date: e.target.value }); haptics.select(); }
+  });
+  $('input[name=goaldate_kg]', el).addEventListener('change', (e) => {
+    const kg = weightFromInput(e.target.value, getUnits());
+    if (Number.isFinite(kg) && kg >= 30 && kg <= 350 && state.profile) { patch('profile', 'main', { targetWeightKg: kg }); haptics.select(); }
+  });
   bindProtect($('.protect-set', el), () => { $('[data-protect-sub]', el).innerHTML = `${esc(protectSummary())}. For pain that lasts longer than a day. Swaps in easier moves for the same muscles. ${esc(SAFETY_LINE)}`; });
   $('input[name=ratesets]', el).addEventListener('change', (e) => localStorage.setItem('forge.rateSets', e.target.checked ? '1' : '0'));
   $('input[name=haptics]', el).addEventListener('change', (e) => patch('settings', 'main', { haptics: e.target.checked }));

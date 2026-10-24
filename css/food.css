@@ -137,6 +137,10 @@
 .food-row-compact .btn.small { flex: none; margin: 0; min-height: 44px; }
 .food-row-compact .food-card-kcal > b { white-space: nowrap; }
 .balance-deficit { margin: 0; }
+.goal-date-line { margin: 0; }
+.gd-ahead, .gd-on { color: var(--good); }
+.goal-date-fields { gap: 10px; }
+.goal-date-fields[hidden] { display: none; }
 .balance-deficit .balance-net { font-size: inherit; font-weight: 600; }
 .food-row-compact .nb { display: inline-block; max-width: 100%; white-space: normal; overflow-wrap: break-word; }
 .food-row-compact .fl-plus { display: none; font-size: calc(28px * var(--ts)); line-height: 1; font-weight: 700; }
