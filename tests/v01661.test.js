@@ -7,7 +7,8 @@ const src = readFileSync(new URL('../ios/App/ForgeLiveActivity/ForgeLiveActivity
 
 test('Live Activity adds the small supplemental family, guarded for iOS 18', () => {
   assert(src.includes('.supplementalActivityFamilies([.small])'), 'declares .small');
-  assert(/if #available\(iOS 18\.0, \*\) \{\s*self\.supplementalActivityFamilies/.test(src), 'modifier guarded');
+  assert(/if #available\(iOS 18\.0, iOSApplicationExtension 18\.0, \*\) \{\s*return self\.supplementalActivityFamilies/.test(src), 'modifier guarded');
+  assert(!/@WidgetConfigurationBuilder\s*func withSmallFamily/.test(src), 'withSmallFamily is not a result builder');
   assert(src.includes('.withSmallFamily()'), 'applied to the configuration');
 });
 

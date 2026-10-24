@@ -133,12 +133,11 @@ struct MediumLiveView: View {
 
 // supplementalActivityFamilies needs iOS 18; the extension still deploys to iOS 17.
 extension WidgetConfiguration {
-    @WidgetConfigurationBuilder
     func withSmallFamily() -> some WidgetConfiguration {
-        if #available(iOS 18.0, *) {
-            self.supplementalActivityFamilies([.small])
+        if #available(iOS 18.0, iOSApplicationExtension 18.0, *) {
+            return self.supplementalActivityFamilies([.small])
         } else {
-            self
+            return self
         }
     }
 }
