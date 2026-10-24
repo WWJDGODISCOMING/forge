@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.16.64 — All sets up front in the player (2026-10-24)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- The workout player lists every set up front, with reps and weight.
+- The current set is lit, done sets get a check, the rest are prefilled.
+- Tap any row to jump to that set; the steppers change it, and the change sticks.
+- "Add set" row at the end of the list.
+- The big rep counter and the reps-left chips stay for the current set.
+- Changing a finished set checks the numbers like Done set does, and updates your records (raise it for a PR, lower it and the PR goes).
+- "Add set" always shows above the Done set bar.
+- On short screens (Duo folded sideways) every set is a small numbered chip in one row.
+- VoiceOver reads each set row as a button in a list.
+
 ## 0.16.63 — Workout summary totals (2026-10-24)
 
 No Cloud Functions or `firestore.rules` changes.

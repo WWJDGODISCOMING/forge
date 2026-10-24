@@ -528,3 +528,29 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .why-head[aria-expanded="true"] .why-chev { transform: rotate(90deg); }
 .why-body { padding: 0 var(--s-4) var(--s-4); }
 @media (prefers-reduced-motion: reduce) { .why-chev { transition: none; } }
+
+/* All sets up front : a compact, scrollable list under the steppers. */
+.pl-setbox { display: flex; flex-direction: column; gap: 4px; }
+.pl-sets { display: flex; flex-direction: column; gap: 4px; max-height: 140px; overflow-y: auto; overscroll-behavior: contain; }
+.pl-li { display: block; }
+.pl-li > .pl-set { width: 100%; }
+.pl-set { display: flex; align-items: center; gap: 10px; min-height: 44px; padding: 4px 12px; border: 0; border-radius: 12px; background: var(--surface); color: var(--text); font: 600 calc(15px * var(--ts)) var(--font); text-align: left; cursor: pointer; }
+.pl-set-n { flex: none; width: 28px; text-align: center; font: 800 calc(15px * var(--ts)) var(--num); color: var(--text-2); display: grid; place-items: center; }
+.pl-set-v { flex: 1; min-width: 0; font-variant-numeric: tabular-nums; }
+.pl-set-v b { font-weight: 800; }
+.pl-set-rir { flex: none; color: var(--text-2); font-size: calc(12px * var(--ts)); font-weight: 700; }
+.pl-set.current { background: var(--surface-2); box-shadow: inset 0 0 0 2px var(--volt); }
+.pl-set.current .pl-set-n { color: var(--text); }
+.pl-set.done { background: transparent; }
+.pl-set.done .pl-set-n { color: var(--accent-text); }
+.pl-set.add { background: transparent; color: var(--text-2); box-shadow: inset 0 0 0 1px var(--surface-2); }
+@media (max-height: 900px) { .pl-sets { max-height: 100px; } } /* two rows and a half: the half row says it scrolls, and Add set stays above the dock */
+/* Short landscape / very short phones: every set as a compact numbered chip in one row (check when done, current lit, + Add), scrolling sideways if needed. */
+@media (max-height: 600px) {
+  .pl-setbox { flex-direction: row; align-items: center; gap: 6px; }
+  .pl-sets { flex: 1; min-width: 0; flex-direction: row; flex-wrap: nowrap; gap: 6px; max-height: none; overflow-x: auto; overflow-y: hidden; padding: 2px; }
+  .pl-li { flex: none; }
+  .pl-set { flex: none; width: 44px; justify-content: center; padding: 0; white-space: nowrap; }
+  .pl-li > .pl-set { width: 44px; }
+  .pl-set .pl-set-v, .pl-set .pl-set-rir { display: none; }
+}

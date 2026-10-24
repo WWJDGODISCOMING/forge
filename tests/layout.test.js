@@ -363,6 +363,30 @@ if (standalone) {
       assert(got.small === 0 && got.hidden === 0 && got.overlap === 0 && got.doneBottom <= got.vh + 0.5, `rating row at ${tag}: ${JSON.stringify(got)}`);
     }
   });
+  test('layout: player set list: Add set is always in view above the dock; short screens show every set as a one-row chip', async () => {
+    if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+    browser = browser || await launch();
+    const probe = "(() => { const a = document.querySelector('[data-addset]'), d = document.querySelector('.pl-dock'); if (!a || !d) return null; const r = a.getBoundingClientRect(), dr = d.getBoundingClientRect(); const rows = [...document.querySelectorAll('[data-setrow]')].map((e) => { const q = e.getBoundingClientRect(); return { t: Math.round(q.top), l: q.left, r: q.right, h: q.height, w: q.width }; }); return { add: { t: r.top, b: r.bottom, l: r.left, r: r.right, h: r.height }, dockTop: dr.top, rows, vw: innerWidth, vh: innerHeight, lines: [...document.querySelectorAll('.pl-set')].filter((e) => e.getBoundingClientRect().height > 60).length }; })()";
+    for (const [w, h] of [[390, 844], [375, 667], [626, 890]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('play', seed({ active: true }));
+      const g = await browser.eval(probe);
+      const at = `${w}x${h}`;
+      assert(g && g.rows.length >= 2, `set rows missing at ${at}`);
+      assert(g.add.t >= 0 && g.add.b <= g.vh + 0.5 && g.add.l >= 0 && g.add.r <= g.vw + 0.5, `Add set is outside the viewport at ${at}: ${JSON.stringify(g.add)}`);
+      assert(g.add.b <= g.dockTop + 0.5, `Add set sits under the Done set bar at ${at}: ${Math.round(g.add.b)} > ${Math.round(g.dockTop)}`);
+    }
+    for (const [w, h] of [[678, 466], [932, 430], [844, 390]]) {
+      await browser.viewport(w, h, true);
+      await browser.open('play', seed({ active: true }));
+      const g = await browser.eval(probe);
+      const at = `${w}x${h}`;
+      assert(g && g.rows.length >= 2, `set rows missing at ${at}`);
+      assert(g.lines === 0, `a set chip wraps at ${at}`);
+      assert(new Set(g.rows.map((x) => x.t)).size === 1, `the set chips are not in one row at ${at}: ${JSON.stringify(g.rows)}`);
+      assert(g.rows.every((x) => x.w > 0 && x.l >= 0 && x.r <= g.vw + 0.5 && x.h >= 43.5), `a set chip is hidden or too small at ${at}: ${JSON.stringify(g.rows)}`);
+    }
+  });
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {
     if (skipReason()) return;
     browser = browser || await launch();

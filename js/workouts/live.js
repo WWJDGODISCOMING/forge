@@ -8,6 +8,7 @@ import { exerciseById } from './library.js';
 
 import { elapsedMs, isPaused, pauseFields, resumeFields, awayGapMs, removeAwayFields } from './clock.js';
 import { buildQueue, restAfter, restDefaultSec, validateSet, exerciseComplete, setLabel, exercisePRs, replacePRs } from './session-core.js';
+import { editDoneSet } from './setlist.js';
 import { toUnit } from './progression.js';
 import { startRest, stopRest, pauseRest, resumeRest, pauseAwake, resumeAwake } from '../timer.js';
 
@@ -184,6 +185,16 @@ export function undoSet(i, j) {
   if (ex) w.prs = replacePRs(w.prs, ex.id, exercisePRs(ex, it, historyIndex().historyFor(ex.id), unit()));
   stopRest();
   save();
+}
+
+/** Change the weight or reps of a finished set (validated, PRs recomputed). Returns { ok:false, error } or { ok:true }. */
+export function editDoneSetLive(i, j, edit) {
+  const w = live.w;
+  const it = w.exercises[i];
+  const ex = exerciseById(it.exercise_id) || {};
+  const res = editDoneSet(w, it, ex, j, edit, historyIndex().historyFor(ex.id), unit());
+  if (res.ok) save();
+  return res;
 }
 
 /** Finish: saves status done, finished_at and the pause-free duration. Returns the workout id. */
