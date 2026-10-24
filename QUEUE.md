@@ -223,7 +223,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 18c. #197 Body profile: You dot covers its 'You' label at large text sizes
 - Issue: #197
 - Version: 0.16.60
-- Status: todo
+- Status: in-review
 - Acceptance:
   - You dot stays clear of its 'You' label at all text sizes, including large text (review comment on PR #189).
   - No-overlap layout assert (dot bounds never intersect label bounds), tested at large text.

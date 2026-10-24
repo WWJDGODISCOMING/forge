@@ -2241,13 +2241,15 @@ if (standalone && (!only || only.includes('train'))) {
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const bad = [];
-    const cases = [[320, 568, true, 1], [320, 568, true, 1.3], [390, 844, true, 1], [390, 844, false, 1], [390, 844, true, 1.3], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1]];
-    for (const [w, h, dark, ts] of cases) {
+    const cases = [[320, 568, true, 1], [320, 568, true, 1.3], [320, 568, true, 1.6], [390, 844, true, 1], [390, 844, false, 1], [390, 844, true, 1.3], [390, 844, true, 1.6], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1]].map((c) => [...c, true]);
+    // Last week in a different cell from You (the cases above have both in one cell, last week above the dot)
+    for (const c of [[320, 568, true, 1], [320, 568, true, 1.6], [390, 844, true, 1.3], [390, 844, false, 1.6], [678, 466, true, 1]]) cases.push([...c, 'far']);
+    for (const [w, h, dark, ts, comp] of cases) {
       await browser.viewport(w, h, dark);
-      await browser.open('body', seed({ comp: true }));
+      await browser.open('body', seed({ comp }));
       if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
-      await browser.eval("document.querySelector('[data-bodyprofile]') && document.querySelector('[data-bodyprofile]').scrollIntoView({ block: 'center', behavior: 'instant' })"); await wait(300);
-      const tag = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? 'T' : ''}`;
+      await browser.eval("document.querySelector('[data-bodyprofile] .bp-grid') && document.querySelector('[data-bodyprofile] .bp-grid').scrollIntoView({ block: 'center', behavior: 'instant' })"); await wait(300);
+      const tag = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? `T${ts}` : ''}${comp === 'far' ? ' far' : ''}`;
       const r = await browser.eval(`(() => {
         const card = document.querySelector('[data-bodyprofile]'); if (!card) return null;
         const b = card.querySelector('[data-bp-last]');
@@ -2274,7 +2276,41 @@ if (standalone && (!only || only.includes('train'))) {
             if (hx >= g.left && hx <= g.right && hy >= g.top && hy <= g.bottom) headHitsRing = true;
           }
         }
-        return { marker: true, you: true, since: !!card.querySelector('[data-bp-since]'), line: !!a, linePx, headHitsRing,
+        const yl = card.querySelector('.bp-you'); const yb = yl ? q(yl) : null;
+        const hit = (p, k) => !(p.right <= k.left || p.left >= k.right || p.bottom <= k.top || p.top >= k.bottom);
+        const youHidesLabel = !!yb && hit(y, yb);
+        const overlaps = [];
+        if (yb) {
+          if (hit(g, yb)) overlaps.push('ring');
+          if (hit(l, yb)) overlaps.push('Last week pill');
+          const cellEl = card.querySelector('.bp-cell.r' + yl.dataset.row + '.c' + yl.dataset.col); const ce = cellEl ? q(cellEl) : null;
+          // inside its own cell, except where the cell is smaller than the label (1.6 text, or 1.3 on a 320 screen): there it may spill into the next cell, never off the grid
+          const gb = q(card.querySelector('.bp-gridbox'));
+          const spillOk = (${ts} >= 1.6 || (${ts} >= 1.3 && innerWidth <= 320)) && yb.left >= gb.left - 0.5 && yb.right <= gb.right + 0.5 && yb.top >= gb.top - 0.5 && yb.bottom <= gb.bottom + 0.5;
+          if (!ce || (!spillOk && (yb.left < ce.left - 0.5 || yb.right > ce.right + 0.5 || yb.top < ce.top - 0.5 || yb.bottom > ce.bottom + 0.5))) overlaps.push('outside its cell');
+          // the label ignores taps in the app, so let it be hit-tested here to prove nothing is drawn over it
+          yl.style.pointerEvents = 'auto';
+          const top = document.elementFromPoint((yb.left + yb.right) / 2, (yb.top + yb.bottom) / 2);
+          yl.style.pointerEvents = '';
+          if (top !== yl) overlaps.push('covered by ' + (top ? top.tagName + '.' + top.className : 'nothing'));
+          if (getComputedStyle(yl).pointerEvents !== 'none') overlaps.push('label takes taps');
+          const gx = (g.left + g.right) / 2; const gy = (g.top + g.bottom) / 2;
+          const dx = (yb.left + yb.right) / 2 - gx; const dy = (yb.top + yb.bottom) / 2 - gy; const dd = Math.hypot(dx, dy) || 1;
+          const tapEl = document.elementFromPoint(gx + dx / dd * 15, gy + dy / dd * 15);
+          if (!tapEl || tapEl.closest('[data-bp-last]') !== b) overlaps.push('Last week tap area stolen by ' + (tapEl ? tapEl.tagName + '.' + tapEl.className : 'nothing'));
+          if (yb.left < 0 || yb.right > innerWidth) overlaps.push('off screen');
+          for (const tr of card.querySelectorAll('.bp-trail')) if (hit(q(tr), yb)) overlaps.push('trail dot');
+          if (a) {
+            const s2 = a.ownerSVGElement; const sr2 = q(s2); const vb2 = s2.viewBox.baseVal;
+            const px2 = (x, y2) => [sr2.left + x / vb2.width * sr2.width, sr2.top + y2 / vb2.height * sr2.height];
+            const [p1, p2] = [px2(a.x1.baseVal.value, a.y1.baseVal.value), px2(a.x2.baseVal.value, a.y2.baseVal.value)];
+            const inside = (x, y2) => x > yb.left && x < yb.right && y2 > yb.top && y2 < yb.bottom;
+            for (let i = 0; i <= 60; i++) if (inside(p1[0] + (p2[0] - p1[0]) * i / 60, p1[1] + (p2[1] - p1[1]) * i / 60)) { overlaps.push('arrow line'); break; }
+            const pl2 = s2.querySelector('polyline');
+            for (let i = 0; i < pl2.points.numberOfItems; i++) { const pt = pl2.points.getItem(i); const [hx, hy] = px2(pt.x, pt.y); if (inside(hx, hy)) { overlaps.push('arrow head'); break; } }
+          }
+        }
+        return { marker: true, you: true, youHidesLabel, overlaps, placed: yl && yl.dataset.placed, since: !!card.querySelector('[data-bp-since]'), line: !!a, linePx, headHitsRing,
           labelOk: l.left >= 0 && l.right <= innerWidth && l.left >= c.left - 0.5 && l.right <= c.right + 0.5 && !clipped,
           labelWrap: l.height > parseFloat(getComputedStyle(lab).fontSize) * 2, apart };
       })()`);
@@ -2283,8 +2319,10 @@ if (standalone && (!only || only.includes('train'))) {
       if (!r.line || r.linePx < 14) bad.push(`${tag}: the drawn line between the two dots is missing or under 14px ${JSON.stringify(r)}`);
       if (r.headHitsRing) bad.push(`${tag}: the arrowhead overlaps the Last week ring ${JSON.stringify(r)}`);
       if (!r.labelOk || r.labelWrap) bad.push(`${tag}: the Last week label is clipped or wraps ${JSON.stringify(r)}`);
+      if (r.youHidesLabel) bad.push(`${tag}: the You dot covers its You label ${JSON.stringify(r)}`);
+      if (r.overlaps.length) bad.push(`${tag}: the You label is hidden or crowded: ${r.overlaps.join(', ')} ${JSON.stringify(r)}`);
       if (r.apart < 16) bad.push(`${tag}: the ring hides under You (${Math.round(r.apart)}px apart)`);
-      if (shots) await browser.screenshot(`${shots}/body-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}-bodyprofile.png`);
+      if (shots) await browser.screenshot(`${shots}/body-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? `-text${Math.round(ts * 100)}` : ''}${comp === 'far' ? '-far' : ''}-bodyprofile.png`);
     }
     assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
   });

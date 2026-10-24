@@ -53,7 +53,7 @@ export function seed({ long = false, empty = false, active = false, effort = fal
       measured_at: new Date(t).toISOString(), day: dayKey(t), weight_kg: 87.5 - k * 0.2,
       ...(full ? { fat_ratio_pct: 24.1 - k * 0.3, fat_mass_kg: 21, fat_free_mass_kg: 66, muscle_mass_kg: 62, hydration_kg: 48, bone_mass_kg: 3.3 } : {}),
       // comp: Body profile and the composition tiles read `metrics` (off by default so other screens keep their usual content). It reads `metrics`: the 1-day and 8-day readings sit in one cell (180 cm: FFMI 20.5 vs 19.8, FMI 6.5 vs 7.3) but visibly apart
-      ...(full && comp ? { metrics: { weight_kg: 87.5 - k * 0.2, fat_mass_kg: 21 + k * 2.5, fat_free_mass_kg: 66.5 - k * 2.5 } } : {}),
+      ...(full && comp ? { metrics: { weight_kg: 87.5 - k * 0.2, fat_mass_kg: 21 + k * (comp === 'far' ? 9 : 2.5), fat_free_mass_kg: 66.5 - k * (comp === 'far' ? 9 : 2.5) } } : {}),
       heart_pulse_bpm: 74 - k,
     }));
   });

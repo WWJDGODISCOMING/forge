@@ -7,11 +7,6 @@ import { VERSION } from '../js/version.js';
 const read = (f) => readFileSync(new URL(`../${f}`, import.meta.url), 'utf8');
 const body = (src, start, end) => { const a = src.indexOf(start); const b = src.indexOf(end, a + 1); return src.slice(a, b < 0 ? undefined : b); };
 
-test('version is 0.16.59 in js and sw', () => {
-  eq(VERSION, '0.16.59');
-  assert(read('sw.js').includes("const VERSION = '0.16.59'"));
-  assert(read('CHANGELOG.md').includes('## 0.16.59'));
-});
 
 test('discard clears the session and storage before it waits on native, and native waits are capped', () => {
   const src = read('js/native/live-session.js');

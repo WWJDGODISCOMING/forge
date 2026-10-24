@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.60 — Body profile: the You dot no longer covers its label (2026-10-24)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- The You label on Body profile now stays clear of every mark, even at large text.
+
 ## 0.16.59 — Live workouts that actually end (2026-10-23)
 
 No Cloud Functions or `firestore.rules` changes. Swift changed (`ForgeLiveWorkout.swift`), so this needs a native rebuild to get the phone-side part; the web part works without it.
