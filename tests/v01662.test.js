@@ -110,6 +110,13 @@ test('the small print and the sheet use plain words', () => {
   assert(weekLine({ ...tight, weekKg: -0.4 }, 'imperial').startsWith('This week: down 0.9 lb'), weekLine({ ...tight, weekKg: -0.4 }, 'imperial'));
 });
 
+test('the week line never says 0.0 when there is no room', () => {
+  const p = goalDatePlan({ ...base, burn: 1500, goalDay: '2027-06-01', weekKg: -0.1 });
+  const w = weekLine(p, 'imperial');
+  assert(!/0\.0/.test(w) && !/needs/.test(w), w);
+  assert(weekLine({ ...p, weekKg: null }, 'imperial').startsWith('This week: keep weighing in.'));
+});
+
 test('Settings note: says what is missing or out of range', () => {
   const t = '2026-10-24';
   const n = (o, u = 'imperial') => goalDateNote({ on: true, day: '2027-03-01', weightText: '176', ...o }, t, u);

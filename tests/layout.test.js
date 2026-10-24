@@ -65,6 +65,76 @@ for (const route of standalone ? ROUTES : []) {
   }));
 }
 
+// Goal date (v0.16.62): the "Goal date plan" sheet in its four states (on pace, behind, tight date, burn at the floor), the
+// "Plan for <date>" button on Body, and Settings with the date fields open and a note showing. Phone dark and light, small
+// phone at 160% text, and both Duo sizes. Nothing may overflow sideways, the button is 44px or more, nothing is clipped.
+const GD_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [678, 466, true, 1], [626, 890, true, 1]];
+const GD_STATES = {
+  ok: { goalDay: '2027-06-01', burn: 2300, actualKgPerWeek: -0.5, weekKg: -0.5, label: 'Ahead' },
+  behind: { goalDay: '2027-02-01', burn: 2300, actualKgPerWeek: -0.02, weekKg: 0, label: 'Behind' },
+  tight: { goalDay: '2026-11-02', burn: 2300, actualKgPerWeek: -0.3, weekKg: -0.3, label: null },
+  floor: { goalDay: '2027-06-01', burn: 1500, actualKgPerWeek: -0.1, weekKg: -0.1, label: null },
+};
+const GD_OPEN = (st) => `(async () => {
+  const g = await import('./js/nutrition/goaldate.js'); const u = await import('./js/screens/goaldate-ui.js');
+  const o = ${JSON.stringify(st)};
+  document.querySelectorAll('dialog.sheet').forEach((d) => d.remove());
+  u.openGoalDateSheet(g.goalDatePlan({ trendKg: 87, goalKg: 80, goalDay: o.goalDay, today: '2026-10-12', burn: o.burn, ceiling: 1500, sex: 'male', actualKgPerWeek: o.actualKgPerWeek, weekKg: o.weekKg }));
+})()`;
+const GD_PROBE = `(() => {
+  const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null;
+  const clip = (e) => !e || e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > innerWidth + 1 || e.getBoundingClientRect().left < -1;
+  const legend = d.querySelector('.legend'), status = d.querySelector('[data-goal-date-status]');
+  return { title: d.querySelector('h2').textContent, over: d.scrollWidth > d.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1,
+    legend: !!legend && !clip(legend), status: !!status && !clip(status), statusText: status ? status.textContent : '', text: d.querySelector('[data-goal-date-sheet]').textContent,
+    noroom: !!d.querySelector('[data-goal-date-noroom]'), unreal: !!d.querySelector('[data-goal-date-unreal]') };
+})()`;
+for (const [w, h, dark, ts] of standalone && (!only || only.includes('goaldate') || only.includes('body') || only.includes('settings')) ? GD_SIZES : []) {
+  const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+  const setTs = async () => { if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); } };
+  test(`layout: goal date: the plan sheet, Body button and Settings fields fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    await browser.open('body', seed({ comp: true }));
+    await setTs();
+    const btn = await browser.eval("(() => { const b = document.querySelector('[data-goal-date-open]'); if (!b) return null; const r = b.getBoundingClientRect(); return { h: Math.round(r.height), off: r.right > innerWidth + 1 || r.left < -1, text: b.textContent.trim(), card: !!b.closest('[data-goalpath]'), clipped: b.scrollWidth > b.clientWidth + 1 }; })()");
+    if (shots) { await browser.eval("document.querySelector('[data-goal-date-open]')?.scrollIntoView({ block: 'center' })"); await new Promise((r) => setTimeout(r, 200)); await browser.screenshot(`${shots}/goaldate-body-button-${tag}.png`); }
+    assert(btn, 'Body has no Plan button with Goal date on');
+    assert(/^Plan for /.test(btn.text) && btn.card, `button reads "${btn.text}" inside the Goal path card`);
+    assert(btn.h >= 44, `Plan button is ${btn.h}px tall`);
+    assert(!btn.off && !btn.clipped, 'Plan button runs off the screen or is clipped');
+    for (const [name, st] of Object.entries(GD_STATES)) {
+      await browser.eval(GD_OPEN(st));
+      await new Promise((r) => setTimeout(r, 700));
+      const r = await browser.eval(GD_PROBE);
+      if (shots) await browser.screenshot(`${shots}/goaldate-sheet-${name}-${tag}.png`);
+      assert(r, `${name}: the sheet did not open`);
+      assert(r.title === 'Goal date plan', `${name}: sheet is titled "${r.title}"`);
+      assert(!r.over, `${name}: the sheet overflows sideways`);
+      assert(r.legend && r.status, `${name}: legend or status is clipped (legend ${r.legend}, status ${r.status})`);
+      if (st.label) assert(r.statusText.startsWith(st.label), `${name}: status reads "${r.statusText.slice(0, 30)}"`);
+      if (name === 'tight') assert(r.unreal && !r.noroom, 'tight: the tight-date notice shows');
+      if (name === 'floor') assert(r.noroom && !/0\.0 lb/.test(r.text), 'floor: the calm no-room notice shows and never says 0.0');
+    }
+    await browser.eval("document.querySelectorAll('dialog.sheet').forEach((d) => d.remove())");
+
+    // Settings: fields open, with the "pick a date" note showing
+    await browser.viewport(w, h, dark);
+    const data = seed();
+    data.settings[0].goal_date = '';
+    await browser.open('settings', data);
+    await setTs();
+    await browser.eval("document.querySelector('[data-goal-date-fields]').scrollIntoView({ block: 'center' })");
+    await new Promise((r) => setTimeout(r, 200));
+    const s = await browser.eval("(() => { const f = document.querySelector('[data-goal-date-fields]'); const n = f.querySelector('[data-goal-date-note]'); const nr = n.getBoundingClientRect(); const bad = [...f.querySelectorAll('input')].filter((i) => i.getBoundingClientRect().right > innerWidth + 1 || i.scrollWidth > i.clientWidth + 1 && i.type !== 'date').length; return { shown: !f.hidden, note: n.textContent, noteOff: nr.right > innerWidth + 1 || n.scrollWidth > n.clientWidth + 1, bad, over: document.documentElement.scrollWidth > innerWidth + 1, inputs: [...f.querySelectorAll('input')].map((i) => Math.round(i.getBoundingClientRect().height)) }; })()");
+    if (shots) await browser.screenshot(`${shots}/goaldate-settings-${tag}.png`);
+    assert(s.shown && s.note === 'Pick a date to see your plan.', `Settings note reads "${s.note}"`);
+    assert(!s.noteOff && !s.bad && !s.over, 'Settings fields or note overflow or are clipped');
+    assert(s.inputs.every((x) => x >= 44), `Settings inputs are ${s.inputs.join('/')}px tall`);
+  });
+}
+
 // Program: the Change start date sheet, at the phone and Duo sizes (this also feeds the `screens` artifact)
 for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
   test(`layout: program: the Change start date sheet fits at ${w}x${h}`, async () => {
@@ -2335,6 +2405,10 @@ test('layout: close the browser', async () => {
 
 if (standalone) {
   const { runAll, tests } = await import('./harness.js');
+  if (arg('grep')) { // --grep=goal date → only tests whose name contains it (plus closing the browser)
+    const keep = tests.filter((t) => t.name.includes(arg('grep')) || t.name === 'layout: close the browser');
+    tests.splice(0, tests.length, ...keep);
+  }
   const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/6 → the second of six cost-balanced groups
   if (shard.length === 2) {
     const CLOSE = 'layout: close the browser';

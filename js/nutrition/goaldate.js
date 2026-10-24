@@ -106,10 +106,10 @@ export function paceWords(plan) {
 export function weekLine(plan, units) {
   const unit = weightUnit(units);
   const f = (kg) => weightToDisplay(Math.abs(kg), units).toFixed(1);
-  const need = `Your date needs about ${f(plan.requiredKgPerWeek)} ${unit} a week ${plan.losing ? 'down' : 'up'}.`;
-  if (plan.weekKg == null) return `This week: keep weighing in. ${need}`;
+  const need = plan.noRoom ? '' : ` Your date needs about ${f(plan.requiredKgPerWeek)} ${unit} a week ${plan.losing ? 'down' : 'up'}.`; // never "0.0"
+  if (plan.weekKg == null) return `This week: keep weighing in.${need}`;
   const dir = plan.weekKg < -0.04 ? 'down' : plan.weekKg > 0.04 ? 'up' : 'steady';
-  return `This week: ${dir === 'steady' ? 'steady' : `${dir} ${f(plan.weekKg)} ${unit}`}. ${need}`;
+  return `This week: ${dir === 'steady' ? 'steady' : `${dir} ${f(plan.weekKg)} ${unit}`}.${need}`;
 }
 
 /**
