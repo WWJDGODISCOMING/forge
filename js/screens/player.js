@@ -19,6 +19,8 @@ import { photoLoop, hasPhotos, photoFallback } from '../ui/photos.js';
 import { hapticInput, onHapticTap, haptics } from '../ui/haptic.js';
 import { openPaused, openAway, openComplete, saveAndSummarize, closeOverlays } from './overlays.js';
 import { openHowTo } from './session.js';
+import { openRestPicker } from './rest-picker.js';
+import { restPref, restChipText } from '../workouts/restprefs.js';
 import { COMBOS } from './timer.js';
 import { icon } from '../ui/icons.js';
 import { checkSvg } from '../ui/checkdraw.js';
@@ -264,6 +266,7 @@ function drawSet(el) {
   const prevSet = prev && !s.warmup ? prev.sets[lbl.n - 1] : null;
   const isLastSet = !s.warmup && lbl.n === lbl.of;
   const nextUp = upNext(k);
+  const rp = restPref(state.settings, ex.id);
 
   const segs = order.map((xi) => {
     const sets = w.exercises[xi].sets.filter((y) => !y.warmup);
@@ -283,7 +286,7 @@ function drawSet(el) {
         <button class="pl-ico" data-pause aria-label="Pause workout">${icon('pause')}</button>
       </header>
       <div class="pl-segs" role="progressbar" aria-valuemin="0" aria-valuemax="${order.length}" aria-valuenow="${exNo}" aria-label="Exercise ${exNo} of ${order.length}">${segs}</div>
-      <p class="pl-count">Exercise ${exNo} of ${order.length}${tag ? ` <span class="tag ss">${esc(tag)}</span>` : ''}${s.warmup ? ' <span class="tag wu">Warm-up</span>' : ''}</p>
+      <p class="pl-count">Exercise ${exNo} of ${order.length}${tag ? ` <span class="tag ss">${esc(tag)}</span>` : ''}${s.warmup ? ' <span class="tag wu">Warm-up</span>' : ''}<span class="grow"></span><button class="rest-chip ${rp ? 'set' : ''}" data-rest-chip aria-label="Rest timer for ${esc(ex.name)}: ${esc(restChipText(rp, fmtClock))}">${icon('timer', { size: 16 })}<span>${esc(restChipText(rp, fmtClock))}</span></button></p>
 
       <div class="pl-cols">
       <div class="pl-col pl-col-a">
@@ -338,6 +341,7 @@ function drawSet(el) {
   // Tempo days (the progression's slow-lowering step) slow the demo down to match.
   if (fig) mountFigure(fig, ex, { isPaused: () => paused() || !!restInfo(), slow: !!(it.target && it.target.mode === 'tempo') });
   $('[data-demo]', el).onclick = () => openHowTo(ex.id);
+  $('[data-rest-chip]', el).onclick = () => { haptics.light(); openRestPicker(ex, { onSave: () => renderPlayer(el) }); };
   markNextWrap($('.pl-next', el));
 
   // Clock (pause-aware)

@@ -277,7 +277,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 23. #193 Workout player: rest timer per exercise
 - Issue: #193
 - Version: 0.16.65
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Per-exercise rest on/off + duration, warm-up vs working, persisted, used by rest ring; tests.
   - Duo-ready, palette/depth tokens.
