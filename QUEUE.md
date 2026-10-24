@@ -231,7 +231,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 18d. #199 Apple Watch: show distance, pace and calories in the Live Activity
 - Issue: #199
 - Version: 0.16.61
-- Status: in-review
+- Status: done
 - Acceptance:
   - Add .supplementalActivityFamilies([.small]) and a dedicated .small layout via @Environment(\.activityFamily) (watch Smart Stack + CarPlay): elapsed time, distance, pace, active cal (total cal if it fits); legible on Ultra 49mm and 41mm.
   - Compact/minimal Dynamic Island unchanged; values update with existing content-state pushes.
