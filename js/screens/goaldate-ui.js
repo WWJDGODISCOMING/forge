@@ -1,4 +1,4 @@
-// Goal date on Food, Body and the Goal path sheet. The numbers come from js/nutrition/goaldate.js; this file reads state and draws.
+// Goal date on Food, Body and the Goal date plan sheet. The numbers come from js/nutrition/goaldate.js; this file reads state and draws.
 // Works with AI off (nothing here calls out), and recalculates every time it draws, so it follows you day by day.
 import { state, units as getUnits } from '../state.js';
 import { esc, $, sheet, todayKey } from '../ui.js';
@@ -49,10 +49,10 @@ export function goalDateFoodHtml() {
   return text ? `<p class="small muted goal-date-line" data-goal-date-line>${esc(text)}</p>` : '';
 }
 
-/** The Goal path button on the Body card, or '' while Goal date is off. */
+/** The "Plan for <date>" button on the Body card, or '' while Goal date is off. */
 export function goalDateButtonHtml() {
   const gd = goalDateSettings(state.settings);
-  return gd.on && gd.day && state.profile && state.profile.targetWeightKg ? '<button type="button" class="btn ghost" data-goal-date-open>Goal path</button>' : '';
+  return gd.on && gd.day && state.profile && state.profile.targetWeightKg ? `<button type="button" class="btn goal-date-btn" data-goal-date-open data-layout-ok>Plan for ${esc(fmtDay(gd.day))}</button>` : '';
 }
 
 export function bindGoalDateButton(el) {
@@ -96,7 +96,9 @@ export function goalDateSheetHtml(plan, units = getUnits()) {
   if (plan.status === 'nodate') return '<p>Your goal date has passed. Pick a new date in Settings and Forge will work out a plan.</p>';
   const w = paceWords(plan);
   const burnNote = plan.burn == null ? '' : `<p class="small muted">Based on about ${(Math.round(plan.burn / 10) * 10).toLocaleString('en-US')} calories burned a day and your smoothed weight trend. It updates every day.</p>`;
-  const unreal = plan.status === 'unrealistic'
+  const unreal = plan.noRoom
+    ? '<div class="notice info" data-goal-date-unreal data-goal-date-noroom><b>Not much room right now.</b> Your estimated burn is close to your calorie floor, so Forge can’t suggest a faster pace. A later date or more daily movement gives you room.</div>'
+    : plan.status === 'unrealistic'
     ? `<div class="notice info" data-goal-date-unreal><b>That date is tight.</b> About ${weightToDisplay(plan.maxKgPerWeek, units).toFixed(1)} ${weightUnit(units)} a week is the most Forge suggests (around 1% of your body weight${plan.losing ? ', and never below your safe calorie floor' : ''}). ${plan.suggestedDay ? `A realistic date is <b>${esc(fmtDay(plan.suggestedDay))}</b>.` : ''}</div>`
     : '';
   return `<div class="stack" data-goal-date-sheet>
@@ -110,6 +112,6 @@ export function goalDateSheetHtml(plan, units = getUnits()) {
   </div>`;
 }
 
-export function openGoalDateSheet() {
-  sheet('Goal path', (body) => { body.innerHTML = goalDateSheetHtml(currentGoalDatePlan()); });
+export function openGoalDateSheet(plan = currentGoalDatePlan()) {
+  sheet('Goal date plan', (body) => { body.innerHTML = goalDateSheetHtml(plan); });
 }

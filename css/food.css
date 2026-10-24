@@ -138,6 +138,9 @@
 .food-row-compact .food-card-kcal > b { white-space: nowrap; }
 .balance-deficit { margin: 0; }
 .goal-date-line { margin: 0; }
+.goal-date-btn { width: 100%; min-height: 48px; margin-top: var(--s-2); background: var(--accent); color: var(--accent-ink); background-image: var(--sheen); box-shadow: var(--glow-accent); }
+.goal-date-note { margin: 0; }
+.goal-date-note:empty { display: none; }
 .gd-ahead, .gd-on { color: var(--good); }
 .goal-date-fields { gap: 10px; }
 .goal-date-fields[hidden] { display: none; }

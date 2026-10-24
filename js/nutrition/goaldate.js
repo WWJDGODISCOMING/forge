@@ -4,13 +4,16 @@
 // Safety, in this order:
 // - Never more than MAX_LOSS_PCT (about 1%) of body weight a week, or MAX_GAIN_PCT when gaining.
 // - Never below the safe floor (CALORIE_FLOORS for the user's sex, and never below a ceiling the user set lower).
-// - Never above the user's ceiling when losing: the ceiling is the official number.
+// - The ceiling is the official number and is never changed. The hint is the pace the date needs, so it can sit above the
+//   ceiling (the user is already eating less than the date needs); recommendLine says so in plain words.
 // - If the date can't be met within those limits, say so and suggest the earliest realistic date instead.
 import { addDays, daysBetween } from '../weight/smoothing.js';
-import { weightToDisplay, weightUnit } from '../units.js';
+import { weightToDisplay, weightFromInput, weightUnit } from '../units.js';
 import { KCAL_PER_KG, CALORIE_FLOORS, MAX_LOSS_PCT, MAX_GAIN_PCT, MAX_SURPLUS_KCAL } from './targets.js';
 
 const ON_TRACK_BAND = 0.15; // within 15% of the pace you need counts as on track
+const NO_ROOM_KG = 0.05; // under this a week there is no pace to suggest (burn at or near the floor)
+const WEIGHT_RANGE_KG = [30, 350]; // the goal weights Settings accepts
 
 /** The settings, normalised: { on, day } with day a YYYY-MM-DD string or null. Off unless switched on with a date. */
 export function goalDateSettings(settings) {
@@ -31,6 +34,7 @@ export function safeFloor(sex, ceiling) {
  * actualKgPerWeek: signed trend slope (kg/week) or null. weekKg: signed 7-day trend change or null.
  *
  * status: 'noweight' (need a trend and a goal) | 'reached' | 'nodate' (date is today or past) | 'ok' | 'unrealistic'.
+ * noRoom is true when burn leaves no room above the floor (maxKgPerWeek ~ 0): no pace or date is suggested then.
  * With 'ok' / 'unrealistic': kcal (rounded to 10, inside the safety limits), requiredKgPerWeek (signed),
  * suggestedDay (set when unrealistic: the earliest date within the limits), pace (ahead|on|behind|unknown).
  */
@@ -48,7 +52,8 @@ export function goalDatePlan({ trendKg, goalKg, goalDay, today, burn, ceiling, s
   let energyCap = Infinity;
   if (hasBurn) energyCap = (((losing ? burn - floor : MAX_SURPLUS_KCAL) * 7) / KCAL_PER_KG);
   const maxKgPerWeek = Math.max(0, Math.min(pctCap, energyCap));
-  const base = { goalDay, goalKg, remaining, losing, days, floor, maxKgPerWeek, burn: hasBurn ? burn : null };
+  const noRoom = maxKgPerWeek < NO_ROOM_KG;
+  const base = { goalDay, goalKg, remaining, losing, days, floor, ceiling: Number.isFinite(ceiling) && ceiling > 0 ? ceiling : null, maxKgPerWeek, noRoom, burn: hasBurn ? burn : null };
 
   const wantPerWeek = days > 0 ? (Math.abs(remaining) / days) * 7 : Infinity;
   const realistic = days > 0 && wantPerWeek <= maxKgPerWeek + 1e-9;
@@ -59,14 +64,11 @@ export function goalDatePlan({ trendKg, goalKg, goalDay, today, burn, ceiling, s
   if (hasBurn) {
     kcal = burn + (requiredKgPerWeek * KCAL_PER_KG) / 7;
     kcal = Math.round(kcal / 10) * 10;
-    if (losing) { // the floor and the ceiling are applied after rounding, so rounding can't break either
-      kcal = Math.max(kcal, floor);
-      if (Number.isFinite(ceiling) && ceiling > 0) kcal = Math.min(kcal, ceiling); // the ceiling is the official number
-    }
+    if (losing) kcal = Math.max(kcal, floor); // the floor is applied after rounding, so rounding can't break it
   }
 
   let suggestedDay = null;
-  if (!realistic) suggestedDay = maxKgPerWeek > 0 ? addDays(today, Math.ceil((Math.abs(remaining) / maxKgPerWeek) * 7)) : null;
+  if (!realistic) suggestedDay = !noRoom ? addDays(today, Math.ceil((Math.abs(remaining) / maxKgPerWeek) * 7)) : null;
 
   // Ahead / on track / behind: your trend's pace toward the goal vs the pace the date needs.
   let pace = 'unknown';
@@ -84,8 +86,10 @@ export function goalDatePlan({ trendKg, goalKg, goalDay, today, burn, ceiling, s
 export function recommendLine(plan, fmt) {
   if (!plan || plan.kcal == null || !['ok', 'unrealistic'].includes(plan.status)) return '';
   const n = plan.kcal.toLocaleString('en-US');
-  if (plan.status === 'ok') return `To hit ${fmt(plan.goalDay)}: ~${n} cal/day`;
-  return plan.suggestedDay ? `A safer date is ${fmt(plan.suggestedDay)}: ~${n} cal/day` : '';
+  if (plan.noRoom) return '';
+  const ahead = plan.losing && plan.ceiling && plan.kcal > plan.ceiling ? `. Your ${plan.ceiling.toLocaleString('en-US')} ceiling is already ahead of that pace.` : '';
+  if (plan.status === 'ok') return `To hit ${fmt(plan.goalDay)}: ~${n} cal/day${ahead}`;
+  return plan.suggestedDay ? `A safer date is ${fmt(plan.suggestedDay)}: ~${n} cal/day${ahead}` : '';
 }
 
 /** Plain, encouraging words for the Goal path sheet's status. */
@@ -107,3 +111,20 @@ export function weekLine(plan, units) {
   const dir = plan.weekKg < -0.04 ? 'down' : plan.weekKg > 0.04 ? 'up' : 'steady';
   return `This week: ${dir === 'steady' ? 'steady' : `${dir} ${f(plan.weekKg)} ${unit}`}. ${need}`;
 }
+
+/**
+ * The small note under the Goal date fields when something is missing or out of range, else ''.
+ * on: switch state. day: the date input's value. weightText: the weight input's text. units: 'imperial' | 'metric'.
+ */
+export function goalDateNote({ on, day, weightText }, today, units) {
+  if (!on) return '';
+  if (!day) return 'Pick a date to see your plan.';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(day) || day <= today) return 'Pick a date after today.';
+  const kg = weightText === '' || weightText == null ? NaN : weightFromInput(weightText, units);
+  if (!Number.isFinite(kg) || kg < WEIGHT_RANGE_KG[0] || kg > WEIGHT_RANGE_KG[1]) {
+    const lo = weightToDisplay(WEIGHT_RANGE_KG[0], units), hi = weightToDisplay(WEIGHT_RANGE_KG[1], units);
+    return `Enter a weight between ${Math.round(lo)} and ${Math.round(hi)} ${weightUnit(units)}.`;
+  }
+  return '';
+}
+export const GOAL_WEIGHT_RANGE_KG = WEIGHT_RANGE_KG;

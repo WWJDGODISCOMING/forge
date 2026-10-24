@@ -8,7 +8,7 @@ import { signOut, deleteAccount, authErrorMessage } from '../auth.js';
 import { exportJSON, exportWeightsCSV, exportWorkoutsCSV, exportCardioCSV, exportBodyCSV, exportFoodCSV } from '../export.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey } from '../ui.js';
 import { formatHeight, formatWeight, weightToDisplay, weightFromInput, weightUnit } from '../units.js';
-import { goalDateSettings } from '../nutrition/goaldate.js';
+import { goalDateSettings, goalDateNote, GOAL_WEIGHT_RANGE_KG } from '../nutrition/goaldate.js';
 import { addDays } from '../weight/smoothing.js';
 import { GOALS } from '../nutrition/targets.js';
 import { VERSION } from '../version.js';
@@ -70,6 +70,7 @@ export function renderSettings(el) {
         <div class="g-row col static goal-date-fields" data-goal-date-fields ${gd.on ? '' : 'hidden'}>
           <label class="field"><span>Goal date</span><input type="date" name="goaldate_day" value="${esc(gd.day || '')}" min="${esc(addDays(todayKey(), 1))}"></label>
           <label class="field"><span>Goal weight (${weightUnit(u)})</span><input type="number" inputmode="decimal" step="0.1" name="goaldate_kg" value="${p.targetWeightKg ? weightToDisplay(p.targetWeightKg, u).toFixed(1) : ''}"></label>
+          <p class="small goal-date-note" data-goal-date-note role="status">${esc(goalDateNote({ on: gd.on, day: gd.day, weightText: p.targetWeightKg ? weightToDisplay(p.targetWeightKg, u).toFixed(1) : '' }, todayKey(), u))}</p>
         </div>
         <button type="button" class="g-row" data-food-prefs><span class="g-ic">${icon('food')}</span><span class="g-text"><span>Food preferences</span><small>${esc(prefsSummary())}</small></span><span class="chev">${icon('chev')}</span></button>
         <label class="g-row sw"><span class="g-text"><span>Ask Forge AI</span><small>Sends your question, the food, today’s calories and protein (eaten, goals and calories burned) and your food preferences to xAI for a friendlier answer. Off: answered from your numbers. Forge may look up the food’s calories (food name only).</small></span><input type="checkbox" switch name="askai" ${st.ask_ai === true ? 'checked' : ''}></label>
@@ -213,17 +214,24 @@ export function renderSettings(el) {
   });
   $('input[name=askai]', el).addEventListener('change', (e) => { patch('settings', 'main', { ask_ai: e.target.checked }); haptics.select(); });
   $('input[name=mealai]', el).addEventListener('change', (e) => { patch('settings', 'main', { meal_ai: e.target.checked }); haptics.select(); });
+  const gdNote = () => { // says what is missing or out of range instead of ignoring it silently
+    $('[data-goal-date-note]', el).textContent = goalDateNote({ on: $('input[name=goaldate]', el).checked, day: $('input[name=goaldate_day]', el).value, weightText: $('input[name=goaldate_kg]', el).value.trim() }, todayKey(), getUnits());
+  };
   $('input[name=goaldate]', el).addEventListener('change', (e) => {
     patch('settings', 'main', { goal_date_on: e.target.checked });
     $('[data-goal-date-fields]', el).hidden = !e.target.checked;
+    gdNote();
     haptics.select();
   });
   $('input[name=goaldate_day]', el).addEventListener('change', (e) => {
     if (/^\d{4}-\d{2}-\d{2}$/.test(e.target.value)) { patch('settings', 'main', { goal_date: e.target.value }); haptics.select(); }
+    gdNote();
   });
+  $('input[name=goaldate_kg]', el).addEventListener('input', gdNote);
   $('input[name=goaldate_kg]', el).addEventListener('change', (e) => {
     const kg = weightFromInput(e.target.value, getUnits());
-    if (Number.isFinite(kg) && kg >= 30 && kg <= 350 && state.profile) { patch('profile', 'main', { targetWeightKg: kg }); haptics.select(); }
+    if (Number.isFinite(kg) && kg >= GOAL_WEIGHT_RANGE_KG[0] && kg <= GOAL_WEIGHT_RANGE_KG[1] && state.profile) { patch('profile', 'main', { targetWeightKg: kg }); haptics.select(); }
+    gdNote();
   });
   bindProtect($('.protect-set', el), () => { $('[data-protect-sub]', el).innerHTML = `${esc(protectSummary())}. For pain that lasts longer than a day. Swaps in easier moves for the same muscles. ${esc(SAFETY_LINE)}`; });
   $('input[name=ratesets]', el).addEventListener('change', (e) => localStorage.setItem('forge.rateSets', e.target.checked ? '1' : '0'));
