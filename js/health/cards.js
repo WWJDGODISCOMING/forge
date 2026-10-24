@@ -207,7 +207,7 @@ export function bodyProfileHtml(bp, { sex, age }, units = 'imperial') {
       for (let col = 0; col < 4; col++) {
         const dots = [
           ...bp.trail.filter((t) => t.col === col && t.row === row).map((t) => `<i class="bp-trail" title="${esc(t.month)}"></i>`),
-          bp.col === col && bp.row === row ? '<span class="bp-you" aria-hidden="true">You</span>' : '',
+          bp.col === col && bp.row === row ? `<span class="bp-you${bp.y - (3 - row) > 0.5 ? ' up' : ''}" aria-hidden="true">You</span>` : '', // the label sits on the side of the cell away from the dot
         ].join('');
         cells.push(`<div class="bp-cell r${row} c${col}">${dots}</div>`);
       }

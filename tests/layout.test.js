@@ -2241,7 +2241,7 @@ if (standalone && (!only || only.includes('train'))) {
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const bad = [];
-    const cases = [[320, 568, true, 1], [320, 568, true, 1.3], [390, 844, true, 1], [390, 844, false, 1], [390, 844, true, 1.3], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1]];
+    const cases = [[320, 568, true, 1], [320, 568, true, 1.3], [320, 568, true, 1.6], [390, 844, true, 1], [390, 844, false, 1], [390, 844, true, 1.3], [390, 844, true, 1.6], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1]];
     for (const [w, h, dark, ts] of cases) {
       await browser.viewport(w, h, dark);
       await browser.open('body', seed({ comp: true }));
@@ -2274,7 +2274,9 @@ if (standalone && (!only || only.includes('train'))) {
             if (hx >= g.left && hx <= g.right && hy >= g.top && hy <= g.bottom) headHitsRing = true;
           }
         }
-        return { marker: true, you: true, since: !!card.querySelector('[data-bp-since]'), line: !!a, linePx, headHitsRing,
+        const yl = card.querySelector('.bp-you'); const yb = yl ? q(yl) : null;
+        const youHidesLabel = !!yb && !(y.right <= yb.left || y.left >= yb.right || y.bottom <= yb.top || y.top >= yb.bottom);
+        return { marker: true, you: true, youHidesLabel, since: !!card.querySelector('[data-bp-since]'), line: !!a, linePx, headHitsRing,
           labelOk: l.left >= 0 && l.right <= innerWidth && l.left >= c.left - 0.5 && l.right <= c.right + 0.5 && !clipped,
           labelWrap: l.height > parseFloat(getComputedStyle(lab).fontSize) * 2, apart };
       })()`);
@@ -2283,6 +2285,7 @@ if (standalone && (!only || only.includes('train'))) {
       if (!r.line || r.linePx < 14) bad.push(`${tag}: the drawn line between the two dots is missing or under 14px ${JSON.stringify(r)}`);
       if (r.headHitsRing) bad.push(`${tag}: the arrowhead overlaps the Last week ring ${JSON.stringify(r)}`);
       if (!r.labelOk || r.labelWrap) bad.push(`${tag}: the Last week label is clipped or wraps ${JSON.stringify(r)}`);
+      if (r.youHidesLabel) bad.push(`${tag}: the You dot covers its You label ${JSON.stringify(r)}`);
       if (r.apart < 16) bad.push(`${tag}: the ring hides under You (${Math.round(r.apart)}px apart)`);
       if (shots) await browser.screenshot(`${shots}/body-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}-bodyprofile.png`);
     }
