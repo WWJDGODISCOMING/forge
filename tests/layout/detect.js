@@ -66,7 +66,18 @@ export function detect(opts = {}) {
 
   // 2b. Controls must not sit on top of each other (a stepper whose + runs into its neighbour, for example).
   const hit = [...document.querySelectorAll('a[href], button, select, summary')].filter((e) => vis(e) && !e.closest('svg, #nav, #navbar, #quicklog') && !e.matches('.insight-x') && !allowed(e));
-  const boxes = hit.map((e) => [e, e.getBoundingClientRect()]).filter(([, r]) => r.bottom > 0 && r.top < window.innerHeight * 3);
+  // A control inside a scroll box (the player's set list) only counts where it shows: clip its box to the scroller's.
+  const shown = (e, r) => {
+    let q = { left: r.left, right: r.right, top: r.top, bottom: r.bottom };
+    for (let p = e.parentElement; p && p !== document.body; p = p.parentElement) {
+      const o = getComputedStyle(p);
+      if (!/(auto|scroll)/.test(o.overflowX + o.overflowY) || (p.scrollHeight <= p.clientHeight + 1 && p.scrollWidth <= p.clientWidth + 1)) continue;
+      const c = p.getBoundingClientRect();
+      q = { left: Math.max(q.left, c.left), right: Math.min(q.right, c.right), top: Math.max(q.top, c.top), bottom: Math.min(q.bottom, c.bottom) };
+    }
+    return q;
+  };
+  const boxes = hit.map((e) => [e, shown(e, e.getBoundingClientRect())]).filter(([, r]) => r.bottom > 0 && r.top < window.innerHeight * 3);
   for (let i = 0; i < boxes.length; i++) {
     for (let j = i + 1; j < boxes.length; j++) {
       const [a, ra] = boxes[i];

@@ -1,7 +1,7 @@
 // v0.16.64 (#192): the player lists every set up front. Synthetic data only.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { setRows, setValues, addSet, editSet } from '../js/workouts/setlist.js';
+import { setRows, setValues, addSet, editSet, editDoneSet } from '../js/workouts/setlist.js';
 
 const mk = () => ({
   sets: [
@@ -38,16 +38,44 @@ test('add set copies the last working set plan', () => {
   assert(setRows(it, 2).length === 5);
 });
 
-test('editing an upcoming set changes its plan; a finished set changes its result', () => {
+test('editing an upcoming set changes its plan only', () => {
   const it = mk();
   editSet(it, 3, { kg: 65, reps: 6 });
   eq(it.sets[3].plan_weight_kg, 65);
   eq(it.sets[3].plan_reps, 6);
   eq(it.sets[3].weight_kg, null);
-  editSet(it, 1, { kg: 62.5, reps: 7 });
-  eq(it.sets[1].weight_kg, 62.5);
-  eq(it.sets[1].reps, 7);
   eq(setRows(it, 2)[3].reps, 6);
+});
+
+// A finished set edit goes through validation and recomputes the records (#192 review).
+const ex = { id: 'bench', name: 'Bench', load: 'barbell', reps: [5, 10] };
+const hist = [{ sets: [{ weight: 60, reps: 8 }] }]; // last time: 60 kg x 8
+const prOf = (w, type) => (w.prs || []).find((p) => p.exercise_id === 'bench' && p.type === type);
+
+test('raising a done set creates a PR; lowering it takes the PR away again', () => {
+  const it = mk();
+  const w = { prs: [] };
+  let r = editDoneSet(w, it, ex, 1, { kg: 80, reps: 8 }, hist, 'kg');
+  assert(r.ok, 'accepted');
+  eq(it.sets[1].weight_kg, 80);
+  assert(w.prs.some((p) => p.exercise_id === 'bench' && p.value >= 80), 'a record now holds the raised weight');
+  const before = w.prs.length;
+  r = editDoneSet(w, it, ex, 1, { kg: 40, reps: 8 }, hist, 'kg');
+  assert(r.ok);
+  assert(!w.prs.some((p) => p.value >= 80), 'the old record is gone');
+  assert(before > 0);
+});
+
+test('an invalid edit to a done set is refused with the plain message and leaves the set alone', () => {
+  const it = mk();
+  const w = { prs: [] };
+  const bad = editDoneSet(w, it, ex, 1, { reps: 0 }, hist, 'kg');
+  assert(!bad.ok);
+  eq(bad.error, 'Enter your reps first.');
+  eq(it.sets[1].reps, 8);
+  const noW = editDoneSet(w, it, ex, 1, { kg: null }, hist, 'kg');
+  eq(noW.error, 'Enter the weight first.');
+  eq(it.sets[1].weight_kg, 60);
 });
 
 test('the player draws the list, keeps the rep counter and RIR chips, and has haptics', () => {
@@ -57,4 +85,7 @@ test('the player draws the list, keeps the rep counter and RIR chips, and has ha
   assert(/data-setrow[\s\S]{0,300}haptics\.select/.test(src), 'row taps give a haptic');
   const css = readFileSync(new URL('../css/player.css', import.meta.url), 'utf8');
   assert(/\.pl-set \{[^}]*min-height: 44px/.test(css), 'big tap target');
+  assert(!/<button[^>]*role="listitem"/.test(src), 'rows are buttons inside list items, not list items');
+  assert(/role="listitem" class="pl-li"><button/.test(src), 'each button sits in a listitem');
+  assert(src.includes('editDoneSetLive'), 'done-set edits are validated');
 });

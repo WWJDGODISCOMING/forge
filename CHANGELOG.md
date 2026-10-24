@@ -11,6 +11,10 @@ No Cloud Functions or `firestore.rules` changes.
 - Tap any row to jump to that set; the steppers change it, and the change sticks.
 - "Add set" row at the end of the list.
 - The big rep counter and the reps-left chips stay for the current set.
+- Changing a finished set checks the numbers like Done set does, and updates your records (raise it for a PR, lower it and the PR goes).
+- "Add set" always shows above the Done set bar.
+- On short screens (Duo folded sideways) every set is a small numbered chip in one row.
+- VoiceOver reads each set row as a button in a list.
 
 ## 0.16.63 — Workout summary totals (2026-10-24)
 

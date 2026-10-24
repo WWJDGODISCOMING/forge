@@ -3,7 +3,7 @@
 // Supersets alternate (A1 → A2 → rest). Timed sets count in and finish themselves. Boxing rounds call combos.
 import { state } from '../state.js';
 import { esc, $, $$, toast } from '../ui.js';
-import { live, syncLive, save, completeSet, undoSet, elapsed, paused, checkAway, describeStep, upNext, flush } from '../workouts/live.js';
+import { live, syncLive, save, completeSet, editDoneSetLive, undoSet, elapsed, paused, checkAway, describeStep, upNext, flush } from '../workouts/live.js';
 import { buildQueue, nextOpenStep, setLabel, supersetTag } from '../workouts/session-core.js';
 import { exerciseById } from '../workouts/library.js';
 import { historyIndex, unit } from '../workouts/plan.js';
@@ -308,7 +308,7 @@ function drawSet(el) {
         ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv>${draft.weight ?? '—'}</b><small>${u}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
         <div class="stepper"><button data-r="-1" aria-label="${isTimed ? 'Fewer seconds' : 'Fewer reps'}">−</button><div><b data-rv>${draft.reps}</b><small>${isTimed ? 'sec' : 'reps'}</small></div><button data-r="1" aria-label="${isTimed ? 'More seconds' : 'More reps'}">+</button></div>
       </div>
-      <div class="pl-sets" data-setlist role="list" aria-label="All sets">${setListHtml(it, j, ex, u, showWeight, isTimed)}</div>
+      <div class="pl-setbox" data-setlist>${setListHtml(it, j, ex, u, showWeight, isTimed)}</div>
       ${it.note && REASON_RE.test(it.note) && lbl.n === 1 && !s.warmup ? `<p class="pl-reason">${esc(it.note)}</p>` : ''}
       <p class="pl-last">${prevSet ? `Last time: ${prevSet.weight ? `${prevSet.weight} ${u} × ` : ''}${prevSet.reps}${isTimed ? 's' : ''}` : it.note ? esc(it.note) : '&nbsp;'}</p>
 
@@ -375,8 +375,19 @@ function drawSet(el) {
   };
   wireList();
   const persist = () => {
-    editSet(it, j, { kg: draft.weight != null ? fromUnit(draft.weight, u) : undefined, reps: draft.reps });
-    save();
+    const edit = { kg: draft.weight != null ? fromUnit(draft.weight, u) : undefined, reps: draft.reps };
+    if (s.done) {
+      const res = editDoneSetLive(i, j, edit);
+      if (!res.ok) { // not saved: say why and show what the set really has
+        toast(res.error);
+        draft = null;
+        drawSet(el);
+        return;
+      }
+    } else {
+      editSet(it, j, edit);
+      save();
+    }
     paintList();
   };
 
@@ -418,6 +429,7 @@ function drawSet(el) {
   }));
   $$('[data-rir]', el).forEach((b) => b.addEventListener('click', () => {
     draft.rir = b.dataset.rir === 'null' ? null : Number(b.dataset.rir);
+    if (s.done) { s.rir = draft.rir; save(); paintList(); }
     $$('[data-rir]', el).forEach((x) => {
       const on = x === b;
       x.classList.toggle('on', on);
@@ -466,10 +478,11 @@ function setListHtml(it, j, ex, u, showWeight, isTimed) {
     const load = showWeight ? `${r.kg != null ? `${round1(toUnit(r.kg, u))} ${u}` : `– ${u}`} × ` : '';
     const rir = r.state === 'done' && r.rir != null ? `<small class="pl-set-rir">${r.rir >= 4 ? '4+' : r.rir} left</small>` : '';
     const name = r.warmup ? `Warm-up ${r.label.slice(1)}` : `Set ${r.label}`;
-    return `<button class="pl-set ${r.state}" role="listitem" data-setrow="${r.j}" ${r.state === 'current' ? 'aria-current="step"' : ''} aria-label="${name}, ${load}${amount}${r.state === 'done' ? ', done' : ''}">
-      <span class="pl-set-n">${r.state === 'done' ? icon('check', { size: 16 }) : r.label}</span><span class="pl-set-v">${load}<b>${amount}</b></span>${rir}</button>`;
+    return `<div role="listitem" class="pl-li"><button class="pl-set ${r.state}" data-setrow="${r.j}" ${r.state === 'current' ? 'aria-current="step"' : ''} aria-label="${name}, ${load}${amount}${r.state === 'done' ? ', done' : ''}">
+      <span class="pl-set-n">${r.state === 'done' ? icon('check', { size: 16 }) : r.label}</span><span class="pl-set-v">${load}<b>${amount}</b></span>${rir}</button></div>`;
   }).join('');
-  return `${rows}<button class="pl-set add" data-addset aria-label="Add set"><span class="pl-set-n">+</span><span class="pl-set-v">Add set</span></button>`;
+  // Add set sits outside the scrolling list, so it is always in view.
+  return `<div class="pl-sets" role="list" aria-label="All sets">${rows}</div><button class="pl-set add" data-addset aria-label="Add set"><span class="pl-set-n">+</span><span class="pl-set-v">Add set</span></button>`;
 }
 
 function go(el, to, kind) {
