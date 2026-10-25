@@ -228,19 +228,24 @@ export function generateWorkout(opts) {
     sessionMin: sessionMinOpt = null,
     // Rests picked in ⋯ ({ exercise_id: sec }) so the length fit counts them.
     restSec = {},
+    // Switch (Train): a day built from muscle groups, a saved workout or your own list: { key, label, slots, fixed? }.
+    customDay = null,
   } = opts;
-  const sessionMin = sessionMinOpt || profile.sessionMin || 60;
+  // A fixed day is your own list, so the length is whatever you built (the length chips don't trim it).
+  const sessionMin = customDay && customDay.fixed ? 600 : sessionMinOpt || profile.sessionMin || 60;
   const experience = profile.experience || 'beginner';
   const notes = [];
   const prog = PROGRAMS[programKey] || PROGRAMS.smart;
 
-  const dayType = opts.dayType || pickDayType(programKey, {
+  const dayType = customDay ? customDay.key : opts.dayType || pickDayType(programKey, {
     recovery, doneCount, daysPerWeek: profile.trainingDays || 3, lastDayType, customDays: (program && program.custom_days) || [],
     focus: profile.focus_muscles,
   });
 
   let day;
-  if (dayType && dayType.startsWith('custom_')) {
+  if (customDay) {
+    day = customDay;
+  } else if (dayType && dayType.startsWith('custom_')) {
     const cd = program.custom_days[Number(dayType.split('_')[1])];
     day = { label: cd.name, slots: cd.exercise_ids.map((id) => ({ patterns: [], role: 'secondary', ids: [id], userPicked: true })) };
   } else {
@@ -353,7 +358,7 @@ export function generateWorkout(opts) {
     items.push({ exercise_id: ex.id, role: slot.role, target, primary: ex.primary || [], warmups: items.length < 2 ? wu : wu.slice(-1), superset: null, warning, ...(swap ? { swap } : {}), ...(restSec[ex.id] ? { rest_sec: restSec[ex.id] } : {}) });
   }
 
-  if (items.length < 4 && !injuryDropped) {
+  if (items.length < 4 && !injuryDropped && !(customDay && customDay.fixed)) {
     notes.push('This location doesn’t have much for today’s focus. Try a different day, or add equipment in Settings → Locations.');
   }
 

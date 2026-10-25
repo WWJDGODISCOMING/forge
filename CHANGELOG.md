@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.67 — Switch workout, plus time and place chips (2026-10-25)
+
+No Cloud Functions or `firestore.rules` changes. Saved workouts ride in your settings document.
+
+### What's new
+
+- A Switch button on the Up next card: pick muscle groups, start a saved workout, or build one from scratch.
+- Muscle groups builds a fresh workout for this gym and keeps the joints you protect safe.
+- Save any workout to start it later. Your own workouts keep the sets and reps you chose.
+- 20m, 30m, 45m and 1h chips and a location chip rebuild today's workout on the spot, with Undo.
+
 ## 0.16.66 — History and Replace in the player (2026-10-25)
 
 No Cloud Functions or `firestore.rules` changes.

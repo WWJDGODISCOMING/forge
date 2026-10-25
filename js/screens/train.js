@@ -29,6 +29,10 @@ import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
 import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { recoveryCardHtml, bindRecoveryCard } from '../ui/recovery-card.js';
 import { haptic } from '../native/bridge.js';
+import {
+  MAX_MUSCLES, durationLabel, cleanMuscles, musclesLabel, defaultItem, cleanSaved, addSaved, removeSaved, itemsFromPlan, resolveCustomDay, choiceKey, savedSub,
+} from '../workouts/switch-core.js';
+import { FOCUS_GROUPS, FOCUS_KEYS } from '../workouts/focus.js';
 import { gymChoices, switchAction, SWITCH_CONFIRM, RESUME_JOINT_NOTE } from '../workouts/gym-switch-core.js';
 import { hapticsOn, haptics } from '../ui/haptic.js';
 import * as liveWorkout from '../native/live-workout.js';
@@ -43,6 +47,7 @@ export const playerRoute = () => (state.settings && state.settings.player === 'l
 
 let dayOverride = null;
 let minOverride = null; // "Shorter or longer" for today only; never written to the profile
+let choice = null; // Switch: { kind:'muscles', groups } | { kind:'saved', id } | { kind:'scratch', name, items }, for today only
 let flashAll = false; // a gym switch re-plans every row: highlight them all once
 let flash = new Set(); // exercises that just changed, so the card can highlight them once
 
@@ -65,8 +70,8 @@ const editsFor = (key) => {
 export function previewPlan() {
   const loc = activeLocation();
   if (!loc) return null;
-  const ed = editsFor(`${loc.id}|${dayOverride || ''}`);
-  const plan = planToday({ dayType: dayOverride, forced: ed.forced, avoidIds: ed.avoid, sessionMin: minOverride, restSec: ed.rest });
+  const ed = editsFor(`${loc.id}|${dayOverride || ''}|${choiceKey(choice)}`);
+  const plan = planToday({ customDay: resolveCustomDay(choice, state.settings && state.settings.saved_workouts), dayType: dayOverride, forced: ed.forced, avoidIds: ed.avoid, sessionMin: minOverride, restSec: ed.rest });
   if (plan) {
     for (const it of plan.exercises) if (ed.rest[it.exercise_id]) it.rest_sec = ed.rest[it.exercise_id];
     plan.est_minutes = planMinutes(plan, allExercises(), restDefaultSec(state.settings)); // a rest picked in the dots menu changes the length
@@ -109,6 +114,7 @@ export function startPlan(plan) {
   cachePhotos(plan.exercises.map((it) => it.exercise_id)); // today's demo photos, for the gym's dead zones
   dayOverride = null;
   minOverride = null;
+  choice = null;
   edits = blankEdits();
   restoringTo = null;
   location.hash = playerRoute();
@@ -299,14 +305,18 @@ function previewCard(plan, { d, loc, program, u }) {
   return `
       <div class="card preview">
         <p class="label">Today${d.deload ? ' · deload' : ''}</p>
-        <div class="row between center">
+        <div class="row between center pv-head">
           <p class="big-title">${esc(plan.label)}</p>
-          <button class="btn ghost small" data-change aria-label="Change today's workout">${icon('swap')} Change</button>
+          <div class="row gap pv-acts">
+            <button class="btn ghost small" data-switch aria-haspopup="dialog" aria-label="Switch workout">${icon('swap')} Switch</button>
+            <button class="btn ghost small" data-change aria-label="Change today's workout">Change</button>
+          </div>
         </div>
         <div class="pv-chips">
           <span class="pill">${icon('timer')} ~${plan.est_minutes} min</span>
           ${plan.focus && plan.focus.length ? `<span class="pill pill-focus">Focus: ${esc(plan.focusLabel)}</span>` : ''}
         </div>
+        ${pvControls(plan, loc)}
         ${n ? `
         <div class="pv-sum">
           ${bodyMap(planValues(plan), { size: 'mini', caption: false })}
@@ -351,6 +361,11 @@ function wirePreview(el, plan) {
 
   const ch = $('[data-change]', el);
   if (ch) ch.onclick = () => openChange(el, plan);
+  const sw = $('[data-switch]', el);
+  if (sw) sw.onclick = () => { tick('light'); openSwitch(el, plan); };
+  const pl = $('[data-pv-gym]', el);
+  if (pl) pl.onclick = () => openGymPicker(el, false);
+  $$('[data-len]', el).forEach((b) => (b.onclick = () => pickLength(el, plan, Number(b.dataset.len))));
 
   $$('[data-more]', el).forEach((b) => (b.onclick = () => exerciseMore(el, plan, Number(b.dataset.more))));
   $$('[data-preview]', el).forEach((h) => {
@@ -361,7 +376,8 @@ function wirePreview(el, plan) {
 }
 
 const tick = (kind = 'select') => { if (hapticsOn()) haptic(kind); };
-const snap = () => takeSnapshot({ edits, dayOverride, minOverride, locationId: (activeLocation() || {}).id || null });
+const dayDef = () => resolveCustomDay(choice, state.settings && state.settings.saved_workouts);
+const snap = () => takeSnapshot({ edits, dayOverride, minOverride, choice, locationId: (activeLocation() || {}).id || null });
 
 /** Put the whole preview back the way it was (the Undo on the toast). */
 function undoTo(el, before) {
@@ -370,6 +386,7 @@ function undoTo(el, before) {
   edits = s.edits;
   dayOverride = s.dayOverride;
   minOverride = s.minOverride;
+  choice = s.choice;
   flash = new Set();
   const moving = s.locationId && (!loc || loc.id !== s.locationId);
   if (moving) {
@@ -442,7 +459,7 @@ function openChange(el, plan) {
   const picks = pickedIds(edits);
   const tryNew = (replacePicks) => {
     const next = withSwapAvoid(edits, ids, { replacePicks });
-    const fresh = planToday({ dayType: dayOverride, forced: next.forced, avoidIds: next.avoid, sessionMin: minOverride, restSec: next.rest });
+    const fresh = planToday({ customDay: dayDef(), dayType: dayOverride, forced: next.forced, avoidIds: next.avoid, sessionMin: minOverride, restSec: next.rest });
     const afterIds = fresh ? fresh.exercises.map((it) => it.exercise_id) : ids;
     return { next, afterIds, res: swapResult(ids, afterIds) };
   };
@@ -469,7 +486,7 @@ function openChange(el, plan) {
             ${row('data-o="focus"', 'Train a different focus', esc(otherFocus.join(', ')), { one: true, wrap: true })}
             ${row('data-o="length"', 'Session length', `Now ${minOverride || usual} min, for today only.`, { wrap: true })}
             ${state.locations.length > 1 ? row('data-o="place"', 'Different location', esc(otherPlaces.join(', ')), { one: true, wrap: true }) : ''}
-            ${isChanged({ edits, dayOverride, minOverride }) ? row('data-o="reset"', 'Back to recommended', 'Clears every change for today.') : ''}
+            ${isChanged({ edits, dayOverride, minOverride, choice }) ? row('data-o="reset"', 'Back to recommended', 'Clears every change for today.') : ''}
           </div>
           ${picks.size && canSwap ? '<label class="choice check"><input type="checkbox" data-replace-picks><span>Also replace the ones I picked<small>Otherwise your own picks stay.</small></span></label>' : ''}
         </div>`;
@@ -491,6 +508,7 @@ function openChange(el, plan) {
         edits = { ...blankEdits(edits.key), rest: { ...edits.rest } };
         dayOverride = null;
         minOverride = null;
+        choice = null;
         close();
         changed(el, before, 'Back to the recommended workout');
       });
@@ -509,6 +527,7 @@ function openChange(el, plan) {
       listStep('Focus', rows.join(''), (v) => {
         const before = snap();
         dayOverride = v || null;
+        choice = null;
         const label = v ? (choices.find(([k]) => k === v) || [0, v])[1] : recLabel;
         close();
         changed(el, before, lengthMessage(label, minOverride));
@@ -517,7 +536,7 @@ function openChange(el, plan) {
     const lengthStep = () => {
       // Each row previews the real result of picking it.
       const rows = LENGTHS.map((n) => {
-        const p = planToday({ dayType: dayOverride, forced: edits.forced, avoidIds: edits.avoid, sessionMin: n === usual ? null : n, restSec: edits.rest });
+        const p = planToday({ customDay: dayDef(), dayType: dayOverride, forced: edits.forced, avoidIds: edits.avoid, sessionMin: n === usual ? null : n, restSec: edits.rest });
         const fits = !!p && p.exercises.length > 0 && p.est_minutes <= n + 2;
         const sub = fits ? `${plural(p.exercises.length, 'exercise')}${n === usual ? ' · your usual' : ''}` : 'Too short for this workout here';
         return row(`data-v="${n}"`, `${n} min`, sub, { disabled: !fits, check: (minOverride || usual) === n, one: true });
@@ -544,6 +563,223 @@ function openChange(el, plan) {
       });
     };
     home();
+  }, { detents: ['medium', 'large'] });
+}
+
+/** Where and how long, right on the card: tap either and today's workout is rebuilt on the spot. */
+function pvControls(plan, loc) {
+  const usual = (state.profile && state.profile.sessionMin) || 60;
+  const now = minOverride || usual;
+  const fixed = !!choice && choice.kind !== 'muscles'; // your own list keeps its sets, so the length chips sit this out
+  return `
+        <div class="pv-ctl">
+          ${loc && state.locations.length > 1 ? `<button class="pv-chip pv-gym" data-pv-gym aria-haspopup="dialog" aria-label="Location: ${esc(loc.name)}. Change location">
+            <span class="gym-pin" aria-hidden="true">${icon('pin')}</span><span>${esc(loc.name)}</span></button>` : ''}
+          <div class="pv-len" role="radiogroup" aria-label="Session length${fixed ? ' (your own workout keeps its sets)' : ''}">
+            ${LENGTHS.map((n) => `<button class="pv-chip" type="button" role="radio" aria-checked="${!fixed && now === n}" data-len="${n}" ${fixed ? 'disabled' : ''} aria-label="${n} minutes">${durationLabel(n)}</button>`).join('')}
+          </div>
+        </div>`;
+}
+
+/** A duration chip: rebuild today's workout for that many minutes (today only), with Undo. */
+function pickLength(el, plan, n) {
+  const usual = (state.profile && state.profile.sessionMin) || 60;
+  if ((minOverride || usual) === n) { tick('light'); return; }
+  const before = snap();
+  minOverride = n === usual ? null : n;
+  tick();
+  changed(el, before, lengthMessage(plan.label, n), []);
+}
+
+/**
+ * "Switch workout": three ways to change what you do today. Each one rebuilds the preview and offers Undo;
+ * nothing is saved unless you ask (Save for later).
+ */
+function openSwitch(el, plan) {
+  const savedList = () => cleanSaved(state.settings && state.settings.saved_workouts);
+  const row = (attr, title, sub) => `
+    <button class="pick" type="button" ${attr}>
+      <span class="pick-text"><b>${title}</b><small data-layout-ok>${sub}</small></span>
+      <span class="chev" aria-hidden="true">${icon('chev')}</span>
+    </button>`;
+  const apply = (next, message, close) => {
+    const before = snap();
+    choice = next;
+    dayOverride = null;
+    const fresh = previewPlan();
+    if (!fresh || !fresh.exercises.length) {
+      choice = before.choice;
+      dayOverride = before.dayOverride;
+      toast('Nothing fits this gym for that. Try other muscles or another gym.');
+      return;
+    }
+    close();
+    changed(el, before, message, fresh.exercises.map((it) => it.exercise_id));
+  };
+  const joints = jointAvoidSet(state.profile);
+  sheet('Switch workout', (body, close, head) => {
+    const home = () => {
+      head.setStep('Switch workout', null);
+      const n = savedList().length;
+      body.innerHTML = `
+        <div class="stack">
+          <p class="small muted">Nothing changes until you pick one. You can undo it right after.</p>
+          <div class="pick-group">
+            ${row('data-o="muscles"', 'Pick muscle groups', 'Choose what to train. Forge builds it for this gym.')}
+            ${row('data-o="saved"', 'Saved workouts', n ? `${n} saved` : 'None yet. Save any workout to start it later.')}
+            ${row('data-o="scratch"', 'Create from scratch', 'Pick exercises, sets and reps.')}
+          </div>
+          ${plan.exercises.length ? '<button class="btn ghost" data-o="save-now">Save this workout for later</button>' : ''}
+        </div>`;
+      const on = (o, fn) => { const b = $(`[data-o="${o}"]`, body); if (b) b.onclick = () => { tick(); fn(); }; };
+      on('muscles', musclesStep);
+      on('saved', savedStep);
+      on('scratch', () => { close(); openScratchBuilder(el); });
+      on('save-now', () => nameStep(itemsFromPlan(plan), plan.label));
+    };
+    const musclesStep = () => {
+      head.setStep('Muscle groups', () => { tick(); home(); });
+      const picked = new Set(choice && choice.kind === 'muscles' ? cleanMuscles(choice.groups) : []);
+      body.innerHTML = `
+        <div class="stack">
+          <p class="small muted">Pick up to ${MAX_MUSCLES}. ${joints.size ? 'Moves that stress the joints you protect are left out.' : 'Turn on Knees or Lower back under Protect to leave out the moves that stress them.'}</p>
+          <div class="chips chips--grid" role="group" aria-label="Muscle groups">
+            ${FOCUS_KEYS.map((k) => `<label class="chip"><input type="checkbox" value="${k}" ${picked.has(k) ? 'checked' : ''}><span>${esc(FOCUS_GROUPS[k].label)}</span></label>`).join('')}
+          </div>
+          <button class="btn bigbtn" data-build disabled>Build workout</button>
+        </div>`;
+      const boxes = $$('input[type=checkbox]', body);
+      const build = $('[data-build]', body);
+      const sync = () => { build.disabled = !boxes.some((b) => b.checked); };
+      boxes.forEach((b) => b.addEventListener('change', () => {
+        if (b.checked && boxes.filter((x) => x.checked).length > MAX_MUSCLES) { b.checked = false; haptics.warning && haptics.warning(); toast(`Up to ${MAX_MUSCLES} groups`); return; }
+        tick();
+        sync();
+      }));
+      sync();
+      build.onclick = () => {
+        const groups = cleanMuscles(boxes.filter((b) => b.checked).map((b) => b.value));
+        apply({ kind: 'muscles', groups }, musclesLabel(groups), close);
+      };
+    };
+    const savedStep = () => {
+      head.setStep('Saved workouts', () => { tick(); home(); });
+      const list = savedList();
+      const names = (sv) => `${savedSub(sv)}: ${sv.items.slice(0, 3).map((i) => (exerciseById(i.exercise_id) || {}).name || i.exercise_id).join(', ')}${sv.items.length > 3 ? '…' : ''}`;
+      body.innerHTML = list.length ? `
+        <div class="stack">
+          <ul class="list saved-list">
+            ${list.map((sv) => `<li class="saved-row">
+              <button class="pick saved-go" type="button" data-use="${esc(sv.id)}"><span class="pick-text"><b>${esc(sv.name)}</b><small data-layout-ok>${esc(names(sv))}</small></span></button>
+              <button class="icon-btn" type="button" data-del="${esc(sv.id)}" aria-label="Delete ${esc(sv.name)}">${icon('close')}</button>
+            </li>`).join('')}
+          </ul>
+        </div>` : '<div class="stack"><p class="muted">Nothing saved yet. Build a workout, or tap “Save this workout for later” on the Switch sheet.</p></div>';
+      $$('[data-use]', body).forEach((b) => (b.onclick = () => {
+        const sv = list.find((x) => x.id === b.dataset.use);
+        if (sv) apply({ kind: 'saved', id: sv.id }, sv.name, close);
+      }));
+      $$('[data-del]', body).forEach((b) => (b.onclick = () => {
+        tick('light');
+        const gone = list.find((x) => x.id === b.dataset.del);
+        patch('settings', 'main', { saved_workouts: removeSaved(list, b.dataset.del) });
+        toast(`Deleted ${gone ? gone.name : 'workout'}`, 6000, { action: { label: 'Undo', onClick: () => patch('settings', 'main', { saved_workouts: list }) } });
+        close();
+      }));
+    };
+    const nameStep = (items, suggested) => {
+      head.setStep('Save workout', () => { tick(); home(); });
+      body.innerHTML = `
+        <div class="stack">
+          <label class="field"><span class="label">Name</span><input value="${esc(suggested)}" maxlength="40" data-name aria-label="Workout name"></label>
+          <button class="btn bigbtn" data-save>Save</button>
+        </div>`;
+      $('[data-save]', body).onclick = () => {
+        saveWorkout($('[data-name]', body).value.trim() || 'My workout', items);
+        close();
+      };
+    };
+    home();
+  }, { detents: ['medium', 'large'] });
+}
+
+/** Store a workout in Settings (no new collection, so no rules change) and say so. */
+function saveWorkout(name, items) {
+  const prev = cleanSaved(state.settings && state.settings.saved_workouts);
+  const entry = { id: `sw_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`, name, created_at: new Date().toISOString(), items };
+  patch('settings', 'main', { saved_workouts: addSaved(prev, entry) });
+  tick('success');
+  toast(`Saved “${name}”`, 6000, { action: { label: 'Undo', onClick: () => patch('settings', 'main', { saved_workouts: prev }) } });
+}
+
+/** Create from scratch: pick exercises, set sets and reps, use it today, optionally save it. `draft` survives the exercise picker. */
+function openScratchBuilder(el, draft = null) {
+  const d = draft || { name: '', items: [], save: false };
+  const avail = expandEquipment((activeLocation() || {}).equipment || []);
+  const avoid = jointAvoidSet(state.profile);
+  sheet('Create a workout', (body, close) => {
+    const draw = () => {
+      body.innerHTML = `
+        <div class="stack">
+          <ul class="list scratch-list">${d.items.map((it, i) => {
+            const ex = exerciseById(it.exercise_id);
+            return `<li class="scratch-row">
+              <div class="scratch-name"><b>${esc(ex ? ex.name : it.exercise_id)}</b>
+                <button class="icon-btn" type="button" data-rm="${i}" aria-label="Remove ${esc(ex ? ex.name : 'exercise')}">${icon('close')}</button></div>
+              <div class="scratch-step">
+                <span class="muted small">Sets</span>
+                <button class="icon-btn" type="button" data-s="${i}:-1" aria-label="Fewer sets">−</button><b>${it.sets}</b><button class="icon-btn" type="button" data-s="${i}:1" aria-label="More sets">+</button>
+                <span class="muted small">${ex && ex.timed ? 'Seconds' : 'Reps'}</span>
+                <button class="icon-btn" type="button" data-r="${i}:-1" aria-label="Fewer reps">−</button><b>${it.reps_lo === it.reps_hi ? it.reps_hi : `${it.reps_lo}–${it.reps_hi}`}</b><button class="icon-btn" type="button" data-r="${i}:1" aria-label="More reps">+</button>
+              </div>
+            </li>`;
+          }).join('') || '<li class="muted">No exercises yet</li>'}</ul>
+          <button class="btn ghost" type="button" data-add>+ Add exercise</button>
+          <label class="choice check"><input type="checkbox" data-save ${d.save ? 'checked' : ''}><span>Save for later<small>Find it under Saved workouts.</small></span></label>
+          <label class="field" ${d.save ? '' : 'hidden'} data-name-wrap><span class="label">Name</span><input value="${esc(d.name)}" maxlength="40" data-name aria-label="Workout name" placeholder="My workout"></label>
+          <button class="btn bigbtn" type="button" data-use ${d.items.length ? '' : 'disabled'}>Use this workout</button>
+        </div>`;
+      $$('[data-rm]', body).forEach((b) => (b.onclick = () => { tick('light'); d.items.splice(Number(b.dataset.rm), 1); draw(); }));
+      const bump = (key, fn) => $$(`[data-${key}]`, body).forEach((b) => (b.onclick = () => {
+        const [i, dir] = b.dataset[key].split(':').map(Number);
+        tick();
+        d.items[i] = fn(d.items[i], dir);
+        draw();
+        $(`[data-${key}="${i}:${dir}"]`, body)?.focus({ preventScroll: true });
+      }));
+      bump('s', (it, dir) => ({ ...it, sets: Math.min(8, Math.max(1, it.sets + dir)) }));
+      bump('r', (it, dir) => {
+        const step = ((exerciseById(it.exercise_id) || {}).timed ? 5 : 1) * dir;
+        const lo = Math.max(1, it.reps_lo + step);
+        return { ...it, reps_lo: lo, reps_hi: Math.max(lo, it.reps_hi + step) };
+      });
+      $('[data-add]', body).onclick = () => {
+        tick('light');
+        d.name = $('[data-name]', body).value;
+        d.save = $('[data-save]', body).checked;
+        close();
+        const inList = new Set(d.items.map((x) => x.exercise_id));
+        openExercisePicker({
+          title: 'Add an exercise',
+          filter: (c) => !inList.has(c.id) && canDo(c, avail) && jointFriendly(c, avoid),
+          availableNote: avoid.size ? 'Doable at this gym, and easy on the joints you protect.' : 'Doable at this gym.',
+          onPick: (ex) => { d.items.push(defaultItem(ex)); openScratchBuilder(el, d); },
+        });
+      };
+      $('[data-save]', body).addEventListener('change', (e) => { tick(); d.save = e.target.checked; $('[data-name-wrap]', body).hidden = !d.save; });
+      $('[data-use]', body).onclick = () => {
+        const name = $('[data-name]', body).value.trim() || 'My workout';
+        const saveIt = $('[data-save]', body).checked;
+        const items = d.items.slice();
+        const before = snap();
+        choice = { kind: 'scratch', name, items };
+        dayOverride = null;
+        close();
+        if (saveIt) saveWorkout(name, items);
+        changed(el, before, name, items.map((x) => x.exercise_id));
+      };
+    };
+    draw();
   }, { detents: ['medium', 'large'] });
 }
 
@@ -666,6 +902,7 @@ function openProgramPicker() {
       if (current && current.template === k) return;
       startProgram(k);
       dayOverride = null;
+      choice = null;
       toast(`Program: ${PROGRAMS[k].name}`);
     };
   });
