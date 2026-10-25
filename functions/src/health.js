@@ -306,10 +306,29 @@ export function parsePayload(body, { now = Date.now(), maxDays = MAX_DAYS_PER_PO
 const same = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 const core = ({ updated_at, source, sources, ...rest }) => rest; // eslint-disable-line no-unused-vars
 
+/**
+ * Steps come from two places: Apple Health (apple_steps) and Withings (withings_steps). The day's `steps` is
+ * the higher of the two, never their sum, and `steps_source` says which won ('apple' on a tie, so Apple
+ * Health stays the default). A doc from before this field existed has `steps` from Apple and no apple_steps.
+ */
+export function resolveSteps(doc) {
+  const out = { ...doc };
+  const num = (v) => (typeof v === 'number' && Number.isFinite(v) ? v : null);
+  const apple = num(doc.apple_steps) ?? (doc.steps_source ? null : num(doc.steps));
+  const withings = num(doc.withings_steps);
+  if (apple == null && withings == null) return out;
+  if (apple != null) out.apple_steps = apple;
+  if (withings != null && (apple == null || withings > apple)) Object.assign(out, { steps: withings, steps_source: 'withings' });
+  else Object.assign(out, { steps: apple, steps_source: 'apple' });
+  return out;
+}
+
 /** The stored doc after applying one day's fields. Returns null when nothing would change. */
 export function mergeDay(existing, { uid, day, fields, source, nowIso }) {
   const base = existing || { id: day, user_id: uid, created_at: nowIso, day, deleted: false };
-  const merged = mergeFields(base, fields);
+  const layered = mergeFields(base, fields);
+  if ('steps' in fields) layered.apple_steps = fields.steps; // a fresh Apple number replaces the old Apple number
+  const merged = 'steps' in fields || 'withings_steps' in fields ? resolveSteps(layered) : layered;
   const prior = base.sources || (base.source ? [base.source] : []);
   const sources = [...new Set([...prior, source])];
   if (existing && same(core(merged), core(base)) && sources.length === prior.length) return null;

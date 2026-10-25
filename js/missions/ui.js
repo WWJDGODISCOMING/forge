@@ -11,7 +11,7 @@ import { todayMissions, seenToday, weekProgress, unseenMissionBadges, MISSION_XP
 const fmt = (n) => Math.round(n).toLocaleString();
 
 function progressText(p) {
-  return p ? `${fmt(p.value)} / ${fmt(p.target)} ${p.unit}` : '';
+  return p ? `${fmt(p.value)} / ${fmt(p.target)} ${p.unit}${p.source ? ` · ${p.source}` : ''}` : '';
 }
 
 /** The card under the workout card. All done: one line. Nothing to show before missions have started. */

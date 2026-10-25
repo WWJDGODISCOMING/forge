@@ -12,6 +12,8 @@ import { P } from './paths.js';
 import { getAccessToken, NotConnected } from './tokens.js';
 import { incrementalSync, reconcile90 } from './sync.js';
 import { backfillTaskId, enqueueOnce } from './tasks.js';
+import { APPLI_ACTIVITY } from './withings-api.js';
+import { hasActivityScope, syncActivitySafe, stripWithingsSteps } from './activity.js';
 import { log } from './log.js';
 import { deleteAppleData } from './health.js';
 import { deleteFoodSearchData } from './usda.js';
@@ -38,6 +40,16 @@ export async function maintainUser({ db, api, enqueue, uid, webhookUrl, now = ()
   } catch (e) {
     await statusRef.set({ subscription_ok: false, last_error_code: `subscribe_${e.status || 'x'}` }, { merge: true });
   }
+  if (hasActivityScope((await statusRef.get()).data()?.scopes)) {
+    try {
+      const n = await api.notifyList(token, APPLI_ACTIVITY);
+      const ok = (n.profiles || []).some((p) => p.callbackurl === webhookUrl);
+      if (!ok) await api.notifySubscribe(token, webhookUrl, APPLI_ACTIVITY);
+      await statusRef.set({ activity_subscription_ok: true }, { merge: true });
+    } catch {
+      await statusRef.set({ activity_subscription_ok: false }, { merge: true });
+    }
+  }
   try {
     const dev = await api.getdevice(token);
     const devices = (dev.devices || []).map((d) => ({ type: d.type || null, model: d.model || null, model_id: d.model_id ?? null, last_session: d.last_session_date ? new Date(d.last_session_date * 1000).toISOString() : null }));
@@ -57,6 +69,7 @@ export async function maintainUser({ db, api, enqueue, uid, webhookUrl, now = ()
     const s = await incrementalSync({ db, api, uid, token, now, reason: 'maintenance' });
     out.synced = s.created + s.updated;
   });
+  await syncActivitySafe({ db, api, uid, token, now }); // records its own quiet status; steps never block the rest
   await step('reconcile', async () => {
     const r = await reconcile90({ db, api, uid, token, now });
     out.removed = r.removed;
@@ -110,6 +123,7 @@ export async function disconnect({ db, api, uid, webhookUrl, deleteData = false,
       const token = await getAccessToken({ db, api, uid, now });
       await api.notifyRevoke(token, webhookUrl, 1);
       revoked = true;
+      await api.notifyRevoke(token, webhookUrl, APPLI_ACTIVITY).catch(() => {});
     } catch {
       revoked = false; // still disconnect here; Withings drops the subscription after 20 days of 404s
     }
@@ -121,6 +135,7 @@ export async function disconnect({ db, api, uid, webhookUrl, deleteData = false,
   if (deleteData) {
     deleted += await deleteAll(db, await db.collection(P.bodyCol(uid)).get());
     deleted += await deleteAll(db, await db.collection(P.weightCol(uid)).where('source', '==', 'withings').get());
+    await stripWithingsSteps({ db, uid, now });
     await db.doc(P.status(uid)).delete();
   } else {
     await db.doc(P.status(uid)).set({ connected: false, disconnected_at: new Date(now()).toISOString(), subscription_ok: null }, { merge: true });

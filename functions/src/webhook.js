@@ -6,7 +6,8 @@
 // answers 200 in well under a second. The task does the Withings + Firestore work.
 //   HEAD                    → 200 (Withings checks the URL before subscribing)
 //   wrong or missing ?k=    → 404, nothing done
-//   appli ≠ 1               → 200, ignored (we only subscribe to body measures)
+//   appli 16                → an activity (steps) task
+//   other appli             → 200, ignored (we only subscribe to body measures and activity)
 //   unknown userid          → 200, ignored (a stale subscription; maintenance cleans up)
 //   lookup/enqueue failure  → 503, so Withings retries (failures we can see before replying)
 import { timingSafeEqual } from 'node:crypto';
@@ -24,7 +25,7 @@ const same = (a, b) => {
  * same 2-minute bucket and become one task; a genuinely new change to the same measurement later is a new
  * task (Cloud Tasks keeps used ids blocked for about an hour).
  */
-export const notifyTaskId = (uid, p, received) => `n-${uid}-${Number(p.startdate) || 0}-${Number(p.enddate) || 0}-${Math.floor(received / 120000)}`.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 480);
+export const notifyTaskId = (uid, p, received) => `${Number(p.appli) === 16 ? 'na' : 'n'}-${uid}-${Number(p.startdate) || 0}-${Number(p.enddate) || 0}-${Math.floor(received / 120000)}`.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 480);
 
 /**
  * req: { method, query, body } (body already parsed into an object). deps: { db, enqueue(data, {id}), key, now }.
@@ -40,7 +41,7 @@ export async function handleWebhook(req, { db, enqueue, key, now = () => Date.no
   if (!same(req.query && req.query.k, key)) return { status: 404, text: 'not found' };
   const p = req.body || {};
   const appli = Number(p.appli);
-  if (appli !== 1) {
+  if (appli !== 1 && appli !== 16) {
     log('notify_ignored', { appli: Number.isInteger(appli) ? appli : -1 });
     return { status: 200, text: 'ignored' };
   }
@@ -59,7 +60,7 @@ export async function handleWebhook(req, { db, enqueue, key, now = () => Date.no
   }
   const received = now();
   try {
-    await enqueue({ kind: 'notify', uid, received_at: received, startdate: Number(p.startdate) || null, enddate: Number(p.enddate) || null }, { id: notifyTaskId(uid, p, received) });
+    await enqueue({ kind: appli === 16 ? 'activity' : 'notify', uid, received_at: received, startdate: Number(p.startdate) || null, enddate: Number(p.enddate) || null }, { id: notifyTaskId(uid, p, received) });
   } catch (e) {
     if (e && e.code !== 'functions/task-already-exists' && !/already exists/i.test(e.message || '')) {
       log('notify_enqueue_failed');

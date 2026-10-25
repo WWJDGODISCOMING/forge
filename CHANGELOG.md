@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.70 — Withings steps (2026-10-25)
+
+**Cloud Functions changed** (deploy `functions`). No `firestore.rules` changes. After the deploy, reconnect Withings once (Settings → Withings → Reconnect to add steps) so it can share steps.
+
+### What's new
+
+- Forge now pulls your daily steps from Withings (last 7 days on connect, daily upkeep, Sync now, and when Withings says new activity arrived). Missions, Past days and the leg stripe work even when the Apple Health Shortcut hasn't run.
+- If Apple Health and Withings both have steps for a day, Forge uses the higher number (never adds them) and Apple Health wins a tie.
+- Steps show where they came from ("from Withings" / "from Apple Health") on the missions card and in Past days.
+- Settings → Withings: a quiet "Reconnect to add steps" note when your link was made before steps were supported.
+
 ## 0.16.69 — Create a workout: steppers no longer clipped (2026-10-25)
 
 No Cloud Functions or `firestore.rules` changes.

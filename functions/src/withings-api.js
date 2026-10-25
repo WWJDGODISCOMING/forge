@@ -8,6 +8,8 @@ export const AUTHORIZE = 'https://account.withings.com/oauth2_user/authorize2';
 // Withings status codes we act on (others are treated as permanent failures).
 export const INVALID_TOKEN = new Set([100, 101, 102, 200, 283, 401, 343]);
 export const RATE_LIMIT = 601;
+export const SCOPE = 'user.info,user.metrics,user.activity';
+export const APPLI_ACTIVITY = 16;
 export const TIMEOUT = 522; // Withings' own "timeout": try again later
 
 export class WithingsError extends Error {
@@ -54,7 +56,7 @@ export function makeClient({ fetch, clientId, clientSecret, timeoutMs = 7000 }) 
   }
 
   return {
-    authorizeUrl({ redirectUri, state, scope = 'user.info,user.metrics' }) {
+    authorizeUrl({ redirectUri, state, scope = SCOPE }) {
       const q = new URLSearchParams({ response_type: 'code', client_id: clientId, scope, redirect_uri: redirectUri, state });
       return `${AUTHORIZE}?${q}`;
     },
@@ -69,6 +71,10 @@ export function makeClient({ fetch, clientId, clientSecret, timeoutMs = 7000 }) 
     /** One page of measure groups. Pass lastupdate (incremental) or startdate/enddate, plus offset. */
     getmeas(token, { meastypes, lastupdate, startdate, enddate, offset } = {}) {
       return post('/measure', { action: 'getmeas', meastypes: meastypes ? meastypes.join(',') : null, category: 1, lastupdate, startdate, enddate, offset }, token, 'getmeas');
+    },
+    /** Daily activity (steps) for startdateymd..enddateymd (YYYY-MM-DD, inclusive). Needs the user.activity scope. */
+    getactivity(token, { startdateymd, enddateymd, offset } = {}) {
+      return post('/v2/measure', { action: 'getactivity', startdateymd, enddateymd, data_fields: 'steps', offset }, token, 'getactivity');
     },
     getdevice(token) {
       return post('/v2/user', { action: 'getdevice' }, token, 'getdevice');

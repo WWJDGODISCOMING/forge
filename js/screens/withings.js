@@ -13,6 +13,7 @@ import { reviewQueue, byDay, suggestCutoff, underCutoff, parseWeightCSV, planCsv
 import { fmtMetric, KEY_OF_TYPE } from '../withings/body.js';
 import { icon } from '../ui/icons.js';
 import { openExternal } from '../native/bridge.js';
+import { needsActivityScope } from '../steps-source.js';
 
 const W = () => (state.integrations && state.integrations.withings) || null;
 const when = (iso) => (iso ? new Date(iso).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—');
@@ -68,6 +69,7 @@ export function renderWithings(el, sub) {
         </details>
       </div>` : `
       ${w.needs_reconnect ? `<div class="notice warn">Withings stopped accepting Forge’s sign-in. <button class="link" data-connect>Connect again</button> (${EXISTING_ACCOUNT})</div>` : ''}
+      ${needsActivityScope(w) ? `<p class="small muted" data-steps-note>Want your Withings steps too? <button class="link" data-connect>Reconnect to add steps</button></p>` : ''}
       ${connectUrl && w.needs_reconnect ? `<a class="btn" href="${esc(connectUrl)}" target="_blank" rel="noopener" data-go>Continue to Withings →</a>` : ''}
       <div class="card stack">
         <div class="row between center"><p class="label">Connected</p><span class="small muted">${esc(w.model || 'Scale')}</span></div>
