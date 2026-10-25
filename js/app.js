@@ -131,6 +131,7 @@ const routes = {
   timer: () => import('./screens/timer.js').then((m) => m.renderTimer(main)),
   history: () => import('./screens/history.js').then((m) => m.renderHistory(main)),
   library: () => import('./screens/library.js').then((m) => m.renderLibrary(main)),
+  days: (day) => import('./screens/days.js').then((m) => m.renderDays(main, day)),
   awards: () => import('./screens/awards.js').then((m) => m.renderAwards(main)),
   settings: () => import('./screens/settings.js').then((m) => m.renderSettings(main)),
   locations: () => import('./screens/locations.js').then((m) => m.renderLocations(main)),

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.68 — Past days: see each day's missions (2026-10-25)
+
+No Cloud Functions or `firestore.rules` changes. Everything is read from data already stored.
+
+### What's new
+
+- Tap any day in the Awards week strip to see that day's missions with the real numbers: weigh-in, steps, calories against your ceiling, protein and workouts.
+- New Past days list on Awards, newest first, back to your first logged day.
+- Previous and next day arrows. Today links back to the live card.
+- Days with nothing logged say so calmly.
+
 ## 0.16.67 — Switch workout, plus time and place chips (2026-10-25)
 
 No Cloud Functions or `firestore.rules` changes. Saved workouts ride in your settings document.

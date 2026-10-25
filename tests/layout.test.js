@@ -2759,6 +2759,37 @@ if (standalone) {
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
+  test('layout: Past days list and day detail fit at phone, 320 large text and Duo sizes', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    const sizes = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [466, 678, true, 1], [678, 466, true, 1], [626, 890, true, 1], [890, 626, false, 1]];
+    const views = [['awards', 'strip'], ['days', 'list'], ['days/2026-10-10', 'full'], ['days/2026-10-07', 'partial'], ['days/2026-08-01', 'empty'], ['days/2026-10-12', 'today']];
+    for (const [w, h, dark, ts] of sizes) {
+      await browser.viewport(w, h, dark);
+      for (const [route, name] of views) {
+        await browser.open(route, seed({}));
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+        const at = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? 't' : ''} ${name}`;
+        for (const p of await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)) note(p, at);
+        const r = await browser.eval(`(() => ({
+          rows: document.querySelectorAll('.dd-row').length, links: document.querySelectorAll('.dd-link').length, strip: document.querySelectorAll('.ms-dot a').length,
+          small: [...document.querySelectorAll('.dd-arrow:not(.off), .dd-link, .ms-dot a, .ms-past, .dd-today')].filter((e) => { const q = e.getBoundingClientRect(); return q.height < 44 || (!e.classList.contains('dd-link') && q.width < 44); }).length,
+          text: document.querySelector('#main').textContent, scrollW: document.documentElement.scrollWidth, innerW: innerWidth,
+        }))()`);
+        if (r.scrollW > r.innerW + 1) note('horizontal overflow', at);
+        if (r.small) note(`${r.small} tap target(s) under 44px`, at);
+        if (name === 'strip' && r.strip !== 7) note(`week strip links: ${r.strip}`, at);
+        if (name === 'list' && r.links < 5) note(`past days rows: ${r.links}`, at);
+        if (['full', 'partial', 'today'].includes(name) && r.rows < 2) note(`day rows: ${r.rows}`, at);
+        if (name === 'empty' && !r.text.includes('Nothing logged')) note('empty day does not say Nothing logged', at);
+        if (shots) await browser.screenshot(`${shots}/days-${name}-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}.png`);
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);
 }
