@@ -4,9 +4,10 @@
 
 No Cloud Functions or `firestore.rules` changes.
 
-### Fixed
+### What's new
 
-- In Create a workout, the Seconds/Reps + button could be cut off on the smallest screens at the largest text size. The label now wraps above the − / value / + buttons when space is tight, and the buttons stay at least 44px.
+- Create a workout: the Seconds and Reps buttons no longer get cut off at large text.
+- The label wraps above the buttons when space is tight; buttons stay 44px.
 
 ## 0.16.68 — Past days: see each day's missions (2026-10-25)
 
