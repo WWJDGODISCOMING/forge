@@ -317,5 +317,23 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Layout assert that each `.scratch-step .icon-btn` lies within its `.scratch-row`; buttons stay at least 44px.
   - Tests.
 
+## 27. #212 Withings steps sync (getactivity) in Cloud Functions
+- Issue: #212
+- Version: 0.16.70
+- Status: todo
+- Acceptance:
+  - `user.activity` scope + calm reconnect note when missing; getactivity sync (7 days) on connect/refresh and webhook appli=16.
+  - Tested per-day merge with Apple Health (higher wins, source recorded, no double count); synthetic fixtures; no new secrets or paid services.
+  - Summary flags the Functions deploy and the one-time Withings reconnect.
+
+## 28. #213 Home-screen and lock-screen widgets (WidgetKit)
+- Issue: #213
+- Version: 0.16.71
+- Status: todo
+- Acceptance:
+  - Small (rings + calories line), medium (rings + 7-day weight trend), lock-screen circular + rectangular widgets; tap deep-links.
+  - Numbers-only snapshot via a small bridge, timeline reload on change, stale state says "Open Forge to update"; no network in the widget.
+  - Dark/light, Dynamic Type, Duo sizes; JS snapshot tests; no macOS runners.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
