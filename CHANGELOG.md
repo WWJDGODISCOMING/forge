@@ -6,10 +6,10 @@ No Cloud Functions or `firestore.rules` changes. Saved workouts ride in your set
 
 ### What's new
 
-- A Switch button on the Up next card: pick muscle groups, start a saved workout, or build one from scratch.
+- Switch on the Up next card: pick muscles, use a saved workout, or build your own.
 - Muscle groups builds a fresh workout for this gym and keeps the joints you protect safe.
 - Save any workout to start it later. Your own workouts keep the sets and reps you chose.
-- 20m, 30m, 45m and 1h chips and a location chip rebuild today's workout on the spot, with Undo.
+- Time chips (20m to 1h) and a location chip rebuild today's workout, with Undo.
 
 ## 0.16.66 — History and Replace in the player (2026-10-25)
 
