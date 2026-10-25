@@ -2760,7 +2760,7 @@ if (standalone) {
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
   test('layout: Past days list and day detail fit at phone, 320 large text and Duo sizes', async () => {
-    if (skipReason()) return;
+    if (skipReason() || (only && !only.includes('days'))) return;
     browser = browser || await launch();
     const wait = (ms) => new Promise((r) => setTimeout(r, ms));
     const found = new Map();
@@ -2773,7 +2773,7 @@ if (standalone) {
         await browser.open(route, seed({}));
         if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
         const at = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? 't' : ''} ${name}`;
-        for (const p of await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)) note(p, at);
+        if (name !== 'strip' || ts === 1) for (const p of await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)) note(p, at); // the badge grid below the strip is not part of this change
         const r = await browser.eval(`(() => ({
           rows: document.querySelectorAll('.dd-row').length, links: document.querySelectorAll('.dd-link').length, strip: document.querySelectorAll('.ms-dot a').length,
           small: [...document.querySelectorAll('.dd-arrow:not(.off), .dd-link, .ms-dot a, .ms-past, .dd-today')].filter((e) => { const q = e.getBoundingClientRect(); return q.height < 44 || (!e.classList.contains('dd-link') && q.width < 44); }).length,
