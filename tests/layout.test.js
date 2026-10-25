@@ -451,6 +451,42 @@ if (standalone) {
       }
     });
   }
+  // History + Replace chips (v0.16.66): both are big tap targets that stay on screen, and the History sheet fits.
+  for (const [w, h, dark, ts] of !only || only.includes('play') ? RP_SIZES : []) {
+    const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+    test(`layout: history and replace chips fit at ${tag}`, async () => {
+      if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+      browser = browser || await launch();
+      await browser.viewport(w, h, dark);
+      await browser.open('play', seed({ active: true }));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const chips = await browser.eval(`(() => {
+        const hit = (c) => { const q = getComputedStyle(c, '::before'); return parseFloat(q.height) || 0; };
+        const box = (e) => { const q = e.getBoundingClientRect(); return { l: q.left, r: q.right, t: q.top, b: q.bottom }; };
+        const others = ['.pl-name', '.pl-setlabel', '[data-hero]'].map((s) => ({ s, ...box(document.querySelector(s)) }));
+        const reach = ['[data-r="1"]', '[data-r="-1"]'].map((s) => { const e = document.querySelector(s); if (!e) return null; e.scrollIntoView({ block: 'center' }); const q = box(e); const at = document.elementFromPoint((q.l + q.r) / 2, (q.t + q.b) / 2); return { s, ok: q.b <= innerHeight + 0.5 && (at === e || e.contains(at)) }; });
+        window.scrollTo(0, 0); document.querySelectorAll('*').forEach((n) => { if (n.scrollTop) n.scrollTop = 0; });
+        return ['[data-hist-chip]', '[data-replace-chip]'].map((s) => { const c = document.querySelector(s); if (!c) return null; const r = c.getBoundingClientRect(); return { h: r.height, hit: hit(c), l: r.left, r: r.right, t: r.top, b: r.bottom, vw: innerWidth, vh: innerHeight, lines: c.querySelector('span').getClientRects().length, hits: others.filter((o) => r.left < o.r && r.right > o.l && r.top < o.b && r.bottom > o.t).map((o) => o.s), reach }; });
+      })()`);
+      if (shots) await browser.screenshot(`${shots}/history-chips-${tag}.png`);
+      assert(chips.every(Boolean), 'the History or Replace chip is missing');
+      assert(chips.every((c) => c.hit >= 43.5 && c.l >= 0 && c.r <= c.vw + 0.5 && c.lines === 1), `a chip's tap area is small, off screen or wraps: ${JSON.stringify(chips)}`);
+      assert(chips.every((c) => c.hits.length === 0), `a chip overlaps ${JSON.stringify(chips.map((c) => c.hits))}`);
+      assert(chips[0].reach.every((x) => x && x.ok), `a stepper is covered or below the screen: ${JSON.stringify(chips[0].reach)}`);
+      await browser.eval('document.querySelector("[data-hist-chip]").click()');
+      await new Promise((r) => setTimeout(r, 900));
+      const sh = await browser.eval(`(() => {
+        const d = document.querySelector('dialog.sheet[open]'); if (!d) return null;
+        const top = d.querySelector('.hx-top'), date = top && top.querySelector('b').getBoundingClientRect(), best = top && top.querySelector('.hx-best').getBoundingClientRect();
+        const sum = d.querySelector('[data-hx-sum]');
+        return { text: d.innerText.length > 0, over: d.scrollWidth > d.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, line: !!d.querySelector('.hx-line'), sum: sum ? sum.textContent : '', sameRow: !!top && Math.abs((date.top + date.bottom) / 2 - (best.top + best.bottom) / 2) < 12 };
+      })()`);
+      if (shots) await browser.screenshot(`${shots}/history-sheet-${tag}.png`);
+      assert(sh && sh.text && !sh.over, `the History sheet did not open or overflows sideways: ${JSON.stringify(sh)}`);
+      assert(sh.line && /^Best estimated max .* up .* since /.test(sh.sum), `the History trend line or summary is missing: ${JSON.stringify(sh)}`);
+      assert(sh.sameRow, 'the date and Best are not on one row');
+    });
+  }
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {
     if (skipReason()) return;
     browser = browser || await launch();

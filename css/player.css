@@ -560,6 +560,24 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .pl-count:has(.rest-chip) .tag { white-space: nowrap; flex: none; }
 .pl-count .grow { flex: 1; }
 .pl-count .rest-chip { margin-left: auto; }
+
+/* History + Replace chips and the history sheet (v0.16.66) */
+.pl-lblrow { display: flex; align-items: center; justify-content: space-between; gap: 4px 8px; flex-wrap: wrap; }
+.pl-lblrow .pl-setlabel { margin: 0; }
+.pl-xchips { display: flex; gap: 6px; }
+.pl-xchips .rest-chip { min-height: 28px; margin: 0; padding: 0 10px; } /* looks 28 px; the 44 px hit area is an overlay, so nothing is covered */
+.pl-xchips .rest-chip::before { content: ''; position: absolute; inset: -8px -3px; }
+.pl-lblrow { row-gap: 8px; }
+.hx-sum { margin: 2px 0 6px; }
+.hx-chart { background: var(--surface-2); border-radius: 16px; padding: 12px 14px; }
+.hx-spark { width: 100%; height: auto; max-height: 120px; display: block; }
+.hx-line { fill: none; stroke: var(--accent-text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.hx-dot { fill: var(--surface-2); stroke: var(--accent-text); stroke-width: 2; }
+.hx-dot.last { fill: var(--accent-text); }
+.hx-list li { display: block; min-height: 44px; }
+.hx-list li > .hx-top { display: flex; flex-direction: row; align-items: baseline; gap: 8px; flex-wrap: nowrap; }
+.hx-top .grow { flex: 1; }
+.hx-best { font-weight: 700; }
 .rest-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; margin: -2px 0; border: 0; border-radius: 999px; background: var(--surface-2); color: var(--text-1); font: inherit; font-size: calc(13px * var(--ts)); font-weight: 700; cursor: pointer; white-space: nowrap; }
 .rest-chip.set { background: var(--deep-fill); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 55%, transparent); }
 .rest-chip:active { background: var(--deep-fill); }

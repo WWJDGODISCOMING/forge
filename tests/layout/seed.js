@@ -39,7 +39,7 @@ export function seed({ long = false, empty = false, active = false, effort = fal
     out.workouts.push(rec(`k${k}`, {
       status: 'done', started_at: new Date(t).toISOString(), finished_at: new Date(t + 2700000).toISOString(), duration_ms: 2700000, location_id: 'l1', day_type: 'upper', prs: [],
       exercises: [
-        { exercise_id: 'db_bench_press', role: 'main', superset: null, sets: [set(8, 22), set(8, 22), set(7, 22)] },
+        { exercise_id: 'db_bench_press', role: 'main', superset: null, sets: active ? [set(8, 22 - k), set(8, 22 - k), set(7, 22 - k)] : [set(8, 22), set(8, 22), set(7, 22)] }, // active: the weight rises over time, so History draws a trend
         { exercise_id: 'pushup', role: 'accessory', superset: null, sets: [set(12, 0), set(12, 0)] },
         ...(why ? [{ exercise_id: 'db_bent_row', role: 'main', superset: null, sets: [set(10, 24), set(10, 24), set(9, 24)] }] : []), // a second stalled main lift (same weight three times running)
       ],

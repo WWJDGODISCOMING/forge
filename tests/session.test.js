@@ -5,6 +5,7 @@ import { muscleGlow, hasFigure } from '../js/ui/figure.js';
 import { coverage } from '../js/ui/poses.js';
 import { EXERCISES } from '../js/workouts/exercises.js';
 import { exerciseRecords } from '../js/workouts/history.js';
+import { bestSet, historyRows, trendValues, sparkPoints, trendWords, replaceKeepingTargets, trendSummary, trendDates, canUndoReplace } from '../js/workouts/exhistory.js';
 
 const T0 = Date.parse('2026-10-08T10:00:00Z');
 const min = 60000;
@@ -262,4 +263,92 @@ test('restprefs: chip text', () => {
   const f = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
   assert(restChipText(null, f) === 'Rest timer' && restChipText({ on: false }, f) === 'Rest off', 'plain');
   assert(restChipText({ on: true, warm: 30, work: 90 }, f) === 'Rest 0:30 · 1:30' && restChipText({ on: true, warm: null, work: 90 }, f) === 'Rest 1:30', 'values');
+});
+
+// ---------- History + Replace chips (#194) ----------
+const hxSessions = [ // newest first, like historyFor
+  { date: '2026-10-20T10:00:00Z', deload: false, sets: [{ weight: 135, reps: 8 }, { weight: 135, reps: 6 }] },
+  { date: '2026-10-13T10:00:00Z', deload: true, sets: [{ weight: 115, reps: 8 }] },
+  { date: '2026-10-06T10:00:00Z', deload: false, sets: [{ weight: 125, reps: 8 }, { weight: 125, reps: 9 }] },
+];
+
+test('exhistory: best set and rows', () => {
+  assert(bestSet(hxSessions[0].sets).reps === 8, 'best is the highest estimated max');
+  assert(bestSet([{ weight: null, reps: 10 }, { weight: null, reps: 14 }]).reps === 14, 'bodyweight: most reps');
+  assert(bestSet([]) === null, 'no sets');
+  const rows = historyRows(hxSessions, { limit: 2 });
+  eq(rows.length, 2);
+  eq(rows[0].best, '135 × 8');
+  assert(rows[0].sets.join('|') === '135 × 8|135 × 6', 'every set listed');
+  assert(rows[1].deload, 'deload flagged');
+  eq(historyRows([{ date: 'x', sets: [{ weight: null, reps: 45 }] }], { timed: true })[0].best, '45 s');
+});
+
+test('exhistory: trend runs oldest to newest and speaks plainly', () => {
+  const v = trendValues(hxSessions);
+  eq(v.length, 3);
+  assert(v[0] < v[2], 'newest is higher');
+  eq(trendWords(v), 'Trending up.');
+  eq(trendWords([100, 100.2]), 'Holding steady.');
+  eq(trendWords([120, 100]), 'Trending down.');
+  assert(trendWords([100]).includes('more times'), 'one session: no trend yet');
+  const p = sparkPoints([1, 2, 3], 300, 80, 8);
+  assert(p[0].x === 8 && p[2].x === 292 && p[2].y < p[0].y, 'higher values sit higher');
+  eq(sparkPoints([5], 300, 80)[0].x, 150);
+  assert(sparkPoints([], 300, 80).length === 0, 'no values, no points');
+});
+
+test('exhistory: Replace keeps sets, reps, superset, role and rest', () => {
+  const set = (o = {}) => ({ warmup: false, plan_weight_kg: 60, plan_reps: 10, weight_kg: null, reps: null, rir: null, done: false, completed_at: null, ...o });
+  const old = { exercise_id: 'a', role: 'secondary', superset: 'A', rest_sec: 90, note: '', target: { sets: 4, rep_lo: 8, rep_hi: 12, reps: 10, weight_kg: 60 }, sets: [set(), set(), set(), set()] };
+  const fresh = { exercise_id: 'b', role: 'accessory', superset: null, note: 'x', target: { sets: 3, rep_lo: 10, rep_hi: 15, reps: 12, weight_kg: 20 }, sets: [set({ warmup: true, plan_weight_kg: 10 }), set({ plan_weight_kg: 20, plan_reps: 12 }), set({ plan_weight_kg: 20, plan_reps: 12 }), set({ plan_weight_kg: 20, plan_reps: 12 })] };
+  const r = replaceKeepingTargets(old, fresh);
+  eq(r.exercise_id, 'b');
+  eq(r.role, 'secondary');
+  eq(r.superset, 'A');
+  eq(r.rest_sec, 90);
+  eq(r.sets.filter((s) => !s.warmup).length, 4);
+  assert(r.sets.filter((s) => !s.warmup).every((s) => s.plan_reps === 10 && s.plan_weight_kg === 20), 'old rep target, new move weight');
+  eq(r.sets.filter((s) => s.warmup).length, 1);
+  eq(r.target.rep_hi, 12);
+  eq(r.target.sets, 4);
+  assert(replaceKeepingTargets({ ...old, sets: [set({ done: true })] }, fresh) === null, 'refuses once a set is done');
+});
+
+test('exhistory: Replace between reps and timed moves keeps the set count but not the targets', () => {
+  const timedId = EXERCISES.find((e) => e.timed).id;
+  const repsId = EXERCISES.find((e) => !e.timed).id;
+  const set = (o = {}) => ({ warmup: false, plan_weight_kg: null, plan_reps: 10, weight_kg: null, reps: null, done: false, ...o });
+  const mk = (id, reps) => ({ exercise_id: id, role: 'accessory', superset: null, target: { sets: 3, rep_lo: reps, rep_hi: reps, reps }, sets: [set({ plan_reps: reps }), set({ plan_reps: reps }), set({ plan_reps: reps })] });
+  const a = replaceKeepingTargets(mk(repsId, 10), { ...mk(timedId, 45), target: { sets: 2, rep_lo: 45, rep_hi: 45, reps: 45 }, sets: [set({ plan_reps: 45 }), set({ plan_reps: 45 })] });
+  eq(a.sets.length, 3);
+  assert(a.sets.every((s) => s.plan_reps === 45) && a.target.reps === 45 && a.target.sets === 3, 'reps to timed: 10 reps do not become a 10 s hold');
+  const b = replaceKeepingTargets(mk(timedId, 45), { ...mk(repsId, 10), target: { sets: 2, rep_lo: 10, rep_hi: 10, reps: 10 }, sets: [set({ plan_reps: 10 }), set({ plan_reps: 10 })] });
+  eq(b.sets.length, 3);
+  assert(b.sets.every((s) => s.plan_reps === 10) && b.target.reps === 10, 'timed to reps: a 45 s hold does not become 45 reps');
+});
+
+test('exhistory: Undo of a Replace only while the new move is untouched in the same workout', () => {
+  const w = { exercises: [{ sets: [{ done: false }] }] };
+  const next = w.exercises[0];
+  assert(canUndoReplace(w, w, 0, next), 'untouched: undo is fine');
+  next.sets[0].done = true;
+  assert(!canUndoReplace(w, w, 0, next), 'a set was logged');
+  next.sets[0].done = false;
+  assert(!canUndoReplace(null, w, 0, next), 'the workout ended');
+  assert(!canUndoReplace({ exercises: [] }, w, 0, next), 'a different workout is live');
+  w.exercises[0] = { sets: [] };
+  assert(!canUndoReplace(w, w, 0, next), 'the slot holds something else');
+});
+
+test('exhistory: summary in numbers, mixed kinds, heavy single', () => {
+  const s = (date, sets) => ({ date, deload: false, sets });
+  const sess = [s('2026-10-20T10:00:00Z', [{ weight: 140, reps: 8 }]), s('2026-10-13T10:00:00Z', [{ weight: null, reps: 20 }]), s('2026-10-06T10:00:00Z', [{ weight: 130, reps: 8 }])];
+  const v = trendValues(sess);
+  eq(v.length, 2, 'bodyweight session is not plotted on a weighted line');
+  const txt = trendSummary(v, { weighted: true, unit: 'lb', dates: trendDates(sess), fmt: (d) => d.slice(5, 10) });
+  assert(/^Best estimated max \d+(\.\d)? lb, up [\d.]+ lb since 10-06$/.test(txt), txt);
+  eq(trendSummary([12], {}), 'Best 12 reps');
+  eq(trendSummary([45], { timed: true }), 'Best hold 45 s');
+  eq(bestSet([{ weight: 300, reps: 1 }, { weight: 100, reps: 1 }]).weight, 300, 'heavy single wins');
 });
