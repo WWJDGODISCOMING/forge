@@ -10,7 +10,7 @@ import { live, save } from '../workouts/live.js';
 import { haptics } from '../ui/haptic.js';
 import { openExercisePicker } from './picker.js';
 import { buildEntry, availableHere } from './session.js';
-import { historyRows, trendValues, sparkPoints, trendWords, replaceKeepingTargets } from '../workouts/exhistory.js';
+import { historyRows, trendValues, sparkPoints, trendWords, replaceKeepingTargets, trendSummary, trendDates, canUndoReplace } from '../workouts/exhistory.js';
 
 const fmtDate = (iso) => new Date(iso).toLocaleDateString([], { month: 'short', day: 'numeric' });
 
@@ -31,15 +31,18 @@ export function openExerciseHistory(ex) {
   const sessions = historyIndex().historyFor(ex.id);
   const rows = historyRows(sessions, { timed });
   const vals = trendValues(sessions, { timed });
+  const weighted = !timed && !!sessions[0] && sessions[0].sets.some((x) => x.weight);
+  const summary = trendSummary(vals, { timed, weighted, unit: u, dates: trendDates(sessions, { timed }), fmt: fmtDate });
   sheet(`${ex.name} history`, (body) => {
     body.innerHTML = rows.length ? `
       <div class="stack hx">
         <div class="hx-chart">
-          <p class="label">${timed ? 'Best hold' : vals.length && sessions.some((s) => s.sets.some((x) => x.weight)) ? `Strength trend (${u})` : 'Best set'}</p>
+          <p class="label">${timed ? 'Best hold' : weighted ? `Strength trend (${u})` : 'Best set'}</p>
+          <p class="hx-sum" data-hx-sum><b>${esc(summary)}</b></p>
           ${sparkSvg(vals, `Trend over your last ${vals.length} sessions. ${trendWords(vals)}`)}
           <p class="small muted">${esc(trendWords(vals))}</p>
         </div>
-        <ul class="list hx-list">
+        <ul class="list hx-list" role="list">
           ${rows.map((r) => `<li><div class="hx-top"><b>${fmtDate(r.date)}</b>${r.deload ? '<span class="muted small">deload</span>' : ''}<span class="grow"></span><span class="hx-best">Best ${esc(r.best)}</span></div><small class="muted">${r.sets.map(esc).join(' · ')}</small></li>`).join('')}
         </ul>
       </div>` : '<div class="stack hx"><p class="muted">Not done yet. Your sets show up here after your first workout with it.</p></div>';
@@ -68,7 +71,10 @@ export function openReplace(i, { onDone = () => {} } = {}) {
       w.exercises[i] = next;
       save();
       haptics.success();
-      toast(`Replaced with ${c.name}`, 5000, { action: { label: 'Undo', onClick: () => { w.exercises[i] = old; save(); onDone(); } } });
+      toast(`Replaced with ${c.name}`, 5000, { action: { label: 'Undo', onClick: () => {
+        if (!canUndoReplace(live.w, w, i, next)) { toast("Can't undo after logging a set"); return; }
+        w.exercises[i] = old; save(); onDone();
+      } } });
       onDone();
     },
   });

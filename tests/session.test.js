@@ -5,7 +5,7 @@ import { muscleGlow, hasFigure } from '../js/ui/figure.js';
 import { coverage } from '../js/ui/poses.js';
 import { EXERCISES } from '../js/workouts/exercises.js';
 import { exerciseRecords } from '../js/workouts/history.js';
-import { bestSet, historyRows, trendValues, sparkPoints, trendWords, replaceKeepingTargets } from '../js/workouts/exhistory.js';
+import { bestSet, historyRows, trendValues, sparkPoints, trendWords, replaceKeepingTargets, trendSummary, trendDates, canUndoReplace } from '../js/workouts/exhistory.js';
 
 const T0 = Date.parse('2026-10-08T10:00:00Z');
 const min = 60000;
@@ -313,4 +313,42 @@ test('exhistory: Replace keeps sets, reps, superset, role and rest', () => {
   eq(r.target.rep_hi, 12);
   eq(r.target.sets, 4);
   assert(replaceKeepingTargets({ ...old, sets: [set({ done: true })] }, fresh) === null, 'refuses once a set is done');
+});
+
+test('exhistory: Replace between reps and timed moves keeps the set count but not the targets', () => {
+  const timedId = EXERCISES.find((e) => e.timed).id;
+  const repsId = EXERCISES.find((e) => !e.timed).id;
+  const set = (o = {}) => ({ warmup: false, plan_weight_kg: null, plan_reps: 10, weight_kg: null, reps: null, done: false, ...o });
+  const mk = (id, reps) => ({ exercise_id: id, role: 'accessory', superset: null, target: { sets: 3, rep_lo: reps, rep_hi: reps, reps }, sets: [set({ plan_reps: reps }), set({ plan_reps: reps }), set({ plan_reps: reps })] });
+  const a = replaceKeepingTargets(mk(repsId, 10), { ...mk(timedId, 45), target: { sets: 2, rep_lo: 45, rep_hi: 45, reps: 45 }, sets: [set({ plan_reps: 45 }), set({ plan_reps: 45 })] });
+  eq(a.sets.length, 3);
+  assert(a.sets.every((s) => s.plan_reps === 45) && a.target.reps === 45 && a.target.sets === 3, 'reps to timed: 10 reps do not become a 10 s hold');
+  const b = replaceKeepingTargets(mk(timedId, 45), { ...mk(repsId, 10), target: { sets: 2, rep_lo: 10, rep_hi: 10, reps: 10 }, sets: [set({ plan_reps: 10 }), set({ plan_reps: 10 })] });
+  eq(b.sets.length, 3);
+  assert(b.sets.every((s) => s.plan_reps === 10) && b.target.reps === 10, 'timed to reps: a 45 s hold does not become 45 reps');
+});
+
+test('exhistory: Undo of a Replace only while the new move is untouched in the same workout', () => {
+  const w = { exercises: [{ sets: [{ done: false }] }] };
+  const next = w.exercises[0];
+  assert(canUndoReplace(w, w, 0, next), 'untouched: undo is fine');
+  next.sets[0].done = true;
+  assert(!canUndoReplace(w, w, 0, next), 'a set was logged');
+  next.sets[0].done = false;
+  assert(!canUndoReplace(null, w, 0, next), 'the workout ended');
+  assert(!canUndoReplace({ exercises: [] }, w, 0, next), 'a different workout is live');
+  w.exercises[0] = { sets: [] };
+  assert(!canUndoReplace(w, w, 0, next), 'the slot holds something else');
+});
+
+test('exhistory: summary in numbers, mixed kinds, heavy single', () => {
+  const s = (date, sets) => ({ date, deload: false, sets });
+  const sess = [s('2026-10-20T10:00:00Z', [{ weight: 140, reps: 8 }]), s('2026-10-13T10:00:00Z', [{ weight: null, reps: 20 }]), s('2026-10-06T10:00:00Z', [{ weight: 130, reps: 8 }])];
+  const v = trendValues(sess);
+  eq(v.length, 2, 'bodyweight session is not plotted on a weighted line');
+  const txt = trendSummary(v, { weighted: true, unit: 'lb', dates: trendDates(sess), fmt: (d) => d.slice(5, 10) });
+  assert(/^Best estimated max \d+(\.\d)? lb, up [\d.]+ lb since 10-06$/.test(txt), txt);
+  eq(trendSummary([12], {}), 'Best 12 reps');
+  eq(trendSummary([45], { timed: true }), 'Best hold 45 s');
+  eq(bestSet([{ weight: 300, reps: 1 }, { weight: 100, reps: 1 }]).weight, 300, 'heavy single wins');
 });
