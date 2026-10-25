@@ -10,6 +10,7 @@ import { elapsedMs, isPaused, pauseFields, resumeFields, awayGapMs, removeAwayFi
 import { buildQueue, restAfter, restDefaultSec, validateSet, exerciseComplete, setLabel, exercisePRs, replacePRs } from './session-core.js';
 import { editDoneSet } from './setlist.js';
 import { toUnit } from './progression.js';
+import { restPref } from './restprefs.js';
 import { startRest, stopRest, pauseRest, resumeRest, pauseAwake, resumeAwake } from '../timer.js';
 
 export const live = { w: null };
@@ -136,7 +137,7 @@ export function completeSet(i, j, { reps, weightKg, rir } = {}, { startRestTimer
 
   const q = buildQueue(w.exercises);
   const k = q.findIndex((st) => st.i === i && st.j === j);
-  const rest = k >= 0 ? restAfter(q, w.exercises, k, ex, { deload: !!w.deload, defaultSec: restDefaultSec(state.settings) }) : null;
+  const rest = k >= 0 ? restAfter(q, w.exercises, k, ex, { deload: !!w.deload, defaultSec: restDefaultSec(state.settings), pref: restPref(state.settings, it.exercise_id) }) : null;
   const workingDone = w.exercises.reduce((n, x) => n + x.sets.filter((y) => y.done && !y.warmup).length, 0);
   const lastSetOfWorkout = w.exercises.every((x) => x.sets.every((y) => y.done));
   if (startRestTimer) {

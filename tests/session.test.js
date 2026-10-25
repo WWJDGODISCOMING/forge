@@ -219,3 +219,47 @@ test('coach: rests are spoken in minutes and seconds', () => {
   eq(restPhrase(90), 'Rest 1 minute 30');
   eq(restPhrase(45), 'Rest 45 seconds');
 });
+
+// ---- per-exercise rest timer (v0.16.65) ----
+import { REST_WHEEL, snapRest, restPref, withRestPref, restFromPref, restChipText } from '../js/workouts/restprefs.js';
+
+const rpEx = { id: 'bench', sets: [{ warmup: true }, { warmup: true }, { reps: 8 }, { reps: 8 }], role: 'main' };
+
+test('restprefs: wheel runs 0:15 to 10:00 in 15 s steps', () => {
+  assert(REST_WHEEL[0] === 15 && REST_WHEEL[1] === 30 && REST_WHEEL.at(-1) === 600 && REST_WHEEL.length === 40, 'range');
+  assert(snapRest(52) === 45 && snapRest(1) === 15 && snapRest(9999) === 600 && snapRest('x') === null && snapRest(NaN) === null, 'snap');
+});
+
+test('restprefs: read, write and clear a pref without touching others', () => {
+  const settings = { rest_prefs: { squat: { on: true, warm: 30, work: 180 } } };
+  assert(restPref(settings, 'bench') === null && restPref(null, 'bench') === null, 'none');
+  assert(restPref(settings, 'squat').work === 180, 'read');
+  const next = withRestPref(settings, 'bench', { on: false, warm: 20, work: null });
+  assert(next.squat.work === 180 && next.bench.on === false && next.bench.warm === 15 && next.bench.work === null, 'set + snapped');
+  assert(settings.rest_prefs.bench === undefined, 'input not mutated');
+  assert(!('bench' in withRestPref({ rest_prefs: next }, 'bench', null)), 'cleared');
+});
+
+test('restprefs: warm-up and working sets read their own value; off means none', () => {
+  const p = { on: true, warm: 30, work: 150 };
+  assert(restFromPref(p, true).sec === 30 && restFromPref(p, false).sec === 150, 'split');
+  assert(restFromPref({ on: true, warm: null, work: 90 }, true) === null, 'no warm value falls back');
+  assert(restFromPref({ on: false, warm: 30, work: 90 }, false).off === true && restFromPref(null, false) === null, 'off / none');
+});
+
+test('restprefs: restAfter uses the exercise pref over the dots-menu rest and the default', () => {
+  const ws = [{ ...rpEx, rest_sec: 75 }];
+  const q = buildQueue(ws);
+  const pref = { on: true, warm: 30, work: 150 };
+  assert(restAfter(q, ws, 0, {}, { defaultSec: 60, pref }).sec === 30, 'warm-up uses warm');
+  assert(restAfter(q, ws, 2, {}, { defaultSec: 60, pref }).sec === 150, 'working uses work');
+  assert(restAfter(q, ws, 2, {}, { defaultSec: 60, pref: null }).sec === 75, 'no pref keeps the dots-menu rest');
+  assert(restAfter(q, ws, 2, {}, { defaultSec: 60, pref: { on: false, warm: 30, work: 150 } }) === null, 'off gives no rest');
+  assert(restAfter(q, ws, 2, {}, { defaultSec: 60, pref: { on: true, warm: 30, work: null } }).sec === 75, 'missing working value falls back');
+});
+
+test('restprefs: chip text', () => {
+  const f = (n) => `${Math.floor(n / 60)}:${String(n % 60).padStart(2, '0')}`;
+  assert(restChipText(null, f) === 'Rest timer' && restChipText({ on: false }, f) === 'Rest off', 'plain');
+  assert(restChipText({ on: true, warm: 30, work: 90 }, f) === 'Rest 0:30 · 1:30' && restChipText({ on: true, warm: null, work: 90 }, f) === 'Rest 1:30', 'values');
+});

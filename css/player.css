@@ -35,7 +35,7 @@ body.playing .navbar { display: none; }
   position: relative; display: grid; place-items: center; min-height: clamp(120px, 20vh, 190px); border-radius: 22px; border: 0;
   background: radial-gradient(120% 90% at 50% 100%, var(--accent-tint) 0%, var(--surface) 60%); color: var(--text); cursor: pointer; padding: 8px; font: inherit;
 }
-.pl-demo.has-fig { height: clamp(150px, 25vh, 240px); min-height: 0; overflow: hidden; }
+.pl-demo.has-fig { height: clamp(150px, 22.5vh, 240px); min-height: 0; overflow: hidden; }
 .fig-wrap { position: absolute; inset: 8px; display: grid; place-items: center; }
 .fig-wrap svg { height: 100%; width: auto; max-width: 100%; display: block; }
 .next-fig svg { width: 100%; height: 100%; display: block; }
@@ -554,3 +554,32 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
   .pl-li > .pl-set { width: 44px; }
   .pl-set .pl-set-v, .pl-set .pl-set-rir { display: none; }
 }
+
+/* Rest timer chip + picker (v0.16.65) */
+.pl-count:has(.rest-chip) { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; } /* at big text the chip drops to its own row rather than push the tags off */
+.pl-count:has(.rest-chip) .tag { white-space: nowrap; flex: none; }
+.pl-count .grow { flex: 1; }
+.pl-count .rest-chip { margin-left: auto; }
+.rest-chip { position: relative; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 12px; margin: -2px 0; border: 0; border-radius: 999px; background: var(--surface-2); color: var(--text-1); font: inherit; font-size: calc(13px * var(--ts)); font-weight: 700; cursor: pointer; white-space: nowrap; }
+.rest-chip.set { background: var(--deep-fill); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-text) 55%, transparent); }
+.rest-chip:active { background: var(--deep-fill); }
+.rest-switch { display: flex; align-items: center; justify-content: space-between; min-height: 52px; font-weight: 800; }
+.rest-switch input { appearance: none; -webkit-appearance: none; position: relative; flex: none; width: 52px; height: 32px; min-height: 0; margin: 0; border: 0; border-radius: 999px; background: var(--deep-fill); box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-1) 35%, transparent); cursor: pointer; }
+.rest-switch input::after { content: ''; position: absolute; top: 4px; left: 4px; width: 24px; height: 24px; border-radius: 50%; background: var(--text-1); }
+.rest-switch input:checked { background: var(--accent); box-shadow: none; }
+.rest-switch input:checked::after { left: 24px; background: var(--accent-ink); }
+.rest-switch input:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.rest-ex { margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.rest-wheels { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.rest-wheels[hidden] { display: none; }
+.rest-col .label { text-align: center; margin: 0 0 4px; }
+.rest-box { --rw-pad: 66px; position: relative; height: calc(44px + 2 * var(--rw-pad)); border-radius: 14px; background: var(--surface-2); overflow: hidden; }
+.rest-box::before { content: ''; position: absolute; left: 6px; right: 6px; top: 50%; height: 44px; margin-top: -22px; border-radius: 10px; background: var(--deep-fill); pointer-events: none; } /* the highlight band, behind the numbers */
+@media (max-height: 640px) { .rest-box { --rw-pad: 22px; } .rest-picker > .small:not(.rest-ex) { display: none; } .rest-switch { min-height: 44px; } } /* small or sideways phones: shorter wheels so Save stays in view */
+.rest-wheel { position: relative; height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; overscroll-behavior: contain; padding: var(--rw-pad) 0; box-sizing: border-box; scrollbar-width: none; }
+.rest-wheel::-webkit-scrollbar { display: none; }
+.rest-wheel ul { list-style: none; margin: 0; padding: 0; position: relative; }
+.rest-wheel li { height: 44px; display: grid; place-items: center; scroll-snap-align: center; font: 700 22px var(--num); font-variant-numeric: tabular-nums; color: var(--text-2, var(--muted)); cursor: pointer; }
+.rest-wheel li[data-sel="true"] { color: var(--text-1); font-weight: 900; }
+.rest-wheel:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .rest-wheel { scroll-behavior: auto; } }

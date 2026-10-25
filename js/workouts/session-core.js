@@ -2,6 +2,7 @@
 // the order sets are done in (supersets alternate), what to rest after a set, and set validation.
 
 import { detectPRs, toUnit } from './progression.js';
+import { restFromPref } from './restprefs.js';
 
 export const REST = { main: 150, secondary: 120, accessory: 75, warmup: 45, timed: 60 };
 
@@ -90,7 +91,7 @@ export function supersetTag(exercises, i) {
  * Rest after completing step k (null = go straight to the next set, e.g. mid-superset).
  * ex: library entry for the exercise just done.
  */
-export function restAfter(queue, exercises, k, ex, { deload = false, defaultSec = null } = {}) {
+export function restAfter(queue, exercises, k, ex, { deload = false, defaultSec = null, pref = null } = {}) {
   const { i, j } = queue[k];
   const it = exercises[i];
   const s = it.sets[j];
@@ -101,6 +102,10 @@ export function restAfter(queue, exercises, k, ex, { deload = false, defaultSec 
     const nextSet = exercises[next.i].sets[next.j];
     if (!nextSet.warmup && setLabel(exercises[next.i], next.j).n === round) return null;
   }
+  // The exercise's own rest timer setting (the player's Rest timer chip) beats everything below. It is an explicit choice, so the deload 0.8x does not shrink it.
+  const own = restFromPref(pref, !!s.warmup);
+  if (own && own.off) return null;
+  if (own) return { sec: own.sec, label: s.warmup ? 'Warm-up rest' : it.superset ? 'Rest (superset)' : 'Rest' };
   const custom = REST_DEFAULT_CHOICES.includes(defaultSec) ? defaultSec : null;
   if (s.warmup) return { sec: custom ? Math.min(REST.warmup, custom) : Math.round(REST.warmup * (deload ? 0.8 : 1)), label: 'Warm-up rest' };
   if (it.rest_sec) return { sec: it.rest_sec, label: it.superset ? 'Rest (superset)' : 'Rest' }; // set in the preview's ⋯ menu

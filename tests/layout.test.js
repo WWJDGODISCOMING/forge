@@ -387,6 +387,70 @@ if (standalone) {
       assert(g.rows.every((x) => x.w > 0 && x.l >= 0 && x.r <= g.vw + 0.5 && x.h >= 43.5), `a set chip is hidden or too small at ${at}: ${JSON.stringify(g.rows)}`);
     }
   });
+  // Rest timer per exercise (v0.16.65): the chip in its longest saved state on a warm-up set of a superset (Superset tag,
+  // Warm-up tag and chip share one row), and the picker sheet with the switch on and off.
+  const RP_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [678, 466, true, 1], [626, 890, true, 1], [932, 430, true, 1]];
+  for (const [w, h, dark, ts] of !only || only.includes('rest') || only.includes('play') ? RP_SIZES : []) {
+    const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+    test(`layout: rest timer chip and picker fit at ${tag}`, async () => {
+      if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+      browser = browser || await launch();
+      await browser.viewport(w, h, dark);
+      const data = seed({ active: true });
+      const act = data.workouts.find((x) => x.status === 'active');
+      act.exercises[0].superset = 'A'; act.exercises[1].superset = 'A';
+      act.exercises[0].sets.unshift({ ...act.exercises[0].sets[0], warmup: true });
+      data.settings[0].rest_prefs = { db_bench_press: { on: true, warm: 30, work: 90 } };
+      await browser.open('play', data);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const chip = await browser.eval(`(() => {
+        const c = document.querySelector('[data-rest-chip]'); if (!c) return null;
+        const r = c.getBoundingClientRect(), row = c.parentElement.getBoundingClientRect(), s = c.querySelector('span');
+        const lh = parseFloat(getComputedStyle(s).lineHeight) || parseFloat(getComputedStyle(s).fontSize) * 1.3;
+        const tags = [...c.parentElement.querySelectorAll('.tag')].map((t) => { const q = t.getBoundingClientRect(); return { text: t.textContent, l: q.left, r: q.right, t: q.top, b: q.bottom }; });
+        return { text: s.textContent, h: r.height, l: r.left, r: r.right, t: r.top, b: r.bottom, lines: Math.round(s.getBoundingClientRect().height / lh), font: getComputedStyle(c).fontWeight, size: parseFloat(getComputedStyle(c).fontSize), tags, rowH: row.height, vw: innerWidth, vh: innerHeight };
+      })()`);
+      if (shots) await browser.screenshot(`${shots}/rest-chip-${tag}.png`);
+      assert(chip, 'the Rest timer chip is missing');
+      assert(chip.text === 'Rest 0:30 · 1:30', `chip reads "${chip.text}"`);
+      assert(chip.tags.length === 2 && chip.tags.every((t) => t.l >= 0 && t.r <= chip.vw + 0.5 && t.b - t.t < 40 && (t.r <= chip.l + 0.5 || t.b <= chip.t + 0.5)), `the Superset and Warm-up tags are pushed off, squeezed or overlapped by the chip: ${JSON.stringify(chip.tags)}`);
+      assert(chip.h >= 43.5, `chip is ${chip.h}px tall`);
+      assert(chip.lines === 1, `chip text wraps to ${chip.lines} lines`);
+      assert(chip.l >= 0 && chip.r <= chip.vw + 0.5 && chip.t >= 0 && chip.b <= chip.vh, `chip is outside the viewport: ${JSON.stringify(chip)}`);
+      assert(chip.font === '700' && chip.size >= 12, `chip font is ${chip.font} at ${chip.size}px (the font shorthand was dropped?)`);
+
+      for (const on of [true, false]) {
+        await browser.eval('document.querySelector("[data-rest-chip]").click()');
+        await wait(900);
+        if (!on) { await browser.eval('(() => { const s = document.querySelector("dialog.sheet[open] [data-on]"); s.checked = false; s.dispatchEvent(new Event("change")); })()'); await wait(300); }
+        const sh = await browser.eval(`(() => {
+          const d = document.querySelector('dialog.sheet[open]'); if (!d) return null;
+          const b = d.querySelector('.sheet-body'), save = d.querySelector('[data-save]').getBoundingClientRect(), dr = d.getBoundingClientRect();
+          const wheels = [...d.querySelectorAll('.rest-wheel')].map((e) => {
+            const q = e.getBoundingClientRect(), sel = e.querySelector('li[data-sel="true"]'), sr = sel && sel.getBoundingClientRect();
+            return { vis: q.width > 0 && q.height > 0, in: q.left >= 0 && q.right <= innerWidth + 0.5 && q.top >= 0 && q.bottom <= innerHeight + 0.5, off: sr ? Math.abs((sr.top + sr.height / 2) - (q.top + q.height / 2)) : 999, band: (() => { const bx = e.parentElement, cs = getComputedStyle(bx, '::before'), br = bx.getBoundingClientRect(); return Math.abs((parseFloat(cs.top) + parseFloat(cs.marginTop) + parseFloat(cs.height) / 2) - br.height / 2); })(), sel: sel ? sel.textContent : null };
+          });
+          return { wheels, sheetScroll: b.scrollHeight - b.clientHeight, saveIn: save.bottom <= innerHeight + 0.5 && save.top >= 0 && save.right <= innerWidth + 0.5, saveH: save.height, top: dr.top, over: d.scrollWidth > d.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1 };
+        })()`);
+        if (shots) await browser.screenshot(`${shots}/rest-picker-${on ? 'on' : 'off'}-${tag}.png`);
+        const at = `switch ${on ? 'on' : 'off'}`;
+        assert(sh, `${at}: the picker did not open`);
+        assert(!sh.over, `${at}: the picker overflows sideways`);
+        assert(sh.saveIn && sh.saveH >= 43.5, `${at}: Save is cut off or small (${JSON.stringify(sh)})`);
+        assert(sh.sheetScroll <= 1, `${at}: the sheet has to scroll by ${sh.sheetScroll}px`);
+        if (on) {
+          assert(sh.wheels.length === 2 && sh.wheels.every((x) => x.vis && x.in), `${at}: a wheel is hidden or off screen: ${JSON.stringify(sh.wheels)}`);
+          assert(sh.wheels[0].sel === '0:30' && sh.wheels[1].sel === '1:30', `${at}: wheels start at ${sh.wheels.map((x) => x.sel)}`);
+          assert(sh.wheels.every((x) => x.off <= 2 && x.band <= 1), `${at}: the selected row is off the highlight band: ${JSON.stringify(sh.wheels)}`);
+        } else {
+          assert(sh.wheels.every((x) => !x.vis), `${at}: the wheels still show with the switch off`);
+        }
+        await browser.eval('document.querySelector("dialog.sheet[open] [data-close]").click()');
+        await wait(700);
+      }
+    });
+  }
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {
     if (skipReason()) return;
     browser = browser || await launch();

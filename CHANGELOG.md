@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.65 — Rest timer per exercise (2026-10-24)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- A "Rest timer" chip on each exercise in the workout player opens a picker.
+- Turn the rest on or off for that exercise.
+- Two wheels set the time in 0:15 steps: one for warm-up sets, one for working sets.
+- The wheels tick under your thumb (haptics), and work with Reduce Motion.
+- It's remembered for that exercise, beats your default rest, and drives the rest ring.
+- "Use default" clears it.
+
 ## 0.16.64 — All sets up front in the player (2026-10-24)
 
 No Cloud Functions or `firestore.rules` changes.
