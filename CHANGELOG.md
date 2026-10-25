@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.69 — Create a workout: steppers no longer clipped (2026-10-25)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Create a workout: the Seconds and Reps buttons no longer get cut off at large text.
+- The label wraps above the buttons when space is tight; buttons stay 44px.
+
 ## 0.16.68 — Past days: see each day's missions (2026-10-25)
 
 No Cloud Functions or `firestore.rules` changes. Everything is read from data already stored.

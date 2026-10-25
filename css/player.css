@@ -529,7 +529,8 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .scratch-name b { min-width: 0; overflow-wrap: anywhere; }
 .scratch-step { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
 .scratch-list li > .scratch-name, .scratch-list li > .scratch-step { flex-direction: row; }
-.scratch-grp { display: inline-flex; align-items: center; gap: var(--s-2); white-space: nowrap; }
+.scratch-grp { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--s-1) var(--s-2); max-width: 100%; min-width: 0; }
+.scratch-trio { display: inline-flex; align-items: center; gap: var(--s-2); white-space: nowrap; flex: none; }
 .scratch-step { column-gap: var(--s-4); }
 .scratch-step .icon-btn { min-width: 44px; min-height: 44px; font-size: calc(20px * var(--ts)); }
 .scratch-step b { min-width: 3ch; text-align: center; }

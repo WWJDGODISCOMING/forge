@@ -768,9 +768,9 @@ function openScratchBuilder(el, draft = null) {
                 <button class="icon-btn" type="button" data-rm="${i}" aria-label="Remove ${esc(ex ? ex.name : 'exercise')}">${icon('close')}</button></div>
               <div class="scratch-step">
                 <span class="scratch-grp"><span class="muted small">Sets</span>
-                <button class="icon-btn" type="button" data-s="${i}:-1" aria-label="Fewer sets">−</button><b>${it.sets}</b><button class="icon-btn" type="button" data-s="${i}:1" aria-label="More sets">+</button></span>
+                <span class="scratch-trio"><button class="icon-btn" type="button" data-s="${i}:-1" aria-label="Fewer sets">−</button><b>${it.sets}</b><button class="icon-btn" type="button" data-s="${i}:1" aria-label="More sets">+</button></span></span>
                 <span class="scratch-grp"><span class="muted small">${it.timed ? 'Seconds' : 'Reps'}</span>
-                <button class="icon-btn" type="button" data-r="${i}:-1" aria-label="Fewer reps">−</button><b>${it.reps_lo === it.reps_hi ? it.reps_hi : `${it.reps_lo}–${it.reps_hi}`}</b><button class="icon-btn" type="button" data-r="${i}:1" aria-label="More reps">+</button></span>
+                <span class="scratch-trio"><button class="icon-btn" type="button" data-r="${i}:-1" aria-label="Fewer reps">−</button><b>${it.reps_lo === it.reps_hi ? it.reps_hi : `${it.reps_lo}–${it.reps_hi}`}</b><button class="icon-btn" type="button" data-r="${i}:1" aria-label="More reps">+</button></span></span>
               </div>
             </li>`;
           }).join('') || '<li class="muted">No exercises yet</li>'}</ul>
