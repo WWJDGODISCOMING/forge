@@ -311,7 +311,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 26b. #209 Scratch builder: stepper clipped at 320 + largest text
 - Issue: #209
 - Version: 0.16.69
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Every scratch-builder stepper button sits fully inside its row at every layout-matrix size and text scale.
   - Layout assert that each `.scratch-step .icon-btn` lies within its `.scratch-row`; buttons stay at least 44px.

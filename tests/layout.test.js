@@ -2751,6 +2751,8 @@ if (standalone) {
           const grps = [...row.querySelectorAll('.scratch-step .scratch-grp')].map((g) => { const t = [...g.querySelectorAll('.icon-btn, b')].map((e) => { const q = e.getBoundingClientRect(); return q.top + q.height / 2; }); return Math.max(...t) - Math.min(...t); });
           return { grpSpread: Math.max(...grps), rmOff: Math.abs(rm.top + rm.height / 2 - (b0.top + b0.height / 2)), h: rq.height, single: b0.height < 30 * ${ts} };
         })`);
+        const inRow = await browser.eval("[...document.querySelectorAll('dialog.sheet .scratch-row')].every((row) => { const r = row.getBoundingClientRect(); return [...row.querySelectorAll('.scratch-step .icon-btn')].every((b) => { const q = b.getBoundingClientRect(); return q.left >= r.left - 0.5 && q.right <= r.right + 0.5; }); })");
+        if (!inRow) note('scratch: a stepper button sits outside its row', at);
         if (sr.some((x) => x.grpSpread > 4)) note('scratch: a − / value / + trio is split across lines', at);
         if (sr.some((x) => x.single && x.rmOff > 24)) note('scratch: the remove button is not on the name line', at);
         if (ts === 1 && w === 390 && sr.some((x) => x.h > 3 * 44 + 48)) note('scratch: a row is taller than 3 x 44px plus gaps', at);
