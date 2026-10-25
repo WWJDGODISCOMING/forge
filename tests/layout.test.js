@@ -2748,7 +2748,7 @@ if (standalone) {
         const sr = await browser.eval(`[...document.querySelectorAll('dialog.sheet .scratch-row')].map((row) => {
           const nm = row.querySelector('.scratch-name'); const rm = nm.querySelector('.icon-btn').getBoundingClientRect(); const b0 = nm.querySelector('b').getBoundingClientRect();
           const rq = row.getBoundingClientRect();
-          const grps = [...row.querySelectorAll('.scratch-step .scratch-grp')].map((g) => { const t = [...g.querySelectorAll('.icon-btn, b')].map((e) => e.getBoundingClientRect().top); return Math.max(...t) - Math.min(...t); });
+          const grps = [...row.querySelectorAll('.scratch-step .scratch-grp')].map((g) => { const t = [...g.querySelectorAll('.icon-btn, b')].map((e) => { const q = e.getBoundingClientRect(); return q.top + q.height / 2; }); return Math.max(...t) - Math.min(...t); });
           return { grpSpread: Math.max(...grps), rmOff: Math.abs(rm.top + rm.height / 2 - (b0.top + b0.height / 2)), h: rq.height, single: b0.height < 30 * ${ts} };
         })`);
         if (sr.some((x) => x.grpSpread > 4)) note('scratch: a − / value / + trio is split across lines', at);
