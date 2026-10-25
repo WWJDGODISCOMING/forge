@@ -293,7 +293,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 25. #195 Train: Switch workout + time/place chips
 - Issue: #195
 - Version: 0.16.67
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Switch sheet: muscle groups, saved workouts, from scratch (with save).
   - Duration and location chips regenerate today's workout; joint-aware.

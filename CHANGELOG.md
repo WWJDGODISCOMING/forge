@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.67 — Switch workout, plus time and place chips (2026-10-25)
+
+No Cloud Functions or `firestore.rules` changes. Saved workouts ride in your settings document.
+
+### What's new
+
+- Switch on the Up next card: pick muscles, use a saved workout, or build your own.
+- Muscle groups builds a fresh workout for this gym and keeps the joints you protect safe.
+- Save any workout to start it later. Your own workouts keep the sets and reps you chose.
+- Time chips (20m to 1h) and a location chip rebuild today's workout, with Undo.
+- Timed moves (holds, jump rope, bike, rower) keep their seconds when saved, with bigger steps for long holds.
+- Deleting the saved workout you are on goes back to the recommended plan, and Undo brings both back. The Saved list stays open after a delete.
+- Starting a saved workout at a gym that lacks equipment says what was skipped.
+
 ## 0.16.66 — History and Replace in the player (2026-10-25)
 
 No Cloud Functions or `firestore.rules` changes.

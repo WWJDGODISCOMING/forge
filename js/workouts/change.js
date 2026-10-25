@@ -7,10 +7,11 @@ export const LENGTHS = [20, 30, 45, 60];
 export const blankEdits = (key = '') => ({ key, forced: {}, rest: {}, avoid: [] });
 
 /** Everything Undo has to bring back: the preview edits, the focus, the length and the place. */
-export function takeSnapshot({ edits, dayOverride = null, minOverride = null, locationId = null }) {
+export function takeSnapshot({ edits, dayOverride = null, minOverride = null, locationId = null, choice = null }) {
   return {
     edits: { key: edits.key, forced: { ...edits.forced }, rest: { ...edits.rest }, avoid: [...edits.avoid] },
     dayOverride, minOverride, locationId,
+    choice: choice ? structuredClone(choice) : null, // Switch: muscle groups, a saved workout or your own list
   };
 }
 
@@ -18,8 +19,8 @@ export function takeSnapshot({ edits, dayOverride = null, minOverride = null, lo
 export const restoreSnapshot = (snap) => takeSnapshot({ ...snap });
 
 /** Has the user moved away from the recommended workout (so "Back to recommended" has something to do)? */
-export const isChanged = ({ edits, dayOverride, minOverride }) =>
-  !!(dayOverride || minOverride || edits.avoid.length || Object.keys(edits.forced).length);
+export const isChanged = ({ edits, dayOverride, minOverride, choice = null }) =>
+  !!(dayOverride || minOverride || choice || edits.avoid.length || Object.keys(edits.forced).length);
 
 /** Exercises the user picked by hand (⋯ → Replace). */
 export const pickedIds = (edits) => new Set(Object.values(edits.forced));

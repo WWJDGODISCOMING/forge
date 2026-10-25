@@ -105,7 +105,7 @@ test('Change: the button, sheet and Undo are wired; the old Switch and day selec
   const t = src('js/screens/train.js');
   assert(t.includes(`aria-label="Change today's workout"`) && t.includes('Change</button>'));
   assert(t.includes(`sheet('Change workout'`) && t.includes(`label: 'Undo'`));
-  assert(!t.includes('data-switch') && !t.includes('data-day') && !t.includes('Or train a different day'));
+  assert(!t.includes('data-day') && !t.includes('Or train a different day'));
   assert(src('css/player.css').includes('prefers-reduced-motion: reduce) { .pv-ex.flash'));
   assert(src('js/ui.js').includes('toast-act'));
 });

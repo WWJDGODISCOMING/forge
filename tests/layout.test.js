@@ -2644,6 +2644,121 @@ if (standalone) {
       };
     }
   }
+  test('layout: Train Switch: the card head, chips, Switch sheet steps and scratch builder fit at every size', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    const saved = [
+      { id: 'sw1', name: 'Push day', items: [{ exercise_id: 'db_bench_press', sets: 3, reps_lo: 8, reps_hi: 10 }, { exercise_id: 'pushup', sets: 2, reps_lo: 10, reps_hi: 12 }] },
+      { id: 'sw2', name: 'Pull day', items: [{ exercise_id: 'db_bent_row', sets: 3, reps_lo: 8, reps_hi: 10 }] },
+      { id: 'sw3', name: 'A forty character workout name here!!', items: [{ exercise_id: 'pushup', sets: 3, reps_lo: 10, reps_hi: 12 }] },
+    ];
+    const sizes = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [678, 466, true, 1], [626, 890, true, 1], [932, 430, true, 1]];
+    const sh = "document.querySelector('dialog.sheet ";
+    for (const [w, h, dark, ts] of sizes) {
+      await browser.viewport(w, h, dark);
+      for (const variant of ['two', 'one-long']) {
+        const data = seed({ long: variant === 'one-long' });
+        data.settings[0].saved_workouts = saved;
+        if (variant === 'one-long') data.locations = data.locations.slice(0, 1);
+        await browser.open('train', data);
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+        const at = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? 't' : ''} ${variant}`;
+        const shot = async (name) => { if (shots) await browser.screenshot(`${shots}/switch-${name}-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}-${variant}.png`); };
+        const card = async (label) => {
+          const r = await browser.eval(`(() => {
+            const hd = document.querySelector('.pv-head'); if (!hd) return null;
+            const t = hd.querySelector('.big-title').getBoundingClientRect();
+            const bs = [...hd.querySelectorAll('[data-switch],[data-change]')]; const rects = bs.map((b) => b.getBoundingClientRect());
+            const lines = (b) => { const tops = new Set(); for (const n of b.childNodes) if (n.nodeType === 3 && n.textContent.trim()) { const g = document.createRange(); g.selectNodeContents(n); [...g.getClientRects()].forEach((q) => tops.add(Math.round(q.top / 4))); } return tops.size; };
+            const chips = [...document.querySelectorAll('.pv-ctl .pv-chip')].map((c) => { const q = c.getBoundingClientRect(); return { h: q.height, clip: c.scrollWidth > c.clientWidth + 1, right: q.right, dis: c.disabled, len: !!c.closest('.pv-len') }; });
+            return { overlap: rects.some((q) => t.right > q.left + 1 && t.left < q.right && t.bottom > q.top + 1 && t.top < q.bottom), wrap: bs.some((b) => lines(b) > 1), btnH: Math.min(...rects.map((q) => q.height)), chips, scrollW: document.documentElement.scrollWidth, innerW: innerWidth };
+          })()`);
+          if (!r) { note(`${label}: no card head`, at); return null; }
+          if (r.overlap) note(`${label}: the title overlaps Switch/Change`, at);
+          if (r.wrap) note(`${label}: Switch or Change wraps`, at);
+          if (r.btnH < 44) note(`${label}: Switch/Change is ${r.btnH}px tall`, at);
+          if (!r.chips.length) note(`${label}: no chips`, at);
+          if (r.chips.some((c) => c.h < 44)) note(`${label}: a chip is under 44px tall`, at);
+          if (r.chips.some((c) => c.clip || c.right > r.innerW + 1)) note(`${label}: a chip clips or runs off-screen`, at);
+          if (r.scrollW > r.innerW + 1) note(`${label}: horizontal overflow`, at);
+          return r;
+        };
+        const tap = async (...sels) => {
+          for (const sel of sels) {
+            const ok = await browser.eval('(() => { const e = document.querySelector(' + JSON.stringify(sel) + '); if (!e) return false; e.click(); return true; })()');
+            if (!ok) note('missing ' + sel + ' (sheet: ' + (await browser.eval("(document.querySelector('dialog.sheet h2') || {}).textContent")) + ')', at);
+            await wait(450);
+          }
+        };
+        const sheet = async (label, taps, primary) => {
+          if (taps) await tap(...taps);
+          if (!(await browser.eval("!!document.querySelector('dialog.sheet[open]')"))) { note(`${label}: sheet is not open`, at); return; }
+          await browser.eval("['main', 'nav', 'navbar'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = 'hidden'; })");
+          for (const pr of await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`)) note(`${label}: ${pr}`, at);
+          if (primary) {
+            const reach = await browser.eval(`(() => { const b = document.querySelector('dialog.sheet ${primary}'); if (!b) return null; b.scrollIntoView({ block: 'nearest' }); const q = b.getBoundingClientRect(); return { inView: q.top >= 0 && q.bottom <= innerHeight + 1, h: q.height }; })()`);
+            if (!reach) note(`${label}: no ${primary} button`, at);
+            else if (!reach.inView || reach.h < 44) note(`${label}: ${primary} is not reachable (${JSON.stringify(reach)})`, at);
+          }
+          if (await browser.eval('document.documentElement.scrollWidth > innerWidth + 1')) note(`${label}: horizontal overflow`, at);
+          await shot(label);
+          await browser.eval("['main', 'nav', 'navbar'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = ''; })");
+        };
+        const showCard = async () => {
+          await browser.eval("(() => { document.querySelectorAll('.toast').forEach((t) => t.remove()); const hd = document.querySelector('.pv-head'); if (hd) hd.scrollIntoView({ block: 'center' }); })()");
+          await wait(300);
+        };
+        const c1 = await card('card');
+        if (c1 && variant === 'one-long' && c1.chips.some((c) => !c.len)) note('card: the location chip shows with one place', at);
+        if (c1 && variant === 'two' && !c1.chips.some((c) => !c.len)) note('card: no location chip with two places', at);
+        await showCard();
+        await shot('card');
+        await sheet('home', ['[data-switch]'], null);
+        await sheet('muscles', ['dialog.sheet [data-o=muscles]'], '[data-build]');
+        await browser.eval("['chest', 'arms', 'back', 'legs'].forEach((k) => { const b = document.querySelector('dialog.sheet input[value=' + k + ']'); b.checked = true; b.dispatchEvent(new Event('change', { bubbles: true })); })");
+        await sheet('muscles4', null, '[data-build]');
+        const chipH = await browser.eval("[...document.querySelectorAll('dialog.sheet .chip')].map((c) => c.getBoundingClientRect().height)");
+        if (chipH.some((x) => x < 44)) note('muscles: a muscle chip is under 44px', at);
+        await sheet('saved', ['dialog.sheet [data-back]', 'dialog.sheet [data-o=saved]'], '.saved-go');
+        await sheet('name', ['dialog.sheet [data-back]', 'dialog.sheet [data-o=save-now]'], '[data-save]');
+        // start the 40-character saved workout: the card keeps its title clear of the buttons and the length chips go quiet
+        await tap('dialog.sheet [data-back]', 'dialog.sheet [data-o=saved]', 'dialog.sheet [data-use="sw3"]');
+        await wait(300);
+        await card('fixed card');
+        const lens = await browser.eval("[...document.querySelectorAll('.pv-len .pv-chip')].map((c) => c.disabled)");
+        if (!lens.length || lens.some((d) => !d)) note('fixed card: the length chips are not disabled for a saved workout', at);
+        await showCard();
+        await shot('fixed');
+        // scratch builder with three rows, one timed
+        await tap('[data-switch]', 'dialog.sheet [data-o=scratch]');
+        await browser.eval("document.querySelectorAll('.toast').forEach((t) => t.remove())");
+        for (const [id, q] of [[null, 'squat'], ['pushup', 'push-up'], ['plank', 'plank']]) {
+          await tap('dialog.sheet [data-add]');
+          await browser.eval(`(() => { const i = document.querySelector('dialog.sheet [data-q]'); if (i) { i.value = '${q}'; i.dispatchEvent(new Event('input', { bubbles: true })); } })()`);
+          await wait(300);
+          await tap(id ? `dialog.sheet li[data-id="${id}"]` : 'dialog.sheet [data-list] li[data-id]');
+        }
+        const rows = await browser.eval("document.querySelectorAll('dialog.sheet .scratch-row').length");
+        if (rows !== 3) note(`scratch: expected 3 rows, found ${rows}`, at);
+        const btns = await browser.eval("[...document.querySelectorAll('dialog.sheet .scratch-step .icon-btn')].map((b) => { const q = b.getBoundingClientRect(); return Math.min(q.width, q.height); })");
+        if (btns.some((x) => x < 44)) note('scratch: a stepper button is under 44px', at);
+        const sr = await browser.eval(`[...document.querySelectorAll('dialog.sheet .scratch-row')].map((row) => {
+          const nm = row.querySelector('.scratch-name'); const rm = nm.querySelector('.icon-btn').getBoundingClientRect(); const b0 = nm.querySelector('b').getBoundingClientRect();
+          const rq = row.getBoundingClientRect();
+          const grps = [...row.querySelectorAll('.scratch-step .scratch-grp')].map((g) => { const t = [...g.querySelectorAll('.icon-btn, b')].map((e) => { const q = e.getBoundingClientRect(); return q.top + q.height / 2; }); return Math.max(...t) - Math.min(...t); });
+          return { grpSpread: Math.max(...grps), rmOff: Math.abs(rm.top + rm.height / 2 - (b0.top + b0.height / 2)), h: rq.height, single: b0.height < 30 * ${ts} };
+        })`);
+        if (sr.some((x) => x.grpSpread > 4)) note('scratch: a − / value / + trio is split across lines', at);
+        if (sr.some((x) => x.single && x.rmOff > 24)) note('scratch: the remove button is not on the name line', at);
+        if (ts === 1 && w === 390 && sr.some((x) => x.h > 3 * 44 + 48)) note('scratch: a row is taller than 3 x 44px plus gaps', at);
+        await sheet('scratch', null, '[data-use]');
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);
 }

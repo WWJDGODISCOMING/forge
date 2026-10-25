@@ -508,6 +508,33 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .gym-chip:focus-visible, .gym-row:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 .gym-note { margin: var(--s-3) 0; }
 .gym-chip:active { transform: scale(.97); }
+/* Switch workout + time/place chips on the Up next card (v0.16.67). Chips are 44px tall; selection is a crossfade (no movement). */
+.pv-head { flex-wrap: wrap; gap: var(--s-2); }
+.pv-head .big-title { min-width: 0; }
+.pv-acts { gap: var(--s-2); flex: none; flex-wrap: nowrap; margin-left: auto; }
+.pv-acts .btn { white-space: nowrap; }
+.pv-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); margin: var(--s-2) 0; }
+.pv-len { display: flex; gap: var(--s-2); flex-wrap: wrap; }
+.pv-chip { display: inline-flex; align-items: center; justify-content: center; gap: var(--s-2); min-height: 44px; min-width: 52px; padding: 0 var(--s-4); border-radius: var(--r-pill); border: 1px solid var(--separator); background: var(--surface-2); color: var(--text-1); font: inherit; font-size: calc(15px * var(--ts)); font-weight: 600; cursor: pointer; -webkit-tap-highlight-color: transparent; transition: background-color .15s, border-color .15s; }
+.pv-chip[aria-checked="true"] { background: var(--deep-fill); border-color: var(--accent-text); }
+.pv-chip:disabled { opacity: .45; cursor: default; }
+.pv-chip:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.pv-gym { max-width: 100%; }
+.pv-gym > span:last-child { min-width: 0; overflow-wrap: anywhere; text-align: left; padding: 6px 0; }
+.saved-row { display: flex; align-items: center; gap: var(--s-2); }
+.chips--grid-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.saved-go { flex: 1; min-width: 0; border-radius: var(--r-xl); }
+.scratch-row { display: flex; flex-direction: column; gap: var(--s-2); padding: var(--s-3) 0; border-bottom: .5px solid var(--separator); }
+.scratch-name { display: flex; align-items: center; justify-content: space-between; gap: var(--s-2); min-width: 0; }
+.scratch-name b { min-width: 0; overflow-wrap: anywhere; }
+.scratch-step { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.scratch-list li > .scratch-name, .scratch-list li > .scratch-step { flex-direction: row; }
+.scratch-grp { display: inline-flex; align-items: center; gap: var(--s-2); white-space: nowrap; }
+.scratch-step { column-gap: var(--s-4); }
+.scratch-step .icon-btn { min-width: 44px; min-height: 44px; font-size: calc(20px * var(--ts)); }
+.scratch-step b { min-width: 3ch; text-align: center; }
+.scratch-step .muted { margin-left: var(--s-2); }
+@media (prefers-reduced-motion: reduce) { .pv-chip { transition: none; } }
 @media (prefers-reduced-motion: reduce) { .gym-chip:active { transform: none; } }
 .gym-list { display: grid; gap: var(--s-2); }
 .gym-row { display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); min-height: 52px; padding: 0 var(--s-4); border-radius: var(--r-md); border: 1px solid var(--border, rgba(255, 255, 255, .16)); background: var(--surface-2); color: var(--text-1); font: inherit; font-size: calc(16px * var(--ts)); font-weight: 600; text-align: left; cursor: pointer; }
