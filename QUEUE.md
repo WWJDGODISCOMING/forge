@@ -344,5 +344,33 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Recommend more/less per exercise on the summary and History sheet; the generator, Replace and Switch weight by it; reset it in Settings.
   - Rules + tests if a new field is needed; Duo-ready, large text, tests.
 
+## 30. #216 Food: protein helper
+- Issue: #216
+- Version: 0.16.73
+- Status: todo
+- Acceptance:
+  - See issue #216; AI-off, Duo-ready, large text, tests.
+
+## 31. #217 Weekly recap card
+- Issue: #217
+- Version: 0.16.74
+- Status: todo
+- Acceptance:
+  - See issue #217; AI-off, Duo-ready, large text, tests.
+
+## 32. #218 Food: quick-add favorite meals
+- Issue: #218
+- Version: 0.16.75
+- Status: todo
+- Acceptance:
+  - See issue #218; AI-off, Duo-ready, large text, tests.
+
+## 33. #219 Smart reminders that skip when done
+- Issue: #219
+- Version: 0.16.76
+- Status: todo
+- Acceptance:
+  - See issue #219; AI-off, Duo-ready, large text, tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
