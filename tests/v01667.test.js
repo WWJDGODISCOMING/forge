@@ -5,7 +5,7 @@ import { EXERCISES } from '../js/workouts/exercises.js';
 import { LOCATION_PRESETS, YMCA_PRESET } from '../js/workouts/equipment.js';
 import { generateWorkout, jointAvoidSet } from '../js/workouts/generator.js';
 import {
-  muscleDay, cleanMuscles, musclesLabel, cleanItem, itemsDay, cleanSaved, addSaved, removeSaved, itemsFromPlan, resolveCustomDay, choiceKey, durationLabel, defaultItem, MAX_SAVED,
+  muscleDay, cleanMuscles, musclesLabel, cleanItem, itemsDay, cleanSaved, addSaved, removeSaved, itemsFromPlan, resolveCustomDay, choiceKey, durationLabel, defaultItem, repStep, MAX_SAVED,
 } from '../js/workouts/switch-core.js';
 import { takeSnapshot, restoreSnapshot, isChanged, blankEdits } from '../js/workouts/change.js';
 
@@ -134,4 +134,32 @@ test('Train wires Switch, the chips, haptics and no rules change', () => {
   const css = src('../css/player.css');
   assert(css.includes('.pv-chip{') || css.includes('.pv-chip {'));
   assert(/min-height: 44px/.test(css.slice(css.indexOf('.pv-chip {'))), '44px tap targets');
+});
+
+test('timed moves keep their seconds: defaultItem, itemsFromPlan and cleanSaved round-trip', () => {
+  const rope = defaultItem(byId('jump_rope'));
+  eq(`${rope.reps_lo},${rope.reps_hi},${rope.timed}`, '60,180,true');
+  const bike = defaultItem(byId('bike_steady'));
+  assert(bike.reps_hi >= 1800, 'long cardio keeps its seconds');
+  const plan = { exercises: [{ exercise_id: 'jump_rope', target: { sets: 2, repLo: 60, repHi: 180 } }, { exercise_id: 'bb_bench_press', target: { sets: 3, repLo: 5, repHi: 150 } }] };
+  const items = itemsFromPlan(plan, (id) => !!byId(id).timed);
+  eq(`${items[0].reps_lo},${items[0].reps_hi}`, '60,180');
+  eq(items[1].reps_hi, 100, 'reps stay capped at 100');
+  const saved = cleanSaved([{ id: 'a', name: 'T', items: [rope, bike] }]);
+  eq(saved[0].items[0].reps_hi, 180);
+  eq(saved[0].items[1].reps_hi, bike.reps_hi);
+  eq(cleanItem({ exercise_id: 'x', reps_lo: 10, reps_hi: 99999, timed: true }).reps_hi, 3600);
+  eq(repStep(true, 60), 5);
+  eq(repStep(true, 300), 15);
+  eq(repStep(false, 300), 1);
+});
+
+test('Train clears the choice when you delete the saved workout you are on, and Undo restores both', () => {
+  const t = src('../js/screens/train.js');
+  assert(t.includes("choice.kind === 'saved' && choice.id === id"), 'deleting the current saved workout is detected');
+  assert(/wasCurrent\) \{ choice = null/.test(t), 'the choice is cleared');
+  assert(t.includes('if (before) undoTo(el, before)'), 'Undo restores the choice');
+  assert(t.includes('const fixed = !!(dayDef() && dayDef().fixed)'), 'fixed comes from the resolved day');
+  assert(!t.includes('saved_workouts: list }'), 'no stale snapshot writes');
+  eq(resolveCustomDay({ kind: 'saved', id: 's1' }, []), null, 'a deleted workout resolves to nothing');
 });

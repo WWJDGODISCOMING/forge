@@ -38,16 +38,24 @@ export function muscleDay(list) {
 
 const num = (v, lo, hi, d) => (Number.isFinite(v) ? Math.min(hi, Math.max(lo, Math.round(v))) : d);
 
-/** One saved/own exercise line, repaired: { exercise_id, sets 1..8, reps_lo, reps_hi }. */
+export const MAX_REPS = 100;
+export const MAX_SECONDS = 3600;
+
+/** One saved/own exercise line, repaired: { exercise_id, sets 1..8, reps_lo, reps_hi, timed? }. Timed lines count seconds (up to an hour). */
 export function cleanItem(it) {
   if (!it || typeof it.exercise_id !== 'string' || !it.exercise_id) return null;
-  const lo = num(it.reps_lo, 1, 100, 8);
-  const hi = Math.max(lo, num(it.reps_hi, 1, 100, lo));
-  return { exercise_id: it.exercise_id, sets: num(it.sets, 1, 8, 3), reps_lo: lo, reps_hi: hi };
+  const timed = it.timed === true;
+  const cap = timed ? MAX_SECONDS : MAX_REPS;
+  const lo = num(it.reps_lo, 1, cap, 8);
+  const hi = Math.max(lo, num(it.reps_hi, 1, cap, lo));
+  return { exercise_id: it.exercise_id, sets: num(it.sets, 1, 8, 3), reps_lo: lo, reps_hi: hi, ...(timed ? { timed: true } : {}) };
 }
 
+/** Stepper size for a reps/seconds value: 1 rep, 5 s, 15 s above 120 s. */
+export const repStep = (timed, value) => (!timed ? 1 : value >= 120 ? 15 : 5);
+
 /** A starting line for an exercise just added to your own workout. */
-export const defaultItem = (ex) => cleanItem({ exercise_id: ex.id, sets: 3, reps_lo: (ex.reps || [8, 12])[0], reps_hi: (ex.reps || [8, 12])[1] });
+export const defaultItem = (ex) => cleanItem({ exercise_id: ex.id, sets: 3, reps_lo: (ex.reps || [8, 12])[0], reps_hi: (ex.reps || [8, 12])[1], timed: !!ex.timed });
 
 /** A day for the generator from a list of lines. Your own picks are kept as they are; the length chips don't trim them. */
 export function itemsDay(items, label = 'My workout', key = 'saved') {
@@ -78,8 +86,8 @@ export function addSaved(list, entry) {
 export const removeSaved = (list, id) => cleanSaved(list).filter((s) => s.id !== id);
 
 /** Lines for saving whatever Train is showing now (a plan's working sets and rep range). */
-export const itemsFromPlan = (plan) =>
-  (plan.exercises || []).map((it) => cleanItem({ exercise_id: it.exercise_id, sets: it.target.sets, reps_lo: it.target.repLo, reps_hi: it.target.repHi })).filter(Boolean);
+export const itemsFromPlan = (plan, isTimed = () => false) =>
+  (plan.exercises || []).map((it) => cleanItem({ exercise_id: it.exercise_id, sets: it.target.sets, reps_lo: it.target.repLo, reps_hi: it.target.repHi, timed: !!isTimed(it.exercise_id) })).filter(Boolean);
 
 /**
  * What Train's "switched to" choice means: { kind:'muscles', groups } | { kind:'saved', id } | { kind:'scratch', name, items }.
