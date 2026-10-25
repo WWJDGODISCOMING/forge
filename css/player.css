@@ -562,8 +562,10 @@ dialog.sheet.demo-sheet.at-medium .ht-demo { height: clamp(140px, calc(50dvh - 2
 .pl-count .rest-chip { margin-left: auto; }
 
 /* History + Replace chips and the history sheet (v0.16.66) */
-.pl-xchips { display: flex; gap: 8px; flex-wrap: wrap; margin: 2px 0 6px; }
-.pl-xchips .rest-chip { margin: 0; }
+.pl-lblrow { display: flex; align-items: center; justify-content: space-between; gap: 4px 8px; flex-wrap: wrap; }
+.pl-lblrow .pl-setlabel { margin: 0; }
+.pl-xchips { display: flex; gap: 6px; }
+.pl-xchips .rest-chip { margin: -12px 0; } /* 44 px to tap, 20 px of layout (the label's height) */
 .hx-chart { background: var(--surface-2); border-radius: 16px; padding: 12px 14px; }
 .hx-spark { width: 100%; height: auto; max-height: 120px; display: block; }
 .hx-line { fill: none; stroke: var(--accent-text); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }

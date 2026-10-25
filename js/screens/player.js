@@ -298,8 +298,10 @@ function drawSet(el) {
       ${boxing ? '<p class="pl-combo" data-combo aria-live="polite"></p>' : ''}
 
       <h2 class="pl-name">${esc(ex.name)}</h2>
-      <div class="pl-xchips"><button class="rest-chip" data-hist-chip aria-label="History for ${esc(ex.name)}">${icon('list', { size: 16 })}<span>History</span></button><button class="rest-chip" data-replace-chip aria-label="Replace ${esc(ex.name)}">${icon('swap', { size: 16 })}<span>Replace</span></button></div>
+      <div class="pl-lblrow">
       <p class="pl-setlabel">${boxing ? `Round ${lbl.n} of ${lbl.of}` : s.warmup ? `Warm-up ${lbl.n} of ${lbl.of}` : `Set ${lbl.n} of ${lbl.of}`}${isLastSet && lbl.of > 1 ? ' · <span class="last">Last set</span>' : ''}</p>
+      <div class="pl-xchips"><button class="rest-chip" data-hist-chip aria-label="History for ${esc(ex.name)}">${icon('list', { size: 16 })}<span>History</span></button><button class="rest-chip" data-replace-chip aria-label="Replace ${esc(ex.name)}">${icon('swap', { size: 16 })}<span>Replace</span></button></div>
+      </div>
 
       <div class="pl-hero" data-hero style="view-transition-name: pl-hero">
         <div class="pl-hero-n">${heroAmount}</div>

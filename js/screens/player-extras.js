@@ -1,4 +1,4 @@
-// The player's History and Replace chips (#194). History: past sessions of this move with a small trend.
+// The player's History and Replace chips. History: past sessions of this move with a small trend.
 // Replace: the swap picker (same movement, doable here, easy on Joints to protect) that keeps the set targets.
 import { state } from '../state.js';
 import { esc, $, sheet, toast } from '../ui.js';

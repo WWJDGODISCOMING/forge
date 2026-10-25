@@ -279,7 +279,7 @@ test('exhistory: best set and rows', () => {
   const rows = historyRows(hxSessions, { limit: 2 });
   eq(rows.length, 2);
   eq(rows[0].best, '135 × 8');
-  eq(rows[0].sets, ['135 × 8', '135 × 6']);
+  assert(rows[0].sets.join('|') === '135 × 8|135 × 6', 'every set listed');
   assert(rows[1].deload, 'deload flagged');
   eq(historyRows([{ date: 'x', sets: [{ weight: null, reps: 45 }] }], { timed: true })[0].best, '45 s');
 });
@@ -295,7 +295,7 @@ test('exhistory: trend runs oldest to newest and speaks plainly', () => {
   const p = sparkPoints([1, 2, 3], 300, 80, 8);
   assert(p[0].x === 8 && p[2].x === 292 && p[2].y < p[0].y, 'higher values sit higher');
   eq(sparkPoints([5], 300, 80)[0].x, 150);
-  eq(sparkPoints([], 300, 80), []);
+  assert(sparkPoints([], 300, 80).length === 0, 'no values, no points');
 });
 
 test('exhistory: Replace keeps sets, reps, superset, role and rest', () => {

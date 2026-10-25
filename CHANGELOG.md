@@ -7,10 +7,11 @@ No Cloud Functions or `firestore.rules` changes.
 ### What's new
 
 - Every exercise in the workout player has a History chip and a Replace chip.
-- History shows your past sessions of that move: date, every set, your best set, and a small trend line.
-- Replace opens the swap picker: same movement, doable at this gym, and easy on the Joints to protect.
-- The new move keeps your sets, rep targets, superset and rest. Weights are picked for the new move.
-- Replace has an Undo, and asks you to finish or undo any completed sets first.
+- History shows past sessions of that move, your best sets and a trend line.
+- Replace opens the swap picker for the same movement.
+- It respects this gym and the Joints to protect.
+- The new move keeps your sets, reps, superset and rest.
+- Replace has an Undo.
 
 ## 0.16.65 — Rest timer per exercise (2026-10-24)
 
