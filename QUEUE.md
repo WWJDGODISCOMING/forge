@@ -285,7 +285,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 24. #194 Workout player: History and Replace buttons
 - Issue: #194
 - Version: 0.16.66
-- Status: in-review
+- Status: done
 - Acceptance:
   - History sheet with past sets and a trend; Replace uses joint-aware swaps; tests.
   - Duo-ready, palette/depth tokens.
