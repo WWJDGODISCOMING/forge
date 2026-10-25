@@ -596,8 +596,15 @@ function pickLength(el, plan, n) {
  * nothing is saved unless you ask (Save for later).
  */
 function openSwitch(el, plan) {
-  let local = null; // the list as this sheet last wrote it, until the settings listener catches up
-  const savedList = () => local || cleanSaved(state.settings && state.settings.saved_workouts);
+  let local = null; // the list as this sheet last wrote it, until the settings listener delivers a newer one
+  let seen = null;
+  let view = 'home';
+  const stored = () => state.settings && state.settings.saved_workouts;
+  const savedList = () => {
+    if (local && stored() !== seen) local = null;
+    return local || cleanSaved(stored());
+  };
+  const setLocal = (list) => { local = list; seen = stored(); };
   const row = (attr, title, sub) => `
     <button class="pick" type="button" ${attr}>
       <span class="pick-text"><b>${title}</b><small data-layout-ok>${sub}</small></span>
@@ -622,6 +629,7 @@ function openSwitch(el, plan) {
   const joints = jointAvoidSet(state.profile);
   sheet('Switch workout', (body, close, head) => {
     const home = () => {
+      view = 'home';
       head.setStep('Switch workout', null);
       const n = savedList().length;
       body.innerHTML = `
@@ -641,6 +649,7 @@ function openSwitch(el, plan) {
       on('save-now', () => nameStep(itemsFromPlan(plan, (id) => !!(exerciseById(id) || {}).timed), plan.label));
     };
     const musclesStep = () => {
+      view = 'muscles';
       head.setStep('Muscle groups', () => { tick(); home(); });
       const picked = new Set(choice && choice.kind === 'muscles' ? cleanMuscles(choice.groups) : []);
       body.innerHTML = `
@@ -666,6 +675,7 @@ function openSwitch(el, plan) {
       };
     };
     const savedStep = () => {
+      view = 'saved';
       head.setStep('Saved workouts', () => { tick(); home(); });
       const list = savedList();
       const names = (sv) => `${savedSub(sv)}: ${sv.items.slice(0, 3).map((i) => (exerciseById(i.exercise_id) || {}).name || i.exercise_id).join(', ')}${sv.items.length > 3 ? '…' : ''}`;
@@ -691,19 +701,23 @@ function openSwitch(el, plan) {
         const gone = cur[at];
         const wasCurrent = !!choice && choice.kind === 'saved' && choice.id === id;
         const before = wasCurrent ? snap() : null;
-        local = removeSaved(cur, id);
+        setLocal(removeSaved(cur, id));
         patch('settings', 'main', { saved_workouts: local });
         if (wasCurrent) { choice = null; flash = new Set(); if (el.isConnected) renderTrain(el); }
         toast(`Deleted ${gone.name}`, 6000, { action: { label: 'Undo', onClick: () => {
-          const now = cleanSaved(state.settings && state.settings.saved_workouts).filter((x) => x.id !== id);
+          const now = savedList().filter((x) => x.id !== id);
           now.splice(Math.min(at, now.length), 0, gone);
-          patch('settings', 'main', { saved_workouts: cleanSaved(now) });
+          const next = cleanSaved(now);
+          patch('settings', 'main', { saved_workouts: next });
+          setLocal(next);
+          if (view === 'saved' && body.isConnected) savedStep();
           if (before) undoTo(el, before);
         } } });
         savedStep();
       }));
     };
     const nameStep = (items, suggested) => {
+      view = 'name';
       head.setStep('Save workout', () => { tick(); home(); });
       body.innerHTML = `
         <div class="stack">
@@ -753,10 +767,10 @@ function openScratchBuilder(el, draft = null) {
               <div class="scratch-name"><b>${esc(ex ? ex.name : it.exercise_id)}</b>
                 <button class="icon-btn" type="button" data-rm="${i}" aria-label="Remove ${esc(ex ? ex.name : 'exercise')}">${icon('close')}</button></div>
               <div class="scratch-step">
-                <span class="muted small">Sets</span>
-                <button class="icon-btn" type="button" data-s="${i}:-1" aria-label="Fewer sets">−</button><b>${it.sets}</b><button class="icon-btn" type="button" data-s="${i}:1" aria-label="More sets">+</button>
-                <span class="muted small">${it.timed ? 'Seconds' : 'Reps'}</span>
-                <button class="icon-btn" type="button" data-r="${i}:-1" aria-label="Fewer reps">−</button><b>${it.reps_lo === it.reps_hi ? it.reps_hi : `${it.reps_lo}–${it.reps_hi}`}</b><button class="icon-btn" type="button" data-r="${i}:1" aria-label="More reps">+</button>
+                <span class="scratch-grp"><span class="muted small">Sets</span>
+                <button class="icon-btn" type="button" data-s="${i}:-1" aria-label="Fewer sets">−</button><b>${it.sets}</b><button class="icon-btn" type="button" data-s="${i}:1" aria-label="More sets">+</button></span>
+                <span class="scratch-grp"><span class="muted small">${it.timed ? 'Seconds' : 'Reps'}</span>
+                <button class="icon-btn" type="button" data-r="${i}:-1" aria-label="Fewer reps">−</button><b>${it.reps_lo === it.reps_hi ? it.reps_hi : `${it.reps_lo}–${it.reps_hi}`}</b><button class="icon-btn" type="button" data-r="${i}:1" aria-label="More reps">+</button></span>
               </div>
             </li>`;
           }).join('') || '<li class="muted">No exercises yet</li>'}</ul>

@@ -2707,9 +2707,14 @@ if (standalone) {
           await shot(label);
           await browser.eval("['main', 'nav', 'navbar'].forEach((id) => { const e = document.getElementById(id); if (e) e.style.visibility = ''; })");
         };
+        const showCard = async () => {
+          await browser.eval("(() => { document.querySelectorAll('.toast').forEach((t) => t.remove()); const hd = document.querySelector('.pv-head'); if (hd) hd.scrollIntoView({ block: 'center' }); })()");
+          await wait(300);
+        };
         const c1 = await card('card');
         if (c1 && variant === 'one-long' && c1.chips.some((c) => !c.len)) note('card: the location chip shows with one place', at);
         if (c1 && variant === 'two' && !c1.chips.some((c) => !c.len)) note('card: no location chip with two places', at);
+        await showCard();
         await shot('card');
         await sheet('home', ['[data-switch]'], null);
         await sheet('muscles', ['dialog.sheet [data-o=muscles]'], '[data-build]');
@@ -2725,6 +2730,7 @@ if (standalone) {
         await card('fixed card');
         const lens = await browser.eval("[...document.querySelectorAll('.pv-len .pv-chip')].map((c) => c.disabled)");
         if (!lens.length || lens.some((d) => !d)) note('fixed card: the length chips are not disabled for a saved workout', at);
+        await showCard();
         await shot('fixed');
         // scratch builder with three rows, one timed
         await tap('[data-switch]', 'dialog.sheet [data-o=scratch]');
@@ -2739,6 +2745,15 @@ if (standalone) {
         if (rows !== 3) note(`scratch: expected 3 rows, found ${rows}`, at);
         const btns = await browser.eval("[...document.querySelectorAll('dialog.sheet .scratch-step .icon-btn')].map((b) => { const q = b.getBoundingClientRect(); return Math.min(q.width, q.height); })");
         if (btns.some((x) => x < 44)) note('scratch: a stepper button is under 44px', at);
+        const sr = await browser.eval(`[...document.querySelectorAll('dialog.sheet .scratch-row')].map((row) => {
+          const nm = row.querySelector('.scratch-name'); const rm = nm.querySelector('.icon-btn').getBoundingClientRect(); const b0 = nm.querySelector('b').getBoundingClientRect();
+          const rq = row.getBoundingClientRect();
+          const grps = [...row.querySelectorAll('.scratch-step .scratch-grp')].map((g) => { const t = [...g.querySelectorAll('.icon-btn, b')].map((e) => e.getBoundingClientRect().top); return Math.max(...t) - Math.min(...t); });
+          return { grpSpread: Math.max(...grps), rmOff: Math.abs(rm.top + rm.height / 2 - (b0.top + b0.height / 2)), h: rq.height, single: b0.height < 30 * ${ts} };
+        })`);
+        if (sr.some((x) => x.grpSpread > 4)) note('scratch: a − / value / + trio is split across lines', at);
+        if (sr.some((x) => x.single && x.rmOff > 24)) note('scratch: the remove button is not on the name line', at);
+        if (ts === 1 && w === 390 && sr.some((x) => x.h > 3 * 44 + 48)) note('scratch: a row is taller than 3 x 44px plus gaps', at);
         await sheet('scratch', null, '[data-use]');
       }
     }
