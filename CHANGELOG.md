@@ -6,7 +6,7 @@ No Cloud Functions or `firestore.rules` changes. Everything is read from data al
 
 ### What's new
 
-- Tap any day in the Awards week strip to see that day's missions with the real numbers: weigh-in, steps, calories against your ceiling, protein and workouts.
+- Tap any day in the Awards week strip to see its missions with real numbers.
 - New Past days list on Awards, newest first, back to your first logged day.
 - Previous and next day arrows. Today links back to the live card.
 - Days with nothing logged say so calmly.
