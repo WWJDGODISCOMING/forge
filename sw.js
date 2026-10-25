@@ -33,6 +33,7 @@ const SHELL = [
   './icons/apple-touch-icon.png',
   './js/app.js',
   './js/version.js',
+  './js/steps-source.js',
   './js/lock-boot.js',
   './js/skel-boot.js',
   './js/native/lock.js',

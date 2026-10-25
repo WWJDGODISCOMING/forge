@@ -6,10 +6,10 @@
 
 ### What's new
 
-- Forge now pulls your daily steps from Withings (last 7 days on connect, daily upkeep, Sync now, and when Withings says new activity arrived). Missions, Past days and the leg stripe work even when the Apple Health Shortcut hasn't run.
-- If Apple Health and Withings both have steps for a day, Forge uses the higher number (never adds them) and Apple Health wins a tie.
-- Steps show where they came from ("from Withings" / "from Apple Health") on the missions card and in Past days.
-- Settings → Withings: a quiet "Reconnect to add steps" note when your link was made before steps were supported.
+- Forge pulls your daily steps from Withings, even if the Apple Health Shortcut didn't run.
+- With both sources, Forge uses the higher count, never the sum.
+- Steps say where they came from, on missions and in Past days.
+- Settings → Withings: a quiet note to reconnect and add steps.
 
 ## 0.16.69 — Create a workout: steppers no longer clipped (2026-10-25)
 
