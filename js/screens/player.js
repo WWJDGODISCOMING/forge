@@ -341,7 +341,7 @@ function drawSet(el) {
   // Tempo days (the progression's slow-lowering step) slow the demo down to match.
   if (fig) mountFigure(fig, ex, { isPaused: () => paused() || !!restInfo(), slow: !!(it.target && it.target.mode === 'tempo') });
   $('[data-demo]', el).onclick = () => openHowTo(ex.id);
-  $('[data-rest-chip]', el).onclick = () => { haptics.light(); openRestPicker(ex, { onSave: () => renderPlayer(el) }); };
+  $('[data-rest-chip]', el).onclick = () => { haptics.light(); openRestPicker(ex); }; // Save lands in settings; the snapshot redraws the chip
   markNextWrap($('.pl-next', el));
 
   // Clock (pause-aware)

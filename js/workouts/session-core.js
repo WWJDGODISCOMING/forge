@@ -102,7 +102,7 @@ export function restAfter(queue, exercises, k, ex, { deload = false, defaultSec 
     const nextSet = exercises[next.i].sets[next.j];
     if (!nextSet.warmup && setLabel(exercises[next.i], next.j).n === round) return null;
   }
-  // The exercise's own rest timer setting (the player's Rest timer chip) beats everything below.
+  // The exercise's own rest timer setting (the player's Rest timer chip) beats everything below. It is an explicit choice, so the deload 0.8x does not shrink it.
   const own = restFromPref(pref, !!s.warmup);
   if (own && own.off) return null;
   if (own) return { sec: own.sec, label: s.warmup ? 'Warm-up rest' : it.superset ? 'Rest (superset)' : 'Rest' };
