@@ -256,12 +256,12 @@ function runHold(i, j, el) {
   });
 }
 
-function availableHere() {
+export function availableHere() {
   const loc = state.locations.find((l) => l.id === L().location_id) || activeLocation();
   return expandEquipment(loc ? loc.equipment : []);
 }
 
-function buildEntry(ex, role = 'accessory') {
+export function buildEntry(ex, role = 'accessory') {
   const u = unit();
   const loc = state.locations.find((l) => l.id === L().location_id) || activeLocation();
   const t = nextTarget(ex, historyIndex().historyFor(ex.id), { inventory: (loc && loc.weight_inventory) || {}, unit: u, role, experience: state.profile.experience, deload: L().deload });

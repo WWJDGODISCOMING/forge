@@ -20,6 +20,7 @@ import { hapticInput, onHapticTap, haptics } from '../ui/haptic.js';
 import { openPaused, openAway, openComplete, saveAndSummarize, closeOverlays } from './overlays.js';
 import { openHowTo } from './session.js';
 import { openRestPicker } from './rest-picker.js';
+import { openExerciseHistory, openReplace } from './player-extras.js';
 import { restPref, restChipText } from '../workouts/restprefs.js';
 import { COMBOS } from './timer.js';
 import { icon } from '../ui/icons.js';
@@ -297,6 +298,7 @@ function drawSet(el) {
       ${boxing ? '<p class="pl-combo" data-combo aria-live="polite"></p>' : ''}
 
       <h2 class="pl-name">${esc(ex.name)}</h2>
+      <div class="pl-xchips"><button class="rest-chip" data-hist-chip aria-label="History for ${esc(ex.name)}">${icon('list', { size: 16 })}<span>History</span></button><button class="rest-chip" data-replace-chip aria-label="Replace ${esc(ex.name)}">${icon('swap', { size: 16 })}<span>Replace</span></button></div>
       <p class="pl-setlabel">${boxing ? `Round ${lbl.n} of ${lbl.of}` : s.warmup ? `Warm-up ${lbl.n} of ${lbl.of}` : `Set ${lbl.n} of ${lbl.of}`}${isLastSet && lbl.of > 1 ? ' · <span class="last">Last set</span>' : ''}</p>
 
       <div class="pl-hero" data-hero style="view-transition-name: pl-hero">
@@ -342,6 +344,8 @@ function drawSet(el) {
   if (fig) mountFigure(fig, ex, { isPaused: () => paused() || !!restInfo(), slow: !!(it.target && it.target.mode === 'tempo') });
   $('[data-demo]', el).onclick = () => openHowTo(ex.id);
   $('[data-rest-chip]', el).onclick = () => { haptics.light(); openRestPicker(ex); }; // Save lands in settings; the snapshot redraws the chip
+  $('[data-hist-chip]', el).onclick = () => { haptics.light(); openExerciseHistory(ex); };
+  $('[data-replace-chip]', el).onclick = () => { haptics.light(); openReplace(i, { onDone: () => { draft = null; renderPlayer(el); } }); };
   markNextWrap($('.pl-next', el));
 
   // Clock (pause-aware)

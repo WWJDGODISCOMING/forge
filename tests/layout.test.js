@@ -451,6 +451,26 @@ if (standalone) {
       }
     });
   }
+  // History + Replace chips (v0.16.66): both are big tap targets that stay on screen, and the History sheet fits.
+  for (const [w, h, dark, ts] of !only || only.includes('play') ? RP_SIZES : []) {
+    const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+    test(`layout: history and replace chips fit at ${tag}`, async () => {
+      if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+      browser = browser || await launch();
+      await browser.viewport(w, h, dark);
+      await browser.open('play', seed({ active: true }));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const chips = await browser.eval(`(() => ['[data-hist-chip]', '[data-replace-chip]'].map((s) => { const c = document.querySelector(s); if (!c) return null; const r = c.getBoundingClientRect(); return { h: r.height, l: r.left, r: r.right, t: r.top, b: r.bottom, vw: innerWidth, vh: innerHeight, lines: c.querySelector('span').getClientRects().length }; }))()`);
+      if (shots) await browser.screenshot(`${shots}/history-chips-${tag}.png`);
+      assert(chips.every(Boolean), 'the History or Replace chip is missing');
+      assert(chips.every((c) => c.h >= 43.5 && c.l >= 0 && c.r <= c.vw + 0.5 && c.lines === 1), `a chip is small, off screen or wraps: ${JSON.stringify(chips)}`);
+      await browser.eval('document.querySelector("[data-hist-chip]").click()');
+      await new Promise((r) => setTimeout(r, 900));
+      const sh = await browser.eval(`(() => { const d = document.querySelector('dialog.sheet[open]'); return d ? { text: d.innerText.length > 0, over: d.scrollWidth > d.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1 } : null; })()`);
+      if (shots) await browser.screenshot(`${shots}/history-sheet-${tag}.png`);
+      assert(sh && sh.text && !sh.over, `the History sheet did not open or overflows sideways: ${JSON.stringify(sh)}`);
+    });
+  }
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
