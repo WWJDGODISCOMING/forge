@@ -54,13 +54,14 @@ export function missionWeekHtml() {
     const dow = new Date(`${d.day}T12:00:00`).getDay();
     const state = !d.counted ? 'off' : d.all ? 'all' : d.done ? 'some' : 'none';
     const label = !d.counted ? 'not counted yet' : `${d.done} of ${d.total} missions`;
-    return `<li class="ms-dot ${state}" aria-label="${DAY_LETTER[dow]}: ${label}"><i></i><small>${DAY_LETTER[dow]}</small></li>`;
+    return `<li class="ms-dot ${state}"><a href="#/days/${d.day}" data-day="${d.day}" aria-label="${DAY_LETTER[dow]} ${d.day}: ${label}. Open this day."><i></i><small>${DAY_LETTER[dow]}</small></a></li>`;
   }).join('');
   const full = days.filter((d) => d.all).length;
   return `<div class="card ms-week">
     <div class="row between center"><p class="label">Daily missions</p><span class="small muted">${full} of the last 7 days complete</span></div>
     <ol class="ms-dots">${dots}</ol>
-    <p class="small muted">Bright = all missions done</p>
+    <p class="small muted">Bright = all missions done. Tap a day to see it.</p>
+    <a class="link ms-past" href="#/days" data-past-days>Past days</a>
     <p class="small muted">+${MISSION_XP} XP for each mission and a bonus for finishing the day’s set.</p>
   </div>`;
 }

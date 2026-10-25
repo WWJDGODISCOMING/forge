@@ -7,7 +7,7 @@ export const TAB_ORDER = ['today', 'train', 'food', 'body', 'score'];
 // Which tab lights up for each screen. Settings and its children have no tab: they light whichever tab opened Settings.
 export const TAB_FOR = {
   session: 'train', play: 'train', live: 'train', summary: 'train', timer: 'train', library: 'train',
-  history: 'score', awards: 'score', score: 'score',
+  history: 'score', awards: 'score', days: 'score', score: 'score',
   metric: 'body', photos: 'body', progress: 'score', trends: 'score', weekly: 'score',
   coach: 'today', program: 'today', food: 'food',
 };
@@ -94,6 +94,7 @@ export function backTarget(parts) {
   if (routeDepth(parts) === 0) return null;
   if (route === 'withings' && parts[1]) return '#/withings';
   if (route === 'play') return '#/session';
+  if (route === 'days') return parts[1] ? '#/days' : '#/awards';
   if (route === 'summary') return '#/train';
   if (route === 'settings') return `#/${settingsOrigin}`;
   if (SETTINGS_SCREENS.has(route)) return childReturn || '#/settings';
@@ -103,7 +104,7 @@ export function backTarget(parts) {
 
 const LABELS = {
   today: 'Today', train: 'Train', food: 'Food', body: 'Body', settings: 'Settings',
-  withings: 'Withings', session: 'Workout', coach: 'Coach', program: 'Program', history: 'History', awards: 'Awards',
+  withings: 'Withings', session: 'Workout', coach: 'Coach', program: 'Program', history: 'History', awards: 'Awards', days: 'Past days',
   score: 'Progress', trends: 'Progress', weekly: 'Progress', progress: 'Progress', metric: 'Body', photos: 'Photos',
 };
 /** Title of the screen "Back" goes to, e.g. "Settings" (iOS shows the parent's title on the back button). */

@@ -2759,6 +2759,59 @@ if (standalone) {
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
+  test('layout: Past days list and day detail fit at phone, 320 large text and Duo sizes', async () => {
+    if (skipReason() || (only && !only.includes('days'))) return;
+    browser = browser || await launch();
+    const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+    const found = new Map();
+    const note = (msg, at) => found.set(msg, [...(found.get(msg) || []), at]);
+    const sizes = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [466, 678, true, 1], [678, 466, true, 1], [626, 890, true, 1], [890, 626, false, 1]];
+    const views = [['awards', 'strip'], ['days', 'list'], ['days/2026-10-10', 'full'], ['days/2026-10-07', 'partial'], ['days/2026-08-01', 'empty'], ['days/2026-10-12', 'today']];
+    for (const [w, h, dark, ts] of sizes) {
+      await browser.viewport(w, h, dark);
+      for (const [route, name] of views) {
+        const data = seed({});
+        if (name === 'full') { // 8 entries across meals, so the Food card is tested long
+          const base = data.food_logs[0];
+          ['breakfast', 'breakfast', 'lunch', 'lunch', 'dinner', 'snack', 'snack', 'snack'].forEach((meal, k) => data.food_logs.push({ ...base, id: `dd${k}`, day: '2026-10-10', meal, name: k === 2 ? 'Chicken burrito bowl with extra black beans and rice' : `Entry ${k + 1}`, kcal: 150 + k * 40, servings: k % 3 ? 1 : 1.5, logged_at: new Date(`2026-10-10T${String(7 + k).padStart(2, '0')}:00:00`).toISOString() }));
+        }
+        await browser.open(route, data);
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+        const at = `${w}x${h}${dark ? 'd' : 'l'}${ts !== 1 ? 't' : ''} ${name}`;
+        if (name === 'strip') await browser.eval("document.querySelector('.ms-week').scrollIntoView({ block: 'center' })");
+        const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+        for (const p of name === 'strip' ? probs.filter((x) => /ms-week|ms-dot|ms-past/.test(x)) : probs) note(p, at); // the badge grid below the strip is not part of this change
+        const chk = await browser.eval(`(() => {
+          const words = [];
+          document.querySelectorAll('.dd-title h2').forEach((h) => { const n = h.firstChild; const re = /\\S+/g; let m; while ((m = re.exec(n.textContent))) { const rg = document.createRange(); rg.setStart(n, m.index); rg.setEnd(n, m.index + m[0].length); words.push([...new Set([...rg.getClientRects()].map((q) => Math.round(q.top / 4)))].length); } });
+          const dots = [...document.querySelectorAll('.dd-link .ms-dot i')].map((i) => { const q = i.getBoundingClientRect(); return [Math.round(q.width), Math.round(q.height)]; });
+          const rowTops = {}; document.querySelectorAll('.ms-week .ms-dot a').forEach((a) => { const t = Math.round(a.getBoundingClientRect().top); rowTops[t] = (rowTops[t] || 0) + 1; });
+          return { split: words.filter((n) => n > 1).length, dots, states: ['all', 'some', 'none'].filter((s) => document.querySelector('.dd-link .ms-dot.' + s)), rows: Object.values(rowTops), food: document.querySelectorAll('.dd-item').length, foodRing: document.querySelectorAll('.dd-food .ms-ring, .dd-food .ms-check').length };
+        })()`);
+        if (chk.split) note('a word in the day title is split across lines', at);
+        if (name === 'list') {
+          if (!chk.dots.length || chk.dots.some(([dw, dh]) => dw !== 22 || dh !== 22)) note(`list status dots are not all 22x22: ${JSON.stringify(chk.dots.slice(0, 3))}`, at);
+          if (chk.states.length < 2) note(`list shows only these dot states: ${chk.states}`, at);
+        }
+        if (name === 'strip' && !(chk.rows.length === 1 || (chk.rows.length === 2 && chk.rows[0] >= chk.rows[1] && chk.rows[0] - chk.rows[1] <= 1))) note(`week strip rows are unbalanced: ${chk.rows}`, at);
+        if (name === 'full' && chk.food < 8) note(`food entries shown: ${chk.food}`, at);
+        if (chk.foodRing) note('Food card has a mission ring or check', at);
+        const r = await browser.eval(`(() => ({
+          rows: document.querySelectorAll('.dd-row').length, links: document.querySelectorAll('.dd-link').length, strip: document.querySelectorAll('.ms-dot a').length,
+          small: [...document.querySelectorAll('.dd-arrow:not(.off), .dd-link, .ms-dot a, .ms-past, .dd-today')].filter((e) => { const q = e.getBoundingClientRect(); return q.height < 44 || (!e.classList.contains('dd-link') && q.width < 44); }).length,
+          text: document.querySelector('#main').textContent, scrollW: document.documentElement.scrollWidth, innerW: innerWidth,
+        }))()`);
+        if (r.scrollW > r.innerW + 1) note('horizontal overflow', at);
+        if (r.small) note(`${r.small} tap target(s) under 44px`, at);
+        if (name === 'strip' && r.strip !== 7) note(`week strip links: ${r.strip}`, at);
+        if (name === 'list' && r.links < 5) note(`past days rows: ${r.links}`, at);
+        if (['full', 'partial', 'today'].includes(name) && r.rows < 2) note(`day rows: ${r.rows}`, at);
+        if (name === 'empty' && !r.text.includes('Nothing logged')) note('empty day does not say Nothing logged', at);
+        if (shots) await browser.screenshot(`${shots}/days-${name}-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}.png`);
+      }
+    }
+    assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
+  });
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);
 }

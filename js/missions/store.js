@@ -10,6 +10,7 @@ import { streak } from '../workouts/awards.js';
 import {
   DEFAULTS, indexDays, missionsFor, missionXP, weekDots, allDone, dayXP, localDay, shiftDay, MISSION_XP, ALL_DONE_XP,
 } from './core.js';
+import { dayDetail, pastDays, firstDay, neighbours } from './day-core.js';
 import { PERFECT_WEEK_XP, recordTier } from './celebrate-core.js';
 import { missionBadges, newMissionBadges, currentStreak } from './badges.js';
 
@@ -53,6 +54,28 @@ export function todayMissions() {
   const list = missionsFor(day, idx, { targets: targets(), restDay: restDayToday() });
   const all = allDone(list);
   return { day, list, done: list.filter((m) => m.done).length, total: list.length, xp: dayXP(list), bonus: ALL_DONE_XP, all, started: !!startedDay() };
+}
+
+const dayData = () => ({
+  weights: state.weights, bodyMeasures: state.body_measures, workouts: state.workouts, cardio: state.cardio,
+  healthDaily: state.health_daily, foodLogs: state.food_logs,
+});
+function dayTargets() {
+  const t = state.profile ? currentTargets() : null;
+  return { ...targets(), calories: t ? t.calories : null, proteinG: t ? t.proteinG : 0 };
+}
+
+/** One past (or present) day, read-only: see js/missions/day-core.js. */
+export function dayView(day) {
+  const data = dayData();
+  const t = dayTargets();
+  const first = firstDay(data, startedDay());
+  return { ...dayDetail(day, data, { targets: t, today: today() }), ...neighbours(day, { first, today: today() }), first };
+}
+
+/** Today back to the first day with data, newest first. */
+export function dayList() {
+  return pastDays(dayData(), { targets: dayTargets(), today: today(), startedDay: startedDay() });
 }
 
 /** Rolling week for the Awards screen. */

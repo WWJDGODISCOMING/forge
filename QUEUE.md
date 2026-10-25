@@ -302,7 +302,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 26. #203 Past days: each day's missions
 - Issue: #203
 - Version: 0.16.68
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Tap any day (Awards week strip or Past days list) to see that day's missions with real values: weigh-in, steps, calories vs ceiling, protein, workouts.
   - Prev/next day, calm empty state, read-only, works with AI off.
