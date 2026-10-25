@@ -293,7 +293,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 25. #195 Train: Switch workout + time/place chips
 - Issue: #195
 - Version: 0.16.67
-- Status: in-review
+- Status: done (PR #208)
 - Acceptance:
   - Switch sheet: muscle groups, saved workouts, from scratch (with save).
   - Duration and location chips regenerate today's workout; joint-aware.
@@ -307,6 +307,15 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Tap any day (Awards week strip or Past days list) to see that day's missions with real values: weigh-in, steps, calories vs ceiling, protein, workouts.
   - Prev/next day, calm empty state, read-only, works with AI off.
   - Duo-ready, large text, tests.
+
+## 26b. #209 Scratch builder: stepper clipped at 320 + largest text
+- Issue: #209
+- Version: 0.16.69
+- Status: todo
+- Acceptance:
+  - Every scratch-builder stepper button sits fully inside its row at every layout-matrix size and text scale.
+  - Layout assert that each `.scratch-step .icon-btn` lies within its `.scratch-row`; buttons stay at least 44px.
+  - Tests.
 
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
