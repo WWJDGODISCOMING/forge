@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { fakeDb, fakeApi, fakeQueue } from './fake-db.js';
 import { parseActivity, hasActivityScope, syncActivity, upsertWithingsSteps, stripWithingsSteps } from '../src/activity.js';
-import { upsertDays, resolveSteps } from '../src/health.js';
+import { upsertDays, resolveSteps, deleteAppleData } from '../src/health.js';
 import { handleWebhook, notifyTaskId } from '../src/webhook.js';
 import { runTask } from '../src/tasks.js';
 import { handleCallback, startAuth } from '../src/oauth.js';
@@ -182,4 +182,24 @@ test('maintenance keeps the activity subscription alive; disconnect revokes it a
   const api2 = fakeApi();
   await disconnect({ db, api: api2, uid: UID, webhookUrl: 'w', now: () => T0 });
   assert.deepEqual(api2.calls.filter((c) => c[0] === 'notifyRevoke').map((c) => c[3]), [1, 16]);
+});
+
+test('delete Apple Health data: Withings steps stay (and win), Apple-only days go, safe to run twice', async () => {
+  const db = fakeDb();
+  await connected(db);
+  await upsertDays({ db, uid: UID, days: [{ day: '2026-10-08', fields: { steps: 6000, resting_hr: 55 } }, { day: '2026-10-09', fields: { steps: 9000, resting_hr: 56 } }], source: 'apple_shortcut', now: () => T0 });
+  await upsertWithingsSteps({ db, uid: UID, days: [{ day: '2026-10-09', steps: 7000 }], now: () => T0 });
+  assert.equal(db.dump(P.health(UID, '2026-10-09')).steps_source, 'apple');
+  for (let i = 0; i < 2; i++) {
+    const r = await deleteAppleData({ db, uid: UID, now: () => T0 });
+    assert.equal(r.deleted, i === 0 ? 1 : 0);
+    assert.equal(db.dump(P.health(UID, '2026-10-08')), undefined, 'an Apple-only day is deleted');
+    const kept = db.dump(P.health(UID, '2026-10-09'));
+    assert.equal(kept.steps, 7000);
+    assert.equal(kept.steps_source, 'withings');
+    assert.equal(kept.withings_steps, 7000);
+    assert.equal(kept.apple_steps, undefined);
+    assert.equal(kept.resting_hr, undefined);
+    assert.deepEqual(kept.sources, ['withings']);
+  }
 });

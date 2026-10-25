@@ -479,14 +479,26 @@ export async function wipeApple({ db, uid }) {
   await db.doc(P.apple(uid)).delete();
 }
 
-/** "Delete Apple Health data": every health_daily day, the Shortcut token and the Apple status. Safe to repeat. */
-export async function deleteAppleData({ db, uid }) {
+/**
+ * "Delete Apple Health data": the Apple numbers in every health_daily day, the Shortcut token and the Apple
+ * status. A day that also has Withings steps keeps only those (steps and steps_source re-read 'withings');
+ * every other day is deleted. Safe to repeat.
+ */
+export async function deleteAppleData({ db, uid, now = () => Date.now() }) {
   const snap = await db.collection(P.healthCol(uid)).get();
+  const nowIso = new Date(now()).toISOString();
+  let deleted = 0;
   for (let i = 0; i < snap.docs.length; i += 400) {
     const b = db.batch();
-    snap.docs.slice(i, i + 400).forEach((d) => b.delete(db.doc(d.ref.path)));
+    for (const d of snap.docs.slice(i, i + 400)) {
+      const cur = d.data();
+      const ref = db.doc(d.ref.path);
+      if (typeof cur.withings_steps !== 'number' || cur.deleted) { b.delete(ref); deleted++; continue; }
+      const keep = { id: cur.id, user_id: cur.user_id, created_at: cur.created_at, day: cur.day, deleted: false, withings_steps: cur.withings_steps, source: 'withings', sources: ['withings'], updated_at: nowIso };
+      b.set(ref, resolveSteps(keep)); // no apple_steps, so Withings is the day's steps
+    }
     await b.commit();
   }
   await wipeApple({ db, uid });
-  return { deleted: snap.docs.length };
+  return { deleted };
 }

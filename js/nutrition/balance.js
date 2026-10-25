@@ -101,7 +101,9 @@ export function energyChanged(a = {}, b = {}) {
 /** Only the days whose figures differ from what health_daily already has, so a re-read that found nothing new writes nothing. */
 export function newerDays(days, rows = []) {
   const have = new Map((rows || []).map((r) => [r.id || r.day, r]));
-  return days.filter((d) => { const r = have.get(d.day); return !r || Object.keys(d).some((k) => k !== 'day' && r[k] !== d[k]); });
+  // `steps` on a stored row is the higher of Apple and Withings, so Apple's own number is what the phone's compares to.
+  const stored = (r, k) => (k === 'steps' ? r.apple_steps ?? (r.steps_source ? undefined : r.steps) : r[k]);
+  return days.filter((d) => { const r = have.get(d.day); return !r || Object.keys(d).some((k) => k !== 'day' && stored(r, k) !== d[k]); });
 }
 
 /** Keep the newest `keep` days so the stored map stays small. */

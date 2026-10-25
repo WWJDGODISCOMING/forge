@@ -24,6 +24,8 @@ const same = (a, b) => {
  * Task id for one notification. Withings' quick retries of the same notification (10 s later) land in the
  * same 2-minute bucket and become one task; a genuinely new change to the same measurement later is a new
  * task (Cloud Tasks keeps used ids blocked for about an hour).
+ * Withings' appli=16 notifications send `date`, not startdate/enddate, so those ids dedupe by the 2-minute
+ * bucket alone. That is fine: every activity sync re-reads the last 7 days anyway.
  */
 export const notifyTaskId = (uid, p, received) => `${Number(p.appli) === 16 ? 'na' : 'n'}-${uid}-${Number(p.startdate) || 0}-${Number(p.enddate) || 0}-${Math.floor(received / 120000)}`.replace(/[^A-Za-z0-9_-]/g, '_').slice(0, 480);
 

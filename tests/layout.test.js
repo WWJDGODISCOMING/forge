@@ -152,6 +152,36 @@ for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 
   });
 }
 
+// Withings steps (v0.16.70): the calm "Reconnect to add steps" note (connected, stored scopes lack user.activity) and a
+// Past days page whose steps came from Withings. Visible, unclipped, the reconnect button 44px or taller.
+for (const [w, h, ts] of standalone && (!only || only.includes('withings') || only.includes('days')) ? [[390, 844, 1], [320, 568, 1.6], [678, 466, 1]] : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text' : ''}`;
+  test(`layout: withings: the Reconnect to add steps note and "from Withings" fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    const data = seed();
+    data.integrations.push({ id: 'withings', connected: true, needs_reconnect: false, scopes: 'user.info,user.metrics', model: 'Body+', last_sync_at: new Date(Date.parse(WORKOUT_DAY) - 3600000).toISOString() });
+    await browser.open('withings', data);
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    const n = await browser.eval("(() => { const p = document.querySelector('[data-steps-note]'); if (!p) return null; const b = p.querySelector('[data-connect]'); const q = b.getBoundingClientRect(), r = p.getBoundingClientRect(); return { text: p.textContent.trim(), btn: Math.round(q.height), off: r.right > innerWidth + 1 || r.left < -1 || q.right > innerWidth + 1, clipped: p.scrollWidth > p.clientWidth + 1 || b.scrollWidth > b.clientWidth + 1, shown: r.width > 0 && r.height > 0, over: document.documentElement.scrollWidth > innerWidth + 1 }; })()");
+    if (shots) await browser.screenshot(`${shots}/withings-steps-note-${tag}.png`);
+    assert(n && n.shown, 'the steps note is not shown');
+    assert(/Reconnect to add steps/.test(n.text), `note reads "${n.text}"`);
+    assert(n.btn >= 44, `Reconnect to add steps is ${n.btn}px tall`);
+    assert(!n.off && !n.clipped && !n.over, `the note is clipped or off screen: ${JSON.stringify(n)}`);
+
+    const d2 = seed();
+    d2.health_daily.forEach((r) => { r.steps_source = 'withings'; r.apple_steps = 6000; });
+    await browser.open('days/2026-10-11', d2);
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    const s = await browser.eval("(() => ({ has: /from Withings/.test(document.querySelector('#main').innerText), over: document.documentElement.scrollWidth > innerWidth + 1 }))()");
+    if (shots) await browser.screenshot(`${shots}/days-from-withings-${tag}.png`);
+    assert(s.has, '"from Withings" is not on the Past days page');
+    assert(!s.over, 'the Past days page overflows sideways');
+  });
+}
+
 // Live workout: the running screen (Run shows distance and pace) and the paused look, at the phone and Duo sizes
 for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
   for (const dark of [true, false]) {

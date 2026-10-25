@@ -60,6 +60,7 @@ export async function syncActivity({ db, api, uid, token, now = () => Date.now()
   const st = await db.doc(P.status(uid)).get();
   if (st.exists && !hasActivityScope(st.data().scopes)) return { skipped: 'no_scope' };
   const t = now();
+  // Dates here are UTC; the 7-day window plus one day of slack at the end covers US Eastern evenings.
   const days = new Map();
   let offset;
   let pages = 0;
