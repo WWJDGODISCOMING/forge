@@ -1,7 +1,7 @@
 // v0.16.68 (#203): Past days, each day's missions. Synthetic data only.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { dayDetail, pastDays, firstDay, neighbours, isDayKey } from '../js/missions/day-core.js';
+import { dayDetail, pastDays, firstDay, neighbours, isDayKey, foodItems } from '../js/missions/day-core.js';
 import { backTarget, tabOf, routeDepth } from '../js/nav.js';
 
 const at = (day, h = 8) => new Date(`${day}T${String(h).padStart(2, '0')}:00:00`).toISOString();
@@ -80,6 +80,28 @@ test('prev/next stop at the first day and at today', () => {
   eq(n.prev, '2026-10-11'); eq(n.next, null);
   const m = neighbours('2026-10-09', { first: '2026-10-09', today: '2026-10-12' });
   eq(m.prev, null); eq(m.next, '2026-10-10');
+});
+
+test('food items: servings multiply, deleted skipped, other days excluded', () => {
+  const logs = [
+    { id: 'a', day: '2026-10-10', name: 'Oats', meal: 'breakfast', kcal: 300, servings: 2, logged_at: at('2026-10-10', 8) },
+    { id: 'b', day: '2026-10-10', name: 'Gone', kcal: 999, deleted: true },
+    { id: 'c', day: '2026-10-11', name: 'Elsewhere', kcal: 500 },
+    { id: 'd', day: '2026-10-10', name: 'Rice', meal: 'lunch', kcal: 250, logged_at: at('2026-10-10', 12) },
+  ];
+  const items = foodItems('2026-10-10', logs);
+  eq(items.map((i) => i.name).join(), 'Oats,Rice');
+  eq(items[0].kcal, 600); eq(items[0].servings, 2); eq(items[0].meal, 'breakfast');
+  eq(items[1].kcal, 250); eq(items[1].servings, 1);
+  eq(foodItems('2026-10-09', logs).length, 0);
+  eq(dayDetail('2026-10-10', { foodLogs: logs }, opts).calories.items.length, 2);
+});
+
+test('pastDays with a shared index matches dayDetail', () => {
+  const list = pastDays(data, { ...opts, startedDay: '2026-10-09' });
+  const d = dayDetail('2026-10-10', data, opts);
+  const row = list.find((x) => x.day === '2026-10-10');
+  eq(row.done, d.done); eq(row.total, d.total);
 });
 
 test('day keys are validated', () => {

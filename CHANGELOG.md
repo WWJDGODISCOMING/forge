@@ -10,6 +10,8 @@ No Cloud Functions or `firestore.rules` changes. Everything is read from data al
 - New Past days list on Awards, newest first, back to your first logged day.
 - Previous and next day arrows. Today links back to the live card.
 - Days with nothing logged say so calmly.
+- A Food card on each day lists what you logged (by meal, servings, calories) next to your calorie ceiling, with Under or Over. Calories is no longer styled as a mission.
+- The day header shows a small done-of-total ring, a short date with the year underneath, and a note that days are checked against your current goals.
 
 ## 0.16.67 — Switch workout, plus time and place chips (2026-10-25)
 

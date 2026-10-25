@@ -40,6 +40,17 @@ function eaten(day, foodLogs) {
   return { kcal: Math.round(kcal), proteinG: Math.round(protein), logged };
 }
 
+/** The entries logged on `day`, oldest first: { name, meal, servings, kcal (already times servings) }. Deleted entries and other days are left out. */
+export function foodItems(day, foodLogs) {
+  const out = [];
+  for (const f of foodLogs || []) {
+    if (!f || f.deleted || dayOf(f, f.logged_at || f.at) !== day) continue;
+    const s = num(f.servings) ?? 1;
+    out.push({ name: String(f.name || 'Food'), meal: typeof f.meal === 'string' ? f.meal : '', servings: s, kcal: Math.round((num(f.kcal) || 0) * s), at: f.logged_at || f.at || '' });
+  }
+  return out.sort((a, b) => String(a.at).localeCompare(String(b.at)));
+}
+
 /** Workouts (done) and cardio sessions that started on `day`, oldest first. */
 function trainedOn(day, { workouts = [], cardio = [] }) {
   const out = [];
@@ -62,9 +73,9 @@ function trainedOn(day, { workouts = [], cardio = [] }) {
  * Returns { day, isToday, isFuture, missions (missionsFor, judged like the live card), done, total, xp, all,
  *           weighIn, steps (null = no Apple Health row), calories: { kcal, ceiling, logged }, protein, training, empty }
  */
-export function dayDetail(day, data, { targets = {}, today = localDay(Date.now()) } = {}) {
+export function dayDetail(day, data, { targets = {}, today = localDay(Date.now()), index = null } = {}) {
   const foodLogs = data.foodLogs && data.foodLogs.length ? data.foodLogs : null;
-  const idx = indexDays({ ...data, foodLogs });
+  const idx = index || indexDays({ ...data, foodLogs }); // pastDays builds the index once and passes it in
   const missions = missionsFor(day, idx, { targets, restDay: false });
   const row = idx.health.get(day);
   const food = eaten(day, data.foodLogs);
@@ -77,7 +88,7 @@ export function dayDetail(day, data, { targets = {}, today = localDay(Date.now()
     day, isToday: day === today, isFuture: day > today,
     missions, done: missions.filter((m) => m.done).length, total: missions.length, xp: dayXP(missions), all: allDone(missions),
     weighIn: w, steps, stepGoal: targets.steps || null,
-    calories: { kcal: food.kcal, ceiling, logged: food.logged },
+    calories: { kcal: food.kcal, ceiling, logged: food.logged, items: foodItems(day, data.foodLogs) },
     protein: { g: food.proteinG, target: num(targets.proteinG) > 0 ? Math.round(targets.proteinG) : null, logged: food.logged },
     training, empty,
   };
@@ -101,8 +112,9 @@ export function pastDays(data, { targets = {}, today = localDay(Date.now()), sta
   const first = firstDay(data, startedDay);
   if (!first) return [];
   const out = [];
+  const index = indexDays({ ...data, foodLogs: data.foodLogs && data.foodLogs.length ? data.foodLogs : null });
   for (let d = today, n = 0; d >= first && n < MAX_DAYS; d = shiftDay(d, -1), n++) {
-    const x = dayDetail(d, data, { targets, today });
+    const x = dayDetail(d, data, { targets, today, index });
     out.push({ day: d, done: x.done, total: x.total, all: x.all, empty: x.empty });
   }
   return out;

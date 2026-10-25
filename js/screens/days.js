@@ -10,7 +10,7 @@ import { localDay } from '../missions/core.js';
 const fmt = (n) => Math.round(n).toLocaleString();
 const parse = (day) => new Date(`${day}T12:00:00`);
 const longDate = (day) => parse(day).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-const shortDate = (day) => parse(day).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
+const shortDate = (day) => parse(day).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' }); // "Sat, Oct 10"
 const NOTHING = 'Nothing logged';
 
 function listHtml() {
@@ -53,14 +53,33 @@ function rowsHtml(v, units) {
   if (by.protein) {
     out.push(row({ done: by.protein.done, label: 'Protein hit', value: v.protein.logged ? `${fmt(v.protein.g)} of ${fmt(v.protein.target)} g protein` : NOTHING, status: by.protein.done ? 'Done' : miss, muted: !v.protein.logged }));
   }
-  if (v.calories.logged || by.protein) {
-    const c = v.calories;
-    const under = c.logged && (c.ceiling == null || c.kcal <= c.ceiling);
-    const val = !c.logged ? NOTHING : c.ceiling != null ? `${fmt(c.kcal)} of ${fmt(c.ceiling)} kcal ceiling` : `${fmt(c.kcal)} kcal`;
-    out.push(row({ done: !!under, label: 'Calories', value: val, status: !c.logged ? 'No data' : under ? 'Under' : 'Over', muted: !c.logged }));
-  }
   if (by.bed) out.push(row({ done: by.bed.done, label: by.bed.label, value: by.bed.done ? 'On time' : 'Later than your target', status: by.bed.done ? 'Done' : miss }));
   return out.join('');
+}
+
+const MEAL_ORDER = ['breakfast', 'lunch', 'dinner', 'snack'];
+const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+
+/** Read-only Food card: the calorie ceiling in plain words, then what was logged (by meal when the log has it). */
+function foodHtml(v) {
+  const c = v.calories;
+  if (!c.logged) return `<div class="card dd-food"><h3>Food</h3><p class="small muted">${NOTHING}</p></div>`;
+  const state = c.ceiling == null ? '' : c.kcal <= c.ceiling ? 'Under' : 'Over';
+  const head = c.ceiling != null ? `${fmt(c.kcal)} of ${fmt(c.ceiling)} kcal ceiling` : `${fmt(c.kcal)} kcal`;
+  const meals = [...new Set(c.items.map((i) => i.meal))].sort((a, b) => (MEAL_ORDER.indexOf(a) + 1 || 9) - (MEAL_ORDER.indexOf(b) + 1 || 9));
+  const li = (i) => `<li class="dd-item"><span class="dd-iname">${esc(i.name)}${i.servings !== 1 ? ` <small class="muted">× ${+i.servings.toFixed(2)}</small>` : ''}</span><small class="dd-kcal">${fmt(i.kcal)} kcal</small></li>`;
+  const groups = meals.map((m) => `${m && meals.length > 1 ? `<h4 class="dd-meal">${esc(cap(m))}</h4>` : ''}<ul class="dd-items">${c.items.filter((i) => i.meal === m).map(li).join('')}</ul>`).join('');
+  return `<div class="card dd-food"><h3>Food</h3>
+    <p class="dd-ceiling"><span>${esc(head)}</span>${state ? ` <b class="dd-status ${state === 'Under' ? 'good' : 'muted'}">${state}</b>` : ''}</p>
+    ${groups}</div>`;
+}
+
+/** A small done/total ring for the day header. */
+function ringSvg(done, total) {
+  const r = 15; const len = 2 * Math.PI * r;
+  const frac = total ? done / total : 0;
+  return `<svg class="dd-ring" viewBox="0 0 40 40" width="40" height="40" aria-hidden="true"><circle cx="20" cy="20" r="${r}" fill="none" stroke="var(--surface-2)" stroke-width="5"/>
+    <circle cx="20" cy="20" r="${r}" fill="none" stroke="${done === total && total ? 'var(--ember)' : 'var(--good)'}" stroke-width="5" stroke-linecap="round" stroke-dasharray="${(len * frac).toFixed(1)} ${len.toFixed(1)}" transform="rotate(-90 20 20)"/></svg>`;
 }
 
 function detailHtml(day) {
@@ -74,14 +93,16 @@ function detailHtml(day) {
     <div class="card dd-head">
       <div class="dd-nav">
         ${arrow(v.prev, 'prev')}
-        <div class="dd-title"><p class="label">${v.isToday ? 'Today' : 'Day'}</p><h2>${esc(longDate(day))}</h2></div>
+        <div class="dd-title"><p class="label">${v.isToday ? 'Today' : 'Day'}</p><h2 aria-label="${esc(longDate(day))}">${esc(shortDate(day))}</h2><small class="muted dd-year">${esc(String(parse(day).getFullYear()))}</small></div>
         ${arrow(v.next, 'next')}
       </div>
-      <p class="small muted">${summary}</p>
+      <p class="small muted dd-sum">${v.isFuture || v.empty ? '' : ringSvg(v.done, v.total)}<span>${summary}</span></p>
       ${v.isToday ? '<a class="link dd-today" href="#/today" data-live>See today’s live card</a>' : ''}
     </div>
     ${v.isFuture ? '' : `<div class="card"><ul class="ms-list">${rowsHtml(v, units)}</ul>
-      ${v.empty ? `<p class="small muted">${NOTHING} for this day. That’s okay, rest counts too.</p>` : ''}</div>`}
+      ${v.empty ? `<p class="small muted">${NOTHING} for this day. That’s okay, rest counts too.</p>` : ''}</div>
+    ${foodHtml(v)}
+    <p class="small muted">Checked against your current goals.</p>`}
     <p class="small muted"><a class="link" href="#/days">All past days</a></p>`;
 }
 
