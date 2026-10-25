@@ -335,5 +335,14 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
   - Numbers-only snapshot via a small bridge, timeline reload on change, stale state says "Open Forge to update"; no network in the widget.
   - Dark/light, Dynamic Type, Duo sizes; JS snapshot tests; no macOS runners.
 
+## 29. #215 More home + bodyweight exercises, Recommend more/less
+- Issue: #215
+- Version: 0.16.72
+- Status: todo
+- Acceptance:
+  - At least 4 options per main muscle group with Home equipment only, and 4 with no equipment; joint-aware tags and cues.
+  - Recommend more/less per exercise on the summary and History sheet; the generator, Replace and Switch weight by it; reset it in Settings.
+  - Rules + tests if a new field is needed; Duo-ready, large text, tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
