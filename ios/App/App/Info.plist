@@ -24,6 +24,19 @@
 	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
 	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.christianeverett.forge.widget</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>forge</string>
+			</array>
+		</dict>
+	</array>
+	<key>ForgeKeychainGroup</key>
+	<string>$(AppIdentifierPrefix)com.christianeverett.forge.shared</string>
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>LSRequiresIPhoneOS</key>

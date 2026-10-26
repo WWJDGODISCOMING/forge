@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.71 — Widgets (2026-10-26)
+
+No Cloud Functions or `firestore.rules` changes. iPhone app only: run Refresh Forge on the Mac mini to install the widgets.
+
+### What's new
+
+- A new Home Screen widget: today's rings and calories.
+- The medium size adds your weight trend.
+- Lock Screen widgets: a steps ring, and calories and protein left.
+- Tap a widget to open the matching screen.
+- If the numbers are out of date, the widget says "Open Forge to update".
+- To add one: after Refresh Forge, long-press the Home Screen, tap Edit, then Add Widget, pick Forge, and open Forge once.
+- Signing out or deleting your account clears the widget right away, and Lock Screen numbers can be hidden while the phone is locked.
+
 ## 0.16.70 — Withings steps (2026-10-25)
 
 **Cloud Functions changed** (deploy `functions`). No `firestore.rules` changes. After the deploy, reconnect Withings once (Settings → Withings → Reconnect to add steps) so it can share steps.

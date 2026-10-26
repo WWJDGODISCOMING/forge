@@ -12,7 +12,10 @@ private let slate = Color(red: 0.604, green: 0.631, blue: 0.671)
 
 @main
 struct ForgeLiveActivityBundle: WidgetBundle {
-    var body: some Widget { ForgeLiveActivityWidget() }
+    var body: some Widget {
+        ForgeLiveActivityWidget()
+        ForgeTodayWidget()
+    }
 }
 
 @available(iOS 17.0, *)

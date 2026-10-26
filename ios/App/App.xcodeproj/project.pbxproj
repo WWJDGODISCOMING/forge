@@ -23,6 +23,10 @@
 		A1F0E1062F0000040000F106 /* ForgeLiveActivityBundle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E1072F0000040000F107 /* ForgeLiveActivityBundle.swift */; };
 		A1F0E1082F0000040000F108 /* ForgeLiveShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E0092F0000030000F009 /* ForgeLiveShared.swift */; };
 		A1F0E1102F0000040000F110 /* ForgeLiveActivity.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = A1F0E1022F0000040000F102 /* ForgeLiveActivity.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		A1F0E2022F0000050000F202 /* ForgeWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E2012F0000050000F201 /* ForgeWidgetShared.swift */; };
+		A1F0E2032F0000050000F203 /* ForgeWidgetShared.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E2012F0000050000F201 /* ForgeWidgetShared.swift */; };
+		A1F0E2052F0000050000F205 /* ForgeWidgetPlugin.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E2042F0000050000F204 /* ForgeWidgetPlugin.swift */; };
+		A1F0E2072F0000050000F207 /* ForgeWidgets.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1F0E2062F0000050000F206 /* ForgeWidgets.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -69,6 +73,10 @@
 		A1F0E1072F0000040000F107 /* ForgeLiveActivityBundle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeLiveActivityBundle.swift; sourceTree = "<group>"; };
 		A1F0E1092F0000040000F109 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		A1F0E1022F0000040000F102 /* ForgeLiveActivity.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = ForgeLiveActivity.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		A1F0E2012F0000050000F201 /* ForgeWidgetShared.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeWidgetShared.swift; sourceTree = "<group>"; };
+		A1F0E2042F0000050000F204 /* ForgeWidgetPlugin.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeWidgetPlugin.swift; sourceTree = "<group>"; };
+		A1F0E2062F0000050000F206 /* ForgeWidgets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ForgeWidgets.swift; sourceTree = "<group>"; };
+		A1F0E2082F0000050000F208 /* ForgeLiveActivity.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = ForgeLiveActivity.entitlements; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -116,6 +124,8 @@
 				A1F0E0032F0000020000F003 /* ForgeWorkoutsPlugin.swift */,
 				A1F0E0072F0000030000F007 /* ForgeLiveWorkout.swift */,
 				A1F0E0092F0000030000F009 /* ForgeLiveShared.swift */,
+				A1F0E2012F0000050000F201 /* ForgeWidgetShared.swift */,
+				A1F0E2042F0000050000F204 /* ForgeWidgetPlugin.swift */,
 				A1F0E0052F0000020000F005 /* ForgeBridgeViewController.swift */,
 				50379B222058CBB4000EE86E /* capacitor.config.json */,
 				504EC3071FED79650016851F /* AppDelegate.swift */,
@@ -135,6 +145,8 @@
 			children = (
 				A1F0E1072F0000040000F107 /* ForgeLiveActivityBundle.swift */,
 				A1F0E1092F0000040000F109 /* Info.plist */,
+				A1F0E2062F0000050000F206 /* ForgeWidgets.swift */,
+				A1F0E2082F0000050000F208 /* ForgeLiveActivity.entitlements */,
 			);
 			path = ForgeLiveActivity;
 			sourceTree = "<group>";
@@ -257,6 +269,8 @@
 			files = (
 				A1F0E1062F0000040000F106 /* ForgeLiveActivityBundle.swift in Sources */,
 				A1F0E1082F0000040000F108 /* ForgeLiveShared.swift in Sources */,
+				A1F0E2032F0000050000F203 /* ForgeWidgetShared.swift in Sources */,
+				A1F0E2072F0000050000F207 /* ForgeWidgets.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -269,6 +283,8 @@
 				A1F0E0022F0000020000F002 /* ForgeWorkoutsPlugin.swift in Sources */,
 				A1F0E0062F0000030000F006 /* ForgeLiveWorkout.swift in Sources */,
 				A1F0E0082F0000030000F008 /* ForgeLiveShared.swift in Sources */,
+				A1F0E2022F0000050000F202 /* ForgeWidgetShared.swift in Sources */,
+				A1F0E2052F0000050000F205 /* ForgeWidgetPlugin.swift in Sources */,
 				A1F0E0042F0000020000F004 /* ForgeBridgeViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -461,6 +477,7 @@
 		A1F0E10C2F0000040000F10C /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ForgeLiveActivity/ForgeLiveActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = ForgeLiveActivity/Info.plist;
@@ -479,6 +496,7 @@
 		A1F0E10D2F0000040000F10D /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				CODE_SIGN_ENTITLEMENTS = ForgeLiveActivity/ForgeLiveActivity.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				INFOPLIST_FILE = ForgeLiveActivity/Info.plist;
