@@ -137,8 +137,8 @@ test('UI: favorites row at the top of Log food, 44px+ targets, labels for VoiceO
   assert(/scroll-behavior: smooth/.test(css) && css.includes('prefers-reduced-motion: no-preference'));
 });
 
-test('release: version 0.16.75 in version.js, sw.js and the CHANGELOG, QUEUE item in review', () => {
-  assert(VERSION >= '0.16.75', 'version is at least 0.16.75');
+test('release: 0.16.75 is in the CHANGELOG and its QUEUE item is in review or done', () => {
+  // Version-agnostic so later releases and the post-merge QUEUE 'done' flip keep main green.
   assert(read('CHANGELOG.md').includes('## 0.16.75'));
-  assert(/#218[^\n]*\n- Issue: #218\n- Version: 0\.16\.75\n- Status: in-review/.test(read('QUEUE.md')));
+  assert(/#218[^\n]*\n- Issue: #218\n- Version: 0\.16\.75\n- Status: (in-review|done)/.test(read('QUEUE.md')));
 });
