@@ -365,22 +365,33 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #218; AI-off, Duo-ready, large text, tests.
 
+## 32b. #227 Progress photo camera: shutter freezes app + self-timer (URGENT bug)
+- Issue: #227
+- Version: 0.16.76
+- Status: todo
+- Acceptance:
+  - See issue #227; capture works, no freeze, timer Off/3s/10s, tests, Duo, large text. Native.
+
 ## 33. #219 Smart reminders that skip when done
 - Issue: #219
-- Version: 0.16.76
+- Version: 0.16.77
 - Status: todo
 - Acceptance:
   - See issue #219; AI-off, Duo-ready, large text, tests.
 
 ## 34. #220 Withings Connected card: stat row overflows the card
 - Issue: #220
-- Version: 0.16.77
+- Version: 0.16.78
 - Status: todo
 - Acceptance:
   - Stats wrap or stack inside the card at 320x568 (text 1.0/1.6), 390x844, 466x678, 678x466; layout assert + shots; web-only.
 
-## 0.16.78 Quick add carbs and fat
-Add optional Carbs and Fat fields to Food > Quick add (see latest issue).
+## 35. #226 Food: Quick add carbs and fat
+- Issue: #226
+- Version: 0.16.79
+- Status: todo
+- Acceptance:
+  - See issue #226; optional Carbs/Fat fields count toward totals; Duo, large text, tests.
 
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
