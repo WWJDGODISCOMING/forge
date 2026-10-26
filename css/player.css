@@ -206,8 +206,8 @@ body.playing .navbar { display: none; }
 .xpref-b svg { flex: none; }
 .xpref-b:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
 .xpref-list li { align-items: center; gap: 12px; }
-.xpref-list li > div { display: flex; flex-direction: column; gap: 2px; }
-.xpref-reset { min-height: 44px; flex: none; }
+.xpref-list li > div { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; overflow-wrap: anywhere; }
+.xpref-reset { min-height: 44px; flex: none; width: auto; padding: 0 14px; }
 @media (prefers-reduced-motion: no-preference) { .xpref-b { transition: background-color .15s, border-color .15s; } }
 .mus { display: flex; flex-direction: column; gap: 6px; }
 .mus-row { display: grid; grid-template-columns: 96px 1fr 34px; gap: 8px; align-items: center; font-size: calc(14px * var(--ts)); }
