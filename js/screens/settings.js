@@ -17,6 +17,7 @@ import { hapticSupport, haptics } from '../ui/haptic.js';
 import { icon } from '../ui/icons.js';
 import { protectPillsHtml, protectSummary, bindProtect, SAFETY_LINE } from '../ui/protect-joints.js';
 import { openProteinGoal, proteinSummary } from './protein-goal.js';
+import { openExercisePrefs, prefSummary } from './exercise-prefs.js';
 import { openRestDefault, restDefaultTitle } from './rest-default.js';
 import { openFoodPrefs, prefsSummary } from './food-prefs.js';
 import { photoSettingsHtml, bindPhotoSettings } from '../photos/settings.js';
@@ -95,6 +96,7 @@ export function renderSettings(el) {
           ${protectPillsHtml()}
         </div>
         <button type="button" class="g-row" data-rest-default><span class="g-text"><span>${esc(restDefaultTitle(st))}</span><small>Timer after every set. Change one exercise from its dots menu.</small></span><span class="chev">${icon('chev')}</span></button>
+        <button type="button" class="g-row" data-exercise-prefs><span class="g-text"><span>Exercise preferences</span><small data-exercise-prefs-sub>${esc(prefSummary(st && st.exercise_prefs))}. Moves you asked to see more or less of.</small></span><span class="chev">${icon('chev')}</span></button>
         <div class="g-row col static"><span>Coach audio</span>
           <div class="seg" role="radiogroup" aria-label="Coach audio">
             <label><input type="radio" name="coach" value="off" ${coachMode === 'off' ? 'checked' : ''}><span>Off</span></label>
@@ -286,6 +288,7 @@ export function renderSettings(el) {
       if (btn && btn.isConnected) { btn.disabled = false; if (lab) lab.textContent = label; }
     }
   };
+  $('[data-exercise-prefs]', el).onclick = () => openExercisePrefs({ onSave: () => { $('[data-exercise-prefs-sub]', el).textContent = `${prefSummary(state.settings && state.settings.exercise_prefs)}. Moves you asked to see more or less of.`; } });
   $('[data-rest-default]', el).onclick = () => openRestDefault({ onSave: () => renderSettings(el) });
   $('[data-protein-goal]', el).onclick = () => openProteinGoal({ onSave: () => renderSettings(el) });
   $('[data-food-prefs]', el).onclick = () => openFoodPrefs({ onSave: () => renderSettings(el) });

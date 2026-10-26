@@ -70,6 +70,15 @@ test('settings/main: saving earned badges (awards_seen map) keeps working', asyn
   await assertFails(updateDoc(ref, { awards_seen: { first: '2026-09-07' }, user_id: 'bob' }));
 });
 
+test('settings/main: exercise_prefs (Recommend more / less) saves, clears and stays private', async () => {
+  const db = as('alice');
+  const ref = doc(db, 'users/alice/settings/main');
+  await assertSucceeds(setDoc(ref, rec('alice', 'main')));
+  await assertSucceeds(updateDoc(ref, { exercise_prefs: { db_curl: 'more', bb_back_squat: 'less' }, updated_at: '2026-10-26T00:00:00Z' }));
+  await assertSucceeds(updateDoc(ref, { exercise_prefs: {}, updated_at: '2026-10-26T00:01:00Z' }));
+  await assertFails(updateDoc(doc(as('bob'), 'users/alice/settings/main'), { exercise_prefs: { db_curl: 'less' } }));
+});
+
 test('owner can list their own collection', async () => {
   const db = as('alice');
   await setDoc(doc(db, 'users/alice/weights/w1'), weight('alice', 'w1'));

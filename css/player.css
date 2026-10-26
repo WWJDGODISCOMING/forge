@@ -191,13 +191,28 @@ body.playing .navbar { display: none; }
 .sum-stats .gold b { color: var(--gold); }
 .sum-list li { align-items: flex-start; gap: 12px; }
 .sum-check { width: 30px; height: 30px; border-radius: 50%; background: var(--good-tint); color: var(--rec-green); display: grid; place-items: center; font-weight: 900; flex: none; margin-top: 2px; }
-.sum-list li > div { display: flex; flex-direction: column; gap: 2px; }
+.sum-list li { flex-wrap: wrap; }
+.sum-list li > div { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
+.sum-list li > .vs { flex: none; max-width: 100%; }
+.sum-list li > .xpref { flex: 1 0 100%; margin: 0 0 0 42px; max-width: calc(100% - 42px); min-width: 0; }
+.sum-list li > .xpref .xpref-b { flex: 1 1 0; min-width: min-content; justify-content: center; }
 .sum-pr { font-size: calc(13px * var(--ts)); color: var(--gold); font-weight: 700; }
 .sum-pr s { color: var(--muted); font-weight: 500; }
 .vs { font-size: calc(13px * var(--ts)); font-weight: 800; white-space: nowrap; padding: 4px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
 .vs.up { color: var(--rec-green); background: var(--good-tint); }
 .vs.down { color: var(--rec-amber); }
 .vs.new { color: var(--accent-text); }
+
+/* Recommend more / less (v0.16.72): two toggle chips under an exercise (summary, History sheet) */
+.xpref { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.xpref-b { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border-radius: 999px; border: 1.5px solid var(--surface-3); background: var(--surface-2); color: var(--text-1); font-family: inherit; font-weight: 700; font-size: calc(14px * var(--ts)); cursor: pointer; }
+.xpref-b[aria-pressed="true"] { border-color: var(--accent-text); background: var(--accent-tint); color: var(--accent-text); }
+.xpref-b svg { flex: none; }
+.xpref-b:focus-visible { outline: 2px solid var(--accent-text); outline-offset: 2px; }
+.xpref-list li { align-items: center; flex-wrap: wrap; gap: 8px 12px; }
+.xpref-list li > div { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: min-content; overflow-wrap: normal; }
+.xpref-reset { min-height: 44px; flex: none; width: auto; padding: 0 14px; }
+@media (prefers-reduced-motion: no-preference) { .xpref-b { transition: background-color .15s, border-color .15s; } }
 .mus { display: flex; flex-direction: column; gap: 6px; }
 .mus-row { display: grid; grid-template-columns: 96px 1fr 34px; gap: 8px; align-items: center; font-size: calc(14px * var(--ts)); }
 .mus-row b { text-align: right; font-size: calc(13px * var(--ts)); }

@@ -3,6 +3,8 @@ import { sheet, esc, $ } from '../ui.js';
 import { allExercises } from '../workouts/library.js';
 import { EQUIPMENT_LABELS } from '../workouts/equipment.js';
 import { icon } from '../ui/icons.js';
+import { state } from '../state.js';
+import { cleanPrefs, prefOf, prefRank } from '../workouts/prefs.js';
 
 export const PATTERN_LABELS = {
   horizontal_push: 'Chest press / push-up', vertical_push: 'Overhead press', horizontal_pull: 'Row', vertical_pull: 'Pull-up / pulldown',
@@ -41,15 +43,16 @@ export function openExercisePicker({ title = 'Choose an exercise', filter = () =
     const list = $('[data-list]', body);
     const shared = (e) => (pattern === SIMILAR ? (e.primary || []).filter((m) => primary.includes(m)).length : 0);
     const draw = () => {
+      const prefs = cleanPrefs(state.settings && state.settings.exercise_prefs);
       const words = q.toLowerCase().split(/\s+/).filter(Boolean);
       const items = allExercises()
         .filter((e) => filter(e) && (!pattern || (pattern === SIMILAR ? patterns.includes(e.pattern) : e.pattern === pattern)) && words.every((w) => e.name.toLowerCase().includes(w)))
-        .sort((a, b) => shared(b) - shared(a) || a.name.localeCompare(b.name))
+        .sort((a, b) => shared(b) - shared(a) || prefRank(prefs, a.id) - prefRank(prefs, b.id) || a.name.localeCompare(b.name))
         .slice(0, 80);
       list.innerHTML = items.length
         ? items.map((e) => `
           <li class="tap" data-id="${esc(e.id)}">
-            <div><b>${esc(e.name)}</b><small class="muted">${esc(equipmentText(e))}${e.custom ? ' · custom' : ''}</small></div>
+            <div><b>${esc(e.name)}</b><small class="muted">${esc(equipmentText(e))}${e.custom ? ' · custom' : ''}${prefOf(prefs, e.id) ? ` · ${prefOf(prefs, e.id) === 'more' ? 'you want more' : 'you want less'}` : ''}</small></div>
             <span class="chev" aria-hidden="true">${icon('chev')}</span>
           </li>`).join('')
         : '<li class="muted">Nothing matches here.</li>';

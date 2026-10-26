@@ -167,7 +167,7 @@ test('home figures: the exercise library coverage went up and the rest is still 
   const kb = Object.keys(KB_MAP); // v0.12.2 added these (tests/kbposes.test.js)
   const gym = Object.keys(GYM_MAP); // v0.14.2 added these (tests/gymposes.test.js)
   const cardio = Object.keys(CARDIO_MAP); // v0.14.4 added these (tests/cardioposes.test.js)
-  eq(unmapped.length, 73 - BRIEF.length - kb.length - gym.length - cardio.length, 'was 73 without a figure; all four briefs are covered');
+  eq(unmapped.length, 73 + 21 - BRIEF.length - kb.length - gym.length - cardio.length, 'was 73 without a figure (+21 no-equipment moves added in v0.16.72, drawn later); all four briefs are covered');
   for (const e of unmapped) assert(!BRIEF.includes(e.id) && !kb.includes(e.id) && !gym.includes(e.id) && !cardio.includes(e.id), e.id);
 });
 

@@ -113,6 +113,7 @@ import './v01667.test.js';
 import './v01668.test.js';
 import './v01670.test.js';
 import './v01671.test.js';
+import './v01672.test.js';
 import './layout.test.js';
 import { VERSION } from '../js/version.js';
 

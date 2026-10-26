@@ -9,6 +9,7 @@ import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/g
 import { live, save } from '../workouts/live.js';
 import { haptics } from '../ui/haptic.js';
 import { openExercisePicker } from './picker.js';
+import { prefControlHtml, bindPrefControls } from './exercise-prefs.js';
 import { buildEntry, availableHere } from './session.js';
 import { historyRows, trendValues, sparkPoints, trendWords, replaceKeepingTargets, trendSummary, trendDates, canUndoReplace } from '../workouts/exhistory.js';
 
@@ -36,6 +37,7 @@ export function openExerciseHistory(ex) {
   sheet(`${ex.name} history`, (body) => {
     body.innerHTML = rows.length ? `
       <div class="stack hx">
+        ${prefControlHtml(ex)}
         <div class="hx-chart">
           <p class="label">${timed ? 'Best hold' : weighted ? `Strength trend (${u})` : 'Best set'}</p>
           <p class="hx-sum" data-hx-sum><b>${esc(summary)}</b></p>
@@ -45,7 +47,8 @@ export function openExerciseHistory(ex) {
         <ul class="list hx-list" role="list">
           ${rows.map((r) => `<li><div class="hx-top"><b>${fmtDate(r.date)}</b>${r.deload ? '<span class="muted small">deload</span>' : ''}<span class="grow"></span><span class="hx-best">Best ${esc(r.best)}</span></div><small class="muted">${r.sets.map(esc).join(' · ')}</small></li>`).join('')}
         </ul>
-      </div>` : '<div class="stack hx"><p class="muted">Not done yet. Your sets show up here after your first workout with it.</p></div>';
+      </div>` : `<div class="stack hx">${prefControlHtml(ex)}<p class="muted">Not done yet. Your sets show up here after your first workout with it.</p></div>`;
+    bindPrefControls(body);
   });
 }
 
