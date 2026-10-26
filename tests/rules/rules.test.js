@@ -372,7 +372,7 @@ test('saved_meals: the owner can create, read, update (rename, last used), tombs
   await assertSucceeds(getDocs(collection(db, 'users/alice/saved_meals')));
   await assertSucceeds(updateDoc(ref, { name: 'Dinner', last_used_at: T9, updated_at: T9 }));
   await assertSucceeds(updateDoc(ref, { deleted: true, deleted_at: T9, updated_at: T9 }));
-  await assertSucceeds(setDoc(doc(db, 'users/alice/saved_meals/m2'), savedMeal('alice', 'm2', { meal: undefined })));
+  await assertSucceeds(setDoc(doc(db, 'users/alice/saved_meals/m2'), defined(savedMeal('alice', 'm2', { meal: undefined }))));
   await assertSucceeds(deleteDoc(doc(db, 'users/alice/saved_meals/m2')));
 });
 
