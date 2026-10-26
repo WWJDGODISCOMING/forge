@@ -379,5 +379,8 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - Stats wrap or stack inside the card at 320x568 (text 1.0/1.6), 390x844, 466x678, 678x466; layout assert + shots; web-only.
 
+## 0.16.78 Quick add carbs and fat
+Add optional Carbs and Fat fields to Food > Quick add (see latest issue).
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
