@@ -1,6 +1,6 @@
 // Service worker: caches the app so it opens with no signal, and hands off new versions.
 // Bump VERSION here AND in js/version.js on every release.
-const VERSION = '0.16.74';
+const VERSION = '0.16.75';
 const CACHE = `forge-${VERSION}`;
 const FB = 'https://www.gstatic.com/firebasejs/12.19.0';
 // Demo photos live in their own cache (not versioned, not precached): see js/ui/photos.js.
@@ -64,6 +64,7 @@ const SHELL = [
   './js/nutrition/goaldate.js',
   './js/food/core.js',
   './js/food/protein-helper.js',
+  './js/food/saved-meals.js',
   './js/food/search.js',
   './js/food/portion.js',
   './js/food/snap.js',
@@ -190,6 +191,7 @@ const SHELL = [
   './js/screens/goaldate-ui.js',
   './js/screens/snap.js',
   './js/screens/food-scan.js',
+  './js/screens/food-saved.js',
   './js/screens/food-restaurant.js',
   './js/food/restaurant.js',
   './data/restaurants/chipotle.json',

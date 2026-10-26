@@ -21,6 +21,7 @@ export const state = {
   energy: {}, // Apple resting/active energy per day, kept on this phone only (js/nutrition/balance.js)
   foods: [], // My foods (v0.11.0)
   food_logs: [], // what you ate (v0.11.0)
+  saved_meals: [], // favorite meals (v0.16.75)
   foodError: null, // set when the food collections can't be read (rules not published yet); the rest of the app still works
   integrations: {}, // server-written status: { withings: {...} }
   serverErrors: {}, // Firestore error code per server-written collection, e.g. { health_daily: 'permission-denied' }
@@ -39,7 +40,7 @@ export const state = {
     this.set({
       user, loaded: notLoaded(), loadError: null, profile: null, settings: null,
       locations: [], weights: [], workouts: [], cardio: [], programs: [], exercises: [],
-      body_measures: [], health_daily: [], integrations: {}, serverErrors: {}, foods: [], food_logs: [], foodError: null, energy: {},
+      body_measures: [], health_daily: [], integrations: {}, serverErrors: {}, foods: [], food_logs: [], saved_meals: [], foodError: null, energy: {},
     });
   },
 };

@@ -22,6 +22,8 @@ import { bindSwipeRows } from '../ui/swiperow.js';
 import { createPendingDelete } from '../ui/pendingdelete.js';
 import { renderPlan } from './food-plan.js';
 import { askButton, openAskForge } from './ask.js';
+import { sortFavorites } from '../food/saved-meals.js';
+import { favoriteChoices, favoritesRowHtml, logChoice, openFavorites, openReview, openSaveMeal } from './food-saved.js';
 
 let foodView = 'log'; // 'log' or 'plan' (the Plan segment), kept while the app is open
 let viewDay = null; // the day shown; null = today
@@ -188,10 +190,12 @@ export function renderFood(el) {
           ${g.entries.length ? `<ul class="list">${g.entries.map((e) => `
             <li class="tap" data-entry="${esc(e.id)}"><div class="food-row"><b class="clamp2">${esc(e.name)}</b>
               ${entryLine(e)}</div>
-              <b>${Math.round(e.kcal * e.servings).toLocaleString('en-US')}</b></li>`).join('')}</ul>` : ''}
+              <b>${Math.round(e.kcal * e.servings).toLocaleString('en-US')}</b></li>`).join('')}</ul>
+          <button type="button" class="btn ghost fav-save" data-save-fav="${g.meal}" aria-label="Save ${g.label.toLowerCase()} as a favorite meal">${icon('heart', { size: 18 })}<span>Save as favorite</span></button>` : ''}
         </div>`;
       }).join('') : ''}
-      <div class="group"><button class="g-row" data-my-foods><span class="g-ic">${icon('list')}</span><span class="g-text"><span>My foods</span><small>${state.foods.length ? `${state.foods.length} saved` : 'Save the things you eat often'}</small></span><span class="chev" aria-hidden="true">${icon('chev')}</span></button></div>
+      <div class="group"><button class="g-row" data-fav-meals><span class="g-ic">${icon('heart')}</span><span class="g-text"><span>Favorite meals</span><small>${sortFavorites(state.saved_meals || []).length ? `${sortFavorites(state.saved_meals).length} saved` : 'Log a whole meal in one tap'}</small></span><span class="chev" aria-hidden="true">${icon('chev')}</span></button>
+        <button class="g-row" data-my-foods><span class="g-ic">${icon('list')}</span><span class="g-text"><span>My foods</span><small>${state.foods.length ? `${state.foods.length} saved` : 'Save the things you eat often'}</small></span><span class="chev" aria-hidden="true">${icon('chev')}</span></button></div>
       </div>
       <div class="food-foot"><p class="disclaimer">General fitness information, not medical advice.</p></div>
       </div>
@@ -211,6 +215,8 @@ export function renderFood(el) {
   const bal = $('[data-balance]', el);
   if (bal) bal.onclick = () => { haptics.select(); openBalanceSheet(); };
   $('[data-my-foods]', el).onclick = () => openMyFoods();
+  $('[data-fav-meals]', el).onclick = () => { haptics.select(); openFavorites({ day }); };
+  $$('[data-save-fav]', el).forEach((b) => { b.onclick = () => { haptics.select(); openSaveMeal({ day, meal: b.dataset.saveFav }); }; });
   $$('[data-pro]', el).forEach((b) => {
     b.onclick = () => {
       const s = pro.ideas[Number(b.dataset.pro)];
@@ -263,10 +269,12 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
   const now = new Date();
   const flow = createFlow({ foods: state.foods, logs: state.food_logs, hour: now.getHours() + now.getMinutes() / 60, day });
   if (meal) flow.setMeal(meal);
+  const choices = favoriteChoices(day);
   sheet('Log food', (body, close, head) => {
     body.classList.add('food-body');
     body.innerHTML = `
       <div class="stack food-log">
+        ${favoritesRowHtml(choices)}
         <div class="food-search-row">
           <label class="field">
             <input type="search" name="q" placeholder="Search foods" autocomplete="off" autocapitalize="off" enterkeyhint="search" aria-label="Search foods"></label>
@@ -380,7 +388,26 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       $$('[data-meal]', dock).forEach((b) => { const on = b.dataset.meal === flow.f.meal; b.classList.toggle('on', on); b.setAttribute('aria-checked', String(on)); });
       $('[data-add]', dock).textContent = `Add to ${MEAL_LABEL[flow.f.meal].toLowerCase()}`;
     };
+    const favsBox = $('[data-favs]', body);
+    const paintFavs = () => { if (favsBox) favsBox.hidden = !!flow.f.selected || !!flow.f.query.trim(); }; // out of the way while you search or have a food picked
+    if (favsBox) {
+      favsBox.addEventListener('click', (e) => {
+        const log = e.target.closest('[data-fav]');
+        const edit = e.target.closest('[data-fav-edit]');
+        if (log) {
+          const c = choices[Number(log.dataset.fav)];
+          if (c && logChoice(c, { day, meal })) close();
+        } else if (edit) {
+          const c = choices[Number(edit.dataset.favEdit)];
+          if (!c) return;
+          haptics.select();
+          close();
+          setTimeout(() => openReview({ kind: c.kind, id: c.id, name: c.kind === 'fav' ? c.label : '', items: c.items, meal: c.meal, day, explicitMeal: !!meal }), 0);
+        }
+      });
+    }
     const paintDock = () => {
+      paintFavs();
       const s = flow.f.selected;
       head.holdLarge?.(!!s); // with a food picked the dock needs the full height
       dock.hidden = !s;
@@ -536,7 +563,7 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
       close();
       setTimeout(() => import('./snap.js').then((m) => m.openSnapMeal({ file, day, meal: flow.f.meal })), 0);
     };
-    $('[name=q]', body).addEventListener('input', (e) => { flow.search(e.target.value); paintResults(); paintMore(); brandSeq++; paintBrand('idle', []); onlineSearch.query(e.target.value); });
+    $('[name=q]', body).addEventListener('input', (e) => { flow.search(e.target.value); paintFavs(); paintResults(); paintMore(); brandSeq++; paintBrand('idle', []); onlineSearch.query(e.target.value); });
     $('[data-minus]', dock).onclick = () => { haptics.select(); flow.f.servings = stepServings(flow.f.servings, -1); paintDock(); };
     $('[data-plus]', dock).onclick = () => { haptics.select(); flow.f.servings = stepServings(flow.f.servings, 1); paintDock(); };
     $$('[data-meal]', dock).forEach((b) => { b.onclick = () => { haptics.select(); flow.setMeal(b.dataset.meal); paintMeal(); }; });
