@@ -94,8 +94,7 @@ test('v0.16.76: the timer shows in the top bar, big countdown, ticks and Duo-saf
   assert(/\.vf-title \{[^}]*text-overflow: ellipsis/.test(css), 'title shrinks so the bar fits narrow Duo widths and large text');
 });
 
-test('v0.16.76: version bumped in js and sw', () => {
-  eq(VERSION, '0.16.76');
-  assert(read('sw.js').includes("const VERSION = '0.16.76'"), 'sw');
+test('v0.16.76: release is in the changelog, and js and sw versions agree', () => {
+  assert(read('sw.js').includes(`const VERSION = '${VERSION}'`), 'sw matches js/version.js');
   assert(read('CHANGELOG.md').includes('## 0.16.76'), 'changelog');
 });

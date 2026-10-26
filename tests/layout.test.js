@@ -2951,6 +2951,116 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('summary'))
   });
 }
 
+// Progress photo camera (v0.16.76, #227). The viewfinder opens over the modal Progress photos sheet with a stubbed camera
+// (a canvas stream). Real mouse taps, so a viewfinder that sits under the modal's top layer would fail here: the shutter
+// must work, the photo must land in its pose row, the sheet must stay open, no overlay may be left and Save must still work.
+// Then the screen is rendered (X + long title + 10s Timer + Last time, and the countdown at 10) at five sizes.
+const VF_ON = standalone && (!only || only.includes('viewfinder'));
+const VF_SIZES = [[390, 844, 1], [320, 568, 1.6], [466, 678, 1], [678, 466, 1], [626, 890, 1]];
+const VF_STUB = (timer) => `(async () => {
+  window.Capacitor = { isNativePlatform: () => true };
+  localStorage.setItem('forge.photoTimer', '${timer}');
+  const cv = document.createElement('canvas'); cv.width = 640; cv.height = 480;
+  const g = cv.getContext('2d'); let n = 0;
+  setInterval(() => { g.fillStyle = '#2a4a5a'; g.fillRect(0, 0, 640, 480); g.fillStyle = '#e8b04a'; g.fillRect(260 + (n++ % 40), 80, 120, 320); }, 40);
+  navigator.mediaDevices.getUserMedia = async () => cv.captureStream(25);
+  window.__ghost = cv.toDataURL('image/png');
+  window.__saved = [];
+  const m = await import('./js/photos/capture.js');
+  m.openCapture({ store: { save: async (r) => { window.__saved.push(r.pose); }, setNote: async () => {} }, sessions: [] });
+})()`;
+const vfWait = async (expr, ms = 6000) => {
+  for (let t = 0; t < ms; t += 100) { if (await browser.eval(expr)) return true; await new Promise((r) => setTimeout(r, 100)); }
+  return false;
+};
+const vfTap = async (sel) => {
+  const p = await browser.eval(`(() => { const e = document.querySelector(${JSON.stringify(sel)}); if (!e) return null; e.scrollIntoView({ block: 'center' }); const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; })()`);
+  assert(p, `${sel} not found`);
+  for (const type of ['mousePressed', 'mouseReleased']) await browser.send('Input.dispatchMouseEvent', { type, x: p.x, y: p.y, button: 'left', clickCount: 1 });
+};
+const vfBoot = async (w, h, dark, ts, timer) => {
+  browser = browser || await launch();
+  await browser.viewport(w, h, dark);
+  await browser.open('today', seed());
+  if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+  await browser.eval(VF_STUB(timer));
+  await new Promise((r) => setTimeout(r, 800)); // the sheet settles
+};
+const VF_READY = "(() => { const v = document.querySelector('.vf video'); const s = document.querySelector('.vf [data-shoot]'); return !!(v && v.videoWidth && s && s.getAttribute('aria-disabled') === 'false'); })()";
+for (const timer of VF_ON ? [0, 3] : []) {
+  test(`layout: camera shutter${timer ? ` with a ${timer}s timer` : ''} saves into the pose row, keeps the sheet open and leaves nothing behind`, async () => {
+    if (skipReason()) return;
+    await vfBoot(390, 844, true, 1, timer);
+    await vfTap('[data-pose="front"] [data-cam]');
+    assert(await vfWait(VF_READY), `camera never became ready. Page errors: ${browser.errors.slice(-3).join(' | ') || 'none'}`);
+    const top = await browser.eval("(() => { const s = document.querySelector('.vf [data-shoot]').getBoundingClientRect(); const e = document.elementFromPoint(s.left + s.width / 2, s.top + s.height / 2); return !!(e && e.closest('.vf')); })()");
+    assert(top, 'the shutter is not the top-most thing at its own position (the viewfinder sits under the modal sheet layer)');
+    await vfTap('[data-shoot]');
+    if (timer) {
+      assert(await browser.eval("document.querySelector('.vf-count') && !document.querySelector('.vf-count').hidden && document.querySelector('.vf-count').textContent === '3'"), 'countdown does not start at 3');
+    }
+    assert(await vfWait("!document.querySelector('.vf')", timer ? 8000 : 5000), 'the viewfinder never closed after the shutter');
+    assert(await browser.eval("!!document.querySelector('dialog.sheet[open]')"), 'the Progress photos sheet closed when the shutter was tapped');
+    assert(await vfWait("!!document.querySelector('[data-pose=\"front\"] .pc-img')"), 'no photo landed in the Front row');
+    assert(await browser.eval("!document.querySelector('[data-save]').disabled"), 'Save photos is still disabled');
+    await vfTap('[data-save]');
+    assert(await vfWait("window.__saved.length === 1 && window.__saved[0] === 'front'"), `Save photos did nothing after the shot (saved: ${await browser.eval('JSON.stringify(window.__saved)')})`);
+    assert(await vfWait("!document.querySelector('dialog.sheet[open]')"), 'the sheet did not close after Save');
+  });
+}
+
+for (const [w, h, ts] of VF_ON ? VF_SIZES : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: camera screen fits at ${tag} (top bar, countdown, shutter)`, async () => {
+    if (skipReason()) return;
+    await vfBoot(w, h, true, ts, 10);
+    await browser.eval(`(async () => { const m = await import('./js/photos/viewfinder.js'); window.__vf = m.openViewfinder({ label: 'Front, relaxed, arms at your sides', ghostUrl: window.__ghost }); })()`);
+    assert(await vfWait(VF_READY), `camera never became ready. Page errors: ${browser.errors.slice(-3).join(' | ') || 'none'}`);
+    await vfTap('[data-shoot]'); // timer 10: the countdown shows 10
+    assert(await vfWait("document.querySelector('.vf-count') && document.querySelector('.vf-count').textContent === '10'"), 'countdown did not show 10');
+    if (shots) await browser.screenshot(`${shots}/vf-${tag}.png`);
+    const r = await browser.eval(`(() => {
+      const R = (e) => { const b = e.getBoundingClientRect(); return { l: b.left, r: b.right, t: b.top, b: b.bottom, w: b.width, h: b.height }; };
+      const inside = (b) => b.l >= -0.5 && b.r <= innerWidth + 0.5 && b.t >= -0.5 && b.b <= innerHeight + 0.5;
+      const topmost = (e) => { const b = R(e); const x = document.elementFromPoint(b.l + b.w / 2, b.t + b.h / 2); return !!(x && e.contains(x)); };
+      const bar = [...document.querySelectorAll('.vf-top > *')].filter((e) => e.getClientRects().length);
+      const btns = [...document.querySelectorAll('.vf-top .vf-btn')];
+      const title = document.querySelector('.vf-title');
+      const hit = (a, b) => a.l < b.r - 0.5 && b.l < a.r - 0.5 && a.t < b.b - 0.5 && b.t < a.b - 0.5;
+      const bad = [];
+      const boxes = bar.map(R);
+      for (let i = 0; i < boxes.length; i++) for (let j = i + 1; j < boxes.length; j++) if (hit(boxes[i], boxes[j])) bad.push(bar[i].className + ' overlaps ' + bar[j].className);
+      const shutter = document.querySelector('.vf-shutter'), flip = document.querySelector('[data-flip]'), count = document.querySelector('.vf-count');
+      const rg = document.createRange(); rg.selectNodeContents(count); const nb = rg.getBoundingClientRect();
+      const bottomPad = parseFloat(getComputedStyle(document.querySelector('.vf-bottom')).paddingBottom);
+      return {
+        bar: bar.map((e) => e.className + ':' + e.textContent.trim().slice(0, 12)), btnSmall: btns.map((e) => R(e)).filter((b) => b.h < 44 || b.w < 44).length,
+        btnOff: btns.filter((e) => !inside(R(e))).length, btnHidden: btns.filter((e) => !topmost(e)).length, overlaps: bad, titleInside: inside(R(title)), titleW: R(title).w,
+        titleEllipsis: getComputedStyle(title).textOverflow === 'ellipsis' && getComputedStyle(title).overflow === 'hidden',
+        pillText: [...document.querySelectorAll('.vf-pill')].map((e) => e.textContent.trim()), pillClipped: [...document.querySelectorAll('.vf-pill')].filter((e) => e.scrollWidth > e.clientWidth + 1).length,
+        shutterBox: R(shutter), shutterInside: inside(R(shutter)), shutterAboveSafe: R(shutter).b <= innerHeight - bottomPad + 0.5, shutterTop: topmost(shutter),
+        flipBox: R(flip), flipInside: inside(R(flip)), flipTop: topmost(flip), flipAboveSafe: R(flip).b <= innerHeight - bottomPad + 0.5, bottomPad,
+        countInside: nb.left >= 0 && nb.right <= innerWidth && nb.top >= 0 && nb.bottom <= innerHeight, countBox: [nb.left, nb.right, nb.top, nb.bottom].map(Math.round),
+        over: document.documentElement.scrollWidth > innerWidth + 1,
+      };
+    })()`);
+    assert(r.bar.length === 4, `top bar has ${r.bar.length} items: ${r.bar.join(' | ')}`);
+    assert(r.pillText.join() === '10s,Last time', `pills read ${r.pillText.join()}`);
+    assert(r.btnSmall === 0, `${r.btnSmall} top-bar buttons are under 44px`);
+    assert(r.btnOff === 0 && r.btnHidden === 0, `top-bar buttons off-screen (${r.btnOff}) or covered (${r.btnHidden})`);
+    assert(r.overlaps.length === 0, `top bar overlaps: ${r.overlaps.join('; ')}`);
+    assert(r.titleInside && r.titleW > 20 && r.titleEllipsis , `title is not contained: width ${r.titleW}, ellipsis ${r.titleEllipsis}`);
+    assert(!r.pillClipped, 'a pill label is clipped');
+    assert(r.shutterInside && r.shutterAboveSafe && r.shutterTop && r.shutterBox.w >= 44, `shutter is clipped, covered or under the safe area: ${JSON.stringify(r.shutterBox)} pad ${r.bottomPad}`);
+    assert(r.flipInside && r.flipAboveSafe && r.flipTop && r.flipBox.w >= 44 && r.flipBox.h >= 44, `flip is clipped, covered or too small: ${JSON.stringify(r.flipBox)}`);
+    assert(r.countInside, `countdown number runs outside the screen: ${r.countBox}`);
+    assert(!r.over, 'the camera screen scrolls sideways');
+    await vfTap('.vf [data-close]');
+    assert(await vfWait("!document.querySelector('.vf')"), 'Cancel did not close the camera');
+    assert(await browser.eval("!!document.querySelector('dialog.sheet[open]')"), 'the sheet closed with the camera');
+  });
+}
+
 test('layout: close the browser', async () => {
   if (browser) await browser.close();
   browser = null;

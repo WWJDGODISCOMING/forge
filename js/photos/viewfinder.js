@@ -96,12 +96,14 @@ export function grabFrame({ video, makeCanvas = () => document.createElement('ca
     if (!w || !h) { reject(new Error('The camera isn’t ready yet.')); return; }
     let timer = null;
     try {
+      // The clock starts before any drawing, so a slow draw counts too. A toBlob callback that arrives after the
+      // timeout is harmless: the promise has already settled, and a second resolve or reject is ignored.
+      timer = setT(() => reject(new Error('The photo took too long.')), ms);
       const c = makeCanvas();
       c.width = w; c.height = h;
       const ctx = c.getContext('2d');
       if (facing === 'user') { ctx.translate(w, 0); ctx.scale(-1, 1); }
       ctx.drawImage(video, 0, 0, w, h);
-      timer = setT(() => reject(new Error('The photo took too long.')), ms);
       c.toBlob((b) => {
         if (timer != null) clearT(timer);
         if (!b) reject(new Error('The photo couldn’t be made.'));
@@ -125,10 +127,10 @@ const STOPPED = 'The camera stopped. Close this and tap Take photo again.';
 export function openViewfinder({ label, ghostUrl = '' }) {
   return new Promise((resolve, reject) => {
     const opener = document.activeElement;
-    const root = document.createElement('div');
+    // Its own modal <dialog>: the Progress photos sheet is a modal dialog, so anything mounted outside it is inert and
+    // sits below the top layer. showModal() puts the camera above the sheet and keeps taps off the sheet's backdrop.
+    const root = document.createElement('dialog');
     root.className = 'vf';
-    root.setAttribute('role', 'dialog');
-    root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-label', `${label} photo`);
     let timer = loadTimer();
     let counting = null;
@@ -177,6 +179,7 @@ export function openViewfinder({ label, ghostUrl = '' }) {
       try { video.pause(); video.srcObject = null; } catch { /* keep closing */ }
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('visibilitychange', onVisible);
+      try { root.close(); } catch { /* not open */ }
       root.remove();
       document.querySelectorAll('.vf').forEach((n) => n.remove());
       try { if (opener && opener.focus) opener.focus(); } catch { /* the opener is gone */ }
@@ -261,9 +264,11 @@ export function openViewfinder({ label, ghostUrl = '' }) {
         onDone: () => { counting = null; shoot(); },
       });
     });
+    root.addEventListener('cancel', (e) => { e.preventDefault(); finish(null); }); // Escape
     document.addEventListener('keydown', onKey);
     document.addEventListener('visibilitychange', onVisible);
     document.body.appendChild(root);
+    try { root.showModal(); } catch { root.setAttribute('open', ''); }
     shutter.focus();
     // Only this first start rejects (the caller then offers the system camera).
     run().catch((e) => { if (!settled) { teardown(); reject(e); } });

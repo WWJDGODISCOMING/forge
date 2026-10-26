@@ -2,11 +2,11 @@
 
 ## 0.16.76 — Progress photo camera fix + self-timer (2026-10-26)
 
-No Cloud Functions or `firestore.rules` changes. Native app change: needs a Refresh Forge.
+No Cloud Functions or `firestore.rules` changes. Web change only: the iPhone app picks it up after Refresh Forge.
 
 ### What's new
 
-- The camera shutter takes the photo and closes cleanly, with no more freeze.
+- The camera now opens above the Progress photos sheet, so the shutter takes the photo and closes cleanly, with no more freeze.
 - If the camera hits a problem, it closes with a gentle message.
 - Self-timer in the top bar: Off, 3s or 10s, with a big countdown.
 - Forge remembers your timer, so a full-body front shot is hands-free.
