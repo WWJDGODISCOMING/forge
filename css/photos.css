@@ -105,3 +105,7 @@
 .vf-shutter:active { background: white; }
 .vf-msg { position: absolute; left: 12px; right: 12px; bottom: calc(var(--safe-bottom) + 120px); margin: 0; padding: 10px 14px; border-radius: 14px; background: rgba(0, 0, 0, .7); color: white; text-align: center; }
 .vf-shutter[aria-disabled="true"] { opacity: .4; }
+.vf-title { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: center; }
+.vf-count { position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none; font-size: min(40vw, 220px); font-weight: 700; line-height: 1; color: white; text-shadow: 0 2px 24px rgba(0, 0, 0, .7); }
+.vf-count[hidden] { display: none; }
+.vf-shutter.vf-counting { background: rgba(255, 255, 255, .6); }

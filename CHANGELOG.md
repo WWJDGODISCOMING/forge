@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.76 — Progress photo camera fix + self-timer (2026-10-26)
+
+No Cloud Functions or `firestore.rules` changes. Native app change: needs a Refresh Forge.
+
+### What's new
+
+- The shutter now takes the photo and closes the camera cleanly. If the camera hits a problem it closes, shows a gentle message, and the page keeps working.
+- Self-timer in the camera's top bar: Off, 3s or 10s, with a big countdown and a tick for each second. Tap the shutter to cancel. Forge remembers your choice, so the front camera works hands-free for a full-body shot.
+
 ## 0.16.75 — Favorite meals (2026-10-26)
 
 `firestore.rules` changed (new `saved_meals` collection): publish the rules with the Deploy button (`rules`) before saving a favorite. No Cloud Functions changes. Until then the rest of Food works as before.

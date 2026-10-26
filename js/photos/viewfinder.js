@@ -4,7 +4,7 @@
 import { isNative } from '../native/bridge.js';
 import { icon } from '../ui/icons.js';
 import { haptics } from '../ui/haptic.js';
-import { esc } from '../ui.js';
+import { esc, toast } from '../ui.js';
 
 /** The viewfinder is for the iPhone app only, and only where the page can open a camera. */
 export const canViewfinder = (native = isNative(), env = globalThis) =>
@@ -55,6 +55,66 @@ export function createCamera({ getUserMedia, video }) {
   return { start, stop, close: () => { closed = true; stop(); } };
 }
 
+/** Self-timer choices in seconds (0 = off); the last choice is remembered on this phone. */
+export const TIMER_STEPS = [0, 3, 10];
+export const TIMER_KEY = 'forge.photoTimer';
+export const nextTimer = (t) => TIMER_STEPS[(TIMER_STEPS.indexOf(t) + 1) % TIMER_STEPS.length] ?? 0;
+export const timerLabel = (t) => (t ? `Timer ${t} seconds` : 'Timer off');
+export const loadTimer = (store = globalThis.localStorage) => {
+  try { const n = Number(store.getItem(TIMER_KEY)); return TIMER_STEPS.includes(n) ? n : 0; } catch { return 0; }
+};
+export const saveTimer = (t, store = globalThis.localStorage) => { try { store.setItem(TIMER_KEY, String(t)); } catch { /* private mode: not remembered */ } };
+
+/**
+ * A countdown of whole seconds. onTick(n) fires at once with the full count and then each second down to 1;
+ * onDone() fires after the last second. cancel() stops it for good. Timers are injectable for tests.
+ */
+export function createCountdown({ seconds, onTick, onDone, setT = setTimeout, clearT = clearTimeout }) {
+  let n = seconds;
+  let id = null;
+  let live = true;
+  const step = () => {
+    id = null;
+    if (!live) return;
+    if (n <= 0) { live = false; onDone(); return; }
+    onTick(n);
+    n--;
+    id = setT(step, 1000);
+  };
+  step();
+  return { cancel: () => { live = false; if (id != null) clearT(id); id = null; }, get active() { return live; } };
+}
+
+/**
+ * Draw the current video frame (mirrored for the front camera) and give back a JPEG File. Rejects, never hangs:
+ * a canvas that makes no blob within `ms` is an error, so the caller can close the camera and say so.
+ */
+export function grabFrame({ video, makeCanvas = () => document.createElement('canvas'), facing, ms = 5000, setT = setTimeout, clearT = clearTimeout }) {
+  return new Promise((resolve, reject) => {
+    const w = video.videoWidth;
+    const h = video.videoHeight;
+    if (!w || !h) { reject(new Error('The camera isn’t ready yet.')); return; }
+    let timer = null;
+    try {
+      const c = makeCanvas();
+      c.width = w; c.height = h;
+      const ctx = c.getContext('2d');
+      if (facing === 'user') { ctx.translate(w, 0); ctx.scale(-1, 1); }
+      ctx.drawImage(video, 0, 0, w, h);
+      timer = setT(() => reject(new Error('The photo took too long.')), ms);
+      c.toBlob((b) => {
+        if (timer != null) clearT(timer);
+        if (!b) reject(new Error('The photo couldn’t be made.'));
+        else resolve(new File([b], 'pose.jpg', { type: 'image/jpeg' }));
+      }, 'image/jpeg', 0.92);
+    } catch (e) {
+      if (timer != null) clearT(timer);
+      reject(e);
+    }
+  });
+}
+
+const timerText = (t) => (t ? `${t}s` : 'Timer');
 const STOPPED = 'The camera stopped. Close this and tap Take photo again.';
 
 /**
@@ -70,6 +130,8 @@ export function openViewfinder({ label, ghostUrl = '' }) {
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
     root.setAttribute('aria-label', `${label} photo`);
+    let timer = loadTimer();
+    let counting = null;
     let level = ghostUrl ? GHOST_LEVELS[0] : 0;
     let facing = 'environment';
     let settled = false;
@@ -78,7 +140,8 @@ export function openViewfinder({ label, ghostUrl = '' }) {
     root.innerHTML = `
       <video class="vf-video" playsinline muted></video>
       ${ghostUrl ? `<img class="vf-ghost" src="${esc(ghostUrl)}" alt="" style="opacity:${level}">` : ''}
-      <div class="vf-top"><button type="button" class="vf-btn" data-close aria-label="Cancel">${icon('close')}</button><b class="vf-title">${esc(label)}</b>${ghostUrl ? `<button type="button" class="vf-btn vf-pill" data-ghost aria-pressed="true" aria-label="${ghostLabel()}">Last time</button>` : '<span class="vf-gap"></span>'}</div>
+      <div class="vf-top"><button type="button" class="vf-btn" data-close aria-label="Cancel">${icon('close')}</button><b class="vf-title">${esc(label)}</b><button type="button" class="vf-btn vf-pill" data-timer aria-label="${timerLabel(timer)}">${timerText(timer)}</button>${ghostUrl ? `<button type="button" class="vf-btn vf-pill" data-ghost aria-pressed="true" aria-label="${ghostLabel()}">Last time</button>` : '<span class="vf-gap"></span>'}</div>
+      <div class="vf-count" data-count aria-hidden="true" hidden></div>
       <p class="vf-msg" role="status" aria-live="polite" data-msg hidden></p>
       <div class="vf-bottom"><span class="vf-gap"></span><button type="button" class="vf-shutter" data-shoot aria-label="Take photo" aria-disabled="true"></button><button type="button" class="vf-btn" data-flip aria-label="Flip camera">${icon('refresh')}</button></div>`;
     const q = (s) => root.querySelector(s);
@@ -86,6 +149,8 @@ export function openViewfinder({ label, ghostUrl = '' }) {
     const shutter = q('[data-shoot]');
     const flipBtn = q('[data-flip]');
     const msg = q('[data-msg]');
+    const count = q('[data-count]');
+    const timerBtn = q('[data-timer]');
     const cam = createCamera({ getUserMedia: (c) => navigator.mediaDevices.getUserMedia(c), video });
     const say = (text) => { msg.textContent = text; msg.hidden = !text; };
     const setShutter = (on) => { shutter.setAttribute('aria-disabled', String(!on)); };
@@ -93,19 +158,37 @@ export function openViewfinder({ label, ghostUrl = '' }) {
     const onKey = (e) => { if (e.key === 'Escape') finish(null); };
     const onVisible = async () => {
       if (settled) return;
-      if (document.visibilityState === 'hidden') { cam.stop(); setShutter(false); return; }
+      if (document.visibilityState === 'hidden') { stopCount(); cam.stop(); setShutter(false); return; }
       say('');
       try { await run(); } catch { if (!settled) say(STOPPED); }
     };
+    const stopCount = () => {
+      if (counting) counting.cancel();
+      counting = null;
+      count.hidden = true;
+      shutter.classList.remove('vf-counting');
+      shutter.setAttribute('aria-label', 'Take photo');
+    };
+    // Close cleanly whatever happens: timers off, camera released, nothing left over the page.
     const teardown = () => {
       settled = true;
-      cam.close();
-      root.remove();
+      try { stopCount(); } catch { /* keep closing */ }
+      try { cam.close(); } catch { /* keep closing */ }
+      try { video.pause(); video.srcObject = null; } catch { /* keep closing */ }
       document.removeEventListener('keydown', onKey);
       document.removeEventListener('visibilitychange', onVisible);
-      if (opener && opener.focus) opener.focus();
+      root.remove();
+      document.querySelectorAll('.vf').forEach((n) => n.remove());
+      try { if (opener && opener.focus) opener.focus(); } catch { /* the opener is gone */ }
     };
     const finish = (file) => { if (settled) return; teardown(); resolve(file); };
+    // A camera error closes the camera, says so gently and hands back nothing, so the page is never left stuck.
+    const fail = () => {
+      if (settled) return;
+      teardown();
+      try { toast('The camera had a hiccup. Try Take photo again.', 3200, { icon: 'camera' }); } catch { /* no toast host */ }
+      resolve(null);
+    };
     // One camera start; Flip and the shutter wait while it is in flight.
     const run = async () => {
       busy = true; flipBtn.disabled = true; setShutter(false);
@@ -121,6 +204,7 @@ export function openViewfinder({ label, ghostUrl = '' }) {
     q('[data-close]').addEventListener('click', () => finish(null));
     flipBtn.addEventListener('click', async () => {
       if (busy || settled) return;
+      stopCount();
       const before = facing;
       facing = facing === 'environment' ? 'user' : 'environment';
       haptics.select();
@@ -144,17 +228,38 @@ export function openViewfinder({ label, ghostUrl = '' }) {
         haptics.select();
       });
     }
-    shutter.addEventListener('click', () => {
-      const w = video.videoWidth;
-      const h = video.videoHeight;
-      if (shutter.getAttribute('aria-disabled') === 'true' || !w || !h) return;
-      const c = document.createElement('canvas');
-      c.width = w; c.height = h;
-      const ctx = c.getContext('2d');
-      if (facing === 'user') { ctx.translate(w, 0); ctx.scale(-1, 1); }
-      ctx.drawImage(video, 0, 0, w, h);
+    const shoot = async () => {
+      stopCount();
+      if (settled) return;
       haptics.medium();
-      c.toBlob((b) => finish(b ? new File([b], 'pose.jpg', { type: 'image/jpeg' }) : null), 'image/jpeg', 0.92);
+      try {
+        finish(await grabFrame({ video, facing }));
+      } catch {
+        fail();
+      }
+    };
+    timerBtn.addEventListener('click', () => {
+      if (settled) return;
+      stopCount();
+      timer = nextTimer(timer);
+      saveTimer(timer);
+      timerBtn.textContent = timerText(timer);
+      timerBtn.setAttribute('aria-label', timerLabel(timer));
+      haptics.select();
+    });
+    shutter.addEventListener('click', () => {
+      if (settled) return;
+      if (counting) { stopCount(); haptics.select(); return; } // tap the shutter again to cancel the countdown
+      if (shutter.getAttribute('aria-disabled') === 'true' || !video.videoWidth || !video.videoHeight) return;
+      if (!timer) { shoot(); return; }
+      shutter.classList.add('vf-counting');
+      shutter.setAttribute('aria-label', 'Cancel timer');
+      count.hidden = false;
+      counting = createCountdown({
+        seconds: timer,
+        onTick: (n) => { count.textContent = String(n); haptics.select(); },
+        onDone: () => { counting = null; shoot(); },
+      });
     });
     document.addEventListener('keydown', onKey);
     document.addEventListener('visibilitychange', onVisible);
