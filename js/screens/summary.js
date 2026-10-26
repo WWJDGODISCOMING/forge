@@ -158,9 +158,9 @@ export function renderSummary(el, id) {
               <b>${esc(r.ex.name)}</b>
               <small class="muted">${r.sets.map((s) => esc(setLine(s, r.ex, u))).join('<br>')}</small>
               ${r.exPrs.map((p) => `<span class="sum-pr">${icon('trophy', { filled: true })} ${esc(p.label.split(': ').slice(1).join(': ') || p.label)}${p.prev != null ? ` <s>${Math.round(p.prev * 10) / 10}</s>` : ''}</span>`).join('')}
-              ${prefControlHtml(r.ex)}
             </div>
             ${r.vs ? `<span class="vs ${r.vs.tone}">${esc(r.vs.text)}</span>` : '<span class="vs new">First time</span>'}
+            ${prefControlHtml(r.ex)}
           </li>`).join('')}
       </ul>
 

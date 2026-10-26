@@ -544,6 +544,16 @@ if (standalone) {
           if (r.left < 0 || r.right > innerWidth + 0.5) bad.push('off screen ' + Math.round(r.left) + '-' + Math.round(r.right));
           if (!b.getAttribute('aria-pressed')) bad.push('no aria-pressed');
         }
+        for (const li of document.querySelectorAll('.sum-list li')) {
+          const lr = li.getBoundingClientRect();
+          if (li.scrollWidth > li.clientWidth + 0.5) bad.push('row overflows ' + li.scrollWidth + '>' + li.clientWidth);
+          for (const el of li.querySelectorAll('.vs, .xpref-b')) {
+            const r = el.getBoundingClientRect();
+            if (r.left < lr.left - 0.5 || r.right > lr.right + 0.5) bad.push(el.className + ' outside its row ' + Math.round(r.left) + '-' + Math.round(r.right) + ' vs ' + Math.round(lr.left) + '-' + Math.round(lr.right));
+          }
+          const vs = li.querySelector('.vs');
+          if (vs && vs.scrollWidth > vs.clientWidth + 0.5) bad.push('badge text clipped');
+        }
         return { n: groups.length, bad, over: document.documentElement.scrollWidth > innerWidth + 1 };
       })()`);
       await wait(200);

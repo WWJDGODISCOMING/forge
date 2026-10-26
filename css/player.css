@@ -191,7 +191,11 @@ body.playing .navbar { display: none; }
 .sum-stats .gold b { color: var(--gold); }
 .sum-list li { align-items: flex-start; gap: 12px; }
 .sum-check { width: 30px; height: 30px; border-radius: 50%; background: var(--good-tint); color: var(--rec-green); display: grid; place-items: center; font-weight: 900; flex: none; margin-top: 2px; }
-.sum-list li > div { display: flex; flex-direction: column; gap: 2px; }
+.sum-list li { flex-wrap: wrap; }
+.sum-list li > div { display: flex; flex-direction: column; gap: 2px; flex: 1 1 0; min-width: 0; }
+.sum-list li > .vs { flex: none; max-width: 100%; }
+.sum-list li > .xpref { flex: 1 0 100%; margin: 0 0 0 42px; max-width: calc(100% - 42px); min-width: 0; }
+.sum-list li > .xpref .xpref-b { flex: 1 1 0; min-width: min-content; justify-content: center; }
 .sum-pr { font-size: calc(13px * var(--ts)); color: var(--gold); font-weight: 700; }
 .sum-pr s { color: var(--muted); font-weight: 500; }
 .vs { font-size: calc(13px * var(--ts)); font-weight: 800; white-space: nowrap; padding: 4px 8px; border-radius: 999px; background: var(--surface-2); color: var(--muted); }
