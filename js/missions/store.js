@@ -83,6 +83,24 @@ export function weekProgress() {
   return weekDots(today(), liveIndex(), { targets: targets() }, startedDay());
 }
 
+/** Missions done and on offer over the 7 days starting `monday` (days before missions started or after today are skipped); null before any counted day. */
+export function weekMissionCounts(monday) {
+  const start = startedDay();
+  if (!start) return null;
+  const idx = liveIndex();
+  const t = targets();
+  let done = 0;
+  let total = 0;
+  for (let i = 0; i < 7; i++) {
+    const day = shiftDay(monday, i);
+    if (day < start || day > today()) continue;
+    const list = missionsFor(day, idx, { targets: t, restDay: false });
+    done += list.filter((m) => m.done).length;
+    total += list.length;
+  }
+  return total ? { done, total } : null;
+}
+
 /** XP earned in the last 7 days (never before missions started): mission XP plus 100 per mission badge, as bonusXP sums it. */
 export function weekXP(badges = extraBadges()) {
   const start = startedDay();

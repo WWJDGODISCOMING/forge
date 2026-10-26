@@ -46,6 +46,7 @@ import { loadExpiryInfo, refreshDue } from '../native/expiry.js';
 import { todayBalanceLine, todayDeficitHtml } from './balance-ui.js';
 import { askButton, bindAsk } from './ask.js';
 import { livePillHtml, bindLiveChips } from '../ui/live-chip.js';
+import { recapCardHtml, bindRecapCard } from './recap.js';
 import { refreshBannerHtml, openRefreshSheet } from '../native/refresh-ui.js';
 
 /** Today's food against targets, for the rings. */
@@ -298,7 +299,7 @@ export function renderToday(el) {
     badge: () => badgeCelebrationCards(),
     'tour-offer': () => tourOfferCard(),
   });
-  const report = reportOrScore({ weekly: weeklyCard(), score: scoreCard() }); // never both
+  const report = reportOrScore({ weekly: recapCardHtml() || weeklyCard(), score: scoreCard() }); // never both
   el.innerHTML = `
     <section class="stack today-stack">
       <header class="today-head">
@@ -402,6 +403,7 @@ export function renderToday(el) {
     $('[data-app-refresh-banner]', refreshSlot).addEventListener('click', openRefreshSheet);
   });
   bindInsightCards(el, dismissInsight);
+  bindRecapCard(el);
   afterMissionsRender();
   afterBadgeCelebrations(el);
   afterCompletionCards(el);

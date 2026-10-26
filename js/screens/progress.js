@@ -17,6 +17,7 @@ export function progressTabs(active) {
 const row = (href, ic, title, sub) => `<a class="g-row" href="${href}"><span class="g-ic">${icon(ic)}</span><span class="g-text"><span>${title}</span><small>${sub}</small></span><span class="chev">${icon('chev')}</span></a>`;
 /** Entry rows shown at the bottom of every Progress part: awards, history, doctor summary, Ask Coach. */
 export const progressRowsHtml = () => `<div class="group" data-progress-rows>
+      ${row('#/recaps', 'calendar', 'Weekly recaps', 'Your past weeks')}
       ${row('#/awards', 'trophy', 'Awards', 'Badges and missions')}
       ${row('#/history', 'list', 'History &amp; PRs', 'Workouts and cardio')}
       ${row('#/report', 'heart', 'Doctor summary', 'Share with your doctor')}

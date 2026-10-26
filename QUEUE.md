@@ -354,7 +354,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 31. #217 Weekly recap card
 - Issue: #217
 - Version: 0.16.74
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #217; AI-off, Duo-ready, large text, tests.
 

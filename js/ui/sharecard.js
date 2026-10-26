@@ -184,11 +184,11 @@ export async function renderShareCard(card) {
 }
 
 /** Share the PNG with the system share sheet, or download it where sharing files isn't supported. */
-export async function shareImage(blob, name = 'forge-workout.png') {
-  if (isNative()) return (await shareNative(blob, name, 'My Forge workout')) === 'cancelled' ? 'cancelled' : 'shared';
+export async function shareImage(blob, name = 'forge-workout.png', title = 'My Forge workout') {
+  if (isNative()) return (await shareNative(blob, name, title)) === 'cancelled' ? 'cancelled' : 'shared';
   const file = new File([blob], name, { type: 'image/png' });
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    await navigator.share({ files: [file], title: 'My Forge workout' });
+    await navigator.share({ files: [file], title });
     return 'shared';
   }
   const url = URL.createObjectURL(blob);
