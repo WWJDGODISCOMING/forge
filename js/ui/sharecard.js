@@ -201,3 +201,59 @@ export async function shareImage(blob, name = 'forge-workout.png', title = 'My F
   setTimeout(() => URL.revokeObjectURL(url), 5000);
   return 'downloaded';
 }
+
+/** The share image: 1080×1350, drawn on this phone. */
+export async function renderRecapImage(rc, weightText, range, rowText) {
+  const W = 1080;
+  const H = 1350;
+  const c = document.createElement('canvas');
+  c.width = W;
+  c.height = H;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = '#040B0E';
+  ctx.fillRect(0, 0, W, H);
+  ctx.textBaseline = 'alphabetic';
+  ctx.fillStyle = '#3EC8F0';
+  ctx.font = `900 40px ${FONT}`;
+  ctx.fillText('FORGE', 72, 110);
+  ctx.fillStyle = '#9AA1AB';
+  ctx.font = `600 32px ${FONT}`;
+  ctx.textAlign = 'right';
+  ctx.fillText(range, W - 72, 110);
+  ctx.textAlign = 'left';
+  ctx.fillStyle = '#DADDE4';
+  ctx.font = `900 96px ${FONT}`;
+  ctx.fillText('My week', 72, 240);
+  const lines = rc.quiet ? [['Status', 'A quiet week']] : [
+    ...(weightText ? [['Weight trend', weightText]] : []),
+    ...rc.rows.map((x) => [x.label, rowText(x)]),
+    ['Personal records', String(rc.prs || 0)],
+  ];
+  let y = 340;
+  for (const [k, v] of lines.slice(0, 7)) {
+    ctx.fillStyle = '#172430';
+    ctx.fillRect(72, y - 52, W - 144, 100);
+    ctx.fillStyle = '#9AA1AB';
+    ctx.font = `700 30px ${FONT}`;
+    ctx.fillText(k, 100, y + 8);
+    ctx.fillStyle = '#DADDE4';
+    ctx.font = `800 36px ${FONT}`;
+    ctx.textAlign = 'right';
+    ctx.fillText(v, W - 100, y + 10);
+    ctx.textAlign = 'left';
+    y += 116;
+  }
+  ctx.fillStyle = '#C6FF3D';
+  ctx.font = `800 32px ${FONT}`;
+  ctx.fillText('FOCUS FOR THIS WEEK', 72, 1170);
+  ctx.fillStyle = '#DADDE4';
+  ctx.font = `700 34px ${FONT}`;
+  let line = '';
+  let ty = 1220;
+  for (const word of rc.tip.text.split(' ')) {
+    const next = line ? `${line} ${word}` : word;
+    if (ctx.measureText(next).width > W - 144 && line) { ctx.fillText(line, 72, ty); ty += 46; line = word; } else line = next;
+  }
+  if (line) ctx.fillText(line, 72, ty);
+  return new Promise((resolve) => c.toBlob(resolve, 'image/png'));
+}

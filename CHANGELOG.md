@@ -6,9 +6,9 @@ No Cloud Functions or `firestore.rules` changes. Web app only: it updates on its
 
 ### What's new
 
-- Monday to Wednesday, Today shows a recap of last week: weight trend, workouts, protein, calories, steps, missions and records.
+- Mon to Wed, Today shows a recap of last week: weight, workouts, food, steps and more.
 - One plain focus tip for the week, picked from the area that was furthest from its goal.
-- Tap it for the details, or share it as an image. Past recaps are under Progress → Weekly recaps.
+- Tap for details or to share an image. Past recaps live under Progress.
 - Works with AI off. Quiet weeks get a kind note, not a lecture.
 
 ## 0.16.73 — Protein helper on Food (2026-10-26)
