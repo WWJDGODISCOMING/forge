@@ -141,6 +141,7 @@ const routes = {
   program: () => import('./screens/program.js').then((m) => m.renderProgram(main)),
   report: () => import('./screens/report.js').then((m) => m.renderReport(main)),
   weekly: () => import('./screens/weekly.js').then((m) => m.renderWeekly(main)),
+  recaps: () => import('./screens/recap.js').then((m) => m.renderRecaps(main)),
   coach: () => import('./screens/coach.js').then((m) => m.renderCoach(main)),
   food: () => import('./screens/food.js').then((m) => m.renderFood(main)),
   withings: (sub) => import('./screens/withings.js').then((m) => m.renderWithings(main, sub)),

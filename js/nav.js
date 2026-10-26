@@ -8,7 +8,7 @@ export const TAB_ORDER = ['today', 'train', 'food', 'body', 'score'];
 export const TAB_FOR = {
   session: 'train', play: 'train', live: 'train', summary: 'train', timer: 'train', library: 'train',
   history: 'score', awards: 'score', days: 'score', score: 'score',
-  metric: 'body', photos: 'body', progress: 'score', trends: 'score', weekly: 'score',
+  metric: 'body', photos: 'body', progress: 'score', trends: 'score', weekly: 'score', recaps: 'score',
   coach: 'today', program: 'today', food: 'food',
 };
 
@@ -44,7 +44,7 @@ export function noteNavigation(fromParts, toParts) {
 // Awards, History and Coach are rows under each Progress part (Score, Week, Trends). Opened from one, Back returns to that part and the
 // Progress tab stays lit; Coach opened from anywhere else (Today) stays on Today. null = not opened from a Progress part.
 const PROGRESS_PARTS = new Set(['score', 'weekly', 'trends']);
-const PROGRESS_ROWS = new Set(['awards', 'history', 'coach']);
+const PROGRESS_ROWS = new Set(['awards', 'history', 'coach', 'recaps']);
 let progressFrom = null;
 export const getProgressFrom = () => progressFrom;
 
