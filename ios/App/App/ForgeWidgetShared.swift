@@ -9,7 +9,7 @@ import Security
 public struct ForgeWidgetProgress: Codable, Hashable {
     public var v: Int?
     public var goal: Int
-    public var fraction: Double { guard let v = v, goal > 0 else { return 0 } return min(1, Double(v) / Double(goal)) }
+    public var fraction: Double { guard let v = v, goal > 0 else { return 0 }; return min(1, Double(v) / Double(goal)) }
     public var left: Int { max(0, goal - (v ?? 0)) }
 }
 
