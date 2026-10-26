@@ -381,7 +381,7 @@ test('client: form POST with the bearer token; HTTP and JSON statuses become Wit
   assert.equal(body.get('category'), '1');
   const u = new URL(c.authorizeUrl({ redirectUri: 'https://r/cb', state: 's' }));
   assert.equal(u.origin + u.pathname, 'https://account.withings.com/oauth2_user/authorize2');
-  assert.equal(u.searchParams.get('scope'), 'user.info,user.metrics');
+  assert.equal(u.searchParams.get('scope'), 'user.info,user.metrics,user.activity');
   const bad = makeClient({ fetch: async () => ({ ok: false, status: 502 }), clientId: 'c' });
   await assert.rejects(bad.getdevice('t'), (e) => e.transient && e.status === 'http_502');
   const rl = makeClient({ fetch: async () => ({ ok: true, json: async () => ({ status: 601 }) }), clientId: 'c' });

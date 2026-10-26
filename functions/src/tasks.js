@@ -7,6 +7,8 @@
 import { P } from './paths.js';
 import { withToken, NotConnected, NeedsReconnect } from './tokens.js';
 import { incrementalSync, backfillPage } from './sync.js';
+import { syncActivitySafe } from './activity.js';
+import { WithingsError } from './withings-api.js';
 import { log } from './log.js';
 
 export const MAX_PAGES = 2000; // Withings pages are hundreds of groups: 2,000 pages is far beyond any real history
@@ -86,8 +88,15 @@ export async function runTask(data, { db, api, enqueue, now = () => Date.now() }
       await enqueueOnce(enqueue, { kind: 'backfill', uid, runId: data.runId, end: data.end, year: r.nextYear, offset: r.more ? r.offset : 0, page: page + 1 }, backfillTaskId(uid, data.runId, page + 1));
       return { kind, page, more: r.more, year: r.nextYear };
     }
+    if (kind === 'activity') {
+      const a = await syncActivitySafe({ db, api, uid, token, now });
+      log('activity', { count: a.days || 0 });
+      if (a.transient) throw new WithingsError(a.status, 'getactivity'); // rate limit / outage: Cloud Tasks retries
+      return { kind, days: a.days || 0, skipped: a.skipped };
+    }
     const r = await incrementalSync({ db, api, uid, token, now, reason: kind });
     log('sync', { reason: String(kind), count: r.created + r.updated });
+    await syncActivitySafe({ db, api, uid, token, now }); // steps ride along; never fails the weight sync
     return { kind, created: r.created, updated: r.updated };
   }
 }

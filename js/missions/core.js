@@ -1,5 +1,6 @@
 // Daily missions: small real actions judged from data the app already has. Pure functions, no DOM, no state;
 // js/missions/store.js reads state and settings. See docs/missions.md.
+import { stepsSourceLabel } from '../steps-source.js';
 
 export const MISSION_XP = 20; // per mission
 export const ALL_DONE_XP = 30; // bonus when every mission of the day is done
@@ -91,7 +92,7 @@ export function missionsFor(day, idx, { targets = {}, restDay = false } = {}) {
     const row = idx.health.get(day);
     if (row) {
       const steps = num(row.steps) || 0;
-      list.push({ id: 'steps', label: 'Steps', done: steps >= t.steps, progress: { value: steps, target: t.steps, unit: 'steps' } });
+      list.push({ id: 'steps', label: 'Steps', done: steps >= t.steps, progress: { value: steps, target: t.steps, unit: 'steps', source: stepsSourceLabel(row) } });
     } else {
       list.push({ id: 'steps', label: 'Steps', done: false, waiting: true }); // Apple Health usually syncs once a day
     }

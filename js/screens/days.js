@@ -47,7 +47,7 @@ function rowsHtml(v, units) {
   const tv = v.training.map((t) => `${t.name}${t.minutes != null ? `, ${t.minutes} min` : ''}`).join(' · ');
   out.push(row({ done: !!by.train.done, label: 'Train or move', value: tv || NOTHING, status: by.train.done ? 'Done' : miss, muted: !tv }));
   if (by.steps) {
-    const sv = v.steps != null ? `${fmt(v.steps)} of ${fmt(v.stepGoal)} steps` : 'No Apple Health steps for this day';
+    const sv = v.steps != null ? `${fmt(v.steps)} of ${fmt(v.stepGoal)} steps${v.stepsSource ? ` · ${v.stepsSource}` : ''}` : 'No steps for this day';
     out.push(row({ done: by.steps.done, label: 'Steps', value: sv, status: by.steps.done ? 'Done' : by.steps.waiting ? 'No data' : miss, muted: v.steps == null }));
   }
   if (by.protein) {

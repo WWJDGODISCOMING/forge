@@ -1,5 +1,6 @@
 // Past days: what each day's missions looked like, with the real values. Pure functions, no DOM, no state.
 // Built only from data the app already stores (weights, body_measures, workouts, cardio, health_daily, food_logs).
+import { stepsSourceLabel } from '../steps-source.js';
 import { indexDays, missionsFor, localDay, shiftDay, dayXP, allDone, MOVE_MIN } from './core.js';
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -87,7 +88,7 @@ export function dayDetail(day, data, { targets = {}, today = localDay(Date.now()
   return {
     day, isToday: day === today, isFuture: day > today,
     missions, done: missions.filter((m) => m.done).length, total: missions.length, xp: dayXP(missions), all: allDone(missions),
-    weighIn: w, steps, stepGoal: targets.steps || null,
+    weighIn: w, steps, stepsSource: stepsSourceLabel(row), stepGoal: targets.steps || null,
     calories: { kcal: food.kcal, ceiling, logged: food.logged, items: foodItems(day, data.foodLogs) },
     protein: { g: food.proteinG, target: num(targets.proteinG) > 0 ? Math.round(targets.proteinG) : null, logged: food.logged },
     training, empty,

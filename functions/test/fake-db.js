@@ -131,7 +131,7 @@ export function fakeDb() {
 export function fakeApi(script = {}) {
   const calls = [];
   const api = {};
-  for (const name of ['requestToken', 'refreshToken', 'getmeas', 'getdevice', 'notifySubscribe', 'notifyList', 'notifyRevoke']) {
+  for (const name of ['requestToken', 'refreshToken', 'getmeas', 'getdevice', 'getactivity', 'notifySubscribe', 'notifyList', 'notifyRevoke']) {
     api[name] = async (...args) => {
       calls.push([name, ...args]);
       const s = script[name];

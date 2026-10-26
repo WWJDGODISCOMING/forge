@@ -320,7 +320,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 27. #212 Withings steps sync (getactivity) in Cloud Functions
 - Issue: #212
 - Version: 0.16.70
-- Status: todo
+- Status: in-review
 - Acceptance:
   - `user.activity` scope + calm reconnect note when missing; getactivity sync (7 days) on connect/refresh and webhook appli=16.
   - Tested per-day merge with Apple Health (higher wins, source recorded, no double count); synthetic fixtures; no new secrets or paid services.
