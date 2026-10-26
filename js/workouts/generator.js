@@ -55,6 +55,12 @@ export function swapInfo(was, now, jointAvoid) {
 const LEVEL = { beginner: 1, intermediate: 2, advanced: 3 };
 export const CYCLE_WEEKS = { beginner: 6, intermediate: 5, advanced: 4 };
 
+/** Whole local Monday-based weeks since a fixed Monday (1970-01-05 local). */
+function mondayWeek(now) {
+  const d = new Date(now);
+  return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(1970, 0, 5)) / (7 * 86400000));
+}
+
 /** Planned deload: the last week of each cycle (cycle length by experience), or a manually started deload week. */
 export function deloadInfo(program, experience = 'beginner', now = Date.now()) {
   if (!program || !program.started_at) return { deload: false, week: 1, cycle: CYCLE_WEEKS[experience] };
@@ -312,7 +318,7 @@ export function generateWorkout(opts) {
     excluded: new Set(settings.excluded || []), favorites: new Set(settings.favorites || []),
     avoidSoft: new Set(avoidIds),
     prefs: cleanPrefs(settings.exercise_prefs),
-    week: Math.floor(now / (7 * 86400000)),
+    week: mondayWeek(now), // Monday-based local week, so the rotation turns over with the training week
   };
 
   const volume = prog.volume || 1;

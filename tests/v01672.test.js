@@ -11,16 +11,17 @@ const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 const HOME = LOCATION_PRESETS.find((l) => l.key === 'home');
 const MAIN = ['chest', 'lats', 'upper_back', 'front_delts', 'side_delts', 'rear_delts', 'biceps', 'triceps', 'abs', 'quads', 'hamstrings', 'glutes', 'calves'];
 const trains = (e) => e.kind !== 'conditioning' && e.pattern !== 'mobility';
+const kneeOk = (e) => !(e.avoid || []).includes('knee'); // Christian wants every option knee-friendly
 
 // ---------- catalog ----------
-test('catalog: every main muscle has 4+ moves with the saved Home equipment, and 4+ with no equipment at all', () => {
+test('catalog: every main muscle has 4+ knee-friendly (not tagged knee) moves with the saved Home equipment, and 4+ with no equipment at all', () => {
   const home = expandEquipment(HOME.equipment);
   const none = expandEquipment([]);
   for (const m of MAIN) {
-    const h = EXERCISES.filter((e) => trains(e) && e.primary.includes(m) && canDo(e, home));
-    const b = EXERCISES.filter((e) => trains(e) && e.primary.includes(m) && canDo(e, none));
-    assert(h.length >= 4, `${m}: only ${h.length} with Home equipment`);
-    assert(b.length >= 4, `${m}: only ${b.length} with no equipment`);
+    const h = EXERCISES.filter((e) => trains(e) && kneeOk(e) && e.primary.includes(m) && canDo(e, home));
+    const b = EXERCISES.filter((e) => trains(e) && kneeOk(e) && e.primary.includes(m) && canDo(e, none));
+    assert(h.length >= 4, `${m}: only ${h.length} knee-friendly with Home equipment`);
+    assert(b.length >= 4, `${m}: only ${b.length} knee-friendly with no equipment`);
   }
 });
 

@@ -31,7 +31,8 @@ export function bindPrefControls(root, onChange = () => {}) {
   $$('.xpref', root).forEach((group) => {
     const id = group.dataset.xpref;
     const name = group.dataset.xprefName;
-    $$('[data-pref]', group).forEach((b) => b.addEventListener('click', () => {
+    $$('[data-pref]', group).forEach((b) => b.addEventListener('click', (ev) => {
+      ev.stopPropagation(); // never also trigger a row-level handler
       const next = setPref(currentPrefs(), id, b.dataset.pref);
       const value = prefOf(next, id);
       savePrefs(next);
