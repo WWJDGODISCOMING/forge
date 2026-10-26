@@ -9,9 +9,10 @@ import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../
 import { currentTargets } from '../derived.js';
 import { FLOOR_SOURCE } from '../nutrition/targets.js';
 import { icon, emptyState } from '../ui/icons.js';
-import { MEAL_LABEL, MEALS, cleanFood, copyMealFields, dayBefore, dayTotals, groupByMeal, progress, stepServings } from '../food/core.js';
+import { MEAL_LABEL, MEALS, logFields, mealForHour, cleanFood, copyMealFields, dayBefore, dayTotals, groupByMeal, progress, stepServings } from '../food/core.js';
 import { createFlow } from '../food/flow.js';
-import { search, createOnlineSearch } from '../food/search.js';
+import { search, searchLocal, createOnlineSearch } from '../food/search.js';
+import { remaining, shouldShow, suggest, logItem, dismissKey } from '../food/protein-helper.js';
 import { lookupBarcode, searchBrand, shouldFallback } from '../food/off.js';
 import { openBarcodeScan, openCreateFood } from './food-scan.js';
 import { SERVING_CHOICES, amountLabel, gramsFromAmount, gramsToOz, measureServing, portionItem, servingsLabel } from '../food/portion.js';
@@ -42,6 +43,26 @@ const pend = createPendingDelete({
 if (typeof document !== 'undefined') {
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pend.flush(); });
   window.addEventListener('hashchange', () => pend.flush());
+}
+// "Short on protein?" card: dismissed for the rest of the day, kept on this phone.
+const proDismissed = () => { try { return localStorage.getItem(dismissKey(state.user && state.user.uid)) === todayKey(); } catch { return false; } };
+const proDismiss = () => { try { localStorage.setItem(dismissKey(state.user && state.user.uid), todayKey()); } catch { /* private mode: it comes back on reload */ } };
+function proHelperHtml(isToday, tot, t, logs) {
+  if (!isToday || proDismissed()) return { html: '', ideas: [] };
+  const now = new Date();
+  const left = remaining(t, tot);
+  if (!shouldShow({ isToday, hour: now.getHours() + now.getMinutes() / 60, left })) return { html: '', ideas: [] };
+  const ideas = suggest({ left, items: searchLocal('', { foods: state.foods, logs, limit: 60 }) });
+  if (!ideas.length) return { html: '', ideas };
+  const lt = left.kcal == null ? '' : ` with ${left.kcal.toLocaleString('en-US')} kcal left`;
+  const note = ideas.find((i) => i.id === 'collagen');
+  return { ideas, html: `<div class="card stack pro-help" data-pro-help>
+    <div class="pro-head"><div><p class="label">${left.protein} g protein to go</p><p class="small muted">Ideas that fit${lt}. Tap one to log it.</p></div>
+      <button type="button" class="btn ghost pro-dismiss" data-pro-dismiss aria-label="Hide protein ideas for today">${icon('close')}</button></div>
+    <ul class="pro-list">${ideas.map((s, i) => `<li><button type="button" class="pro-row" data-pro="${i}" aria-label="Log ${esc(s.name)}, ${esc(s.portion)}, ${s.protein_g} grams protein, ${s.kcal} kilocalories">
+      <span class="pro-text"><b>${esc(s.name)}</b><small>${s.protein_g} g protein · ${s.kcal} kcal${s.portion ? ` · ${esc(s.portion)}` : ''}</small></span><span class="pro-add" aria-hidden="true">${icon('plus')}</span></button></li>`).join('')}</ul>
+    ${note ? `<p class="pro-tip">${esc(note.tip)}</p>` : ''}
+  </div>` };
 }
 const liveLogs = () => state.food_logs.filter((e) => !pend.has(e.id));
 let lastUnit = 'serv'; // the portion unit you used last (servings, oz or g), kept while the app is open
@@ -101,6 +122,7 @@ export function renderFood(el) {
   const yesterday = dayBefore(day);
   const yGroups = groupByMeal(logs, yesterday);
   const anything = groups.some((g) => g.entries.length);
+  const pro = proHelperHtml(isToday, tot, t, logs);
 
   el.innerHTML = `
     <section class="stack food">
@@ -130,6 +152,7 @@ export function renderFood(el) {
           ${meter('Fat', tot.fat_g, t && t.fatG, 'g')}
         </div>
       </div>
+      ${pro.html}
       ${t && t.reasoning ? `<details class="food-why" data-food-why>
         <summary>Why these numbers?</summary>
         <ul class="reasons">${t.reasoning.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
@@ -175,6 +198,18 @@ export function renderFood(el) {
   const bal = $('[data-balance]', el);
   if (bal) bal.onclick = () => { haptics.select(); openBalanceSheet(); };
   $('[data-my-foods]', el).onclick = () => openMyFoods();
+  $$('[data-pro]', el).forEach((b) => {
+    b.onclick = () => {
+      const s = pro.ideas[Number(b.dataset.pro)];
+      if (!s) return;
+      const now = new Date();
+      put('food_logs', newRecord(logFields({ item: logItem(s), servings: 1, meal: mealForHour(now.getHours() + now.getMinutes() / 60), day })));
+      haptics.success();
+      toast(`Logged ${s.name}`);
+    };
+  });
+  const proX = $('[data-pro-dismiss]', el);
+  if (proX) proX.onclick = () => { haptics.select(); proDismiss(); renderFood(el); };
   $$('[data-add-meal]', el).forEach((b) => { b.onclick = () => openLogFood({ day, meal: b.dataset.addMeal }); });
   const copyDay = $('[data-copy-day]', el);
   if (copyDay) copyDay.onclick = () => {

@@ -347,7 +347,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 30. #216 Food: protein helper
 - Issue: #216
 - Version: 0.16.73
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #216; AI-off, Duo-ready, large text, tests.
 

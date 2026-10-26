@@ -270,3 +270,62 @@ test('long-term scoring sees food: scoreSamples and weeklyScores carry the Nutri
   assert(weeks.every((w) => w.pillars.nutrition == null || w.pillars.nutrition > 50), 'weekly pillar values are scores');
   eq(weeklyScores({}, '2026-10-10', 2).length, 0);
 });
+
+// ---- Protein helper (v0.16.73)
+import { IDEAS, remaining, shouldShow, suggest, logItem, MAX_IDEAS } from '../js/food/protein-helper.js';
+const T = { proteinG: 150, calories: 2000 };
+
+test('protein helper: remaining reads goals from targets, null without a protein target', () => {
+  eq(remaining(T, { kcal: 1500, protein_g: 100 }), { protein: 50, kcal: 500, target: 150 });
+  eq(remaining({ calories: 2000 }, { kcal: 0, protein_g: 0 }), null);
+  eq(remaining(null, {}), null);
+});
+
+test('protein helper: shows after 4 PM or with a big gap from midday; hides when met, low on calories, or not today', () => {
+  const L = (protein, kcal) => ({ protein, kcal, target: 150 });
+  assert(shouldShow({ isToday: true, hour: 17, left: L(30, 600) }));
+  assert(shouldShow({ isToday: true, hour: 13, left: L(60, 900) }));
+  assert(!shouldShow({ isToday: true, hour: 13, left: L(20, 900) }), 'small gap before 4 PM');
+  assert(!shouldShow({ isToday: true, hour: 9, left: L(150, 2000) }), 'too early');
+  assert(!shouldShow({ isToday: true, hour: 18, left: L(5, 600) }), 'target nearly met');
+  assert(!shouldShow({ isToday: true, hour: 18, left: L(-10, 600) }), 'target met');
+  assert(!shouldShow({ isToday: true, hour: 18, left: L(40, 50) }), 'calories too low');
+  assert(!shouldShow({ isToday: false, hour: 18, left: L(40, 600) }));
+  assert(!shouldShow({ isToday: true, hour: 18, left: null }));
+});
+
+test('protein helper: ideas fit the calories left, at most four, best protein per kcal first', () => {
+  const s = suggest({ left: { protein: 60, kcal: 400, target: 150 } });
+  assert(s.length >= 3 && s.length <= MAX_IDEAS);
+  assert(s.every((x) => x.kcal <= 400));
+  eq(s[0].id, 'tuna');
+  eq(suggest({ left: { protein: 60, kcal: 100, target: 150 } }).every((x) => x.kcal <= 100), true);
+  eq(suggest({ left: { protein: 60, kcal: 60, target: 150 } }).length, 0);
+  eq(suggest({ left: { protein: 60, kcal: null, target: 150 } }).length, MAX_IDEAS);
+  eq(suggest({ left: null }).length, 0);
+});
+
+test('protein helper: your own foods come first and replace the built-in twin', () => {
+  const items = [
+    { key: 'mine:a', name: 'Greek yogurt (Fage 0%)', kcal: 90, protein_g: 18, serving: '170 g', food_id: 'a' },
+    { key: 'mine:b', name: 'Oatmeal', kcal: 150, protein_g: 5, serving: '' },
+  ];
+  const s = suggest({ left: { protein: 60, kcal: 500, target: 150 }, items });
+  eq(s[0].mine, true);
+  eq(s[0].name, 'Greek yogurt (Fage 0%)');
+  assert(!s.some((x) => x.id === 'yogurt'), 'built-in yogurt hidden');
+  assert(!s.some((x) => x.name === 'Oatmeal'), 'low-protein food ignored');
+  const it = logItem(s[0]);
+  eq(it.food_id, 'a');
+  eq(it.portion, '170 g');
+});
+
+test('protein helper: built-in ideas log as plain items, collagen says it is incomplete', () => {
+  const idea = suggest({ left: { protein: 60, kcal: 500, target: 150 } })[0];
+  const f = logFields({ item: logItem(idea), servings: 1, meal: 'snack', day: DAY });
+  eq(f.protein_g, idea.protein_g);
+  eq(f.portion, idea.portion);
+  assert(/incomplete/i.test(IDEAS.find((i) => i.id === 'collagen').tip));
+  assert(IDEAS.every((i) => i.protein_g / i.kcal >= 0.075), 'every idea is high-protein for its calories');
+  assert(T.proteinG > 0);
+});
