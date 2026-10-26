@@ -6,8 +6,10 @@ No Cloud Functions or `firestore.rules` changes. Native app change: needs a Refr
 
 ### What's new
 
-- The shutter now takes the photo and closes the camera cleanly. If the camera hits a problem it closes, shows a gentle message, and the page keeps working.
-- Self-timer in the camera's top bar: Off, 3s or 10s, with a big countdown and a tick for each second. Tap the shutter to cancel. Forge remembers your choice, so the front camera works hands-free for a full-body shot.
+- The camera shutter takes the photo and closes cleanly, with no more freeze.
+- If the camera hits a problem, it closes with a gentle message.
+- Self-timer in the top bar: Off, 3s or 10s, with a big countdown.
+- Forge remembers your timer, so a full-body front shot is hands-free.
 
 ## 0.16.75 — Favorite meals (2026-10-26)
 
