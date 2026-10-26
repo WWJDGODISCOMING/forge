@@ -1,7 +1,8 @@
 // v0.16.71 (#213): home-screen and lock-screen widgets. The snapshot builder, the bridge, and the Swift/Xcode wiring
 // (no macOS runner, so the Swift is checked as text). Synthetic data only.
 import { readFileSync, existsSync } from 'node:fs';
-import { test, eq, assert } from './harness.js';
+import { test, eq as strictEq, assert } from './harness.js';
+const eq = (a, b, m) => strictEq(JSON.stringify(a), JSON.stringify(b), m);
 import { buildSnapshot, snapshotKey, isStale, shouldSend, STALE_MS, REFRESH_MS } from '../js/native/widget-core.js';
 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
