@@ -64,13 +64,14 @@ test('recap: goals come from the caller (nothing hard-coded to one person)', () 
 });
 
 test('recap: no planned training days means no goal ("2", never "2 of 0")', () => {
-  const none = (profile) => weeklyReport({ weekStart: PREV, today: MON, profile, targets: { calories: 2200, proteinG: 150 }, workouts: [workout(day(6)), workout(day(8))] });
-  for (const profile of [{ trainingDays: 0, goal: 'lose' }, { goal: 'lose' }]) {
-    const w = buildRecap({ report: none(profile) }).rows.find((x) => x.key === 'workouts');
+  // weeklyReport falls back to 3 days, but a report can still arrive with 0 or null planned: no goal then
+  const planned = (n, ws) => { const r = weeklyReport({ weekStart: PREV, today: MON, profile: { goal: 'lose' }, targets: { calories: 2200, proteinG: 150 }, workouts: ws }); r.training.planned = n; return r; };
+  for (const n of [0, null]) {
+    const w = buildRecap({ report: planned(n, [workout(day(6)), workout(day(8))]) }).rows.find((x) => x.key === 'workouts');
     eq(w.goal, null); eq(w.ratio, null); eq(w.value, 2);
     eq(rowText(w), '2');
   }
-  const one = buildRecap({ report: weeklyReport({ weekStart: PREV, today: MON, profile: { trainingDays: 0 }, targets: {}, workouts: [workout(day(6))] }) });
+  const one = buildRecap({ report: planned(0, [workout(day(6))]) });
   eq(rowText(one.rows.find((x) => x.key === 'workouts')), '1');
   assert(recapText(one, 'Oct 5 – Oct 11').includes('Workouts 1\n'), 'share text has no "of 0"');
   const src = readFileSync(new URL('../js/screens/recap.js', import.meta.url), 'utf8');
