@@ -85,7 +85,7 @@ export function openReview({ kind, id = null, name = '', items, meal, day = toda
       body.innerHTML = `<div class="stack fav-review">
         <label class="field"><span>${kind === 'recent' ? 'Name (if you save it)' : 'Name'}</span><input name="name" maxlength="40" value="${esc(title)}" autocomplete="off"></label>
         ${work.length ? `<ul class="list fav-items">${work.map((it, i) => `<li class="fav-item" data-i="${i}">
-          <div class="row between"><b class="clamp2">${esc(it.name)}</b><span class="fav-kcal">${Math.round(it.kcal * it.servings).toLocaleString('en-US')} kcal</span></div>
+          <div class="fav-top"><b class="clamp2">${esc(it.name)}</b><span class="fav-kcal">${Math.round(it.kcal * it.servings).toLocaleString('en-US')} kcal</span></div>
           <div class="fav-item-ctl">
             <span class="serv-stepper"><button type="button" class="icon-btn" data-minus="${i}" aria-label="Fewer servings of ${esc(it.name)}">${icon('minus')}</button><output aria-live="polite">${fmtNum(it.servings)}</output><button type="button" class="icon-btn" data-plus="${i}" aria-label="More servings of ${esc(it.name)}">${icon('plus')}</button></span>
             <button type="button" class="btn ghost small-btn" data-swap="${i}" aria-label="Swap ${esc(it.name)} for another food">${icon('swap', { size: 18 })}<span>Swap</span></button>

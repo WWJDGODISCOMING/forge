@@ -185,6 +185,64 @@ test('layout: food: the protein helper card is gone when over target', async () 
   assert(await browser.eval("!document.querySelector('[data-pro-help]')"), 'card shows even though protein is over target');
 });
 
+// Favorite meals (v0.16.75): the row at the top of Log food and the review sheet, at the phone, a small phone at 160% text and both Duo sizes.
+const FAV_PROBE = `(() => {
+  const dlg = document.querySelector('dialog.sheet'); if (!dlg) return null;
+  const box = dlg.getBoundingClientRect();
+  const row = dlg.querySelector('[data-favs]'); if (!row || row.hidden) return { none: true };
+  const cards = [...row.querySelectorAll('.fav-card')];
+  const small = [...row.querySelectorAll('button')].filter((b) => { const r = b.getBoundingClientRect(); return r.width < 43.5 || r.height < 43.5; }).length;
+  const first = cards[0].getBoundingClientRect();
+  return { cards: cards.length, recent: row.querySelectorAll('.fav-card.recent').length, small, firstInside: first.left >= box.left - 0.5 && first.right <= box.right + 0.5, rowW: row.getBoundingClientRect().width, boxW: box.width,
+    head: row.querySelector('.fav-head').textContent, bad: cards.filter((c) => c.scrollWidth > c.clientWidth + 1).length, pageOver: document.documentElement.scrollWidth > innerWidth + 1 };
+})()`;
+const REVIEW_PROBE = `(() => {
+  const dlg = document.querySelector('dialog.sheet'); if (!dlg) return null;
+  const body = dlg.querySelector('.sheet-body'); const box = body.getBoundingClientRect();
+  const items = [...dlg.querySelectorAll('.fav-item')];
+  const out = items.flatMap((li) => [...li.querySelectorAll('button')]).filter((b) => { const r = b.getBoundingClientRect(); return r.left < box.left - 0.5 || r.right > box.right + 0.5; }).length;
+  const small = [...dlg.querySelectorAll('.fav-item button, [data-log], [data-save]')].filter((b) => { const r = b.getBoundingClientRect(); return b.offsetParent && (r.height < 43.5 || r.width < 43.5); }).length;
+  const wide = [...body.querySelectorAll('*')].filter((e) => e.getBoundingClientRect().right > box.right + 0.5).slice(0, 4).map((e) => e.tagName + '.' + e.className + ':' + Math.round(e.getBoundingClientRect().right - box.right)); return { items: items.length, out, small, wide, sw: body.scrollWidth, cw: body.clientWidth, over: body.scrollWidth > body.clientWidth + 1, logLines: Math.round(dlg.querySelector('[data-log]').getBoundingClientRect().height / 20) };
+})()`;
+for (const [w, h, ts] of standalone && (!only || only.includes('food')) ? [[390, 844, 1], [320, 568, 1.6], [626, 890, 1], [678, 466, 1]] : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: food: favorite meals row and review sheet fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('food', seed({ fav: true }));
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await browser.eval("document.querySelector('[data-log-food]').click()");
+    await new Promise((r) => setTimeout(r, 900));
+    if (shots) await browser.screenshot(`${shots}/food-favs-${tag}.png`);
+    const r = await browser.eval(FAV_PROBE);
+    assert(r && !r.none, 'no favorites row in Log food');
+    assert(r.head === 'Favorite meals', `heading reads "${r.head}"`);
+    assert(r.cards === 3 && r.recent === 1, `${r.cards} cards, ${r.recent} recent (want 2 favorites and last night's dinner)`);
+    assert(r.small === 0, `${r.small} favorite buttons under 44x44`);
+    assert(r.firstInside && r.bad === 0 && !r.pageOver, `row overflows: ${JSON.stringify(r)}`);
+    // typing a search hides the row so the results have the room
+    await browser.eval("(() => { const q = document.querySelector('dialog.sheet [name=q]'); q.value = 'oat'; q.dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await new Promise((r2) => setTimeout(r2, 300));
+    assert(await browser.eval("document.querySelector('dialog.sheet [data-favs]').hidden"), 'the row stays while searching');
+    await browser.eval("(() => { const q = document.querySelector('dialog.sheet [name=q]'); q.value = ''; q.dispatchEvent(new Event('input', { bubbles: true })); })()");
+    await new Promise((r2) => setTimeout(r2, 300));
+    // the dots open the review sheet
+    await browser.eval("document.querySelector('[data-fav-edit=\"0\"]').click()");
+    await new Promise((r2) => setTimeout(r2, 1000));
+    if (shots) await browser.screenshot(`${shots}/food-favreview-${tag}.png`);
+    const v = await browser.eval(REVIEW_PROBE);
+    assert(v && v.items === 3, `review sheet shows ${v && v.items} foods`);
+    assert(v.out === 0 && !v.over, `review controls poke out of the sheet: ${JSON.stringify(v)}`);
+    assert(v.small === 0, `${v.small} review buttons under 44x44`);
+    // swap view
+    await browser.eval("document.querySelector('[data-swap=\"1\"]').click()");
+    await new Promise((r2) => setTimeout(r2, 400));
+    if (shots) await browser.screenshot(`${shots}/food-favswap-${tag}.png`);
+    assert(await browser.eval("!!document.querySelector('dialog.sheet [data-results] [data-k]')"), 'swap list is empty');
+  });
+}
+
 // Weekly recap (v0.16.74): the Today card (the clock is pinned to a Monday) and its detail sheet at the phone, a small phone at
 // 160% text, and both Duo sizes. Card and sheet rows stay inside their boxes, tap targets 44px or more, no sideways overflow.
 // The fixture week (Mon Oct 5 to Sun Oct 11) gets food logged, protein under target and calories under the limit, so the

@@ -370,11 +370,14 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .fav-card:active { filter: brightness(.95); }
 .fav-save { align-self: flex-start; margin-top: var(--s-2); }
 .fav-review .fav-items { gap: var(--s-2); }
-.fav-item { display: flex; flex-direction: column; align-items: stretch; gap: var(--s-2); }
-.fav-item b { min-width: 0; overflow-wrap: anywhere; }
+.fav-review .meal-chips .chip-btn { min-height: 44px; }
+@media (max-width: 420px) { .fav-review .meal-chips { grid-template-columns: repeat(2, 1fr); } }
+.fav-review .fav-item { display: flex; flex-direction: column; align-items: stretch; justify-content: flex-start; gap: var(--s-2); padding-block: var(--s-3); }
+.fav-review .fav-item > .fav-top { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.fav-review .fav-item b { min-width: 0; overflow-wrap: anywhere; }
 .fav-kcal { flex: none; font-weight: 600; font-variant-numeric: tabular-nums; }
-.fav-item-ctl { display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
-.fav-item-ctl .serv-stepper output { min-width: 48px; }
-.fav-item-ctl .icon-btn[data-remove] { width: 44px; height: 44px; }
+.fav-review .fav-item > .fav-item-ctl { flex-direction: row; display: flex; flex-wrap: wrap; align-items: center; gap: var(--s-2); }
+.fav-review .fav-item-ctl .serv-stepper output { min-width: 48px; }
+.fav-review .fav-item-ctl .icon-btn[data-remove] { width: 44px; height: 44px; }
 @media (prefers-reduced-motion: no-preference) { .fav-list { scroll-behavior: smooth; } }
 

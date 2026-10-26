@@ -63,7 +63,8 @@ export function sortFavorites(meals) {
     .sort((a, b) => used(b).localeCompare(used(a)) || (b.created_at || '').localeCompare(a.created_at || '') || a.name.localeCompare(b.name));
 }
 
-const sameItems = (a, b) => a.length === b.length && a.every((x, i) => x.name === b[i].name && x.servings === b[i].servings && x.kcal === b[i].kcal);
+const sig = (items) => items.map((x) => `${x.name}|${x.servings}|${x.kcal}`).sort().join('\n'); // order does not matter
+const sameItems = (a, b) => a.length === b.length && sig(a) === sig(b);
 
 /**
  * Meals from the last few days you could log again: a day's meal with 2 or more items, newest first, at most MAX_RECENT,

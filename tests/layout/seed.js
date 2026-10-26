@@ -9,7 +9,7 @@ export const REST_DAY = '2026-10-13T12:00:00';
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** @param {{long?: boolean, empty?: boolean}} opt  long: long names + 4-digit calories; empty: a brand-new account */
-export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, program = false, mealPrefs = null, burn = true, comp = false, pro = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
+export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, program = false, mealPrefs = null, burn = true, comp = false, pro = false, fav = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
   const rec = (id, extra = {}) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
   const profile = rec('main', {
     goal: 'lose_fat', sex: 'male', age: 37, heightCm: 180, weightKg: 88, targetWeightKg: 80, activity: 'light',
@@ -25,7 +25,7 @@ export function seed({ long = false, empty = false, active = false, effort = fal
   ];
   const out = {
     profile: [profile], settings: [settings], locations: empty ? [] : locations,
-    weights: [], workouts: [], cardio_sessions: [], programs: [], exercises: [], body_measures: [], health_daily: [], integrations: [], foods: [], food_logs: [],
+    weights: [], workouts: [], cardio_sessions: [], programs: [], exercises: [], body_measures: [], health_daily: [], integrations: [], foods: [], food_logs: [], saved_meals: [],
   };
   if (empty) { out.locations = []; return out; }
   out.programs.push(rec('p1', { template: 'smart', name: 'Smart', started_at: new Date(now - 9 * DAY).toISOString(), active: true, custom_days: [], deload_started_at: null }));
@@ -75,5 +75,14 @@ export function seed({ long = false, empty = false, active = false, effort = fal
   const kcal = over ? 3100 : long ? 3880 : 1490; // over: past every target (3,100 of ~2,060 kcal, carbs and fat well over)
   out.foods.push(rec('f1', { name: 'Oatmeal', serving_g: 40, kcal: 150, protein_g: 5, carbs_g: 27, fat_g: 3 }));
   out.food_logs.push(rec('fl1', { day: dayKey(now), meal: 'lunch', name: 'Test meal', kcal, protein_g: over ? 200 : pro ? 50 : 110, carbs_g: over ? 270 : 150, fat_g: over ? 120 : 40, logged_at: t0.toISOString(), servings: 1 }));
+  if (fav) { // favorite meals: two saved (one with a long name, one with a long food) and last night's dinner to log again
+    const it = (name, kcal, p, servings = 1) => ({ name, kcal, protein_g: p, carbs_g: 20, fat_g: 8, servings });
+    out.saved_meals.push(
+      rec('sm1', { name: 'Chicken, rice and broccoli', meal: 'dinner', last_used_at: new Date(now - DAY).toISOString(), items: [it('Chicken breast, grilled', 250, 45), it('White rice, cooked', 200, 4, 1.5), it('Broccoli', 50, 4)] }),
+      rec('sm2', { name: 'Protein oats with berries and almond butter', meal: 'breakfast', items: [it('Oatmeal', 150, 5), it('Whey protein', 120, 24)] }),
+    );
+    const y = dayKey(now - DAY);
+    [['Salmon fillet', 320, 34], ['Roasted potatoes', 180, 4]].forEach(([name, kcal, p], i) => out.food_logs.push(rec(`fy${i}`, { day: y, meal: 'dinner', name, kcal, protein_g: p, carbs_g: 20, fat_g: 10, servings: 1, logged_at: `${y}T1${8 + i}:00:00.000Z` })));
+  }
   return out;
 }
