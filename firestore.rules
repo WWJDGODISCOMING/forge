@@ -9,6 +9,7 @@ rules_version = '2';
 // - body_measures, health_daily and integrations are written only by Cloud Functions. You can read them;
 //   on body_measures and health_daily you can also delete a record by marking it deleted (a tombstone the
 //   sync respects forever) and confirm or reject a flagged weigh-in. Nothing else.
+// - saved_meals (favorite meals) hold a name and 1 to 20 items; the app checks each item (rules can't loop over a list).
 // - meal_plans are written only by the personalizeMealPlan Cloud Function; you can read and delete them.
 // - oauth_states, withings_users and shortcut_tokens (top level) are server-only.
 // No collection-group rules exist, so collection-group queries are denied.
@@ -20,7 +21,7 @@ service cloud.firestore {
     }
 
     function allowedCollection(col) {
-      return col in ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs', 'meal_plans'];
+      return col in ['profile', 'settings', 'locations', 'weights', 'workouts', 'cardio_sessions', 'programs', 'exercises', 'foods', 'food_logs', 'meal_plans', 'saved_meals'];
     }
 
     function hasStandardFields(uid, id) {
@@ -63,6 +64,10 @@ service cloud.firestore {
         && (col != 'foods' || (validFoodName(d) && validMacros(d) && d.serving is string && d.serving.size() <= 40
               && (!('barcode' in d) || (d.barcode is string && d.barcode.matches('^[0-9]{8,14}$')))
               && (!('favorite' in d) || d.favorite is bool)))
+        && (col != 'saved_meals' || (d.name is string && d.name.size() >= 1 && d.name.size() <= 40
+              && d.items is list && d.items.size() >= 1 && d.items.size() <= 20
+              && (!('meal' in d) || d.meal in ['breakfast', 'lunch', 'dinner', 'snack'])
+              && (!('last_used_at' in d) || d.last_used_at is string)))
         && (col != 'food_logs' || (validFoodName(d) && validMacros(d)
               && d.day is string && d.day.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$')
               && d.meal in ['breakfast', 'lunch', 'dinner', 'snack']

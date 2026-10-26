@@ -699,6 +699,7 @@ const WATCH_SERVER = [
 const WATCH_FOOD = [
   ['foods', (rows) => ({ foods: rows })],
   ['food_logs', (rows) => ({ food_logs: rows })],
+  ['saved_meals', (rows) => ({ saved_meals: rows })],
 ];
 
 // v0.1.x stored weight inventory in pounds (dumbbells_lb); v0.2.0 stores kg like everything else.
@@ -769,7 +770,7 @@ async function boot() {
       unsubs.push(db.watch(
         col,
         (rows) => { foodErr[col] = null; state.set({ ...toPatch(rows), foodError: Object.values(foodErr).find(Boolean) || null }); },
-        (err) => { foodErr[col] = err.code || 'error'; state.set({ foodError: Object.values(foodErr).find(Boolean) || null }); }
+        (err) => { if (col === 'saved_meals') return; /* favorites only: until the new rules are published the rest of Food works and the favorites row stays empty */ foodErr[col] = err.code || 'error'; state.set({ foodError: Object.values(foodErr).find(Boolean) || null }); }
       ));
     }
     db.updateSync();

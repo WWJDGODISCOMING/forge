@@ -361,7 +361,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 32. #218 Food: quick-add favorite meals
 - Issue: #218
 - Version: 0.16.75
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #218; AI-off, Duo-ready, large text, tests.
 

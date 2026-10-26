@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.75 — Favorite meals (2026-10-26)
+
+`firestore.rules` changed (new `saved_meals` collection): publish the rules with the Deploy button (`rules`) before saving a favorite. No Cloud Functions changes. Until then the rest of Food works as before.
+
+### What's new
+
+- Save a whole meal as a favorite, then log it again in one tap from the top of Log food.
+- Last night's dinner and other recent meals show there too, ready to log again.
+- Tap the dots to review first: change servings, swap one food for another, or remove one.
+- Rename or delete favorites under Favorite meals. Works with AI off.
+
 ## 0.16.74 — Weekly recap (2026-10-26)
 
 No Cloud Functions or `firestore.rules` changes. Web app only: it updates on its own.
