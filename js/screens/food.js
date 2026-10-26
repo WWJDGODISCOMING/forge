@@ -9,9 +9,10 @@ import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../
 import { currentTargets } from '../derived.js';
 import { FLOOR_SOURCE } from '../nutrition/targets.js';
 import { icon, emptyState } from '../ui/icons.js';
-import { MEAL_LABEL, MEALS, cleanFood, copyMealFields, dayBefore, dayTotals, groupByMeal, progress, stepServings } from '../food/core.js';
+import { MEAL_LABEL, MEALS, logFields, mealForHour, cleanFood, copyMealFields, dayBefore, dayTotals, groupByMeal, progress, stepServings } from '../food/core.js';
 import { createFlow } from '../food/flow.js';
-import { search, createOnlineSearch } from '../food/search.js';
+import { search, searchLocal, createOnlineSearch } from '../food/search.js';
+import { remaining, shouldShow, suggest, logItem, dismissKey, createOneTap } from '../food/protein-helper.js';
 import { lookupBarcode, searchBrand, shouldFallback } from '../food/off.js';
 import { openBarcodeScan, openCreateFood } from './food-scan.js';
 import { SERVING_CHOICES, amountLabel, gramsFromAmount, gramsToOz, measureServing, portionItem, servingsLabel } from '../food/portion.js';
@@ -33,6 +34,7 @@ const grams = (n) => `${Math.round(n)} g`;
 // Swiped-away entries wait here for the Undo toast; they are written when it ends, the app is hidden, or you leave Food.
 // Only one Undo toast at a time, and it goes the moment its delete is written, so a visible Undo always works.
 let undoFor = null, undoHide = null;
+let shownEl = null; // the Food screen's container, so coming back to the app can show the protein card once it is due
 const pend = createPendingDelete({
   commit: (id) => {
     softDelete('food_logs', id);
@@ -40,8 +42,39 @@ const pend = createPendingDelete({
   },
 });
 if (typeof document !== 'undefined') {
-  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') pend.flush(); });
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'hidden') pend.flush();
+    else if (shownEl && shownEl.isConnected && foodView === 'log' && !$('[data-pro-help]', shownEl) && $('[data-food-totals]', shownEl)) renderFood(shownEl); // the card may be due now (after 4 PM)
+  });
   window.addEventListener('hashchange', () => pend.flush());
+}
+// "Short on protein?" card: dismissed for the rest of the day, kept on this phone.
+const proDismissed = () => { try { return localStorage.getItem(dismissKey(state.user && state.user.uid)) === todayKey(); } catch { return false; } };
+const proDismiss = () => { try { localStorage.setItem(dismissKey(state.user && state.user.uid), todayKey()); } catch { /* private mode: it comes back on reload */ } };
+// One tap logs an idea into the current meal slot (1 serving). Module-level so the guard outlives the re-render a log causes.
+const proTap = createOneTap({
+  write: (s) => {
+    const now = new Date();
+    return put('food_logs', newRecord(logFields({ item: logItem(s), servings: 1, meal: mealForHour(now.getHours() + now.getMinutes() / 60), day: s.day })));
+  },
+  remove: (id) => softDelete('food_logs', id),
+});
+function proHelperHtml(isToday, tot, t, logs) {
+  if (!isToday || proDismissed()) return { html: '', ideas: [] };
+  const now = new Date();
+  const left = remaining(t, tot);
+  if (!shouldShow({ isToday, hour: now.getHours() + now.getMinutes() / 60, left })) return { html: '', ideas: [] };
+  const ideas = suggest({ left, items: searchLocal('', { foods: state.foods, logs, limit: 60 }) });
+  if (!ideas.length) return { html: '', ideas };
+  const lt = left.kcal == null ? '' : ` with ${left.kcal.toLocaleString('en-US')} kcal left`;
+  const note = ideas.find((i) => i.id === 'collagen');
+  return { ideas, html: `<div class="card stack pro-help" data-pro-help>
+    <div class="pro-head"><div><p class="label">${left.protein} g protein to go</p><p class="small muted">Ideas that fit${lt}. Tap one to log it.</p></div>
+      <button type="button" class="btn ghost pro-dismiss" data-pro-dismiss aria-label="Hide protein ideas for today">${icon('close')}</button></div>
+    <ul class="pro-list">${ideas.map((s, i) => `<li><button type="button" class="pro-row" data-pro="${i}" aria-label="Log ${esc(s.name)}, ${esc(s.portion)}, ${s.protein_g} grams protein, ${s.kcal} kilocalories">
+      <span class="pro-text"><b>${esc(s.name)}</b><small>${s.protein_g} g protein · ${s.kcal} kcal${s.portion ? ` · ${esc(s.portion)}` : ''}</small></span><span class="pro-add" aria-hidden="true">${icon('plus')}</span></button></li>`).join('')}</ul>
+    ${note ? `<p class="pro-tip">${esc(note.tip)}</p>` : ''}
+  </div>` };
 }
 const liveLogs = () => state.food_logs.filter((e) => !pend.has(e.id));
 let lastUnit = 'serv'; // the portion unit you used last (servings, oz or g), kept while the app is open
@@ -86,6 +119,7 @@ const viewSeg = () => `<div class="seg food-view" role="radiogroup" aria-label="
 const bindViewSeg = (el) => $$('input[name=food-view]', el).forEach((r) => { r.onchange = () => { haptics.select(); foodView = r.value; renderFood(el); }; });
 
 export function renderFood(el) {
+  shownEl = el;
   if (foodView === 'plan') {
     el.innerHTML = `<section class="stack food food-planview"><h1>Food</h1>${viewSeg()}</section>`;
     bindViewSeg(el);
@@ -101,6 +135,7 @@ export function renderFood(el) {
   const yesterday = dayBefore(day);
   const yGroups = groupByMeal(logs, yesterday);
   const anything = groups.some((g) => g.entries.length);
+  const pro = proHelperHtml(isToday, tot, t, logs);
 
   el.innerHTML = `
     <section class="stack food">
@@ -130,6 +165,7 @@ export function renderFood(el) {
           ${meter('Fat', tot.fat_g, t && t.fatG, 'g')}
         </div>
       </div>
+      ${pro.html}
       ${t && t.reasoning ? `<details class="food-why" data-food-why>
         <summary>Why these numbers?</summary>
         <ul class="reasons">${t.reasoning.map((r) => `<li>${esc(r)}</li>`).join('')}</ul>
@@ -175,6 +211,18 @@ export function renderFood(el) {
   const bal = $('[data-balance]', el);
   if (bal) bal.onclick = () => { haptics.select(); openBalanceSheet(); };
   $('[data-my-foods]', el).onclick = () => openMyFoods();
+  $$('[data-pro]', el).forEach((b) => {
+    b.onclick = () => {
+      const s = pro.ideas[Number(b.dataset.pro)];
+      if (!s) return;
+      const done = proTap.tap({ ...s, day });
+      if (!done) return; // a second tap on the card while the first is being written
+      haptics.success();
+      toast(`Logged ${s.name}`, 4200, { action: { label: 'Undo', onClick: () => { done.undo(); haptics.select(); } } });
+    };
+  });
+  const proX = $('[data-pro-dismiss]', el);
+  if (proX) proX.onclick = () => { haptics.select(); proDismiss(); renderFood(el); };
   $$('[data-add-meal]', el).forEach((b) => { b.onclick = () => openLogFood({ day, meal: b.dataset.addMeal }); });
   const copyDay = $('[data-copy-day]', el);
   if (copyDay) copyDay.onclick = () => {

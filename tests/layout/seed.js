@@ -9,7 +9,7 @@ export const REST_DAY = '2026-10-13T12:00:00';
 const dayKey = (t) => new Date(t).toISOString().slice(0, 10);
 
 /** @param {{long?: boolean, empty?: boolean}} opt  long: long names + 4-digit calories; empty: a brand-new account */
-export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, program = false, mealPrefs = null, burn = true, comp = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
+export function seed({ long = false, empty = false, active = false, effort = false, over = false, why = false, program = false, mealPrefs = null, burn = true, comp = false, pro = false, now = new Date(WORKOUT_DAY).getTime() } = {}) {
   const rec = (id, extra = {}) => ({ id, user_id: 'u1', created_at: new Date(now).toISOString(), updated_at: new Date(now).toISOString(), source: 'manual', deleted: false, ...extra });
   const profile = rec('main', {
     goal: 'lose_fat', sex: 'male', age: 37, heightCm: 180, weightKg: 88, targetWeightKg: 80, activity: 'light',
@@ -74,6 +74,6 @@ export function seed({ long = false, empty = false, active = false, effort = fal
   const t0 = new Date(now); t0.setHours(12, 0, 0, 0);
   const kcal = over ? 3100 : long ? 3880 : 1490; // over: past every target (3,100 of ~2,060 kcal, carbs and fat well over)
   out.foods.push(rec('f1', { name: 'Oatmeal', serving_g: 40, kcal: 150, protein_g: 5, carbs_g: 27, fat_g: 3 }));
-  out.food_logs.push(rec('fl1', { day: dayKey(now), meal: 'lunch', name: 'Test meal', kcal, protein_g: over ? 200 : 110, carbs_g: over ? 270 : 150, fat_g: over ? 120 : 40, logged_at: t0.toISOString(), servings: 1 }));
+  out.food_logs.push(rec('fl1', { day: dayKey(now), meal: 'lunch', name: 'Test meal', kcal, protein_g: over ? 200 : pro ? 50 : 110, carbs_g: over ? 270 : 150, fat_g: over ? 120 : 40, logged_at: t0.toISOString(), servings: 1 }));
   return out;
 }

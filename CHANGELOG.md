@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.73 — Protein helper on Food (2026-10-26)
+
+No Cloud Functions or `firestore.rules` changes. Web app only: it updates on its own.
+
+### What's new
+
+- Short on protein? Food suggests 3 or 4 high-protein ideas that fit your calories left.
+- Your own foods and recent meals come first, then eggs, yogurt, tuna and more.
+- One tap logs an idea. Hide the card for the day, or reach your goal and it goes.
+- Works with AI off. Collagen is flagged as an incomplete protein.
+
 ## 0.16.72 — More home workouts, and Recommend more / less (2026-10-26)
 
 No Cloud Functions or `firestore.rules` changes. Web app only: it updates on its own.
