@@ -546,18 +546,19 @@ if (standalone) {
       if (shots) await browser.screenshot(`${shots}/pref-summary-${tag}.png`);
       assert(sum.n > 0, 'the summary has no Recommend more / less controls');
       assert(sum.bad.length === 0 && !sum.over, `the Recommend control is small, clipped or overflows: ${JSON.stringify(sum)}`);
-      // Tap More on the first exercise, then Less (they are exclusive), then More twice (clears).
+      // The first exercise starts on More. Less replaces it (they are exclusive), Less again clears it, More sets it again.
       const state = await browser.eval(`(() => {
         const g = document.querySelector('.sum-list .xpref'); const p = () => [...g.querySelectorAll('[data-pref]')].map((b) => b.getAttribute('aria-pressed')).join();
         const out = [p()];
+        g.querySelector('[data-pref="less"]').click(); out.push(p());
+        g.querySelector('[data-pref="less"]').click(); out.push(p());
         g.querySelector('[data-pref="more"]').click(); out.push(p());
-        g.querySelector('[data-pref="less"]').click(); out.push(p());
-        g.querySelector('[data-pref="less"]').click(); out.push(p());
         return out;
       })()`);
-      eq(state[1], 'true,false', 'More pressed');
-      eq(state[2], 'false,true', 'Less replaces More');
-      eq(state[3], 'false,false', 'tapping Less again clears it');
+      eq(state[0], 'true,false', 'starts on More');
+      eq(state[1], 'false,true', 'Less replaces More');
+      eq(state[2], 'false,false', 'tapping Less again clears it');
+      eq(state[3], 'true,false', 'More again');
 
       await browser.open('settings', data);
       if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }

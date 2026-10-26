@@ -6,11 +6,12 @@ No Cloud Functions or `firestore.rules` changes. Web app only: it updates on its
 
 ### What's new
 
-- 18 new moves, mostly with no equipment at all: biceps, calves, hamstrings, back, side and rear shoulders. Every main muscle now has at least 4 moves with just your body, and at least 4 with your Home gym.
-- Recommend more / Recommend less: under every exercise on the workout summary, and at the top of its History. Tap again to go back to neither.
-- Your workouts pick "more" moves more often, and "less" moves rarely (they still show up if nothing else fits). The Replace list puts "more" moves first.
-- Settings → Workouts → Exercise preferences shows them all, with Reset for one or all.
-- Accessory moves now rotate through the bigger pool week to week. Your main lifts stay put so they keep progressing.
+- 18 new moves, mostly no equipment: arms, calves, hamstrings, back and shoulders.
+- Every main muscle has at least 4 moves with just your body, and 4 with Home.
+- Recommend more or less under each exercise on the summary and in History.
+- Workouts pick "more" moves more often, and "less" moves rarely.
+- Replace lists "more" moves first. Settings → Exercise preferences resets them.
+- Accessory moves rotate week to week. Main lifts stay put.
 
 ## 0.16.71 — Widgets (2026-10-26)
 
