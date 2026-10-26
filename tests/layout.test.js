@@ -185,6 +185,33 @@ test('layout: food: the protein helper card is gone when over target', async () 
   assert(await browser.eval("!document.querySelector('[data-pro-help]')"), 'card shows even though protein is over target');
 });
 
+// Weekly recap (v0.16.74): the Today card (the clock is pinned to a Monday) and its detail sheet at the phone, a small phone at
+// 160% text, and both Duo sizes. Card and sheet rows stay inside their boxes, tap targets 44px or more, no sideways overflow.
+for (const [w, h, ts] of standalone && (!only || only.includes('today')) ? [[390, 844, 1], [320, 568, 1.6], [626, 890, 1], [678, 466, 1]] : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: today: the weekly recap card and sheet fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('today', seed());
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await browser.eval("document.querySelector('[data-recap-card]')?.scrollIntoView({ block: 'center' })");
+    await new Promise((r) => setTimeout(r, 250));
+    if (shots) await browser.screenshot(`${shots}/today-recap-${tag}.png`);
+    const c = await browser.eval("(() => { const e = document.querySelector('[data-recap-card]'); if (!e) return null; const r = e.getBoundingClientRect(); return { h: Math.round(r.height), over: document.documentElement.scrollWidth > innerWidth + 1 || e.scrollWidth > e.clientWidth + 1, label: e.getAttribute('aria-label') }; })()");
+    assert(c, 'the recap card does not show on a Monday with last week logged');
+    assert(c.h >= 44 && !c.over, `recap card is ${c.h}px tall or overflows (${c.over})`);
+    assert(/recap/i.test(c.label), 'the card has a VoiceOver label');
+    await browser.eval("document.querySelector('[data-recap-card]').click()");
+    await new Promise((r) => setTimeout(r, 700));
+    if (shots) await browser.screenshot(`${shots}/today-recap-sheet-${tag}.png`);
+    const s = await browser.eval("(() => { const b = document.querySelector('[data-recap]'); if (!b) return null; const rows = [...b.querySelectorAll('.recap-row')]; const bb = b.getBoundingClientRect(); const out = rows.filter((r) => r.scrollWidth > r.clientWidth + 1 || r.getBoundingClientRect().right > bb.right + 1).length; const btns = [...b.querySelectorAll('.recap-actions .btn')].map((x) => Math.round(x.getBoundingClientRect().height)); return { rows: rows.length, out, btns, over: document.documentElement.scrollWidth > innerWidth + 1, tip: !!b.querySelector('[data-recap-tip]') }; })()");
+    assert(s && s.rows >= 3 && s.tip, 'the recap sheet did not open with rows and a tip');
+    assert(s.out === 0 && !s.over, `${s.out} recap rows overflow, page overflow ${s.over}`);
+    assert(s.btns.length === 2 && s.btns.every((x) => x >= 44), `recap buttons are ${s.btns.join('/')}px tall`);
+  });
+}
+
 // Program: the Change start date sheet, at the phone and Duo sizes (this also feeds the `screens` artifact)
 for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
   test(`layout: program: the Change start date sheet fits at ${w}x${h}`, async () => {

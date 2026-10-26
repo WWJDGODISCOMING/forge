@@ -61,6 +61,7 @@ import './report.test.js';
 import './bodyprograms.test.js';
 import './readiness-trends.test.js';
 import './food.test.js';
+import './recap.test.js';
 import './v01644.test.js';
 import './v01644-scan.test.js';
 import './v01645.test.js';
