@@ -329,7 +329,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 28. #213 Home-screen and lock-screen widgets (WidgetKit)
 - Issue: #213
 - Version: 0.16.71
-- Status: in-review
+- Status: done
 - Acceptance:
   - Small (rings + calories line), medium (rings + 7-day weight trend), lock-screen circular + rectangular widgets; tap deep-links.
   - Numbers-only snapshot via a small bridge, timeline reload on change, stale state says "Open Forge to update"; no network in the widget.
