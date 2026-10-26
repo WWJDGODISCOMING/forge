@@ -85,3 +85,20 @@ test('Swift and Xcode wiring: widgets in the existing extension, Keychain hand-o
   eq((proj.match(/ForgeWidgetShared\.swift in Sources \*\/,/g) || []).length, 2, 'shared file is in both targets');
   eq((proj.match(/CODE_SIGN_ENTITLEMENTS = ForgeLiveActivity\/ForgeLiveActivity\.entitlements;/g) || []).length, 2);
 });
+
+test('privacy: sign-out and delete clear the widget explicitly; routes are not left pending or doubled', () => {
+  const st = read('js/screens/settings.js');
+  assert(/clearWidget\(\)\)[^\n]*\n\s*await signOut\(\)/.test(st), 'sign-out clears before signOut');
+  assert(/accountGone = true;\s*await import\('\.\.\/native\/widget\.js'\)/.test(st), 'delete clears once the account is gone');
+  const plugin = read('ios/App/App/ForgeWidgetPlugin.swift');
+  assert(plugin.includes('hasListeners("route")') && plugin.includes('pendingRoute = nil'), 'a delivered route is not left pending');
+  assert(read('ios/App/ForgeLiveActivity/ForgeWidgets.swift').split('.privacySensitive()').length - 1 >= 3, 'lock-screen numbers are privacy sensitive');
+});
+
+test('privacy: a signed-out sync clears once per launch whatever was sent; the same route within 2 s opens once', () => {
+  const w = read('js/native/widget.js');
+  assert(w.includes('state.user === null && !cleared'), 'no dependence on lastKey');
+  assert(w.includes('cleared = true') && w.includes('cleared = false'), 'cleared once, re-armed after a send');
+  assert(w.includes('lastRoute.route === route') && w.includes('< 2000'), 'listener plus takeRoute navigates once');
+  assert(w.includes('export async function clearWidget') && w.includes('await P.clear()'), 'callers can await the clear');
+});

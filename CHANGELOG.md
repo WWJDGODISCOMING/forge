@@ -11,6 +11,8 @@ No Cloud Functions or `firestore.rules` changes. iPhone app only: run Refresh Fo
 - Lock Screen widgets: a steps ring, and calories and protein left.
 - Tap a widget to open the matching screen.
 - If the numbers are out of date, the widget says "Open Forge to update".
+- To add one: after Refresh Forge, long-press the Home Screen, tap Edit, then Add Widget, pick Forge, and open Forge once.
+- Signing out or deleting your account clears the widget right away, and Lock Screen numbers can be hidden while the phone is locked.
 
 ## 0.16.70 — Withings steps (2026-10-25)
 

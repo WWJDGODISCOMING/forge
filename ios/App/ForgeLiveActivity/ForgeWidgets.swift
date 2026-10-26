@@ -182,7 +182,7 @@ struct ForgeCircularView: View {
                     RingArc(fraction: st.fraction, color: .primary, line: 5)
                     VStack(spacing: 0) {
                         Image(systemName: "figure.walk").font(.caption2)
-                        Text(st.v.map { $0 >= 10000 ? "\($0 / 1000)k" : number($0) } ?? "–").font(.system(.caption2, design: .rounded).weight(.bold)).minimumScaleFactor(0.5).lineLimit(1)
+                        Text(st.v.map { $0 >= 10000 ? "\($0 / 1000)k" : number($0) } ?? "–").font(.system(.caption2, design: .rounded).weight(.bold)).minimumScaleFactor(0.5).lineLimit(1).privacySensitive()
                     }
                     .padding(6)
                 }
@@ -202,8 +202,8 @@ struct ForgeRectangularView: View {
         Group {
             if let s = entry.fresh {
                 VStack(alignment: .leading, spacing: 2) {
-                    if let k = s.kcal { Text("\(number(k.left)) calories left").font(.headline).minimumScaleFactor(0.7).lineLimit(1) }
-                    if let p = s.protein { Text("\(p.left) g protein left").font(.subheadline).minimumScaleFactor(0.7).lineLimit(1) }
+                    if let k = s.kcal { Text("\(number(k.left)) calories left").font(.headline).minimumScaleFactor(0.7).lineLimit(1).privacySensitive() }
+                    if let p = s.protein { Text("\(p.left) g protein left").font(.subheadline).minimumScaleFactor(0.7).lineLimit(1).privacySensitive() }
                     if s.kcal == nil && s.protein == nil { Text("Forge").font(.headline) }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)

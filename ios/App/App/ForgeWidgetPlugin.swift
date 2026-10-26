@@ -26,8 +26,12 @@ public class ForgeWidgetPlugin: CAPPlugin, CAPBridgedPlugin {
         guard url.scheme == "forge", url.host == "open" else { return }
         let route = url.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         guard route.range(of: "^[a-z]+(/[A-Za-z0-9_-]+)?$", options: .regularExpression) != nil else { return }
-        pendingRoute = route
-        current?.notifyListeners("route", data: ["route": route])
+        if let p = current, p.hasListeners("route") {
+            pendingRoute = nil
+            p.notifyListeners("route", data: ["route": route])
+        } else {
+            pendingRoute = route // cold launch: nobody is listening yet, JS takes it with takeRoute
+        }
     }
 
     @objc func setSnapshot(_ call: CAPPluginCall) {

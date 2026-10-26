@@ -307,6 +307,7 @@ export function renderSettings(el) {
       if (!ok) return;
     }
     await import('../food/meal-ai.js').then((m) => m.clearAllAiPlans());
+    await import('../native/widget.js').then((m) => m.clearWidget()).catch(() => {});
     await signOut();
   };
 
@@ -351,6 +352,7 @@ function openDeleteEverything() {
         await deleteAllUserData();
         await deleteAccount();
         accountGone = true;
+        await import('../native/widget.js').then((m) => m.clearWidget()).catch(() => {});
         await import('../photos/store.js').then((m) => m.dropPhotoDb(uid)); // progress photos on this phone go too
         await import('../food/meal-ai.js').then((m) => m.clearAllAiPlans());
         await clearLocalCache();

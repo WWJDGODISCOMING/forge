@@ -13,6 +13,8 @@ const hk = () => plugin('ForgeWidget');
 let lastKey = null;
 let lastSent = 0;
 let timer = null;
+let cleared = false;
+let lastRoute = { route: null, at: 0 };
 
 /** The snapshot for right now from live state, or null before everything has loaded. */
 export function currentSnapshot(now = Date.now()) {
@@ -37,10 +39,11 @@ export function syncWidget({ force = false } = {}) {
   const P = hk();
   if (!P) return false;
   const snap = currentSnapshot();
-  if (!snap) { if (state.user === null && lastKey !== null) clearWidget(); return false; }
+  if (!snap) { if (state.user === null && !cleared) clearWidget(); return false; }
   const key = snapshotKey(snap);
   if (!shouldSend(lastKey, key, lastSent, snap.at, force)) return false;
   lastKey = key;
+  cleared = false;
   lastSent = snap.at;
   try { const p = P.setSnapshot({ json: JSON.stringify(snap) }); if (p && p.catch) p.catch(() => {}); } catch { /* the widget keeps its last numbers */ }
   return true;
@@ -66,14 +69,18 @@ function takeRoute(P, go) {
 
 function openRoute(route, go) {
   if (typeof route !== 'string' || !/^[a-z]+(\/[\w-]+)?$/.test(route)) return;
+  const now = Date.now();
+  if (lastRoute.route === route && now - lastRoute.at < 2000) return; // the same tap arriving by two paths
+  lastRoute = { route, at: now };
   if (go) go(route); else if (typeof location !== 'undefined') location.hash = `#/${route}`;
 }
 
-/** Sign-out: the widget should not keep showing someone's numbers. */
-export function clearWidget() {
+/** Sign-out or account delete: the widget should not keep showing someone's numbers. Resolves once the plugin has cleared. */
+export async function clearWidget() {
   const P = hk();
   lastKey = null;
+  cleared = true;
   if (!P) return false;
-  try { const p = P.clear(); if (p && p.catch) p.catch(() => {}); } catch { /* nothing stored */ }
+  try { await P.clear(); } catch { /* nothing stored */ }
   return true;
 }
