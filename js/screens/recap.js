@@ -31,11 +31,15 @@ export function recapData(monday) {
   return { r, rc, weightText };
 }
 
-/** One-line headline used on the card and in the list. */
-function headline(rc, weightText) {
+/** Workouts headline: "2 of 3 workouts", or "2 workouts" when no training days are planned. */
+function workoutsLine(rc) {
   if (rc.quiet) return 'A quiet week';
   const w = rc.rows.find((x) => x.key === 'workouts');
-  return `${w.value} of ${w.goal} workouts${weightText ? ` · weight ${weightText}` : ''}`;
+  return w.goal ? `${w.value} of ${w.goal} workouts` : `${w.value} workout${w.value === 1 ? '' : 's'}`;
+}
+/** One-line headline used for labels and the list. */
+function headline(rc, weightText) {
+  return `${workoutsLine(rc)}${!rc.quiet && weightText ? ` · weight ${weightText}` : ''}`;
 }
 
 /** The card for Today, or '' when it is not due. */
@@ -46,7 +50,8 @@ export function recapCardHtml() {
   if (!recapDue({ today, seen: seenWeek(), hasData: r.hasData })) return '';
   return `<button type="button" class="card stack nav-card recap-card" data-recap-card="${monday}" aria-label="Your week recap, ${esc(rangeLabel(rc))}. ${esc(headline(rc, weightText))}. Opens the details.">
     <span class="label">Your week · ${esc(rangeLabel(rc))}</span>
-    <span class="big-title">${esc(headline(rc, weightText))}</span>
+    <span class="big-title">${esc(workoutsLine(rc))}</span>
+    ${!rc.quiet && weightText ? `<span class="small">Weight ${esc(weightText)}</span>` : ''}
     <span class="small muted">${esc(rc.tip.text)}</span>
     <span class="small link">See your recap${icon('chev')}</span></button>`;
 }

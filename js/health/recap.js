@@ -38,7 +38,7 @@ export const TIPS = {
 export function buildRecap({ report: r, stepsGoal = 8000, missions = null }) {
   const rows = [];
   const t = r.training;
-  rows.push({ key: 'workouts', label: 'Workouts', value: t.workouts, goal: t.planned, unit: '', ratio: t.planned > 0 ? cap(t.workouts / t.planned) : null });
+  rows.push({ key: 'workouts', label: 'Workouts', value: t.workouts, goal: t.planned > 0 ? t.planned : null, unit: '', ratio: t.planned > 0 ? cap(t.workouts / t.planned) : null });
   if (r.nutrition) {
     const n = r.nutrition;
     const kt = num(n.targetKcal);
@@ -50,6 +50,7 @@ export function buildRecap({ report: r, stepsGoal = 8000, missions = null }) {
 
   const quiet = !r.hasData;
   let focus = null;
+  // Calories is a ceiling: ratio = limit / average, so it only becomes the focus once the average is about 18% over the limit.
   for (const row of rows) if (row.ratio != null && row.ratio < TIP_BELOW && (!focus || row.ratio < focus.ratio)) focus = row;
   const id = quiet ? 'quiet' : focus ? focus.key : 'steady';
   const tip = { id, text: TIPS[id](focus || {}) };

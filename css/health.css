@@ -251,7 +251,7 @@ svg.sc-hero { overflow: visible; }
 .recap-row { position: relative; display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: 2px var(--s-3); padding: var(--s-3) 0; }
 .recap-row + .recap-row::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: .5px; background: var(--separator); }
 .recap-row > span { color: var(--text-2); font-size: calc(15px * var(--ts)); }
-.recap-row > b { font-size: calc(16px * var(--ts)); text-align: right; overflow-wrap: anywhere; }
+.recap-row > b { font-size: calc(16px * var(--ts)); text-align: right; }
 .recap-bar { flex-basis: 100%; height: 6px; border-radius: 3px; background: var(--surface-3); overflow: hidden; }
 .recap-bar > i { display: block; height: 100%; background: var(--accent); }
 .recap-actions { display: flex; flex-wrap: wrap; gap: var(--s-2); }

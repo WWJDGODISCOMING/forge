@@ -63,6 +63,20 @@ test('recap: goals come from the caller (nothing hard-coded to one person)', () 
   eq(buildRecap({ report: r, stepsGoal: 10000 }).rows.find((x) => x.key === 'steps').ratio, 0.5);
 });
 
+test('recap: no planned training days means no goal ("2", never "2 of 0")', () => {
+  const none = (profile) => weeklyReport({ weekStart: PREV, today: MON, profile, targets: { calories: 2200, proteinG: 150 }, workouts: [workout(day(6)), workout(day(8))] });
+  for (const profile of [{ trainingDays: 0, goal: 'lose' }, { goal: 'lose' }]) {
+    const w = buildRecap({ report: none(profile) }).rows.find((x) => x.key === 'workouts');
+    eq(w.goal, null); eq(w.ratio, null); eq(w.value, 2);
+    eq(rowText(w), '2');
+  }
+  const one = buildRecap({ report: weeklyReport({ weekStart: PREV, today: MON, profile: { trainingDays: 0 }, targets: {}, workouts: [workout(day(6))] }) });
+  eq(rowText(one.rows.find((x) => x.key === 'workouts')), '1');
+  assert(recapText(one, 'Oct 5 – Oct 11').includes('Workouts 1\n'), 'share text has no "of 0"');
+  const src = readFileSync(new URL('../js/screens/recap.js', import.meta.url), 'utf8');
+  assert(src.includes("workout${w.value === 1 ? '' : 's'}"), 'headline pluralises when there is no plan');
+});
+
 test('recap: share text, tips never diagnose or shame, and the screen is wired up', () => {
   const rc = buildRecap({ report: report({ workouts: [workout(day(6))] }) });
   const t = recapText(rc, 'Oct 5 – Oct 11', '−0.4 lb');

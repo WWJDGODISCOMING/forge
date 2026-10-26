@@ -187,14 +187,27 @@ test('layout: food: the protein helper card is gone when over target', async () 
 
 // Weekly recap (v0.16.74): the Today card (the clock is pinned to a Monday) and its detail sheet at the phone, a small phone at
 // 160% text, and both Duo sizes. Card and sheet rows stay inside their boxes, tap targets 44px or more, no sideways overflow.
-for (const [w, h, ts] of standalone && (!only || only.includes('today')) ? [[390, 844, 1], [320, 568, 1.6], [626, 890, 1], [678, 466, 1]] : []) {
+// The fixture week (Mon Oct 5 to Sun Oct 11) gets food logged, protein under target and calories under the limit, so the
+// longest row ("2,100 kcal · limit ..." style) is rendered and checked too.
+const recapSeed = () => {
+  const d = seed();
+  const base = d.food_logs[0];
+  for (let n = 5; n <= 9; n++) {
+    const day = `2026-10-${String(n).padStart(2, '0')}`;
+    d.food_logs.push({ ...base, id: `rf${n}`, day, kcal: 1900, protein_g: 100, logged_at: `${day}T12:00:00.000Z` });
+  }
+  return d;
+};
+const RECAP_SIZES = [[390, 844, 1], [320, 568, 1.6], [626, 890, 1], [678, 466, 1]];
+const setTs = async (ts) => { if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); } };
+for (const [w, h, ts] of standalone && (!only || only.includes('today')) ? RECAP_SIZES : []) {
   const tag = `${w}x${h}${ts !== 1 ? '-text160' : ''}`;
   test(`layout: today: the weekly recap card and sheet fit at ${tag}`, async () => {
     if (skipReason()) return;
     browser = browser || await launch();
     await browser.viewport(w, h, true);
-    await browser.open('today', seed());
-    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await browser.open('today', recapSeed());
+    await setTs(ts);
     await browser.eval("document.querySelector('[data-recap-card]')?.scrollIntoView({ block: 'center' })");
     await new Promise((r) => setTimeout(r, 250));
     if (shots) await browser.screenshot(`${shots}/today-recap-${tag}.png`);
@@ -205,12 +218,69 @@ for (const [w, h, ts] of standalone && (!only || only.includes('today')) ? [[390
     await browser.eval("document.querySelector('[data-recap-card]').click()");
     await new Promise((r) => setTimeout(r, 700));
     if (shots) await browser.screenshot(`${shots}/today-recap-sheet-${tag}.png`);
-    const s = await browser.eval("(() => { const b = document.querySelector('[data-recap]'); if (!b) return null; const rows = [...b.querySelectorAll('.recap-row')]; const bb = b.getBoundingClientRect(); const out = rows.filter((r) => r.scrollWidth > r.clientWidth + 1 || r.getBoundingClientRect().right > bb.right + 1).length; const btns = [...b.querySelectorAll('.recap-actions .btn')].map((x) => Math.round(x.getBoundingClientRect().height)); return { rows: rows.length, out, btns, over: document.documentElement.scrollWidth > innerWidth + 1, tip: !!b.querySelector('[data-recap-tip]') }; })()");
-    assert(s && s.rows >= 3 && s.tip, 'the recap sheet did not open with rows and a tip');
+    const s = await browser.eval(`(() => {
+      const b = document.querySelector('[data-recap]'); if (!b) return null;
+      const bb = b.getBoundingClientRect();
+      const rows = [...b.querySelectorAll('[data-recap-row]')];
+      const keys = rows.map((r) => r.dataset.recapRow);
+      const out = rows.filter((r) => r.scrollWidth > r.clientWidth + 1 || r.getBoundingClientRect().right > bb.right + 1 || r.getBoundingClientRect().left < bb.left - 1).length;
+      // a value may drop under its label, but never break inside a word or a number
+      const split = [];
+      for (const v of b.querySelectorAll('[data-recap-row] > b')) {
+        const t = v.firstChild; if (!t) continue;
+        const re = /\\S+/g; let m;
+        while ((m = re.exec(t.textContent))) { const g = document.createRange(); g.setStart(t, m.index); g.setEnd(t, m.index + m[0].length); if (g.getClientRects().length > 1) split.push(m[0]); }
+      }
+      const btns = [...b.querySelectorAll('.recap-actions .btn')].map((x) => Math.round(x.getBoundingClientRect().height));
+      return { keys, out, split, btns, over: document.documentElement.scrollWidth > innerWidth + 1, tip: !!b.querySelector('[data-recap-tip]') };
+    })()`);
+    assert(s && s.tip, 'the recap sheet did not open with a tip');
+    for (const k of ['workouts', 'protein', 'calories']) assert(s.keys.includes(k), `the ${k} row is missing from the recap sheet (${s.keys.join(',')})`);
     assert(s.out === 0 && !s.over, `${s.out} recap rows overflow, page overflow ${s.over}`);
+    assert(s.split.length === 0, `recap values break inside a word or number: ${s.split.join(' ')}`);
     assert(s.btns.length === 2 && s.btns.every((x) => x >= 44), `recap buttons are ${s.btns.join('/')}px tall`);
   });
 }
+
+// Past recaps (Progress → Weekly recaps): at least two past weeks are seeded, rows are tap targets, a tap opens that week.
+for (const [w, h, ts] of standalone && (!only || only.includes('recaps')) ? RECAP_SIZES : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: recaps: the past weeks list fits at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('recaps', recapSeed());
+    await setTs(ts);
+    if (shots) await browser.screenshot(`${shots}/recaps-list-${tag}.png`);
+    const l = await browser.eval("(() => { const rows = [...document.querySelectorAll('[data-recap-open]')]; return { n: rows.length, hs: rows.map((r) => Math.round(r.getBoundingClientRect().height)), over: document.documentElement.scrollWidth > innerWidth + 1 || rows.some((r) => r.scrollWidth > r.clientWidth + 1), first: rows[0] && rows[0].dataset.recapOpen, label: rows[0] && rows[0].getAttribute('aria-label') }; })()");
+    assert(l.n >= 2, `only ${l.n} past weeks listed`);
+    assert(l.hs.every((x) => x >= 44), `a recap row is ${Math.min(...l.hs)}px tall`);
+    assert(!l.over, 'the recaps list overflows sideways');
+    assert(/recap/i.test(l.label), 'rows have a VoiceOver label');
+    await browser.eval("document.querySelector('[data-recap-open]').click()");
+    await new Promise((r) => setTimeout(r, 700));
+    const o = await browser.eval("(() => { const b = document.querySelector('[data-recap]'); return b ? { range: b.querySelector('.label').textContent } : null; })()");
+    assert(o && /Oct 5/.test(o.range), `tapping the newest row did not open last week's sheet (${o && o.range})`);
+  });
+}
+test('layout: recaps: the empty state fits at 390x844', async () => {
+  if (!standalone || (only && !only.includes('recaps')) || skipReason()) return;
+  browser = browser || await launch();
+  await browser.viewport(390, 844, true);
+  const d = seed({ empty: true });
+  await browser.open('recaps', d);
+  if (shots) await browser.screenshot(`${shots}/recaps-empty-390x844.png`);
+  const e = await browser.eval("(() => ({ list: !!document.querySelector('[data-recap-list]'), text: document.querySelector('#main .card .muted')?.textContent || '', over: document.documentElement.scrollWidth > innerWidth + 1 }))()");
+  assert(!e.list && /first recap/i.test(e.text) && !e.over, `empty state wrong: ${JSON.stringify(e)}`);
+});
+test('layout: progress: the Weekly recaps row is in the Progress rows', async () => {
+  if (!standalone || (only && !only.includes('recaps')) || skipReason()) return;
+  browser = browser || await launch();
+  await browser.viewport(390, 844, true);
+  await browser.open('score', seed());
+  const r = await browser.eval("(() => { const a = document.querySelector('[data-progress-rows] a[href=\"#/recaps\"]'); return a ? Math.round(a.getBoundingClientRect().height) : null; })()");
+  assert(r && r >= 44, `the Weekly recaps row is missing or ${r}px tall`);
+});
 
 // Program: the Change start date sheet, at the phone and Duo sizes (this also feeds the `screens` artifact)
 for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
