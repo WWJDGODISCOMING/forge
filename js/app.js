@@ -407,6 +407,8 @@ if (isNative()) {
     return import('./native/autoread.js').then((a) => a.watchForeground(document, () => m.refresh()));
   }).catch(() => {});
 }
+// Home-screen and lock-screen widgets: numbers handed over after data changes (js/native/widget.js).
+if (isNative()) import('./native/widget.js').then((m) => m.startWidgetSync(document, (r) => { location.hash = `#/${r}`; })).catch(() => {});
 // ...and a cheap re-read of today's steps and energy about every 5 minutes while Today or Food is showing (js/screens/apple.js refreshToday).
 if (isNative()) setInterval(() => { if (document.visibilityState === 'visible' && ['today', 'food'].includes(currentRoute()) && allLoaded() && state.user) import('./screens/apple.js').then((m) => m.refreshToday()).catch(() => {}); }, 5 * 60 * 1000);
 

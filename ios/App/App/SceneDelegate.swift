@@ -12,9 +12,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
         window?.makeKeyAndVisible()
 
         SceneDelegateProxy.shared.scene(scene, willConnectTo: session, options: connectionOptions)
+        for c in connectionOptions.urlContexts { ForgeWidgetPlugin.open(url: c.url) } // a widget tap that launched the app
     }
 
     func scene(_ scene: UIScene, openURLContexts URLContexts: Set<UIOpenURLContext>) {
+        for c in URLContexts { ForgeWidgetPlugin.open(url: c.url) }
         SceneDelegateProxy.shared.scene(scene, openURLContexts: URLContexts)
     }
 
