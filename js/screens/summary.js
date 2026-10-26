@@ -20,6 +20,7 @@ import { badgeSVG } from '../ui/badges.js';
 import { levelUp } from '../ui/fx.js';
 import { renderShareCard, shareImage } from '../ui/sharecard.js';
 import { icon } from '../ui/icons.js';
+import { prefControlHtml, bindPrefControls } from './exercise-prefs.js';
 import { estimateKcal, weightKgFor } from '../workouts/energy.js';
 import { isNative } from '../native/bridge.js';
 import { workoutTotals, comparableWorkout, fmtHold, deltaText, setLine, kcalReading, kcalComparable, KCAL_TAG } from '../workouts/totals.js';
@@ -157,6 +158,7 @@ export function renderSummary(el, id) {
               <b>${esc(r.ex.name)}</b>
               <small class="muted">${r.sets.map((s) => esc(setLine(s, r.ex, u))).join('<br>')}</small>
               ${r.exPrs.map((p) => `<span class="sum-pr">${icon('trophy', { filled: true })} ${esc(p.label.split(': ').slice(1).join(': ') || p.label)}${p.prev != null ? ` <s>${Math.round(p.prev * 10) / 10}</s>` : ''}</span>`).join('')}
+              ${prefControlHtml(r.ex)}
             </div>
             ${r.vs ? `<span class="vs ${r.vs.tone}">${esc(r.vs.text)}</span>` : '<span class="vs new">First time</span>'}
           </li>`).join('')}
@@ -165,6 +167,8 @@ export function renderSummary(el, id) {
       <button class="btn ghost" data-share>Share image</button>
       <a class="btn big" href="#/today">Done</a>
     </section>`;
+
+  bindPrefControls($('.sum-list', el));
 
   // Celebrate once per workout. New badges are saved (awards_seen) after their moment, so the save's
   // re-render doesn't cut it short.

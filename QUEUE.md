@@ -338,7 +338,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 29. #215 More home + bodyweight exercises, Recommend more/less
 - Issue: #215
 - Version: 0.16.72
-- Status: todo
+- Status: in-review
 - Acceptance:
   - At least 4 options per main muscle group with Home equipment only, and 4 with no equipment; joint-aware tags and cues.
   - Recommend more/less per exercise on the summary and History sheet; the generator, Replace and Switch weight by it; reset it in Settings.

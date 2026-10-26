@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.72 — More home workouts, and Recommend more / less (2026-10-26)
+
+No Cloud Functions or `firestore.rules` changes. Web app only: it updates on its own.
+
+### What's new
+
+- 18 new moves, mostly with no equipment at all: biceps, calves, hamstrings, back, side and rear shoulders. Every main muscle now has at least 4 moves with just your body, and at least 4 with your Home gym.
+- Recommend more / Recommend less: under every exercise on the workout summary, and at the top of its History. Tap again to go back to neither.
+- Your workouts pick "more" moves more often, and "less" moves rarely (they still show up if nothing else fits). The Replace list puts "more" moves first.
+- Settings → Workouts → Exercise preferences shows them all, with Reset for one or all.
+- Accessory moves now rotate through the bigger pool week to week. Your main lifts stay put so they keep progressing.
+
 ## 0.16.71 — Widgets (2026-10-26)
 
 No Cloud Functions or `firestore.rules` changes. iPhone app only: run Refresh Forge on the Mac mini to install the widgets.

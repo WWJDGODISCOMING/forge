@@ -3,7 +3,7 @@
 // Skips (loudly) when no Chrome/Chromium is installed. GitHub's ubuntu runners have one, so CI runs it.
 //   LAYOUT_ROUTES=today,body node tests/layout.test.js   → only those screens
 //   LAYOUT_SHOTS=/tmp/shots                              → also save a PNG of every render
-import { test, assert } from './harness.js';
+import { test, assert, eq } from './harness.js';
 import { skipReason, launch } from './layout/browser.js';
 import { detect } from './layout/detect.js';
 import { seed, WORKOUT_DAY, REST_DAY } from './layout/seed.js';
@@ -515,6 +515,69 @@ if (standalone) {
       assert(sh && sh.text && !sh.over, `the History sheet did not open or overflows sideways: ${JSON.stringify(sh)}`);
       assert(sh.line && /^Best estimated max .* up .* since /.test(sh.sum), `the History trend line or summary is missing: ${JSON.stringify(sh)}`);
       assert(sh.sameRow, 'the date and Best are not on one row');
+    });
+  }
+  // Recommend more / less (v0.16.72): the control on the workout summary, and the Settings list that shows and resets it.
+  const PREF_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1]];
+  for (const [w, h, dark, ts] of !only || only.includes('prefs') || only.includes('summary') || only.includes('settings') ? PREF_SIZES : []) {
+    const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+    test(`layout: Recommend more / less on the summary and in Settings fit at ${tag}`, async () => {
+      if (skipReason()) { console.log('      (skipped: ' + skipReason() + ')'); return; }
+      browser = browser || await launch();
+      await browser.viewport(w, h, dark);
+      const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const data = seed();
+      data.settings[0].exercise_prefs = { pushup: 'less', db_bench_press: 'more' };
+      const wid = data.workouts.find((x) => x.status === 'done').id;
+      await browser.open(`summary/${wid}`, data);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+      await wait(600);
+      const sum = await browser.eval(`(() => {
+        const groups = [...document.querySelectorAll('.sum-list .xpref')];
+        const bad = [];
+        for (const g of groups) for (const b of g.querySelectorAll('.xpref-b')) {
+          const r = b.getBoundingClientRect();
+          if (r.height < 43.5) bad.push('small ' + r.height);
+          if (r.left < 0 || r.right > innerWidth + 0.5) bad.push('off screen ' + Math.round(r.left) + '-' + Math.round(r.right));
+          if (!b.getAttribute('aria-pressed')) bad.push('no aria-pressed');
+        }
+        return { n: groups.length, bad, over: document.documentElement.scrollWidth > innerWidth + 1 };
+      })()`);
+      if (shots) await browser.screenshot(`${shots}/pref-summary-${tag}.png`);
+      assert(sum.n > 0, 'the summary has no Recommend more / less controls');
+      assert(sum.bad.length === 0 && !sum.over, `the Recommend control is small, clipped or overflows: ${JSON.stringify(sum)}`);
+      // Tap More on the first exercise, then Less (they are exclusive), then More twice (clears).
+      const state = await browser.eval(`(() => {
+        const g = document.querySelector('.sum-list .xpref'); const p = () => [...g.querySelectorAll('[data-pref]')].map((b) => b.getAttribute('aria-pressed')).join();
+        const out = [p()];
+        g.querySelector('[data-pref="more"]').click(); out.push(p());
+        g.querySelector('[data-pref="less"]').click(); out.push(p());
+        g.querySelector('[data-pref="less"]').click(); out.push(p());
+        return out;
+      })()`);
+      eq(state[1], 'true,false', 'More pressed');
+      eq(state[2], 'false,true', 'Less replaces More');
+      eq(state[3], 'false,false', 'tapping Less again clears it');
+
+      await browser.open('settings', data);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await wait(300); }
+      await wait(400);
+      const row = await browser.eval(`(() => { const b = document.querySelector('[data-exercise-prefs]'); if (!b) return null; b.scrollIntoView({ block: 'center' }); const r = b.getBoundingClientRect(); return { h: r.height, sub: document.querySelector('[data-exercise-prefs-sub]').textContent }; })()`);
+      assert(row && row.h >= 43.5 && /1 more · 1 less/.test(row.sub), `the Settings row is missing or wrong: ${JSON.stringify(row)}`);
+      await browser.eval('document.querySelector("[data-exercise-prefs]").click()');
+      await wait(900);
+      const sh = await browser.eval(`(() => {
+        const d = document.querySelector('dialog.sheet[open]'); if (!d) return null;
+        const resets = [...d.querySelectorAll('[data-reset]')].map((b) => { const r = b.getBoundingClientRect(); return { h: r.height, in: r.right <= innerWidth + 0.5 && r.left >= 0 }; });
+        return { rows: d.querySelectorAll('.xpref-list li').length, resets, over: d.scrollWidth > d.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, all: !!d.querySelector('[data-reset-all]') };
+      })()`);
+      if (shots) await browser.screenshot(`${shots}/pref-settings-${tag}.png`);
+      assert(sh && sh.rows === 2 && sh.all && !sh.over, `the preferences sheet is wrong: ${JSON.stringify(sh)}`);
+      assert(sh.resets.every((r) => r.h >= 43.5 && r.in), `a Reset button is small or off screen: ${JSON.stringify(sh.resets)}`);
+      await browser.eval('document.querySelector("dialog.sheet[open] [data-reset]").click()');
+      await wait(300);
+      const left = await browser.eval('document.querySelectorAll("dialog.sheet[open] .xpref-list li").length');
+      eq(left, 1, 'Reset removes one preference');
     });
   }
   test('layout: the Log weight label is one piece, and the workout place sits on its own line', async () => {

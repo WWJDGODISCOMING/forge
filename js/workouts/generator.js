@@ -6,6 +6,7 @@ import { averageRecovery } from './recovery.js';
 import { activeFocus, cleanFocus, focusLabel, FOCUS_GROUPS, FOCUS_MAX_ADDED, dayFocusBonus } from './focus.js';
 import { nextTarget, warmups, defaultSets } from './progression.js';
 import { restDefaultSec, REST_DEFAULT_SEC } from './session-core.js';
+import { cleanPrefs, prefScore, hashPick } from './prefs.js';
 
 const INJURY_WORDS = {
   shoulder: /shoulder|rotator|labrum|ac joint/i,
@@ -135,7 +136,7 @@ export function fallbackPatterns(slot, extra = null) {
 
 /**
  * Scores every candidate for a slot and returns the best, or null.
- * ctx: { available:Set, avoid:Set, maxLevel, recovery, daysSince(id), chainChoice: Map(chain → id), used:Set, prefer[], excluded:Set, favorites:Set }
+ * ctx: { available:Set, avoid:Set, maxLevel, recovery, daysSince(id), chainChoice: Map(chain → id), used:Set, prefer[], excluded:Set, favorites:Set, prefs:{id:'more'|'less'}, week }
  */
 export function pickExercise(slot, all, ctx) {
   const pinned = slot.ids || [];
@@ -179,6 +180,10 @@ export function pickExercise(slot, all, ctx) {
         if (slot.role === 'accessory' && since <= 3) s -= 15; // rotate accessories
       }
       if (ctx.favorites.has(e.id)) s += 15;
+      s += prefScore(ctx.prefs, e.id); // Recommend more / less: a nudge either way, never a ban
+      // Accessories and secondary lifts rotate week to week through the wider pool; main lifts stay put so they progress.
+      if (slot.role === 'accessory') s += hashPick(`${e.id}|${ctx.week || 0}`, 9);
+      else if (slot.role === 'secondary') s += hashPick(`${e.id}|${ctx.week || 0}`, 5);
       if (ctx.avoidSoft && ctx.avoidSoft.has(e.id)) s -= 80; // Switch: anything else first
       s -= Math.max(0, (e.level || 1) - ctx.userLevel) * 6; // harder than your level costs points; easier doesn't
       if (s > bestScore || (s === bestScore && e.id < best.id)) {
@@ -210,7 +215,7 @@ export function planMinutes(plan, exercises, defaultSec = REST_DEFAULT_SEC) {
  *   programKey, program (stored doc), dayType (optional override), location { equipment[], weight_inventory },
  *   profile { experience, sessionMin, trainingDays, injuries }, unit, exercises (library + custom),
  *   historyFor(exId) → [{ date, sets:[{weight,reps,rir}] }] most recent first (weights in unit),
- *   daysSince(exId) → number|null, recovery {muscle:%}, doneCount, lastDayType, settings { excluded[], favorites[] }, now
+ *   daysSince(exId) → number|null, recovery {muscle:%}, doneCount, lastDayType, settings { excluded[], favorites[], exercise_prefs{} }, now
  * }
  */
 export function generateWorkout(opts) {
@@ -306,6 +311,8 @@ export function generateWorkout(opts) {
     prefer: day.prefer || null,
     excluded: new Set(settings.excluded || []), favorites: new Set(settings.favorites || []),
     avoidSoft: new Set(avoidIds),
+    prefs: cleanPrefs(settings.exercise_prefs),
+    week: Math.floor(now / (7 * 86400000)),
   };
 
   const volume = prog.volume || 1;
