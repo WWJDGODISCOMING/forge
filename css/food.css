@@ -349,7 +349,7 @@ dialog.sheet:not(.detented) .food-body .food-scroll { flex-shrink: 1000; } /* th
 .pro-help .pro-row { display: flex; align-items: center; gap: var(--s-3); width: 100%; min-height: 56px; padding: var(--s-2) var(--s-3); background: var(--surface-2); color: var(--text); border: 0; border-radius: var(--r-md); text-align: left; font: inherit; cursor: pointer; }
 .pro-help .pro-row:active { filter: brightness(.95); }
 .pro-help .pro-text { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.pro-help .pro-text b { font-size: calc(16px * var(--ts)); overflow-wrap: anywhere; }
+.pro-help .pro-text b { font-size: calc(16px * var(--ts)); overflow-wrap: break-word; }
 .pro-help .pro-text small { font-size: calc(13px * var(--ts)); color: var(--text-2); font-variant-numeric: tabular-nums; }
 .pro-help .pro-add { flex: none; display: inline-flex; color: var(--accent-text); }
 .pro-help .pro-dismiss { flex: none; min-width: 44px; min-height: 44px; }

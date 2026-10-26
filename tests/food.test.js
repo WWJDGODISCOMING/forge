@@ -272,7 +272,7 @@ test('long-term scoring sees food: scoreSamples and weeklyScores carry the Nutri
 });
 
 // ---- Protein helper (v0.16.73)
-import { IDEAS, remaining, shouldShow, suggest, logItem, MAX_IDEAS } from '../js/food/protein-helper.js';
+import { IDEAS, remaining, shouldShow, suggest, logItem, createOneTap, MAX_IDEAS } from '../js/food/protein-helper.js';
 const T = { proteinG: 150, calories: 2000 };
 
 test('protein helper: remaining reads goals from targets, null without a protein target', () => {
@@ -328,5 +328,34 @@ test('protein helper: built-in ideas log as plain items, collagen says it is inc
   eq(f.portion, idea.portion);
   assert(/incomplete/i.test(IDEAS.find((i) => i.id === 'collagen').tip));
   assert(IDEAS.every((i) => i.protein_g / i.kcal >= 0.075), 'every idea is high-protein for its calories');
-  assert(T.proteinG > 0);
+});
+
+test('protein helper: every built-in idea logs its own carbs and fat, and its calories match its macros', () => {
+  for (const idea of IDEAS) {
+    assert(Number.isFinite(idea.carbs_g) && Number.isFinite(idea.fat_g), `${idea.id} has carbs and fat`);
+    const f = logFields({ item: logItem(idea), servings: 1, meal: 'snack', day: DAY });
+    eq(f.carbs_g, idea.carbs_g);
+    eq(f.fat_g, idea.fat_g);
+    const est = 4 * idea.protein_g + 4 * idea.carbs_g + 9 * idea.fat_g;
+    assert(Math.abs(est - idea.kcal) / idea.kcal <= 0.15, `${idea.id}: ${idea.kcal} kcal vs ${est} from macros`);
+  }
+  const s = suggest({ left: { protein: 60, kcal: 500, target: 150 } });
+  assert(s.every((x) => x.mine || (Number.isFinite(x.carbs_g) && Number.isFinite(x.fat_g))), 'suggestions carry macros through to the tap');
+  eq(logItem(s[0]).fat_g, s[0].fat_g);
+});
+
+test('protein helper: one tap logs once (a quick double tap is ignored) and Undo deletes exactly that entry', () => {
+  let t = 1000; const written = [], removed = [];
+  const one = createOneTap({ write: (s) => { const r = { id: `r${written.length}`, name: s.name }; written.push(r); return r; }, remove: (id) => removed.push(id), now: () => t, lockMs: 1000 });
+  const a = one.tap({ name: 'Eggs' });
+  eq(one.tap({ name: 'Eggs' }), null);
+  t += 300; eq(one.tap({ name: 'Eggs' }), null);
+  eq(written.length, 1);
+  a.undo();
+  eq(removed.join(), 'r0');
+  t += 1000;
+  const b = one.tap({ name: 'Tuna' }); // later taps work again
+  eq(written.length, 2);
+  b.undo();
+  eq(removed.join(), 'r0,r1');
 });

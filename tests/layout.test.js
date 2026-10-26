@@ -135,6 +135,56 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('goaldate')
   });
 }
 
+// Protein helper (v0.16.73): the "N g protein to go" card, scrolled into view in the `screens` artifact at the phone, a small
+// phone at 160% text, and both Duo sizes. Rows 44px or more and inside the card, a 44px hide button, no sideways overflow,
+// names wrap at spaces (no word broken mid-way), and the card is gone after Hide and when over target.
+const PRO_PROBE = `(() => {
+  const card = document.querySelector('[data-pro-help]'); if (!card) return null;
+  const c = card.getBoundingClientRect(), rows = [...card.querySelectorAll('.pro-row')], x = card.querySelector('.pro-dismiss').getBoundingClientRect();
+  const inside = (r) => r.left >= c.left - 1 && r.right <= c.right + 1 && r.top >= c.top - 1 && r.bottom <= c.bottom + 1;
+  let broken = [];
+  for (const b of card.querySelectorAll('.pro-text b')) {
+    const s = document.createElement('span'); s.style.cssText = 'position:absolute;visibility:hidden;white-space:nowrap;font:' + getComputedStyle(b).font;
+    document.body.appendChild(s);
+    for (const w of b.textContent.split(/\\s+/)) { s.textContent = w; if (s.getBoundingClientRect().width > b.clientWidth + 1) broken.push(w); }
+    s.remove();
+  }
+  return { rows: rows.length, minH: Math.min(...rows.map((r) => Math.round(r.getBoundingClientRect().height))), outside: rows.filter((r) => !inside(r.getBoundingClientRect())).length,
+    xW: Math.round(x.width), xH: Math.round(x.height), over: document.documentElement.scrollWidth > innerWidth + 1 || card.scrollWidth > card.clientWidth + 1, broken, left: card.querySelector('.label').textContent };
+})()`;
+for (const [w, h, ts] of standalone && (!only || only.includes('food')) ? [[390, 844, 1], [320, 568, 1.6], [626, 890, 1], [678, 466, 1]] : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: food: the protein helper card fits at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('food', seed({ pro: true }));
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await browser.eval("document.querySelector('[data-pro-help]')?.scrollIntoView({ block: 'center' })");
+    await new Promise((r) => setTimeout(r, 250));
+    if (shots) await browser.screenshot(`${shots}/food-prohelp-${tag}.png`);
+    const r = await browser.eval(PRO_PROBE);
+    assert(r, 'the protein card does not show with the pro seed');
+    assert(/^\d+ g protein to go$/.test(r.left), `card title reads "${r.left}"`);
+    assert(r.rows >= 3 && r.rows <= 4, `${r.rows} ideas`);
+    assert(r.minH >= 44, `an idea row is ${r.minH}px tall`);
+    assert(r.outside === 0, `${r.outside} rows poke out of the card`);
+    assert(r.xW >= 44 && r.xH >= 44, `Hide button is ${r.xW}x${r.xH}`);
+    assert(!r.over, 'the card overflows sideways');
+    assert(r.broken.length === 0, `words too long for their line (would break mid-word): ${r.broken.join(', ')}`);
+    await browser.eval("document.querySelector('[data-pro-dismiss]').click()");
+    await new Promise((r2) => setTimeout(r2, 300));
+    assert(await browser.eval("!document.querySelector('[data-pro-help]')"), 'the card is still there after Hide');
+  });
+}
+test('layout: food: the protein helper card is gone when over target', async () => {
+  if (!standalone || (only && !only.includes('food')) || skipReason()) return;
+  browser = browser || await launch();
+  await browser.viewport(390, 844, true);
+  await browser.open('food', seed({ over: true }));
+  assert(await browser.eval("!document.querySelector('[data-pro-help]')"), 'card shows even though protein is over target');
+});
+
 // Program: the Change start date sheet, at the phone and Duo sizes (this also feeds the `screens` artifact)
 for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
   test(`layout: program: the Change start date sheet fits at ${w}x${h}`, async () => {

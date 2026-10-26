@@ -4,14 +4,14 @@
 
 /** Built-in ideas. `match` words find the same food in My foods / recents. */
 export const IDEAS = [
-  { id: 'chicken', name: 'Chicken breast', portion: '4 oz cooked (113 g)', kcal: 187, protein_g: 35, match: ['chicken', 'breast'], tip: 'Lean and filling.' },
-  { id: 'tuna', name: 'Tuna, canned in water', portion: '1 can drained (113 g)', kcal: 120, protein_g: 26, match: ['tuna'], tip: 'No cooking needed.' },
-  { id: 'yogurt', name: 'Greek yogurt, nonfat', portion: '3/4 cup (170 g)', kcal: 100, protein_g: 17, match: ['greek', 'yogurt'], tip: 'Easy snack.' },
-  { id: 'cottage', name: 'Cottage cheese, low-fat', portion: '1/2 cup (113 g)', kcal: 90, protein_g: 12, match: ['cottage'], tip: 'Slow-digesting protein.' },
-  { id: 'eggs', name: 'Eggs', portion: '2 large', kcal: 143, protein_g: 13, match: ['egg'], tip: 'Quick and cheap.' },
-  { id: 'whey', name: 'Protein shake', portion: '1 scoop', kcal: 120, protein_g: 24, match: ['protein', 'shake'], tip: 'Handy when you can’t cook.' },
-  { id: 'beef', name: 'Lean ground beef (95%)', portion: '4 oz raw (113 g)', kcal: 150, protein_g: 22, match: ['ground', 'beef'], tip: 'Also has iron.' },
-  { id: 'collagen', name: 'Collagen peptides', portion: '2 scoops (20 g)', kcal: 70, protein_g: 18, match: ['collagen'], tip: 'Collagen is an incomplete protein, so pair it with other protein.' },
+  { id: 'chicken', name: 'Chicken breast', portion: '4 oz cooked (113 g)', kcal: 187, protein_g: 35, carbs_g: 0, fat_g: 4, match: ['chicken', 'breast'], tip: 'Lean and filling.' },
+  { id: 'tuna', name: 'Tuna, canned in water', portion: '1 can drained (113 g)', kcal: 120, protein_g: 26, carbs_g: 0, fat_g: 1, match: ['tuna'], tip: 'No cooking needed.' },
+  { id: 'yogurt', name: 'Greek yogurt, nonfat', portion: '3/4 cup (170 g)', kcal: 100, protein_g: 17, carbs_g: 6, fat_g: 0, match: ['greek', 'yogurt'], tip: 'Easy snack.' },
+  { id: 'cottage', name: 'Cottage cheese, low-fat', portion: '1/2 cup (113 g)', kcal: 90, protein_g: 12, carbs_g: 5, fat_g: 2, match: ['cottage'], tip: 'Slow-digesting protein.' },
+  { id: 'eggs', name: 'Eggs', portion: '2 large', kcal: 143, protein_g: 13, carbs_g: 1, fat_g: 10, match: ['egg'], tip: 'Quick and cheap.' },
+  { id: 'whey', name: 'Protein shake', portion: '1 scoop', kcal: 120, protein_g: 24, carbs_g: 3, fat_g: 2, match: ['protein', 'shake'], tip: 'Handy when you can’t cook.' },
+  { id: 'beef', name: 'Lean ground beef (95%)', portion: '4 oz raw (113 g)', kcal: 150, protein_g: 22, carbs_g: 0, fat_g: 6, match: ['ground', 'beef'], tip: 'Also has iron.' },
+  { id: 'collagen', name: 'Collagen peptides', portion: '2 scoops (20 g)', kcal: 70, protein_g: 18, carbs_g: 0, fat_g: 0, match: ['collagen'], tip: 'Collagen is an incomplete protein, so pair it with other protein.' },
 ];
 
 export const MIN_LEFT_KCAL = 90; // below this nothing useful fits, so the card hides
@@ -66,7 +66,7 @@ export function suggest({ left, items = [] }) {
   const mineByIdea = (idea) => mine.some((m) => idea.match.every((w) => norm(m.name).includes(w)));
   const built = IDEAS.filter((i) => fits(i) && !mineByIdea(i) && !own.has(norm(i.name)))
     .sort((a, b) => density(b) - density(a))
-    .map((i) => ({ key: `idea:${i.id}`, name: i.name, kcal: i.kcal, protein_g: i.protein_g, portion: i.portion, mine: false, tip: i.tip, id: i.id }));
+    .map((i) => ({ key: `idea:${i.id}`, name: i.name, kcal: i.kcal, protein_g: i.protein_g, carbs_g: i.carbs_g, fat_g: i.fat_g, portion: i.portion, mine: false, tip: i.tip, id: i.id }));
   mine.sort((a, b) => density(b) - density(a));
   const out = [...mine.slice(0, 2), ...built].slice(0, MAX_IDEAS);
   // A short list of yours leaves room for more of the built-in ones.
@@ -76,7 +76,23 @@ export function suggest({ left, items = [] }) {
 /** The item handed to logFields for one tap. */
 export function logItem(s) {
   if (s.item) return { ...s.item, portion: s.item.serving || s.item.portion || '' };
-  return { name: s.name, kcal: s.kcal, protein_g: s.protein_g, carbs_g: 0, fat_g: 0, portion: s.portion };
+  return { name: s.name, kcal: s.kcal, protein_g: s.protein_g, carbs_g: s.carbs_g || 0, fat_g: s.fat_g || 0, portion: s.portion };
+}
+
+/**
+ * One-tap logging with a guard: another tap within `lockMs` is ignored, and the returned `undo` deletes exactly the
+ * entry that tap created. `write(suggestion)` saves it and returns the record; `remove(id)` deletes it.
+ */
+export function createOneTap({ write, remove, now = Date.now, lockMs = 1000 }) {
+  let until = 0;
+  return {
+    tap(s) {
+      if (now() < until) return null;
+      until = now() + lockMs;
+      const rec = write(s);
+      return { id: rec.id, undo: () => remove(rec.id) };
+    },
+  };
 }
 
 /** Day key the card was dismissed for (per phone), or null. */
