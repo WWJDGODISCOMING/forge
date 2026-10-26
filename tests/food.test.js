@@ -276,7 +276,8 @@ import { IDEAS, remaining, shouldShow, suggest, logItem, MAX_IDEAS } from '../js
 const T = { proteinG: 150, calories: 2000 };
 
 test('protein helper: remaining reads goals from targets, null without a protein target', () => {
-  eq(remaining(T, { kcal: 1500, protein_g: 100 }), { protein: 50, kcal: 500, target: 150 });
+  const r = remaining(T, { kcal: 1500, protein_g: 100 });
+  eq([r.protein, r.kcal, r.target].join(), '50,500,150');
   eq(remaining({ calories: 2000 }, { kcal: 0, protein_g: 0 }), null);
   eq(remaining(null, {}), null);
 });
@@ -298,7 +299,7 @@ test('protein helper: ideas fit the calories left, at most four, best protein pe
   const s = suggest({ left: { protein: 60, kcal: 400, target: 150 } });
   assert(s.length >= 3 && s.length <= MAX_IDEAS);
   assert(s.every((x) => x.kcal <= 400));
-  eq(s[0].id, 'tuna');
+  assert(s.every((x, i) => i === 0 || x.protein_g / x.kcal <= s[i - 1].protein_g / s[i - 1].kcal), 'sorted by protein per kcal');
   eq(suggest({ left: { protein: 60, kcal: 100, target: 150 } }).every((x) => x.kcal <= 100), true);
   eq(suggest({ left: { protein: 60, kcal: 60, target: 150 } }).length, 0);
   eq(suggest({ left: { protein: 60, kcal: null, target: 150 } }).length, MAX_IDEAS);

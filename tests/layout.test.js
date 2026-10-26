@@ -48,7 +48,7 @@ for (const route of standalone ? ROUTES : []) {
     const found = new Map();
     for (const c of group) {
       await browser.viewport(c.w, c.h, c.dark);
-      await browser.open(route, seed({ long: c.long, over: c.over, active: route === 'play', program: route === 'program', comp: route === 'body' }));
+      await browser.open(route, seed({ long: c.long, over: c.over, active: route === 'play', program: route === 'program', comp: route === 'body', pro: route === 'food' && !c.long && !c.over }));
       const cls = await browser.eval('window.__cls || 0'); // before any text-size change
       if (c.ts) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${c.ts}')`); await new Promise((r) => setTimeout(r, 300)); }
       const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: !!c.ts })})`);

@@ -6,9 +6,9 @@ No Cloud Functions or `firestore.rules` changes. Web app only: it updates on its
 
 ### What's new
 
-- Short on protein later in the day? Food shows 3–4 ideas that fit the calories you have left, with protein and calories for each.
-- Your own foods and recent meals come first; eggs, Greek yogurt, tuna, chicken, cottage cheese, lean beef, a shake and collagen fill in.
-- One tap logs it. The ✕ hides the card for the rest of the day, and it goes away once you hit your protein target.
+- Short on protein? Food suggests 3 or 4 high-protein ideas that fit your calories left.
+- Your own foods and recent meals come first, then eggs, yogurt, tuna and more.
+- One tap logs an idea. Hide the card for the day, or reach your goal and it goes.
 - Works with AI off. Collagen is flagged as an incomplete protein.
 
 ## 0.16.72 — More home workouts, and Recommend more / less (2026-10-26)
