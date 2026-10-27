@@ -3200,20 +3200,23 @@ test('layout: close the browser', async () => {
 
 if (standalone) {
   const { runAll, tests } = await import('./harness.js');
+  const CLOSE = 'layout: close the browser';
+  // Runs once, after every test below is registered (a test registered later would escape the split, the cap and the ▶ marker).
+  const applyShard = () => {
+  tests.push(...tests.splice(tests.findIndex((t) => t.name === CLOSE), 1)); // closing the browser is always last
   if (arg('grep')) { // --grep=goal date → only tests whose name contains it (plus closing the browser)
     const keep = tests.filter((t) => t.name.includes(arg('grep')) || t.name === 'layout: close the browser');
     tests.splice(0, tests.length, ...keep);
   }
   const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/6 → the second of six cost-balanced groups
   if (shard.length === 2) {
-    const CLOSE = 'layout: close the browser';
     const only = arg('only');
     if (only) {
       const keep = tests.filter((t) => t.name.includes(only) || t.name === CLOSE);
       tests.splice(0, tests.length, ...keep);
     } else {
       // Bin-pack by estimated cost (renders): a route group costs its size count, anything else ~3. Every shard computes the same split.
-      const cost = (t) => { const m = /\(sizes (\d+)\/(\d+)\)/.exec(t.name); return m ? (Number(m[1]) < Number(m[2]) ? CHUNK : CASES.length - CHUNK * (Number(m[2]) - 1)) : /Body profile shows/.test(t.name) ? 9 : 3; };
+      const cost = (t) => { const m = /\(sizes (\d+)\/(\d+)\)/.exec(t.name); return m ? (Number(m[1]) < Number(m[2]) ? CHUNK : CASES.length - CHUNK * (Number(m[2]) - 1)) : /Body profile shows/.test(t.name) ? 9 : /Train Switch/.test(t.name) ? 12 : /Past days/.test(t.name) ? 10 : 3; };
       const bins = Array.from({ length: shard[1] }, () => ({ load: 0, names: new Set() }));
       tests.filter((t) => t.name !== CLOSE).map((t, i) => ({ t, i, c: cost(t) })).sort((a, b) => b.c - a.c || a.i - b.i).forEach(({ t, c }) => {
         const bin = bins.reduce((lo, b) => (b.load < lo.load ? b : lo));
@@ -3237,6 +3240,9 @@ if (standalone) {
       };
     }
   }
+  if (tests.at(-1).name !== CLOSE) throw new Error(`"${CLOSE}" must be the last test, found "${tests.at(-1).name}"`);
+  Object.freeze(tests); // a test() registered after the split now throws instead of silently running in every shard
+  };
   test('layout: Train Switch: the card head, chips, Switch sheet steps and scratch builder fit at every size', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
@@ -3407,6 +3413,7 @@ if (standalone) {
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
+  applyShard();
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);
 }

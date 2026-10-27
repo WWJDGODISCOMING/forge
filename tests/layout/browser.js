@@ -64,7 +64,9 @@ export async function teardown({ ws, proc, srv, dir }, boundMs = 5000) {
     ? Promise.resolve()
     : new Promise((r) => { try { proc.once('exit', r); proc.kill('SIGKILL'); } catch { r(); } });
   await within(exited, Math.min(2000, left()), 'Chrome exit');
-  try { proc && proc.stdio && proc.stderr && proc.stderr.destroy(); } catch { /* ignore */ }
+  try { proc && proc.stdout && proc.stdout.destroy(); } catch { /* ignore */ }
+  try { proc && proc.stderr && proc.stderr.destroy(); } catch { /* ignore */ }
+  try { proc && proc.unref && proc.unref(); } catch { /* ignore */ } // a Chrome that won't die can't keep the shard's event loop alive
   // Drop keep-alive sockets so close() can't wait on them.
   try { srv.closeAllConnections && srv.closeAllConnections(); } catch { /* ignore */ }
   await within(new Promise((r) => { try { srv.close(() => r()); } catch { r(); } }), Math.min(1500, left()), 'server close');
