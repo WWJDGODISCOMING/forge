@@ -410,7 +410,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 38. #233 Polish: loading skeletons on every data screen
 - Issue: #233
 - Version: 0.16.82
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #233; layout-matched skeletons, no jump >8px, aria-busy, reduced motion; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
 
