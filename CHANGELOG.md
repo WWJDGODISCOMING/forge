@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.82 — Loading skeletons everywhere (2026-10-27)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Every screen now shows a page-shaped placeholder while it loads, instead of a blank frame.
+- The placeholder is still under Reduce Motion, and VoiceOver hears "Loading" once.
+
 ## 0.16.81 — Exercises grouped by muscle (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes.
