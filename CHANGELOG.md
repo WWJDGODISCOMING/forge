@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.81 — Exercises grouped by muscle (2026-10-27)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Exercises are now in muscle sections: Chest, Back, Legs, Shoulders, Arms, Core, Other.
+- Tap a section header to fold it up. Forge remembers which ones you folded.
+- Headers stay put while you scroll. A search always shows its matches.
+- The Train preview labels each muscle. Workout order and supersets stay the same.
+
 ## 0.16.79 — Quick add takes carbs and fat (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes.

@@ -118,6 +118,7 @@ import './v01672.test.js';
 import './v01675.test.js';
 import './v01676.test.js';
 import './v01677.test.js';
+import './v01681.test.js';
 import './layout-teardown.test.js';
 import './layout.test.js';
 import { VERSION } from '../js/version.js';

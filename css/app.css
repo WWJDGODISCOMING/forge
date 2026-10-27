@@ -371,6 +371,19 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .key.dash.prev-key { border-top-color: var(--text-2); }
 
 /* Lists are inset-grouped: no outline, hairline separators inset from the left. */
+/* Library: one section per muscle group, with a sticky header that opens and closes it */
+.mg { position: relative; display: flex; flex-direction: column; gap: var(--s-2); }
+.mg-h { position: sticky; top: calc(var(--safe-top) + 44px); z-index: 2; margin: 0; padding: 0; background: transparent; font-size: inherit; line-height: inherit; letter-spacing: 0; }
+/* Only while it is stuck does the header turn into the same glass as the nav and tab bars, with a hairline underneath. */
+.mg-h.stuck { background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 .5px 0 var(--hairline); }
+.mg-sentinel { position: absolute; top: calc(-1px - var(--safe-top) - 44px); left: 0; /* one nav bar height above the section: it leaves the screen top exactly when the header sticks */ width: 1px; height: 1px; pointer-events: none; visibility: hidden; }
+.mg-btn { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: 44px; padding: 0 var(--s-1); border: 0; background: none; color: var(--text-1); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
+.mg-name { font-size: calc(20px * var(--ts)); letter-spacing: -0.015em; }
+.mg-count { font-size: calc(14px * var(--ts)); font-weight: 600; color: var(--text-2); background: var(--surface-2); padding: 2px 10px; border-radius: var(--r-pill); }
+.mg-chev { margin-left: auto; display: inline-flex; color: var(--text-2); transform: rotate(90deg); }
+.mg-btn[aria-expanded="false"] .mg-chev { transform: rotate(0deg); }
+@media (prefers-reduced-motion: no-preference) { .mg-chev { transition: transform 200ms ease; } }
+.mg-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; border-radius: 10px; }
 .list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; background: var(--top-light), var(--surface-1); border-radius: var(--r-xl); overflow: hidden; }
 .list li { position: relative; display: flex; align-items: center; justify-content: space-between; gap: var(--s-3); padding: var(--s-2) var(--s-3) var(--s-2) 20px; min-height: 60px; }
 .list li + li::before { content: ""; position: absolute; top: 0; left: 20px; right: 0; height: .5px; background: var(--separator); }

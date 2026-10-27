@@ -65,6 +65,70 @@ for (const route of standalone ? ROUTES : []) {
   }));
 }
 
+// Library by muscle group (v0.16.81, #238): sticky, collapsible section headers and the Train preview's muscle labels. Phone dark and
+// light, the four iPhone Duo sizes, and a small phone at 160% text. No overflow, headers whole and 44px+, the sticky header never
+// covers a row it isn't heading, collapsing sets aria-expanded and hides the list, and the Train preview shows its group labels.
+const MG_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [466, 678, true, 1], [678, 466, false, 1], [626, 890, true, 1], [890, 626, false, 1], [320, 568, true, 1.6]];
+const MG_PROBE = `(() => {
+  const heads = [...document.querySelectorAll('.mg-h')];
+  const btns = heads.map((h) => h.querySelector('.mg-btn'));
+  const clipped = btns.filter((b) => b.scrollWidth > b.clientWidth + 1).length;
+  const small = btns.filter((b) => b.getBoundingClientRect().height < 43.5).length;
+  const rows = [...document.querySelectorAll('.mg-list:not([hidden]) li')];
+  // at rest (not scrolled) no header may overlap a row of another section, nor a row overlap its own header
+  const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+  const covered = heads.filter((h) => rows.some((li) => hit(h.getBoundingClientRect(), li.getBoundingClientRect()))).length;
+  const sticky = heads.every((h) => getComputedStyle(h).position === 'sticky');
+  return { n: heads.length, expanded: btns.map((b) => b.getAttribute('aria-expanded')), clipped, small, covered, sticky,
+    page: document.documentElement.scrollWidth > innerWidth + 1, h1: document.querySelector('#main h1')?.tagName };
+})()`;
+for (const [w, h, dark, ts] of standalone && (!only || only.includes('library') || only.includes('train')) ? MG_SIZES : []) {
+  const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: library groups: sticky headers, collapse and Train labels fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    await browser.open('library', seed({}));
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    const open = await browser.eval(MG_PROBE);
+    if (shots) await browser.screenshot(`${shots}/library-groups-expanded-${tag}.png`);
+    assert(open.n >= 3, `${open.n} group headers`);
+    assert(open.expanded.every((x) => x === 'true'), 'sections start open');
+    assert(open.clipped === 0 && open.small === 0 && open.covered === 0 && open.sticky && !open.page, `expanded: ${JSON.stringify(open)}`);
+    // scrolled into the second section: the stuck header sits below the nav bar and above its rows
+    await browser.eval("document.querySelectorAll('.mg')[1].scrollIntoView({ block: 'start' })");
+    await new Promise((r) => setTimeout(r, 250));
+    const stuck = await browser.eval(`(() => { const s = document.querySelectorAll('.mg')[1]; const hb = s.querySelector('.mg-h').getBoundingClientRect(); const r0 = s.querySelector('li').getBoundingClientRect(); const nav = document.querySelector('.navbar').getBoundingClientRect(); return { gap: r0.top - hb.bottom, below: hb.top - nav.bottom }; })()`);
+    assert(stuck.gap >= -1 && stuck.below >= -1, `sticky header overlaps: ${JSON.stringify(stuck)}`);
+    await browser.eval('scrollBy(0, 80)'); // further in, so the header is really stuck (rows now slide under the glass)
+    await new Promise((r) => setTimeout(r, 250));
+    if (shots) await browser.screenshot(`${shots}/library-groups-stuck-${tag}.png`);
+    // stuck, the header is the same glass as the nav and tab bars (a blur, not a flat --bg band) with a hairline
+    const glass = await browser.eval(`(() => { const h = document.querySelectorAll('.mg')[1].querySelector('.mg-h'); const cs = getComputedStyle(h); const bf = cs.backdropFilter || cs.webkitBackdropFilter; return { stuck: h.classList.contains('stuck'), bf, shadow: cs.boxShadow, y: Math.round(scrollY), doc: document.documentElement.scrollHeight, ih: innerHeight, sen: Math.round(h.parentElement.querySelector('.mg-sentinel').getBoundingClientRect().top), io: typeof IntersectionObserver }; })()`);
+    assert(glass.stuck && glass.bf && glass.bf !== 'none' && glass.shadow !== 'none', `stuck header is not glass: ${JSON.stringify(glass)}`);
+    // collapse the first two: aria-expanded flips, lists hide, the choice is remembered, nothing overflows
+    await browser.eval("window.scrollTo({ top: 0, behavior: 'instant' }); document.querySelectorAll('[data-toggle]')[0].click(); document.querySelectorAll('[data-toggle]')[1].click()");
+    await new Promise((r) => setTimeout(r, 900));
+    const shut = await browser.eval(MG_PROBE);
+    if (shots) await browser.screenshot(`${shots}/library-groups-collapsed-${tag}.png`);
+    assert(shut.expanded[0] === 'false' && shut.expanded[1] === 'false' && shut.expanded[2] === 'true', `collapsed: ${JSON.stringify(shut.expanded)}`);
+    assert(shut.clipped === 0 && shut.small === 0 && shut.covered === 0 && !shut.page, `collapsed: ${JSON.stringify(shut)}`);
+    assert(await browser.eval("document.querySelectorAll('.mg-list')[0].hidden && localStorage.getItem('forge.library.collapsed').includes('chest')"), 'collapse did not hide the list or was not remembered');
+    await browser.eval("document.querySelectorAll('[data-toggle]')[0].click()");
+    await new Promise((r) => setTimeout(r, 900));
+    assert(await browser.eval("document.querySelector('[data-toggle]').getAttribute('aria-expanded') === 'true' && !document.querySelector('.mg-list').hidden"), 'the section did not reopen');
+    // Train preview
+    await browser.open('train', seed({}));
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await browser.eval("document.querySelector('.pv-list')?.scrollIntoView({ block: 'start' })");
+    await new Promise((r) => setTimeout(r, 250));
+    if (shots) await browser.screenshot(`${shots}/train-groups-${tag}.png`);
+    const tr = await browser.eval(`(() => ({ labels: [...document.querySelectorAll('.pv-mg-h')].map((e) => e.textContent), over: [...document.querySelectorAll('.pv-mg-h')].filter((e) => e.scrollWidth > e.clientWidth + 1).length, page: document.documentElement.scrollWidth > innerWidth + 1 }))()`);
+    assert(tr.labels.length >= 1 && tr.over === 0 && !tr.page, `Train preview labels: ${JSON.stringify(tr)}`);
+    assert(await browser.eval("[...document.querySelectorAll('.pv-mg')].every((li) => li.getAttribute('role') === 'none')"), 'Train label rows must be role=none so they are not counted as plan items');
+  });
+}
+
 // Goal date (v0.16.62): the "Goal date plan" sheet in its four states (on pace, behind, tight date, burn at the floor), the
 // "Plan for <date>" button on Body, and Settings with the date fields open and a note showing. Phone dark and light, small
 // phone at 160% text, and both Duo sizes. Nothing may overflow sideways, the button is 44px or more, nothing is clipped.
