@@ -382,7 +382,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 34. #220 Withings Connected card: stat row overflows the card
 - Issue: #220
 - Version: 0.16.78
-- Status: todo
+- Status: in-review
 - Acceptance:
   - Stats wrap or stack inside the card at 320x568 (text 1.0/1.6), 390x844, 466x678, 678x466; layout assert + shots; web-only.
 

@@ -711,6 +711,10 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 
 /* two-by-two stats (Weight: latest, trend, 7 days, per week) */
 .stats.stats-2 { grid-template-columns: repeat(2, minmax(0, 1fr)); justify-content: stretch; row-gap: var(--s-3); }
+/* Withings Connected card: three stats that wrap onto more rows instead of running past the card (320 px, large text, Duo) */
+.stats.stats-fit { grid-template-columns: repeat(auto-fit, minmax(calc(104px * var(--ts)), 1fr)); justify-content: stretch; row-gap: var(--s-3); }
+.stats.stats-fit > div { min-width: 0; }
+.stats.stats-fit b { white-space: normal; overflow-wrap: anywhere; }
 
 /* ---------- Wide canvas (iPhone Duo inner screen, landscape): Today and Train go two-column once each column gets ~340px; every other screen stays the 560px column until its own layout lands ---------- */
 @media (min-width: 840px) {
