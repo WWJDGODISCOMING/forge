@@ -512,6 +512,16 @@ for (const [w, h, ts] of standalone && (!only || only.includes('withings') || on
   });
 }
 
+/** Poll the page until `selector` exists; fail with a clear message instead of a TypeError on null. */
+async function waitForEl(selector, ms, what) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if (await browser.eval(`!!document.querySelector(${JSON.stringify(selector)})`).catch(() => false)) return;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`${what} (${selector}) never showed up within ${ms} ms`);
+}
+
 // Live workout: the running screen (Run shows distance and pace) and the paused look, at the phone and Duo sizes
 for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
   for (const dark of [true, false]) {
@@ -519,9 +529,10 @@ for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844
       if (skipReason()) return;
       browser = browser || await launch();
       await browser.viewport(w, h, dark);
-      await browser.open('live', seed());
+      await browser.open('live', seed(), "localStorage.removeItem('forge.live');");
+      await waitForEl('[data-kind=run]', 5000, 'the workout picker');
       await browser.eval("document.querySelector('[data-kind=run]').click(); document.querySelector('[data-start]').click()");
-      await new Promise((r) => setTimeout(r, 4300)); // the 3-2-1, then the running screen
+      await waitForEl('[data-pause]', 8000, 'the running screen (after the 3-2-1)');
       await browser.eval("document.querySelector('[data-pause]').click()");
       await new Promise((r) => setTimeout(r, 400));
       const r = await browser.eval("(() => { const b = document.querySelector('[data-pause]').getBoundingClientRect(); const e = document.querySelector('[data-end]').getBoundingClientRect(); const wide = [...document.querySelectorAll('.live-tv')].filter((n) => n.scrollWidth > n.clientWidth).length; const wrapped = [...document.querySelectorAll('.live-tl')].filter((n) => n.scrollWidth > n.clientWidth).length; return { over: document.documentElement.scrollWidth > innerWidth + 1, tall: (() => { const l = document.querySelector('.live'); return l.scrollHeight > l.clientHeight + 1 || document.documentElement.scrollHeight > innerHeight + 1; })(), bottom: Math.round(Math.max(b.bottom, e.bottom)), h: innerHeight, pause: Math.round(b.height), end: Math.round(e.height), wide, wrapped, tiles: document.querySelectorAll('.live-tile').length }; })()");
@@ -550,9 +561,11 @@ for (const [w, h, ts] of standalone && (!only || only.includes('live')) ? [[390,
     await browser.viewport(w, h, true);
     await browser.open('live', seed(), LIVE_SEED(125000));
     if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await waitForEl('[data-end]', 5000, 'the End button');
     await browser.eval("document.querySelector('[data-end]').click()");
+    await waitForEl('dialog.sheet[open]', 5000, 'the End sheet');
     await new Promise((r) => setTimeout(r, 700));
-    const a = await browser.eval(SHEET_PROBE);
+    const a =await browser.eval(SHEET_PROBE);
     if (shots) await browser.screenshot(`${shots}/live-end-sheet-${tag}.png`);
     assert(a && a.n === 3, `End sheet: expected End and save / Discard / Keep going, got ${a && a.n}`);
     await browser.eval("document.querySelector('dialog.sheet[open] [data-discard]').click()");
@@ -578,6 +591,7 @@ for (const [w, h, ts] of standalone && (!only || only.includes('live')) ? [[390,
     const hasStart = await browser.eval("!!document.querySelector('main [data-start], #main [data-start]')");
     assert(hasStart, 'Train has no Start workout button in this seed');
     await browser.eval("document.querySelector('#main [data-start]').click()");
+    await waitForEl('dialog.sheet[open]', 5000, 'the live-workout sheet');
     await new Promise((r) => setTimeout(r, 700));
     const r = await browser.eval(SHEET_PROBE);
     if (shots) await browser.screenshot(`${shots}/live-blocked-start-sheet-${tag}.png`);
@@ -1352,7 +1366,8 @@ if (!standalone) {
         const started = out.split('\n').filter((l) => l.includes('▶'));
         out += `\nshard ${i + 1} timed out after 14 min. Last test started: ${started.length ? started[started.length - 1].trim() : '(none)'}`;
       }, 840000); // under the 20 minute job cap in tests.yml (the sweep grew to ~9 min on slow runners)
-      p.on('close', (status) => { clearTimeout(timer); resolve({ status, out }); });
+      const t0 = Date.now();
+      p.on('close', (status) => { clearTimeout(timer); console.log(`      shard ${i + 1}/${SHARDS} done in ${Math.round((Date.now() - t0) / 1000)}s`); resolve({ status, out }); });
     }));
     const results = await Promise.all(runs);
     const bad = results.filter((r) => r.status !== 0);

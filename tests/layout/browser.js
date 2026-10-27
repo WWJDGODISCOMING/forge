@@ -63,15 +63,17 @@ export async function teardown({ ws, proc, srv, dir }, boundMs = 5000) {
   const exited = proc && (proc.exitCode !== null || proc.signalCode !== null)
     ? Promise.resolve()
     : new Promise((r) => { try { proc.once('exit', r); proc.kill('SIGKILL'); } catch { r(); } });
-  await within(exited, Math.min(2000, left()), 'Chrome exit');
+  // Chrome never gets the whole budget: server close and dir removal keep a floor (FLOOR ms each), even if that runs slightly past the bound.
+  const FLOOR = 300;
+  await within(exited, Math.max(FLOOR, Math.min(2000, boundMs - 700)), 'Chrome exit');
   try { proc && proc.stdout && proc.stdout.destroy(); } catch { /* ignore */ }
   try { proc && proc.stderr && proc.stderr.destroy(); } catch { /* ignore */ }
   try { proc && proc.unref && proc.unref(); } catch { /* ignore */ } // a Chrome that won't die can't keep the shard's event loop alive
   // Drop keep-alive sockets so close() can't wait on them.
   try { srv.closeAllConnections && srv.closeAllConnections(); } catch { /* ignore */ }
-  await within(new Promise((r) => { try { srv.close(() => r()); } catch { r(); } }), Math.min(1500, left()), 'server close');
+  await within(new Promise((r) => { try { srv.close(() => r()); } catch { r(); } }), Math.max(FLOOR, Math.min(1500, left())), 'server close');
   // Profile dir removal is best-effort (Chrome may still hold files for a moment).
-  await within(rm(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }), left(), 'profile dir removal');
+  await within(rm(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }), Math.max(FLOOR, left()),'profile dir removal');
 }
 
 export async function launch() {
