@@ -393,5 +393,40 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #226; optional Carbs/Fat fields count toward totals; Duo, large text, tests.
 
+## 36. #232 Tests: fix flaky layout teardown ('close the browser' timeout)
+- Issue: #232
+- Version: 0.16.80
+- Status: todo
+- Acceptance:
+  - close() bounded ~5s, never hangs a shard; unit test with never-exiting fake; 3 clean CI sweeps linked; test-only, no screens needed.
+
+## 37. #233 Polish: loading skeletons on every data screen
+- Issue: #233
+- Version: 0.16.81
+- Status: todo
+- Acceptance:
+  - See issue #233; layout-matched skeletons, no jump >8px, aria-busy, reduced motion; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
+
+## 38. #234 Polish: haptics + press feedback on screens with none
+- Issue: #234
+- Version: 0.16.82
+- Status: todo
+- Acceptance:
+  - See issue #234; existing haptic vocabulary, feedback <100ms, control->haptic table, stubbed test; shots 390x844, 4 Duo sizes, 320 text 1.6.
+
+## 39. #235 Polish: empty states for Score, Progress, Withings
+- Issue: #235
+- Version: 0.16.83
+- Status: todo
+- Acceptance:
+  - See issue #235; slice-12 style art + one action, no fake zeros; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
+
+## 40. #236 Polish: large-text + Duo layout sweep (Trends, Weekly, Report, Score, Progress)
+- Issue: #236
+- Version: 0.16.84
+- Status: todo
+- Acceptance:
+  - See issue #236; fix overflow/clip/wrap, new layout-assert route group at all sizes; shots 390x844, 4 Duo sizes, 320 text 1.6.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
