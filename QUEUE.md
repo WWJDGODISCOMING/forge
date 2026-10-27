@@ -403,7 +403,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 37. #238 Polish: organize workouts by muscle group
 - Issue: #238
 - Version: 0.16.81
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #238; Library + Train preview grouped Chest/Back/Legs/Shoulders/Arms/Core, collapsible or segmented headers; filters, joint toggles, Recommend more/less unchanged; shots 390x844, 4 Duo sizes dark+light, 320 text 1.6; tests.
 
