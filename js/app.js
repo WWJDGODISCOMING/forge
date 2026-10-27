@@ -413,6 +413,9 @@ if (isNative()) import('./native/widget.js').then((m) => m.startWidgetSync(docum
 // ...and a cheap re-read of today's steps and energy about every 5 minutes while Today or Food is showing (js/screens/apple.js refreshToday).
 if (isNative()) setInterval(() => { if (document.visibilityState === 'visible' && ['today', 'food'].includes(currentRoute()) && allLoaded() && state.user) import('./screens/apple.js').then((m) => m.refreshToday()).catch(() => {}); }, 5 * 60 * 1000);
 
+// iPhone app: smart reminders (js/reminders): re-planned when data changes and when the app comes to the front.
+if (isNative()) import('./reminders/store.js').then((m) => m.startReminders()).catch(() => {});
+
 // iPhone app: a local notification the day before the free Apple ID signature runs out (js/native/expiry.js).
 if (isNative()) {
   import('./native/expiry.js').then(async (m) => {

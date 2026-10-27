@@ -356,7 +356,7 @@ export function renderToday(el) {
       <div class="slot" data-o="7">${report.html}</div>
 
 
-      <div class="slot" data-o="8"><div data-photo-reminder></div></div>
+      <div class="slot" data-o="8"><div data-reminder-banners class="stack"></div><div data-photo-reminder></div></div>
 
       <div class="slot" data-o="9">${readinessCard()}</div>
 
@@ -408,6 +408,7 @@ export function renderToday(el) {
   afterBadgeCelebrations(el);
   afterCompletionCards(el);
   import('../photos/cards.js').then((m) => m.mountPhotoReminder($('[data-photo-reminder]', el)));
+  import('../reminders/ui.js').then((m) => m.mountReminderBanners($('[data-reminder-banners]', el))).catch(() => {});
   const sc = $('[data-score]', el);
   if (sc) animateScoreRings(sc);
   animateRings($('.rings-card', el), rings, weekOf(new Date().toISOString()), ringsBefore);
