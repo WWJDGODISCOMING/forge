@@ -46,6 +46,7 @@ export function renderLibrary(el) {
       ${groups.map((g) => {
         const open = searching || !collapsed.has(g.key);
         return `<section class="mg" data-group="${g.key}">
+          <span class="mg-sentinel" aria-hidden="true"></span>
           <h2 class="mg-h"><button type="button" class="mg-btn" data-toggle="${g.key}" aria-expanded="${open}" aria-controls="mg-${g.key}">
             <span class="mg-name">${esc(g.label)}</span><span class="mg-count">${g.items.length}</span><span class="mg-chev" aria-hidden="true">${icon('chev')}</span></button></h2>
           <ul class="list mg-list" id="mg-${g.key}" ${open ? '' : 'hidden'}>
@@ -71,10 +72,28 @@ export function renderLibrary(el) {
   $('[data-pattern]', el).addEventListener('change', (e) => { pattern = e.target.value; renderLibrary(el); });
   $('[data-here]', el).addEventListener('change', (e) => { hereOnly = e.target.checked; renderLibrary(el); });
   $$('[data-toggle]', el).forEach((b) => b.addEventListener('click', () => toggleGroup(b, collapsed)));
+  watchStuck(el);
   $$('[data-id]', el).forEach((li) => li.addEventListener('click', () => openDetail(li.dataset.id)));
   $('[data-new]', el).onclick = () => openCustomForm();
   const newEmpty = $('[data-new-empty]', el);
   if (newEmpty) newEmpty.onclick = () => openCustomForm();
+}
+
+/** Marks a section header `.stuck` once its sentinel has scrolled up under the nav bar, so only then it gets glass and a hairline. */
+function watchStuck(el) {
+  el._mgObs?.disconnect();
+  if (typeof IntersectionObserver === 'undefined') return;
+  const nav = document.querySelector('.navbar');
+  const top = nav ? Math.round(nav.getBoundingClientRect().height) : 44;
+  const obs = new IntersectionObserver((entries) => {
+    for (const e of entries) {
+      const h = e.target.parentElement.querySelector('.mg-h');
+      const above = e.boundingClientRect.top < (e.rootBounds ? e.rootBounds.top : top);
+      h.classList.toggle('stuck', !e.isIntersecting && above);
+    }
+  }, { rootMargin: `-${top}px 0px 0px 0px`, threshold: 0 });
+  $$('.mg-sentinel', el).forEach((s) => obs.observe(s));
+  el._mgObs = obs;
 }
 
 const COLLAPSE_KEY = 'forge.library.collapsed';
@@ -91,17 +110,23 @@ function toggleGroup(btn, collapsed) {
   open ? collapsed.delete(key) : collapsed.add(key);
   try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])); } catch { /* private mode: not remembered */ }
   haptics.select();
-  list._anim?.stop();
-  if (open) list.hidden = false;
-  const full = list.scrollHeight;
+  // A second tap mid-spring reverses from wherever the height is right now.
+  const cur = list._anim ? list._anim.stop().value : list.offsetHeight;
+  list._anim = null;
   if (reducedMotion()) {
+    list.style.height = ''; list.style.overflow = '';
+    if (open) list.hidden = false;
     const a = list.animate?.([{ opacity: open ? 0 : 1 }, { opacity: open ? 1 : 0 }], { duration: DUR.fast, fill: 'both' });
     if (a) a.onfinish = () => { a.cancel(); if (!open) list.hidden = true; }; else if (!open) list.hidden = true;
     return;
   }
+  // Pin the height at the start value before the list is shown, so the full list never paints for a frame.
   list.style.overflow = 'hidden';
+  list.style.height = `${cur}px`;
+  if (open) list.hidden = false;
+  const full = list.scrollHeight;
   list._anim = animateSpring({
-    from: open ? 0 : list.offsetHeight, to: open ? full : 0,
+    from: cur, to: open ? full : 0,
     onUpdate: (v) => { list.style.height = `${Math.max(0, v)}px`; },
     onDone: () => { list.style.height = ''; list.style.overflow = ''; if (!open) list.hidden = true; list._anim = null; },
   });

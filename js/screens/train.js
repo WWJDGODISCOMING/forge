@@ -302,7 +302,7 @@ function previewCard(plan, { d, loc, program, u }) {
   let lastGroup = '';
   const blocks = planBlocks(plan.exercises).map((b) => {
     const g = muscleGroup(exerciseById(b.items[0].it.exercise_id));
-    const head = g === lastGroup ? '' : `<li class="pv-mg"><h3 class="pv-mg-h">${esc(GROUP_LABELS[g])}</h3></li>`;
+    const head = g === lastGroup ? '' : `<li class="pv-mg" role="none"><h3 class="pv-mg-h">${esc(GROUP_LABELS[g])}</h3></li>`;
     lastGroup = g;
     return head + (b.group
     ? `<li class="pv-group"><p class="pv-group-h"><span>${b.kind} ${esc(b.group)}</span><small class="muted">${b.rounds} rounds · rest after each round</small></p>

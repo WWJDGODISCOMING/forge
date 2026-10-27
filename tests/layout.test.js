@@ -100,6 +100,10 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('library') 
     await new Promise((r) => setTimeout(r, 250));
     const stuck = await browser.eval(`(() => { const s = document.querySelectorAll('.mg')[1]; const hb = s.querySelector('.mg-h').getBoundingClientRect(); const r0 = s.querySelector('li').getBoundingClientRect(); const nav = document.querySelector('.navbar').getBoundingClientRect(); return { gap: r0.top - hb.bottom, below: hb.top - nav.bottom }; })()`);
     assert(stuck.gap >= -1 && stuck.below >= -1, `sticky header overlaps: ${JSON.stringify(stuck)}`);
+    if (shots) await browser.screenshot(`${shots}/library-groups-stuck-${tag}.png`);
+    // stuck, the header is the same glass as the nav and tab bars (a blur, not a flat --bg band) with a hairline
+    const glass = await browser.eval(`(() => { const h = document.querySelectorAll('.mg')[1].querySelector('.mg-h'); const cs = getComputedStyle(h); const bf = cs.backdropFilter || cs.webkitBackdropFilter; return { stuck: h.classList.contains('stuck'), bf, shadow: cs.boxShadow }; })()`);
+    assert(glass.stuck && glass.bf && glass.bf !== 'none' && glass.shadow !== 'none', `stuck header is not glass: ${JSON.stringify(glass)}`);
     // collapse the first two: aria-expanded flips, lists hide, the choice is remembered, nothing overflows
     await browser.eval("window.scrollTo({ top: 0, behavior: 'instant' }); document.querySelectorAll('[data-toggle]')[0].click(); document.querySelectorAll('[data-toggle]')[1].click()");
     await new Promise((r) => setTimeout(r, 900));
@@ -119,6 +123,7 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('library') 
     if (shots) await browser.screenshot(`${shots}/train-groups-${tag}.png`);
     const tr = await browser.eval(`(() => ({ labels: [...document.querySelectorAll('.pv-mg-h')].map((e) => e.textContent), over: [...document.querySelectorAll('.pv-mg-h')].filter((e) => e.scrollWidth > e.clientWidth + 1).length, page: document.documentElement.scrollWidth > innerWidth + 1 }))()`);
     assert(tr.labels.length >= 1 && tr.over === 0 && !tr.page, `Train preview labels: ${JSON.stringify(tr)}`);
+    assert(await browser.eval("[...document.querySelectorAll('.pv-mg')].every((li) => li.getAttribute('role') === 'none')"), 'Train label rows must be role=none so they are not counted as plan items');
   });
 }
 

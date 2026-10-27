@@ -77,6 +77,7 @@ test('v0.16.81: the Train preview labels muscle groups without reordering the pl
   const src = read('js/screens/train.js');
   assert(src.includes('planBlocks(plan.exercises).map('));
   assert(src.includes('pv-mg-h'));
+  assert(src.includes('<li class="pv-mg" role="none"><h3 class="pv-mg-h">'), 'label li must be role=none so it is not counted as a plan item');
   assert(src.includes("muscleGroup(exerciseById(b.items[0].it.exercise_id))"));
 });
 
@@ -84,4 +85,16 @@ test('v0.16.81: the sticky header sits under the nav bar, with a 44px target', (
   const css = read('css/app.css');
   assert(/\.mg-h \{[^}]*position: sticky; top: calc\(var\(--safe-top\) \+ 44px\)/.test(css));
   assert(/\.mg-btn \{[^}]*min-height: 44px/.test(css));
+});
+
+test('v0.16.81: the stuck header is glass, not a flat --bg band, and opening pins the height first', () => {
+  const css = read('css/app.css');
+  assert(!/\.mg-h \{[^}]*background: var\(--bg\)/.test(css));
+  const st = css.match(/\.mg-h\.stuck \{[^}]*\}/)[0];
+  assert(st.includes('var(--glass)') && st.includes('-webkit-backdrop-filter: blur(20px) saturate(180%)') && st.includes('backdrop-filter: blur(20px) saturate(180%)') && st.includes('var(--hairline)'));
+  const src = read('js/screens/library.js');
+  assert(src.includes('IntersectionObserver') && src.includes("classList.toggle('stuck'"));
+  const i = src.indexOf("list.style.height = `${cur}px`"), j = src.indexOf('if (open) list.hidden = false;', i);
+  assert(i > 0 && j > i, 'height is pinned before the list is unhidden');
+  assert(src.includes('list._anim.stop().value'), 'a second tap reverses from the current height');
 });
