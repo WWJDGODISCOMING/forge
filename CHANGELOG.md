@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.79 — Quick add takes carbs and fat (2026-10-27)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Food > Quick add now has optional Carbs (g) and Fat (g) next to Protein.
+- Quick entries count toward the day's carb and fat totals.
+
 ## 0.16.78 — Withings Connected card stats stay inside the card (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes.

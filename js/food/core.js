@@ -97,13 +97,14 @@ export function stepServings(s, dir) {
   return Math.min(LIMITS.servings, Math.max(0.25, Math.round((s + dir * step) * 100) / 100));
 }
 
-/** "I don't know, about 600": calories and maybe protein, nothing else. null if there are no calories. */
-export function quickItem(kcal, protein) {
+/** "I don't know, about 600": calories and maybe protein, carbs and fat. null if there are no calories. */
+export function quickItem(kcal, protein, carbs, fat) {
   const k = Number(kcal);
   if (!Number.isFinite(k) || k <= 0 || k > LIMITS.kcal) return null;
-  const p = protein === '' || protein == null ? 0 : Number(protein);
-  if (!Number.isFinite(p) || p < 0 || p > LIMITS.macro) return null;
-  return { name: QUICK_NAME, kcal: Math.round(k), protein_g: r1(p), carbs_g: 0, fat_g: 0, serving: '' };
+  const m = (v) => (v === '' || v == null ? 0 : Number(v));
+  const [p, c, f] = [m(protein), m(carbs), m(fat)];
+  if ([p, c, f].some((x) => !Number.isFinite(x) || x < 0 || x > LIMITS.macro)) return null;
+  return { name: QUICK_NAME, kcal: Math.round(k), protein_g: r1(p), carbs_g: r1(c), fat_g: r1(f), serving: '' };
 }
 
 /** Entries of `meal` on `fromDay`, as fields for new records on `toDay` (macros and servings copied as logged). */
