@@ -37,7 +37,7 @@ export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: a
 const rows = (col) => ((window.__SEED || {})[col] || []);
 const snap = (col) => ({ metadata: { hasPendingWrites: false }, docChanges: () => [1], docs: rows(col).map((r) => ({ id: r.id, data: () => r })) });
 export const getDocs = async (ref) => snap(ref.col);
-export const onSnapshot = (ref, ...rest) => { const next = rest.find((x) => typeof x === 'function'); live.push({ col: ref.col, next }); setTimeout(() => next(snap(ref.col)), 0); return () => {}; };
+export const onSnapshot = (ref, ...rest) => { const next = rest.find((x) => typeof x === 'function'); live.push({ col: ref.col, next }); (window.__HOLD ? (window.__held = window.__held || []).push(() => next(snap(ref.col))) : setTimeout(() => next(snap(ref.col)), 0)); return () => {}; };
 `;
 
 const functions = `
