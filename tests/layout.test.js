@@ -512,6 +512,16 @@ for (const [w, h, ts] of standalone && (!only || only.includes('withings') || on
   });
 }
 
+/** Poll the page until `selector` exists; fail with a clear message instead of a TypeError on null. */
+async function waitForEl(selector, ms, what) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < ms) {
+    if (await browser.eval(`!!document.querySelector(${JSON.stringify(selector)})`).catch(() => false)) return;
+    await new Promise((r) => setTimeout(r, 100));
+  }
+  throw new Error(`${what} (${selector}) never showed up within ${ms} ms`);
+}
+
 // Live workout: the running screen (Run shows distance and pace) and the paused look, at the phone and Duo sizes
 for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
   for (const dark of [true, false]) {
@@ -519,9 +529,10 @@ for (const [w, h] of standalone && (!only || only.includes('live')) ? [[390, 844
       if (skipReason()) return;
       browser = browser || await launch();
       await browser.viewport(w, h, dark);
-      await browser.open('live', seed());
+      await browser.open('live', seed(), "localStorage.removeItem('forge.live');");
+      await waitForEl('[data-kind=run]', 5000, 'the workout picker');
       await browser.eval("document.querySelector('[data-kind=run]').click(); document.querySelector('[data-start]').click()");
-      await new Promise((r) => setTimeout(r, 4300)); // the 3-2-1, then the running screen
+      await waitForEl('[data-pause]', 8000, 'the running screen (after the 3-2-1)');
       await browser.eval("document.querySelector('[data-pause]').click()");
       await new Promise((r) => setTimeout(r, 400));
       const r = await browser.eval("(() => { const b = document.querySelector('[data-pause]').getBoundingClientRect(); const e = document.querySelector('[data-end]').getBoundingClientRect(); const wide = [...document.querySelectorAll('.live-tv')].filter((n) => n.scrollWidth > n.clientWidth).length; const wrapped = [...document.querySelectorAll('.live-tl')].filter((n) => n.scrollWidth > n.clientWidth).length; return { over: document.documentElement.scrollWidth > innerWidth + 1, tall: (() => { const l = document.querySelector('.live'); return l.scrollHeight > l.clientHeight + 1 || document.documentElement.scrollHeight > innerHeight + 1; })(), bottom: Math.round(Math.max(b.bottom, e.bottom)), h: innerHeight, pause: Math.round(b.height), end: Math.round(e.height), wide, wrapped, tiles: document.querySelectorAll('.live-tile').length }; })()");
@@ -550,9 +561,11 @@ for (const [w, h, ts] of standalone && (!only || only.includes('live')) ? [[390,
     await browser.viewport(w, h, true);
     await browser.open('live', seed(), LIVE_SEED(125000));
     if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await waitForEl('[data-end]', 5000, 'the End button');
     await browser.eval("document.querySelector('[data-end]').click()");
+    await waitForEl('dialog.sheet[open]', 5000, 'the End sheet');
     await new Promise((r) => setTimeout(r, 700));
-    const a = await browser.eval(SHEET_PROBE);
+    const a =await browser.eval(SHEET_PROBE);
     if (shots) await browser.screenshot(`${shots}/live-end-sheet-${tag}.png`);
     assert(a && a.n === 3, `End sheet: expected End and save / Discard / Keep going, got ${a && a.n}`);
     await browser.eval("document.querySelector('dialog.sheet[open] [data-discard]').click()");
@@ -578,6 +591,7 @@ for (const [w, h, ts] of standalone && (!only || only.includes('live')) ? [[390,
     const hasStart = await browser.eval("!!document.querySelector('main [data-start], #main [data-start]')");
     assert(hasStart, 'Train has no Start workout button in this seed');
     await browser.eval("document.querySelector('#main [data-start]').click()");
+    await waitForEl('dialog.sheet[open]', 5000, 'the live-workout sheet');
     await new Promise((r) => setTimeout(r, 700));
     const r = await browser.eval(SHEET_PROBE);
     if (shots) await browser.screenshot(`${shots}/live-blocked-start-sheet-${tag}.png`);
@@ -1352,7 +1366,8 @@ if (!standalone) {
         const started = out.split('\n').filter((l) => l.includes('▶'));
         out += `\nshard ${i + 1} timed out after 14 min. Last test started: ${started.length ? started[started.length - 1].trim() : '(none)'}`;
       }, 840000); // under the 20 minute job cap in tests.yml (the sweep grew to ~9 min on slow runners)
-      p.on('close', (status) => { clearTimeout(timer); resolve({ status, out }); });
+      const t0 = Date.now();
+      p.on('close', (status) => { clearTimeout(timer); console.log(`      shard ${i + 1}/${SHARDS} done in ${Math.round((Date.now() - t0) / 1000)}s`); resolve({ status, out }); });
     }));
     const results = await Promise.all(runs);
     const bad = results.filter((r) => r.status !== 0);
@@ -3187,26 +3202,36 @@ for (const [w, h, ts] of VF_ON ? VF_SIZES : []) {
 }
 
 test('layout: close the browser', async () => {
-  if (browser) await browser.close();
+  // close() is bounded, but never let teardown fail a shard: warn and continue.
+  const b = browser;
   browser = null;
+  if (b) {
+    let timer;
+    const guard = new Promise((r) => { timer = setTimeout(() => { console.warn('  ! teardown: browser.close() passed its bound; continuing'); r(); }, 8000); timer.unref(); });
+    try { await Promise.race([b.close(), guard]); } catch (e) { console.warn(`  ! teardown: ${e.message}`); }
+    clearTimeout(timer);
+  }
 });
 
 if (standalone) {
   const { runAll, tests } = await import('./harness.js');
+  const CLOSE = 'layout: close the browser';
+  // Runs once, after every test below is registered (a test registered later would escape the split, the cap and the ▶ marker).
+  const applyShard = () => {
+  tests.push(...tests.splice(tests.findIndex((t) => t.name === CLOSE), 1)); // closing the browser is always last
   if (arg('grep')) { // --grep=goal date → only tests whose name contains it (plus closing the browser)
     const keep = tests.filter((t) => t.name.includes(arg('grep')) || t.name === 'layout: close the browser');
     tests.splice(0, tests.length, ...keep);
   }
   const shard = (arg('shard') || '').split('/').map(Number); // --shard=2/6 → the second of six cost-balanced groups
   if (shard.length === 2) {
-    const CLOSE = 'layout: close the browser';
     const only = arg('only');
     if (only) {
       const keep = tests.filter((t) => t.name.includes(only) || t.name === CLOSE);
       tests.splice(0, tests.length, ...keep);
     } else {
       // Bin-pack by estimated cost (renders): a route group costs its size count, anything else ~3. Every shard computes the same split.
-      const cost = (t) => { const m = /\(sizes (\d+)\/(\d+)\)/.exec(t.name); return m ? (Number(m[1]) < Number(m[2]) ? CHUNK : CASES.length - CHUNK * (Number(m[2]) - 1)) : /Body profile shows/.test(t.name) ? 9 : 3; };
+      const cost = (t) => { const m = /\(sizes (\d+)\/(\d+)\)/.exec(t.name); return m ? (Number(m[1]) < Number(m[2]) ? CHUNK : CASES.length - CHUNK * (Number(m[2]) - 1)) : /Body profile shows/.test(t.name) ? 9 : /Train Switch/.test(t.name) ? 12 : /Past days/.test(t.name) ? 10 : 3; };
       const bins = Array.from({ length: shard[1] }, () => ({ load: 0, names: new Set() }));
       tests.filter((t) => t.name !== CLOSE).map((t, i) => ({ t, i, c: cost(t) })).sort((a, b) => b.c - a.c || a.i - b.i).forEach(({ t, c }) => {
         const bin = bins.reduce((lo, b) => (b.load < lo.load ? b : lo));
@@ -3230,6 +3255,9 @@ if (standalone) {
       };
     }
   }
+  if (tests.at(-1).name !== CLOSE) throw new Error(`"${CLOSE}" must be the last test, found "${tests.at(-1).name}"`);
+  Object.freeze(tests); // a test() registered after the split now throws instead of silently running in every shard
+  };
   test('layout: Train Switch: the card head, chips, Switch sheet steps and scratch builder fit at every size', async () => {
     if (skipReason()) return;
     browser = browser || await launch();
@@ -3400,6 +3428,7 @@ if (standalone) {
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
+  applyShard();
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);
 }

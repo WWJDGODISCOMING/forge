@@ -3,6 +3,7 @@
 import { spawn } from 'node:child_process';
 import { existsSync, readFileSync, mkdirSync, mkdtempSync, rmSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
+import { rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, extname, normalize, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -42,6 +43,37 @@ function pinClock(iso) {
   return `(() => { const R = Date, off = new R(${JSON.stringify(iso)}).getTime() - R.now();
     class D extends R { constructor(...a) { if (a.length) super(...a); else super(R.now() + off); } static now() { return R.now() + off; } }
     window.Date = D; })();`;
+}
+
+/**
+ * Shut everything down in bounded time (default 5 s). Never throws and never hangs: whatever is still alive
+ * when the bound passes is logged as a warning and abandoned (timers are unref'd so they can't hold the process).
+ */
+export async function teardown({ ws, proc, srv, dir }, boundMs = 5000) {
+  const warn = (what) => console.warn(`  ! teardown: ${what}`);
+  const deadline = Date.now() + boundMs;
+  const left = () => Math.max(0, deadline - Date.now());
+  const within = (p, ms, what) => new Promise((resolve) => {
+    const t = setTimeout(() => { warn(`${what} did not finish in ${ms} ms; moving on`); resolve(false); }, ms);
+    t.unref();
+    Promise.resolve(p).then(() => { clearTimeout(t); resolve(true); }, () => { clearTimeout(t); resolve(true); });
+  });
+  try { ws && ws.close(); } catch { /* ignore */ }
+  // Kill Chrome and wait (bounded) for it to exit.
+  const exited = proc && (proc.exitCode !== null || proc.signalCode !== null)
+    ? Promise.resolve()
+    : new Promise((r) => { try { proc.once('exit', r); proc.kill('SIGKILL'); } catch { r(); } });
+  // Chrome never gets the whole budget: server close and dir removal keep a floor (FLOOR ms each), even if that runs slightly past the bound.
+  const FLOOR = 300;
+  await within(exited, Math.max(FLOOR, Math.min(2000, boundMs - 700)), 'Chrome exit');
+  try { proc && proc.stdout && proc.stdout.destroy(); } catch { /* ignore */ }
+  try { proc && proc.stderr && proc.stderr.destroy(); } catch { /* ignore */ }
+  try { proc && proc.unref && proc.unref(); } catch { /* ignore */ } // a Chrome that won't die can't keep the shard's event loop alive
+  // Drop keep-alive sockets so close() can't wait on them.
+  try { srv.closeAllConnections && srv.closeAllConnections(); } catch { /* ignore */ }
+  await within(new Promise((r) => { try { srv.close(() => r()); } catch { r(); } }), Math.max(FLOOR, Math.min(1500, left())), 'server close');
+  // Profile dir removal is best-effort (Chrome may still hold files for a moment).
+  await within(rm(dir, { recursive: true, force: true, maxRetries: 3, retryDelay: 100 }), Math.max(FLOOR, left()),'profile dir removal');
 }
 
 export async function launch() {
@@ -163,12 +195,7 @@ export async function launch() {
       mkdirSync(dirname(path), { recursive: true });
       (await import('node:fs')).writeFileSync(path, Buffer.from(data, 'base64'));
     },
-    async close() {
-      try { ws.close(); } catch { /* ignore */ }
-      proc.kill('SIGKILL');
-      srv.close();
-      try { rmSync(dir, { recursive: true, force: true }); } catch { /* ignore */ }
-    },
+    async close() { await teardown({ ws, proc, srv, dir }); },
   };
   return api;
 }
