@@ -3187,8 +3187,15 @@ for (const [w, h, ts] of VF_ON ? VF_SIZES : []) {
 }
 
 test('layout: close the browser', async () => {
-  if (browser) await browser.close();
+  // close() is bounded, but never let teardown fail a shard: warn and continue.
+  const b = browser;
   browser = null;
+  if (b) {
+    let timer;
+    const guard = new Promise((r) => { timer = setTimeout(() => { console.warn('  ! teardown: browser.close() passed its bound; continuing'); r(); }, 8000); timer.unref(); });
+    try { await Promise.race([b.close(), guard]); } catch (e) { console.warn(`  ! teardown: ${e.message}`); }
+    clearTimeout(timer);
+  }
 });
 
 if (standalone) {
