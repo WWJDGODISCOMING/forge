@@ -3508,9 +3508,10 @@ if (standalone) {
         await browser.viewport(w, h, dark);
         await browser.open(route, seed({ comp: route === 'body' }), 'window.__HOLD = true;', { loading: true });
         if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
-        const probe = `(() => { const m = document.querySelector('#main'); const s = m.querySelector('.skel-screen'); const f = m.firstElementChild; const r = f ? f.getBoundingClientRect() : null;
+        const probe = `(() => { const m = document.querySelector('#main'); if (!m) return { skel: false, top: -1, width: 0 }; const s = m.querySelector('.skel-screen'); const f = m.firstElementChild; const r = f ? f.getBoundingClientRect() : null;
           return { skel: !!s, busy: s ? s.getAttribute('aria-busy') : null, role: s ? s.getAttribute('role') : null, anim: s ? getComputedStyle(s.querySelector('.skeleton')).animationName : '', taps: m.querySelectorAll('a, button, input').length,
             top: r ? Math.round(r.top) : -1, width: m.getBoundingClientRect().width, page: document.documentElement.scrollWidth > innerWidth + 1, over: s ? [...s.querySelectorAll('.skeleton')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1).length : 0 }; })()`;
+        for (let i = 0; i < 30 && !(await browser.eval("!!document.querySelector('#main .skel-screen')")); i++) await new Promise((r) => setTimeout(r, 100));
         const a = await browser.eval(probe);
         if (shots) await browser.screenshot(`${shots}/skeleton-${route}-${tag}.png`);
         if (!a.skel) found.push(`${tag}: no skeleton while loading`);
