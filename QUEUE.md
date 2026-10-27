@@ -400,30 +400,37 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - close() bounded ~5s, never hangs a shard; unit test with never-exiting fake; 3 clean CI sweeps linked; test-only, no screens needed.
 
-## 37. #233 Polish: loading skeletons on every data screen
-- Issue: #233
+## 37. #238 Polish: organize workouts by muscle group
+- Issue: #238
 - Version: 0.16.81
+- Status: todo
+- Acceptance:
+  - See issue #238; Library + Train preview grouped Chest/Back/Legs/Shoulders/Arms/Core, collapsible or segmented headers; filters, joint toggles, Recommend more/less unchanged; shots 390x844, 4 Duo sizes dark+light, 320 text 1.6; tests.
+
+## 38. #233 Polish: loading skeletons on every data screen
+- Issue: #233
+- Version: 0.16.82
 - Status: todo
 - Acceptance:
   - See issue #233; layout-matched skeletons, no jump >8px, aria-busy, reduced motion; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
 
-## 38. #234 Polish: haptics + press feedback on screens with none
+## 39. #234 Polish: haptics + press feedback on screens with none
 - Issue: #234
-- Version: 0.16.82
+- Version: 0.16.83
 - Status: todo
 - Acceptance:
   - See issue #234; existing haptic vocabulary, feedback <100ms, control->haptic table, stubbed test; shots 390x844, 4 Duo sizes, 320 text 1.6.
 
-## 39. #235 Polish: empty states for Score, Progress, Withings
+## 40. #235 Polish: empty states for Score, Progress, Withings
 - Issue: #235
-- Version: 0.16.83
+- Version: 0.16.84
 - Status: todo
 - Acceptance:
   - See issue #235; slice-12 style art + one action, no fake zeros; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
 
-## 40. #236 Polish: large-text + Duo layout sweep (Trends, Weekly, Report, Score, Progress)
+## 41. #236 Polish: large-text + Duo layout sweep (Trends, Weekly, Report, Score, Progress)
 - Issue: #236
-- Version: 0.16.84
+- Version: 0.16.85
 - Status: todo
 - Acceptance:
   - See issue #236; fix overflow/clip/wrap, new layout-assert route group at all sizes; shots 390x844, 4 Duo sizes, 320 text 1.6.
