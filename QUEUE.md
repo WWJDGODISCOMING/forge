@@ -368,7 +368,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 32b. #227 Progress photo camera: shutter freezes app + self-timer (URGENT bug)
 - Issue: #227
 - Version: 0.16.76
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #227; capture works, no freeze, timer Off/3s/10s, tests, Duo, large text. Native.
 
