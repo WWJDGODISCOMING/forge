@@ -100,9 +100,11 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('library') 
     await new Promise((r) => setTimeout(r, 250));
     const stuck = await browser.eval(`(() => { const s = document.querySelectorAll('.mg')[1]; const hb = s.querySelector('.mg-h').getBoundingClientRect(); const r0 = s.querySelector('li').getBoundingClientRect(); const nav = document.querySelector('.navbar').getBoundingClientRect(); return { gap: r0.top - hb.bottom, below: hb.top - nav.bottom }; })()`);
     assert(stuck.gap >= -1 && stuck.below >= -1, `sticky header overlaps: ${JSON.stringify(stuck)}`);
+    await browser.eval('scrollBy(0, 80)'); // further in, so the header is really stuck (rows now slide under the glass)
+    await new Promise((r) => setTimeout(r, 250));
     if (shots) await browser.screenshot(`${shots}/library-groups-stuck-${tag}.png`);
     // stuck, the header is the same glass as the nav and tab bars (a blur, not a flat --bg band) with a hairline
-    const glass = await browser.eval(`(() => { const h = document.querySelectorAll('.mg')[1].querySelector('.mg-h'); const cs = getComputedStyle(h); const bf = cs.backdropFilter || cs.webkitBackdropFilter; return { stuck: h.classList.contains('stuck'), bf, shadow: cs.boxShadow }; })()`);
+    const glass = await browser.eval(`(() => { const h = document.querySelectorAll('.mg')[1].querySelector('.mg-h'); const cs = getComputedStyle(h); const bf = cs.backdropFilter || cs.webkitBackdropFilter; return { stuck: h.classList.contains('stuck'), bf, shadow: cs.boxShadow, y: Math.round(scrollY), doc: document.documentElement.scrollHeight, ih: innerHeight, sen: Math.round(h.parentElement.querySelector('.mg-sentinel').getBoundingClientRect().top), io: typeof IntersectionObserver }; })()`);
     assert(glass.stuck && glass.bf && glass.bf !== 'none' && glass.shadow !== 'none', `stuck header is not glass: ${JSON.stringify(glass)}`);
     // collapse the first two: aria-expanded flips, lists hide, the choice is remembered, nothing overflows
     await browser.eval("window.scrollTo({ top: 0, behavior: 'instant' }); document.querySelectorAll('[data-toggle]')[0].click(); document.querySelectorAll('[data-toggle]')[1].click()");

@@ -83,15 +83,11 @@ export function renderLibrary(el) {
 function watchStuck(el) {
   el._mgObs?.disconnect();
   if (typeof IntersectionObserver === 'undefined') return;
-  const nav = document.querySelector('.navbar');
-  const top = nav ? Math.round(nav.getBoundingClientRect().height) : 44;
   const obs = new IntersectionObserver((entries) => {
     for (const e of entries) {
-      const h = e.target.parentElement.querySelector('.mg-h');
-      const above = e.boundingClientRect.top < (e.rootBounds ? e.rootBounds.top : top);
-      h.classList.toggle('stuck', !e.isIntersecting && above);
+      e.target.parentElement.querySelector('.mg-h').classList.toggle('stuck', !e.isIntersecting && e.boundingClientRect.top < 0);
     }
-  }, { rootMargin: `-${top}px 0px 0px 0px`, threshold: 0 });
+  }, { threshold: 0 });
   $$('.mg-sentinel', el).forEach((s) => obs.observe(s));
   el._mgObs = obs;
 }

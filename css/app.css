@@ -376,7 +376,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .mg-h { position: sticky; top: calc(var(--safe-top) + 44px); z-index: 2; margin: 0; padding: 0; background: transparent; font-size: inherit; line-height: inherit; letter-spacing: 0; }
 /* Only while it is stuck does the header turn into the same glass as the nav and tab bars, with a hairline underneath. */
 .mg-h.stuck { background: var(--glass); -webkit-backdrop-filter: blur(20px) saturate(180%); backdrop-filter: blur(20px) saturate(180%); box-shadow: 0 .5px 0 var(--hairline); }
-.mg-sentinel { position: absolute; top: 0; left: 0; width: 1px; height: 1px; pointer-events: none; visibility: hidden; }
+.mg-sentinel { position: absolute; top: calc(-1px - var(--safe-top) - 44px); left: 0; /* one nav bar height above the section: it leaves the screen top exactly when the header sticks */ width: 1px; height: 1px; pointer-events: none; visibility: hidden; }
 .mg-btn { display: flex; align-items: center; gap: var(--s-2); width: 100%; min-height: 44px; padding: 0 var(--s-1); border: 0; background: none; color: var(--text-1); font: inherit; font-weight: 700; text-align: left; cursor: pointer; }
 .mg-name { font-size: calc(20px * var(--ts)); letter-spacing: -0.015em; }
 .mg-count { font-size: calc(14px * var(--ts)); font-weight: 600; color: var(--text-2); background: var(--surface-2); padding: 2px 10px; border-radius: var(--r-pill); }
