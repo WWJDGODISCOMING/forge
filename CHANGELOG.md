@@ -6,9 +6,10 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- The exercise library is now in sections: Chest, Back, Legs, Shoulders, Arms, Core, then Other (cardio and mobility). Tap a section's header to fold it up or open it; Forge remembers which ones you folded.
-- Section headers stay at the top while you scroll. Searching always shows its matches.
-- Today's workout preview on Train shows a muscle label where the workout moves to a new muscle. The order and supersets are unchanged.
+- Exercises are now in muscle sections: Chest, Back, Legs, Shoulders, Arms, Core, Other.
+- Tap a section header to fold it up. Forge remembers which ones you folded.
+- Headers stay put while you scroll. A search always shows its matches.
+- The Train preview labels each muscle. Workout order and supersets stay the same.
 
 ## 0.16.79 — Quick add takes carbs and fat (2026-10-27)
 

@@ -6,10 +6,11 @@ import { GROUPS, GROUP_LABELS, muscleGroup, groupExercises } from '../js/workout
 import { PATTERN_LABELS } from '../js/screens/picker.js';
 import { MUSCLES } from '../js/workouts/recovery.js';
 
+const same = (a, b) => eq(JSON.stringify(a), JSON.stringify(b));
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
 
 test('v0.16.81: the groups are in the fixed order, Other last', () => {
-  eq(GROUPS.map((g) => GROUP_LABELS[g]), ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Other']);
+  same(GROUPS.map((g) => GROUP_LABELS[g]), ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Other']);
 });
 
 test('v0.16.81: every built-in exercise lands in exactly one group, and only cardio and mobility are Other', () => {
@@ -24,7 +25,7 @@ test('v0.16.81: every built-in exercise lands in exactly one group, and only car
     assert(GROUPS.includes(muscleGroup(e)), `${e.id} has no group`);
     if (muscleGroup(e) === 'other') assert(['conditioning', 'mobility'].includes(e.pattern), `${e.id} (${e.pattern}) fell through to Other by accident`);
   }
-  eq(sections.map((s) => s.key), GROUPS.filter((g) => sections.some((s) => s.key === g)));
+  same(sections.map((s) => s.key), GROUPS.filter((g) => sections.some((s) => s.key === g)));
 });
 
 test('v0.16.81: every movement pattern and every muscle is mapped on purpose', () => {
@@ -53,12 +54,12 @@ test('v0.16.81: grouping keeps the incoming order inside a group, drops empty gr
   const mk = (id, pattern, primary) => ({ id, pattern, primary });
   const list = [mk('a', 'triceps', ['triceps']), mk('b', 'squat', ['quads']), mk('c', 'triceps', ['triceps']), mk('d', 'squat', ['quads'])];
   const s = groupExercises(list);
-  eq(s.map((x) => x.key), ['legs', 'arms']);
-  eq(s[0].items.map((e) => e.id), ['b', 'd']);
-  eq(s[1].items.map((e) => e.id), ['a', 'c']);
-  eq(groupExercises([]), []);
+  same(s.map((x) => x.key), ['legs', 'arms']);
+  same(s[0].items.map((e) => e.id), ['b', 'd']);
+  same(s[1].items.map((e) => e.id), ['a', 'c']);
+  same(groupExercises([]), []);
   const hands = allExercises().filter((e) => e.pattern === 'squat');
-  eq(groupExercises(hands).flatMap((x) => x.items).map((e) => e.id).sort(), hands.map((e) => e.id).sort());
+  same(groupExercises(hands).flatMap((x) => x.items).map((e) => e.id).sort(), hands.map((e) => e.id).sort());
 });
 
 test('v0.16.81: the library keeps its filters, search and detail actions, and the markup is accessible', () => {
