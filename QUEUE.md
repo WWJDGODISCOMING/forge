@@ -396,7 +396,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 36. #232 Tests: fix flaky layout teardown ('close the browser' timeout)
 - Issue: #232
 - Version: 0.16.80
-- Status: in-review
+- Status: done (PR #237)
 - Acceptance:
   - close() bounded ~5s, never hangs a shard; unit test with never-exiting fake; 3 clean CI sweeps linked; test-only, no screens needed.
 
