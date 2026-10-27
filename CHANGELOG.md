@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.16.78 — Withings Connected card stats stay inside the card (2026-10-27)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Withings stats now wrap inside the card on small phones.
+
 ## 0.16.77 — Smart reminders that skip when done (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes. No Swift or native changes: it uses the LocalNotifications plugin already in the app. The iPhone app picks it up after Refresh Forge.

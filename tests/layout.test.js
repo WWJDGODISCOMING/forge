@@ -425,6 +425,35 @@ for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 
   });
 }
 
+// Withings Connected card (v0.16.78, #220): the Last weigh-in / Arrived in / Notifications stats stay inside the card, with and
+// without an arrival time (the long "waiting for your next weigh-in" text), at 320 with large text, the phone and both Duo sizes.
+const WS_SIZES = [[320, 568, 1], [320, 568, 1.6], [390, 844, 1], [466, 678, 1], [678, 466, 1]];
+for (const [w, h, ts] of standalone && (!only || only.includes('withings')) ? WS_SIZES : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text' : ''}`;
+  test(`layout: withings: the Connected card stats sit inside the card at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    for (const waiting of [true, false]) {
+      const data = seed();
+      data.integrations.push({ id: 'withings', connected: true, needs_reconnect: false, scopes: 'user.info,user.metrics,user.activity', model: 'Body+', subscription_ok: true, last_weigh_in_at: new Date(Date.parse(WORKOUT_DAY) - 7200000).toISOString(), last_latency_s: waiting ? null : 95, last_sync_at: new Date(Date.parse(WORKOUT_DAY) - 3600000).toISOString() });
+      await browser.open('withings', data);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      await browser.eval("document.querySelector('[data-wd-stats]')?.scrollIntoView({ block: 'center' })");
+      await new Promise((r) => setTimeout(r, 200));
+      if (shots) await browser.screenshot(`${shots}/withings-stats-${waiting ? 'waiting-' : ''}${tag}.png`);
+      const r = await browser.eval(`(() => {
+        const g = document.querySelector('[data-wd-stats]'); if (!g) return null;
+        const c = g.closest('.card').getBoundingClientRect(), cells = [...g.children];
+        const out = cells.filter((e) => [e, ...e.children].some((k) => { const q = k.getBoundingClientRect(); return q.right > c.right + 1 || q.left < c.left - 1 || k.scrollWidth > k.clientWidth + 1; })).length;
+        return { n: cells.length, out, card: c.right <= innerWidth + 1 && c.left >= -1, page: document.documentElement.scrollWidth > innerWidth + 1 };
+      })()`);
+      assert(r && r.n === 3, 'the Connected card has no three stats');
+      assert(r.out === 0 && r.card && !r.page, `a stat runs past the card (waiting ${waiting}): ${JSON.stringify(r)}`);
+    }
+  });
+}
+
 // Withings steps (v0.16.70): the calm "Reconnect to add steps" note (connected, stored scopes lack user.activity) and a
 // Past days page whose steps came from Withings. Visible, unclipped, the reconnect button 44px or taller.
 for (const [w, h, ts] of standalone && (!only || only.includes('withings') || only.includes('days')) ? [[390, 844, 1], [320, 568, 1.6], [678, 466, 1]] : []) {

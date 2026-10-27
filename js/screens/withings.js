@@ -73,7 +73,7 @@ export function renderWithings(el, sub) {
       ${connectUrl && w.needs_reconnect ? `<a class="btn" href="${esc(connectUrl)}" target="_blank" rel="noopener" data-go>Continue to Withings →</a>` : ''}
       <div class="card stack">
         <div class="row between center"><p class="label">Connected</p><span class="small muted">${esc(w.model || 'Scale')}</span></div>
-        <div class="stats">
+        <div class="stats stats-fit" data-wd-stats>
           <div><span>Last weigh-in</span><b>${w.last_weigh_in_at ? when(w.last_weigh_in_at) : '—'}</b></div>
           <div><span>Arrived in</span><b>${w.last_latency_s == null ? '<small class="muted" data-arrived>waiting for your next weigh-in</small>' : mins(w.last_latency_s)}</b></div>
           <div><span>Notifications</span><b>${w.subscription_ok === true ? 'On' : w.subscription_ok === false ? 'Off' : '…'}</b></div>
