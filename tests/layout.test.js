@@ -311,6 +311,34 @@ for (const [w, h, ts] of standalone && (!only || only.includes('food')) ? [[390,
   });
 }
 
+// Quick add (v0.16.79): Calories, Protein, Carbs and Fat fields fit the sheet and keep 44px targets.
+for (const [w, h, ts] of standalone && (!only || only.includes('food')) ? [[390, 844, 1], [320, 568, 1.6], [466, 678, 1], [678, 466, 1], [626, 890, 1]] : []) {
+  const tag = `${w}x${h}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: food: quick add fields fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, true);
+    await browser.open('food', seed());
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    await browser.eval("document.querySelector('[data-log-food]').click()");
+    await new Promise((r) => setTimeout(r, 900));
+    await browser.eval("document.querySelector('dialog.sheet [data-quick-toggle]').click()");
+    await new Promise((r) => setTimeout(r, 400));
+    if (shots) await browser.screenshot(`${shots}/food-quickadd-${tag}.png`);
+    const r = await browser.eval(`(() => {
+      const dlg = document.querySelector('dialog.sheet'); const q = dlg.querySelector('[data-quick]'); const box = dlg.getBoundingClientRect();
+      const ins = [...q.querySelectorAll('input')];
+      return { names: ins.map((i) => i.name).join(), modes: ins.map((i) => i.inputMode).join(),
+        out: ins.filter((i) => { const b = i.getBoundingClientRect(); return b.left < box.left - 0.5 || b.right > box.right + 0.5; }).length,
+        small: ins.filter((i) => i.getBoundingClientRect().height < 43.5).length,
+        pageOver: document.documentElement.scrollWidth > innerWidth + 1 };
+    })()`);
+    assert(r.names === 'kcal,p,c,f', `quick add fields: ${r.names}`);
+    assert(r.modes === 'numeric,decimal,decimal,decimal', `keypads: ${r.modes}`);
+    assert(r.out === 0 && r.small === 0 && !r.pageOver, `quick add layout: ${JSON.stringify(r)}`);
+  });
+}
+
 // Weekly recap (v0.16.74): the Today card (the clock is pinned to a Monday) and its detail sheet at the phone, a small phone at
 // 160% text, and both Duo sizes. Card and sheet rows stay inside their boxes, tap targets 44px or more, no sideways overflow.
 // The fixture week (Mon Oct 5 to Sun Oct 11) gets food logged, protein under target and calories under the limit, so the

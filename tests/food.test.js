@@ -96,6 +96,22 @@ test('quick add: calories (and maybe protein) only', () => {
   eq(quickItem('600', '-1'), null);
 });
 
+test('quick add: optional carbs and fat are kept and count toward the day', () => {
+  const q = quickItem('600', '30', '55.55', '20');
+  eq(q.carbs_g, 55.6); eq(q.fat_g, 20); eq(q.protein_g, 30);
+  const blank = quickItem('600', '', '', '');
+  eq(blank.carbs_g, 0); eq(blank.fat_g, 0);
+  eq(quickItem('600', '', '40').carbs_g, 40);
+  eq(quickItem('600', '', '', '12').fat_g, 12);
+  eq(quickItem('600', '', '-1', ''), null);
+  eq(quickItem('600', '', '', '501'), null);
+  eq(quickItem('600', '', 'abc', ''), null);
+  const f = createFlow({ foods: [], logs: [], hour: 12, day: DAY }).quick('600', '30', '50', '20');
+  eq(f.carbs_g, 50); eq(f.fat_g, 20);
+  const t = totalsOf([{ ...f, servings: 1 }]);
+  eq(t.carbs_g, 50); eq(t.fat_g, 20);
+});
+
 test('a log entry copies the macros: editing the food later does not change history', () => {
   const food = { id: 'f1', name: 'Yoghurt', kcal: 130, protein_g: 17, carbs_g: 6, fat_g: 4, serving: '1 cup' };
   const entry = logFields({ item: { ...food, food_id: 'f1' }, servings: 2, meal: 'snack', day: DAY });

@@ -13,9 +13,9 @@ export function createFlow({ foods = [], logs = [], hour = 12, day }) {
     setMeal(meal) { f.meal = meal; },
     select(item) { f.taps++; f.selected = item; f.servings = 1; },
     step(dir) { f.servings = stepServings(f.servings, dir); },
-    /** Quick add: calories (and maybe protein) straight into the chosen meal. null = not enough to log. */
-    quick(kcal, protein) {
-      const item = quickItem(kcal, protein);
+    /** Quick add: calories (and maybe protein, carbs, fat) straight into the chosen meal. null = not enough to log. */
+    quick(kcal, protein, carbs, fat) {
+      const item = quickItem(kcal, protein, carbs, fat);
       if (!item) return null;
       f.taps++;
       return logFields({ item, servings: 1, meal: f.meal, day });

@@ -289,6 +289,8 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
           <div class="field-grid">
             <label class="field"><span>Calories</span><input name="kcal" type="number" inputmode="numeric" min="1" max="5000" placeholder="600"></label>
             <label class="field"><span>Protein (g, optional)</span><input name="p" type="number" inputmode="decimal" min="0" max="500"></label>
+            <label class="field"><span>Carbs (g, optional)</span><input name="c" type="number" inputmode="decimal" min="0" max="500"></label>
+            <label class="field"><span>Fat (g, optional)</span><input name="f" type="number" inputmode="decimal" min="0" max="500"></label>
           </div>
           <p class="error" aria-live="polite"></p>
           <button class="btn" type="submit">Add</button>
@@ -589,8 +591,8 @@ export function openLogFood({ day = todayKey(), meal } = {}) {
     };
     quick.addEventListener('submit', (e) => {
       e.preventDefault();
-      const fields = flow.quick(quick.kcal.value, quick.p.value);
-      if (!fields) { $('.error', quick).textContent = 'Enter the calories (1 to 5000).'; return; }
+      const fields = flow.quick(quick.kcal.value, quick.p.value, quick.c.value, quick.f.value);
+      if (!fields) { $('.error', quick).textContent = 'Enter the calories (1 to 5000); carbs, fat and protein can be 0 to 500 g.'; return; }
       put('food_logs', newRecord(fields));
       close();
       haptics.success();
