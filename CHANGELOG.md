@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.81 — Exercises grouped by muscle (2026-10-27)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- The exercise library is now in sections: Chest, Back, Legs, Shoulders, Arms, Core, then Other (cardio and mobility). Tap a section's header to fold it up or open it; Forge remembers which ones you folded.
+- Section headers stay at the top while you scroll. Searching always shows its matches.
+- Today's workout preview on Train shows a muscle label where the workout moves to a new muscle. The order and supersets are unchanged.
+
 ## 0.16.79 — Quick add takes carbs and fat (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes.

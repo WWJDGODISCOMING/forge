@@ -23,6 +23,7 @@ import { patch } from '../db.js';
 import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
 import { cleanFocus, focusLabel } from '../workouts/focus.js';
 import { unlockAudio } from '../ui/sound.js';
+import { muscleGroup, GROUP_LABELS } from '../workouts/muscle-groups.js';
 import { icon } from '../ui/icons.js';
 import { whyCardHtml } from '../ui/why-card.js';
 import { protectRowHtml, bindProtect } from '../ui/protect-joints.js';
@@ -298,10 +299,16 @@ function previewCard(plan, { d, loc, program, u }) {
       <button class="icon-btn pv-more" data-more="${i}" aria-label="More for ${esc(ex.name)}">${icon('more')}</button>
     </li>`;
   };
-  const blocks = planBlocks(plan.exercises).map((b) => (b.group
+  let lastGroup = '';
+  const blocks = planBlocks(plan.exercises).map((b) => {
+    const g = muscleGroup(exerciseById(b.items[0].it.exercise_id));
+    const head = g === lastGroup ? '' : `<li class="pv-mg"><h3 class="pv-mg-h">${esc(GROUP_LABELS[g])}</h3></li>`;
+    lastGroup = g;
+    return head + (b.group
     ? `<li class="pv-group"><p class="pv-group-h"><span>${b.kind} ${esc(b.group)}</span><small class="muted">${b.rounds} rounds · rest after each round</small></p>
         <ol class="pv-list">${b.items.map((x, k) => row(x, `${esc(b.group)}${k + 1}`)).join('')}</ol></li>`
-    : row(b.items[0], '')));
+    : row(b.items[0], ''));
+  });
   return `
       <div class="card preview">
         <p class="label">Today${d.deload ? ' · deload' : ''}</p>

@@ -9,6 +9,10 @@ import { PATTERN_LABELS, equipmentText } from './picker.js';
 import { openHowTo } from './session.js';
 import { put, patch, softDelete, newRecord } from '../db.js';
 import { icon, emptyState } from '../ui/icons.js';
+import { groupExercises, GROUPS } from '../workouts/muscle-groups.js';
+import { haptics } from '../ui/haptic.js';
+import { animateSpring } from '../ui/spring.js';
+import { reducedMotion, DUR } from '../ui/motion.js';
 
 let q = '';
 let pattern = '';
@@ -24,6 +28,10 @@ export function renderLibrary(el) {
     .filter((e) => (!hereOnly || canDo(e, avail)) && (!pattern || e.pattern === pattern) && words.every((w) => e.name.toLowerCase().includes(w)))
     .sort((a, b) => (fav.has(b.id) - fav.has(a.id)) || a.name.localeCompare(b.name));
 
+  const groups = groupExercises(list);
+  const collapsed = loadCollapsed();
+  const searching = words.length > 0; // a search always shows its matches, whatever is collapsed
+
   el.innerHTML = `
     <section class="stack">
       <div class="row between center"><h1>Exercises</h1><button class="btn small" data-new>+ Custom</button></div>
@@ -35,14 +43,21 @@ export function renderLibrary(el) {
       <label class="choice check small"><input type="checkbox" data-here ${hereOnly ? 'checked' : ''}>
         <span>Only what I can do at ${esc(loc ? loc.name : 'this location')}</span></label>
       <p class="small muted">${list.length} shown</p>
-      <ul class="list">
-        ${list.slice(0, 150).map((e) => `
+      ${groups.map((g) => {
+        const open = searching || !collapsed.has(g.key);
+        return `<section class="mg" data-group="${g.key}">
+          <h2 class="mg-h"><button type="button" class="mg-btn" data-toggle="${g.key}" aria-expanded="${open}" aria-controls="mg-${g.key}">
+            <span class="mg-name">${esc(g.label)}</span><span class="mg-count">${g.items.length}</span><span class="mg-chev" aria-hidden="true">${icon('chev')}</span></button></h2>
+          <ul class="list mg-list" id="mg-${g.key}" ${open ? '' : 'hidden'}>
+            ${g.items.map((e) => `
           <li class="tap" data-id="${esc(e.id)}">
             <div><b>${fav.has(e.id) ? `<span class="fav-star" aria-label="Favourite">${icon('star', { filled: true, size: 14 })}</span> ` : ''}${esc(e.name)}</b>
             <small class="muted">${esc(equipmentText(e))}${e.custom ? ' · custom' : ''}${excluded.has(e.id) ? ' · never suggested' : ''}</small></div>
             <span class="chev" aria-hidden="true">${icon('chev')}</span>
           </li>`).join('')}
-      </ul>
+          </ul>
+        </section>`;
+      }).join('')}
       ${list.length ? '' : emptyState({ icon: 'search', title: 'No exercises found', text: 'Try a different word, or add your own exercise.', action: { attr: 'data-new-empty', label: 'Add a custom exercise' } })}
       <p class="small muted">Library curated for this app. Step-by-step instructions from free-exercise-db by Yuhonas (public domain, Unlicense).</p>
     </section>`;
@@ -55,10 +70,41 @@ export function renderLibrary(el) {
   });
   $('[data-pattern]', el).addEventListener('change', (e) => { pattern = e.target.value; renderLibrary(el); });
   $('[data-here]', el).addEventListener('change', (e) => { hereOnly = e.target.checked; renderLibrary(el); });
+  $$('[data-toggle]', el).forEach((b) => b.addEventListener('click', () => toggleGroup(b, collapsed)));
   $$('[data-id]', el).forEach((li) => li.addEventListener('click', () => openDetail(li.dataset.id)));
   $('[data-new]', el).onclick = () => openCustomForm();
   const newEmpty = $('[data-new-empty]', el);
   if (newEmpty) newEmpty.onclick = () => openCustomForm();
+}
+
+const COLLAPSE_KEY = 'forge.library.collapsed';
+function loadCollapsed() {
+  try { const a = JSON.parse(localStorage.getItem(COLLAPSE_KEY) || '[]'); return new Set(Array.isArray(a) ? a.filter((k) => GROUPS.includes(k)) : []); } catch { return new Set(); }
+}
+
+/** One tap opens or closes a section: a spring on the height (a fade under Reduce Motion), a select haptic, and the choice is remembered on this device. */
+function toggleGroup(btn, collapsed) {
+  const key = btn.dataset.toggle;
+  const list = document.getElementById(`mg-${key}`);
+  const open = btn.getAttribute('aria-expanded') !== 'true';
+  btn.setAttribute('aria-expanded', String(open));
+  open ? collapsed.delete(key) : collapsed.add(key);
+  try { localStorage.setItem(COLLAPSE_KEY, JSON.stringify([...collapsed])); } catch { /* private mode: not remembered */ }
+  haptics.select();
+  list._anim?.stop();
+  if (open) list.hidden = false;
+  const full = list.scrollHeight;
+  if (reducedMotion()) {
+    const a = list.animate?.([{ opacity: open ? 0 : 1 }, { opacity: open ? 1 : 0 }], { duration: DUR.fast, fill: 'both' });
+    if (a) a.onfinish = () => { a.cancel(); if (!open) list.hidden = true; }; else if (!open) list.hidden = true;
+    return;
+  }
+  list.style.overflow = 'hidden';
+  list._anim = animateSpring({
+    from: open ? 0 : list.offsetHeight, to: open ? full : 0,
+    onUpdate: (v) => { list.style.height = `${Math.max(0, v)}px`; },
+    onDone: () => { list.style.height = ''; list.style.overflow = ''; if (!open) list.hidden = true; list._anim = null; },
+  });
 }
 
 function toggleSetting(key, id) {
