@@ -140,6 +140,30 @@ export async function scheduleExpiryReminder(atMs, { ask = false } = {}) {
   }
 }
 
+// ---------- smart reminders (js/reminders): a few dated notifications, replaced as a set ----------
+/**
+ * Cancel `ids` and schedule `list` ([{ id, title, body, at: ms }]). Like the refresh reminder it never shows the iOS prompt
+ * unless `ask` is true (the tap that switches a reminder on). Resolves 'ok', 'denied' (no permission) or 'web'.
+ */
+export async function scheduleReminderSet(list, ids, { ask = false } = {}) {
+  if (!isNative()) return 'web';
+  let N = await notificationsIfGranted();
+  if (!N && ask) {
+    const P = plugin('LocalNotifications');
+    try {
+      if (P && (await P.requestPermissions()).display === 'granted') N = P;
+    } catch { /* stays off */ }
+  }
+  if (!N) return 'denied';
+  try {
+    await N.cancel({ notifications: ids.map((id) => ({ id })) });
+    if (list.length) await N.schedule({ notifications: list.map((r) => ({ id: r.id, title: r.title, body: r.body, schedule: { at: new Date(r.at), allowWhileIdle: true } })) });
+    return 'ok';
+  } catch {
+    return 'denied';
+  }
+}
+
 // ---------- links that leave the app (Withings sign-in) ----------
 /** Open a web page over the app (Safari view): you come straight back when you close it. False on the web. */
 export function openExternal(url) {

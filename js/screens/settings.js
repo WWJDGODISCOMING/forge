@@ -22,6 +22,7 @@ import { openRestDefault, restDefaultTitle } from './rest-default.js';
 import { openFoodPrefs, prefsSummary } from './food-prefs.js';
 import { photoSettingsHtml, bindPhotoSettings } from '../photos/settings.js';
 import { missionSettings, setMissionSetting } from '../missions/store.js';
+import { reminderSettingsHtml, bindReminderSettings } from '../reminders/ui.js';
 import { privacySettingsHtml, bindPrivacySettings } from '../native/lock-ui.js';
 import { mfaSettingsHtml, bindMfaSettings, reauthWithMfa, wasCancelled } from '../mfa-ui.js';
 
@@ -120,6 +121,8 @@ export function renderSettings(el) {
           <div class="ms-stepper"><button type="button" data-steps="-500" aria-label="500 fewer steps">−</button><output data-steps-val aria-live="polite">${ms.steps.toLocaleString()}</output><button type="button" data-steps="500" aria-label="500 more steps">+</button></div></div>
         <label class="g-row ms-set"><span class="g-text"><span>Bedtime</span><small>In bed by this time counts.</small></span><input type="time" name="mission_bed" value="${esc(ms.bed.padStart(5, '0'))}"></label>
       </div>
+
+      ${reminderSettingsHtml()}
 
       </div>
       <div class="stack set-pane${sel === 'connections' ? ' on' : ''}" id="set-connections" role="tabpanel" aria-labelledby="setnav-connections">
@@ -314,6 +317,7 @@ export function renderSettings(el) {
     await signOut();
   };
 
+  bindReminderSettings(el);
   bindPhotoSettings(el);
   bindPrivacySettings(el);
   bindMfaSettings(el);

@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.77 — Smart reminders that skip when done (2026-10-27)
+
+No Cloud Functions or `firestore.rules` changes. No Swift or native changes: it uses the LocalNotifications plugin already in the app. The iPhone app picks it up after Refresh Forge.
+
+### What's new
+
+- Settings → General → Reminders: weigh in (morning), steps (evening, shows steps left), protein (evening, protein left), log food (only if nothing is logged by your time) and workout day. All off by default, each with its own time.
+- Each one skips itself once you've done the thing, based on what Forge knew when you last opened it or your data changed. Steps that sync from Apple Health later can't cancel one that's already set.
+- Quiet hours (on, 10 pm to 7 am), and a "Turn all reminders off" button.
+- On the web app there are no notifications: a card on Today shows instead once a reminder's time has passed.
+- Your steps and protein goals come from your own settings.
+
 ## 0.16.76 — Progress photo camera fix + self-timer (2026-10-26)
 
 No Cloud Functions or `firestore.rules` changes. Web change only: the iPhone app picks it up after Refresh Forge.
