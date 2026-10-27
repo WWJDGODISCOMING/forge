@@ -318,6 +318,7 @@ async function renderScreen() {
   if (lastRoute === 'play' && route !== 'play') import('./screens/player.js').then((m) => m.leavePlayer());
   if (lastRoute === 'live' && route !== 'live') import('./screens/live.js').then((m) => m.leaveLive());
   if (lastRoute === 'summary' && route !== 'summary') import('./ui/fx.js').then((m) => m.clearParticles());
+  const routeChanged = lastRoute !== route;
   if (lastRoute !== route) screenNav(null); // sub-view nav (e.g. a Locations editor) never outlives its screen
   lastRoute = route;
   noteRoute(route);
@@ -329,6 +330,8 @@ async function renderScreen() {
     link.classList.toggle('active', target === tab);
     link.setAttribute('aria-current', target === tab ? 'page' : 'false');
   });
+  // Arriving on a screen: its page-shaped skeleton holds the place while the screen's code and data load (a redraw of the same screen never flashes one).
+  if (routeChanged && !main.querySelector('.skel-screen')) main.innerHTML = skeletonHTML(route);
   try {
     await routes[route](...routeParts().slice(1));
     await decodeImages(main); // photos are decoded before the transition reveals them

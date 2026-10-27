@@ -3492,6 +3492,47 @@ if (standalone) {
     }
     assert(found.size === 0, `\n        ${[...found].map(([p, at]) => `${p}  [${at.join(' ')}]`).join('\n        ')}`);
   });
+  // Loading skeletons (v0.16.82, #233). The slow-data fixture (window.__HOLD) keeps every snapshot back, so each screen is
+  // checked in its loading state: a busy status region, no shimmer (Reduce Motion), nothing overflowing, nothing tappable. Then
+  // the data lands and the page's first block must not move more than 8px, nor the column change width.
+  const SK_ROUTES = ['today', 'trends', 'weekly', 'score', 'progress', 'history', 'photos', 'body', 'awards', 'report', 'withings', 'library', 'coach'];
+  const SK_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [466, 678, true, 1], [678, 466, false, 1], [626, 890, true, 1], [890, 626, false, 1], [320, 568, true, 1.6]];
+  for (const route of SK_ROUTES) {
+    if (only && !only.includes(route)) continue;
+    test(`layout: ${route}: the loading skeleton fits, is busy and static, and does not jump when data lands`, async () => {
+      if (skipReason()) return;
+      browser = browser || await launch();
+      const found = [];
+      for (const [w, h, dark, ts] of SK_SIZES) {
+        const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+        await browser.viewport(w, h, dark);
+        await browser.open(route, seed({ comp: route === 'body' }), 'window.__HOLD = true;', { loading: true });
+        if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+        const probe = `(() => { const m = document.querySelector('#main'); const s = m.querySelector('.skel-screen'); const f = m.firstElementChild; const r = f ? f.getBoundingClientRect() : null;
+          return { skel: !!s, busy: s ? s.getAttribute('aria-busy') : null, role: s ? s.getAttribute('role') : null, anim: s ? getComputedStyle(s.querySelector('.skeleton')).animationName : '', taps: m.querySelectorAll('a, button, input').length,
+            top: r ? Math.round(r.top) : -1, width: m.getBoundingClientRect().width, page: document.documentElement.scrollWidth > innerWidth + 1, over: s ? [...s.querySelectorAll('.skeleton')].filter((e) => e.getBoundingClientRect().right > innerWidth + 1).length : 0 }; })()`;
+        const a = await browser.eval(probe);
+        if (shots) await browser.screenshot(`${shots}/skeleton-${route}-${tag}.png`);
+        if (!a.skel) found.push(`${tag}: no skeleton while loading`);
+        else {
+          if (a.busy !== 'true' || a.role !== 'status') found.push(`${tag}: skeleton is not a busy status region (${a.busy}/${a.role})`);
+          if (a.anim !== 'none') found.push(`${tag}: skeleton still shimmers under Reduce Motion (${a.anim})`);
+          if (a.taps) found.push(`${tag}: skeleton holds ${a.taps} tappable element(s)`);
+          if (a.page || a.over) found.push(`${tag}: skeleton overflows`);
+        }
+        await browser.eval('window.__HOLD = false; (window.__held || []).forEach((f) => f())');
+        for (let i = 0; i < 80; i++) { await new Promise((r) => setTimeout(r, 100)); if (await browser.eval("!document.querySelector('#main .skeleton') && document.querySelector('#main').children.length > 0")) break; }
+        await new Promise((r) => setTimeout(r, 500));
+        const b = await browser.eval(probe);
+        if (b.skel) found.push(`${tag}: skeleton never gave way to the screen`);
+        else if (route !== 'progress' && a.skel) {
+          if (Math.abs(b.top - a.top) > 8) found.push(`${tag}: first block jumped ${b.top - a.top}px when data landed`);
+          if (Math.abs(b.width - a.width) > 8) found.push(`${tag}: width changed ${a.width} to ${b.width} when data landed`);
+        }
+      }
+      assert(found.length === 0, `\n        ${found.join('\n        ')}`);
+    });
+  }
   applyShard();
   const { fail } = await runAll();
   process.exit(fail ? 1 : 0);

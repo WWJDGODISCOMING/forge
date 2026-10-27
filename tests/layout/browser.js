@@ -162,7 +162,7 @@ export async function launch() {
       await send('Emulation.setEmulatedMedia', { features: [{ name: 'prefers-color-scheme', value: dark ? 'dark' : 'light' }, { name: 'prefers-reduced-motion', value: motion ? 'no-preference' : 'reduce' }] });
     },
     /** Open the app at a hash route with a seeded account. */
-    async open(route, seedData, init = '', { persist = false, at = api.pinned } = {}) {
+    async open(route, seedData, init = '', { persist = false, at = api.pinned, loading = false } = {}) {
       await api.dropInit();
       await send('Page.navigate', { url: 'about:blank' });
       // persist: the setup script also runs after a page reload, and storage is only cleared on the first load (resume/update tests)
@@ -176,12 +176,12 @@ export async function launch() {
       const { identifier } = await send('Page.addScriptToEvaluateOnNewDocument', { source: boot });
       await send('Page.navigate', { url: `${api.base}/index.html#/${route}` });
       // Wait for a real screen (not the skeleton), then let async cards and fonts settle.
-      for (let i = 0; i < 150; i++) {
+      for (let i = 0; i < (loading ? 0 : 150); i++) { // loading: the slow-data fixture holds every snapshot (window.__HOLD), so stay on the skeleton
         await new Promise((r) => setTimeout(r, 100));
         const ready = await api.eval(`!!document.querySelector('#main') && !document.querySelector('#main .skeleton') && document.querySelector('#main').children.length > 0`).catch(() => false);
         if (ready) break;
       }
-      await new Promise((r) => setTimeout(r, 450));
+      await new Promise((r) => setTimeout(r, loading ? 250 : 450));
       if (persist) kept = identifier;
       else await send('Page.removeScriptToEvaluateOnNewDocument', { identifier });
     },
