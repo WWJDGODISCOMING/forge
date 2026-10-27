@@ -375,7 +375,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 33. #219 Smart reminders that skip when done
 - Issue: #219
 - Version: 0.16.77
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #219; AI-off, Duo-ready, large text, tests.
 
