@@ -389,7 +389,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 35. #226 Food: Quick add carbs and fat
 - Issue: #226
 - Version: 0.16.79
-- Status: todo
+- Status: done
 - Acceptance:
   - See issue #226; optional Carbs/Fat fields count toward totals; Duo, large text, tests.
 
