@@ -6,7 +6,7 @@ No Cloud Functions or `firestore.rules` changes. Web change only: the iPhone app
 
 ### What's new
 
-- The camera now opens above the Progress photos sheet, so the shutter takes the photo and closes cleanly, with no more freeze.
+- Tapping the shutter now takes the photo and closes the camera, with no more freeze.
 - If the camera hits a problem, it closes with a gentle message.
 - Self-timer in the top bar: Off, 3s or 10s, with a big countdown.
 - Forge remembers your timer, so a full-body front shot is hands-free.
