@@ -91,3 +91,24 @@ test('v0.16.77: wiring, labels and honesty are in place', () => {
   assert(read('js/reminders/core.js').includes('can’t cancel'), 'says what it cannot do');
   assert(/not medical advice/.test(ui));
 });
+
+test('v0.16.77: sign-out and delete cancel the scheduled reminders first', () => {
+  const st = read('js/screens/settings.js');
+  assert(/clearReminders\(\)\)[^\n]*\n[\s\S]{0,300}?await signOut\(\)/.test(st), 'sign-out clears before signOut');
+  assert(/clearReminders\(\)\)[^\n]*\n\s*await deleteAccount\(\)/.test(st), 'delete clears before deleteAccount');
+  const store = read('js/reminders/store.js');
+  assert(store.includes('export async function clearReminders') && store.includes('scheduleReminderSet([], ALL_IDS)'), 'cancels every reminder id');
+  assert(/lastKey = ''/.test(store.split('export async function clearReminders')[1].split('}')[0]), 'forgets the last plan');
+});
+
+test('v0.16.77: a signed-out sync cancels once instead of waiting', () => {
+  const store = read('js/reminders/store.js');
+  const sync = store.split('export async function syncReminders')[1].split('export function startReminders')[0];
+  assert(/if \(!snap\) \{\s*if \(state\.user === null && !cleared\) \{ await clearReminders\(\); return 'cleared'; \}\s*return 'wait';/.test(sync), 'signed out: cancel; still loading: wait');
+  assert(store.includes('a launch with nobody signed in'), 'a signed-out launch syncs once');
+});
+
+test('v0.16.77: old dismissed-card keys are pruned on write', () => {
+  const store = read('js/reminders/store.js');
+  assert(store.includes("startsWith('forge.reminders.')") && store.includes('removeItem'));
+});

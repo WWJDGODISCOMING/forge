@@ -135,6 +135,74 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('goaldate')
   });
 }
 
+// Reminders (v0.16.77): the Settings section with switches on (time rows, Quiet hours From/To, "Turn all reminders off") and the
+// web Today card with its dismiss button. Phone dark and light, small phone at 160% text, both Duo sizes. Switch rows, time inputs
+// and the dismiss button are 44px or more, no row runs past its card, From/To wrap cleanly, and Hide removes the card.
+const RM_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [626, 890, true, 1], [678, 466, true, 1]];
+const rmSeed = () => {
+  const d = seed();
+  d.settings[0].reminders = {
+    weigh: { on: true, time: '06:00' }, steps: { on: true, time: '07:00' }, protein: { on: true, time: '08:00' },
+    food: { on: true, time: '09:00' }, workout: { on: true, time: '10:00' },
+    quiet: { on: true, from: '22:00', to: '07:00' },
+  };
+  return d;
+};
+for (const [w, h, dark, ts] of standalone && (!only || only.includes('settings') || only.includes('today') || only.includes('reminders')) ? RM_SIZES : []) {
+  const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: reminders: the Settings section and the Today card fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    await browser.open('settings', rmSeed());
+    await setTs(ts);
+    await browser.eval("document.querySelector('[data-rm-quiet]')?.scrollIntoView({ block: 'center' })");
+    await new Promise((r) => setTimeout(r, 250));
+    if (shots) await browser.screenshot(`${shots}/reminders-settings-${tag}.png`);
+    const s = await browser.eval(`(() => {
+      const root = document.querySelector('[data-reminders]'); if (!root) return null;
+      const g = root.getBoundingClientRect(), h = (e) => Math.round(e.getBoundingClientRect().height);
+      const rows = [...root.querySelectorAll('.rm-row')];
+      const over = rows.filter((r) => { const q = r.getBoundingClientRect(); return r.scrollWidth > r.clientWidth + 1 || q.right > g.right + 1 || q.left < g.left - 1; }).length;
+      const kids = [...root.querySelectorAll('.rm-time > *')].filter((e) => e.closest('.rm-time').offsetParent && e.getBoundingClientRect().right > g.right + 1).length;
+      const from = root.querySelector('[name=rm-quiet-from]'), to = root.querySelector('[name=rm-quiet-to]');
+      const fq = from.getBoundingClientRect(), tq = to.getBoundingClientRect();
+      const off = root.querySelector('[data-rm-off]');
+      return {
+        switches: [...root.querySelectorAll('.rm-top')].map(h), times: [...root.querySelectorAll('.rm-time input')].filter((i) => i.offsetParent).map(h),
+        over, kids, off: off && !off.hidden ? h(off) : 0, page: document.documentElement.scrollWidth > innerWidth + 1,
+        pairOk: fq.right <= g.right + 1 && tq.right <= g.right + 1 && (tq.left >= fq.right - 1 || tq.top >= fq.bottom - 1), // side by side, or wrapped under
+        shown: root.querySelectorAll('.rm-time:not([hidden])').length,
+      };
+    })()`);
+    assert(s, 'Settings has no Reminders section');
+    assert(s.shown === 6, `${s.shown} time rows showing (5 reminders + quiet hours expected)`);
+    assert(s.switches.length === 6 && s.switches.every((x) => x >= 44), `switch rows are ${s.switches.join('/')}px tall`);
+    assert(s.times.length === 7 && s.times.every((x) => x >= 44), `time inputs are ${s.times.join('/')}px tall`);
+    assert(s.off >= 44, `Turn all reminders off is ${s.off}px tall`);
+    assert(s.over === 0 && s.kids === 0 && !s.page, `${s.over} rows and ${s.kids} fields run past the card, page overflow ${s.page}`);
+    assert(s.pairOk, 'Quiet hours From/To do not wrap cleanly');
+
+    await browser.open('today', rmSeed());
+    await setTs(ts);
+    await browser.eval("document.querySelector('[data-reminder-card]')?.scrollIntoView({ block: 'center' })");
+    await new Promise((r) => setTimeout(r, 250));
+    if (shots) await browser.screenshot(`${shots}/reminders-banner-${tag}.png`);
+    const b = await browser.eval(`(() => {
+      const cards = [...document.querySelectorAll('[data-reminder-card]')]; if (!cards.length) return null;
+      const x = cards[0].querySelector('[data-dismiss]').getBoundingClientRect(), c = cards[0].getBoundingClientRect();
+      return { n: cards.length, kind: cards[0].dataset.reminderCard, bw: Math.round(x.width), bh: Math.round(x.height), over: cards.some((e) => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > innerWidth + 1) || document.documentElement.scrollWidth > innerWidth + 1, inside: x.right <= c.right + 1 && x.left >= c.left - 1 };
+    })()`);
+    assert(b, 'no reminder card on Today although several reminders are past their time and not done');
+    assert(b.bw >= 44 && b.bh >= 44, `dismiss button is ${b.bw}x${b.bh}px`);
+    assert(!b.over && b.inside, 'the reminder card or its button runs off the screen');
+    await browser.eval("document.querySelector('[data-reminder-card] [data-dismiss]').click()");
+    await new Promise((r) => setTimeout(r, 250));
+    const after = await browser.eval(`[...document.querySelectorAll('[data-reminder-card]')].map((e) => e.dataset.reminderCard)`);
+    assert(!after.includes(b.kind), `Hide did not remove the ${b.kind} card`); // (a third due card may take its place: the list shows two)
+  });
+}
+
 // Protein helper (v0.16.73): the "N g protein to go" card, scrolled into view in the `screens` artifact at the phone, a small
 // phone at 160% text, and both Duo sizes. Rows 44px or more and inside the card, a 44px hide button, no sideways overflow,
 // names wrap at spaces (no word broken mid-way), and the card is gone after Hide and when over target.

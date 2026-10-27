@@ -40,11 +40,9 @@ export function bindReminderSettings(el) {
     return out;
   };
   const paint = () => {
-    const s = getReminders();
     for (const k of KINDS) $(`[data-rm=${k}] .rm-time`, root).hidden = !$(`[name=rm-on-${k}]`, root).checked;
     $('[data-rm-quiet] .rm-time', root).hidden = !$('[name=rm-quiet-on]', root).checked;
     $('[data-rm-off]', root).hidden = !KINDS.some((k) => $(`[name=rm-on-${k}]`, root).checked);
-    return s;
   };
   const apply = (next) => {
     saveReminders(next);

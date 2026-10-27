@@ -312,6 +312,7 @@ export function renderSettings(el) {
       });
       if (!ok) return;
     }
+    await import('../reminders/store.js').then((m) => m.clearReminders()).catch(() => {});
     await import('../food/meal-ai.js').then((m) => m.clearAllAiPlans());
     await import('../native/widget.js').then((m) => m.clearWidget()).catch(() => {});
     await signOut();
@@ -357,6 +358,7 @@ function openDeleteEverything() {
       try {
         await reauthWithMfa(form.password.value);
         await deleteAllUserData();
+        await import('../reminders/store.js').then((m) => m.clearReminders()).catch(() => {});
         await deleteAccount();
         accountGone = true;
         await import('../native/widget.js').then((m) => m.clearWidget()).catch(() => {});

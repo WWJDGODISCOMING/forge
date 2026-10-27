@@ -43,12 +43,26 @@ export function snapshotNow() {
 
 let lastKey = '';
 let timer = null;
+let cleared = false;
+
+/** Sign-out, account delete, or a launch with nobody signed in: nothing of the last person's may go off. Resolves once cancelled. */
+export async function clearReminders() {
+  lastKey = '';
+  cleared = true;
+  if (!isNative()) return false;
+  try { await scheduleReminderSet([], ALL_IDS); } catch { /* nothing was scheduled */ }
+  return true;
+}
 
 /** Replace the scheduled set with a fresh plan. `ask` is only for the tap that switches a reminder on. */
 export async function syncReminders({ ask = false, force = false } = {}) {
   if (!isNative()) return 'web';
   const snap = snapshotNow();
-  if (!snap) return 'wait';
+  if (!snap) {
+    if (state.user === null && !cleared) { await clearReminders(); return 'cleared'; }
+    return 'wait';
+  }
+  cleared = false;
   const settings = getReminders();
   const list = anyOn(settings) ? planReminders({ now: new Date(), settings, snap }) : [];
   const key = JSON.stringify(list.map((r) => [r.id, r.at, r.body]));
@@ -63,6 +77,7 @@ export function startReminders(doc = typeof document !== 'undefined' ? document 
   if (!isNative()) return false;
   subscribe(() => { clearTimeout(timer); timer = setTimeout(() => syncReminders(), 2000); });
   if (doc) doc.addEventListener('visibilitychange', () => { if (doc.visibilityState === 'visible') syncReminders({ force: true }); });
+  timer = setTimeout(() => syncReminders(), 2000); // a launch with nobody signed in cancels once
   return true;
 }
 
@@ -72,7 +87,13 @@ export function dismissedToday() {
   try { return JSON.parse(localStorage.getItem(dismissKey()) || '[]'); } catch { return []; }
 }
 export function dismissToday(kind) {
-  try { localStorage.setItem(dismissKey(), JSON.stringify([...new Set([...dismissedToday(), kind])])); } catch { /* private mode */ }
+  try {
+    const keep = dismissKey();
+    const old = [];
+    for (let i = 0; i < localStorage.length; i++) { const k = localStorage.key(i); if (k && k.startsWith('forge.reminders.') && k !== keep) old.push(k); }
+    old.forEach((k) => localStorage.removeItem(k)); // yesterday's hidden cards
+    localStorage.setItem(keep, JSON.stringify([...new Set([...dismissedToday(), kind])]));
+  } catch { /* private mode */ }
 }
 
 /** Banners to show on Today right now. Web only: the iPhone app uses real notifications. */
