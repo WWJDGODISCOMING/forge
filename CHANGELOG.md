@@ -4,9 +4,9 @@
 
 No Cloud Functions or `firestore.rules` changes.
 
-### Fixed
+### What's new
 
-- Settings > Withings: Last weigh-in, Arrived in and Notifications now wrap onto another row instead of running past the card on small phones, large text and the Duo.
+- Withings stats now wrap inside the card on small phones.
 
 ## 0.16.77 — Smart reminders that skip when done (2026-10-27)
 
