@@ -2,6 +2,7 @@
    reduced-motion behaviour. Only transform, opacity, filter and canvas are animated. */
 :root {
   --t-fast: 120ms;
+  --t-press: 80ms; /* a press dip lands inside 100 ms */
   --t-med: 280ms;
   --t-slow: 450ms;
   --ease-out: cubic-bezier(.2, .8, .2, 1);
@@ -26,6 +27,16 @@ a.card:active, .list li.tap:active, .choice:active, .chip:active, .seg label:act
 .tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, .food-card-text:active, .food-card-ring:active, [data-weight-open]:active {
   transform: scale(.97);
   transition-duration: var(--t-fast);
+}
+
+/* More tappables on the data screens (v0.16.83, issue 234); their haptics are in js/ui/press-haptics.js */
+.mg-btn, .pp-thumb, .coach-chip, .pillar, .mover, .vol-row, .vol-legend, .pick, .dd-link, .trend-row, .nav-card, .weight-why, .gym-chip, [data-effort], .ms-badge-x, .ms-dot a {
+  cursor: pointer;
+  transition: transform var(--t-med) var(--ease-spring), opacity var(--t-fast) var(--ease-out), background var(--t-fast) var(--ease-out);
+}
+.mg-btn:active, .pp-thumb:active, .coach-chip:active, .pillar:active, .mover:active, .vol-row:active, .vol-legend:active, .pick:active, .dd-link:active, .trend-row:active, .nav-card:active, .weight-why:active, .gym-chip:active, [data-effort]:active, .ms-badge-x:active, .ms-dot a:active {
+  transform: scale(.97);
+  transition-duration: var(--t-press);
 }
 
 /* ---------- Screen changes (View Transitions, Safari 18+) ----------
@@ -131,6 +142,7 @@ main.route-fade { animation: vt-fade-in var(--t-med) var(--ease-out); }
   .stepper button:active, .pl-nav button:active, .pl-ico:active, .next-card:active,
   a.card:active, .list li.tap:active, .choice:active, .chip:active, .seg label:active, .progress-seg a:active,
   .tabbar a:active, .nb-back:active, .bc-tile:active, .link:active, .update-capsule:active, .ht-seg button:active, .food-card-text:active, .food-card-ring:active, [data-weight-open]:active { transform: none; opacity: .7; }
+  .mg-btn:active, .pp-thumb:active, .coach-chip:active, .pillar:active, .mover:active, .vol-row:active, .vol-legend:active, .pick:active, .dd-link:active, .trend-row:active, .nav-card:active, .weight-why:active, .gym-chip:active, [data-effort]:active, .ms-badge-x:active, .ms-dot a:active { transform: none; opacity: .7; }
   .skeleton { animation: none; }
   .plan-list li, .pv-list > li, .sum-list li, .list.flat li { animation: none !important; }
   .restbar { transition: opacity var(--t-med) !important; transform: none !important; }

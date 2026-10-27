@@ -417,7 +417,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 39. #234 Polish: haptics + press feedback on screens with none
 - Issue: #234
 - Version: 0.16.83
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #234; existing haptic vocabulary, feedback <100ms, control->haptic table, stubbed test; shots 390x844, 4 Duo sizes, 320 text 1.6.
 
