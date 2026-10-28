@@ -138,7 +138,7 @@ export function renderMetric(el, key) {
         ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Show weekly training sets</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
         ${trendLine ? `<p data-trend-line>${esc(trendLine)}</p>` : ''}
         <p class="small muted">Last reading ${def === apple || key === 'vo2max' ? new Date(last.at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : new Date(last.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${daily.length.toLocaleString()} days with readings</p>
-      </div>` : `<div class="card">${emptyState({ icon: def === apple ? 'heart' : 'scale', title: `No ${esc(def.label.toLowerCase())} readings yet`, ...emptyText })}${def !== apple && choice.secondary ? `<a class="link" href="${choice.secondary.href}">${choice.secondary.label}</a>` : ''}</div>`}
+      </div>` : `<div class="card">${emptyState({ art: 'trend', icon: def === apple ? 'heart' : 'scale', title: `No ${esc(def.label.toLowerCase())} readings yet`, ...emptyText })}${def !== apple && choice.secondary ? `<a class="link" href="${choice.secondary.href}">${choice.secondary.label}</a>` : ''}</div>`}
       ${key === 'bmi' ? '<p class="small muted">BMI ignores muscle. Look at FFMI and FMI too.</p>' : ''}
     </section>`;
 

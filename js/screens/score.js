@@ -5,6 +5,7 @@ import { restoreAnchor } from '../ui/anchor.js';
 import { esc, $, $$ } from '../ui.js';
 import { progressTabs, progressRowsHtml } from './progress.js';
 import { currentScore } from '../health/today.js';
+import { emptyState } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
 import { ringSvg, animateScoreRings, revealPillars, scoreColor, round } from '../health/ui.js';
 import { PILLARS } from '../health/score.js';
@@ -100,10 +101,11 @@ export function renderScore(el) {
       <p class="small muted" style="text-align:center">Last 14 days</p>
     </div>` : `
     <div class="card stack" data-no-score>
-      <p class="big-title">${s.trackedCount > 0 ? `Based on ${s.trackedCount} of 5 parts so far` : 'Your score starts soon'}</p>
-      <p class="muted">Forge scores five things: your body, recovery, sleep, training and (soon) food. It shows a number once at least ${s.minPillars} of them have data, so a score is never built from just one or two.</p>
+      ${emptyState({ art: 'ring', icon: 'chart', title: s.trackedCount > 0 ? `Based on ${s.trackedCount} of 5 parts so far` : 'Your score starts soon',
+        text: `Forge scores five things and shows a number once ${s.minPillars} of them have data, so it is never built from just one or two.`,
+        action: { href: '#/train', label: 'Log a workout' } })}
       <ul class="reasons"><li>Log your weight a few times, or connect your Withings scale.</li><li>Finish a couple of workouts.</li>${apple ? '' : `<li>${isNative() ? 'Connect Apple Health' : 'Add Apple Health'} for recovery and sleep.</li>`}</ul>
-      ${apple ? '' : `<p class="small muted">Apple Health adds your recovery and sleep.</p><a class="btn bigbtn" href="#/apple">${isNative() ? 'Connect Apple Health' : 'Add Apple Health'}</a>`}
+      ${apple ? '' : `<a class="btn bigbtn" href="#/apple">${isNative() ? 'Connect Apple Health' : 'Add Apple Health'}</a>`}
     </div>`;
 
   const movers = s.movers.length ? `
@@ -125,7 +127,7 @@ export function renderScore(el) {
       ${movers}
       </div>
       <div class="col col-b">
-      <div class="pillar-grid">${s.pillars.map(tile).join('')}</div>
+      ${s.trackedCount > 0 ? `<div class="pillar-grid">${s.pillars.map(tile).join('')}</div>` : ''}
       <div data-detail-slot>${open ? detail(s.pillars.find((p) => p.key === open)) : ''}</div>
       ${hasData ? `<p class="small muted tcenter" style="text-align:center" data-based-on>Based on ${s.trackedCount} of 5 parts</p>` : ''}
       ${s.notTracked.includes('nutrition') ? `<p class="small muted"><b>Nutrition: not tracked yet.</b> It lights up once you have logged food on 3 of the last 7 days. Until then its 15% is shared among the ${s.trackedCount} part${s.trackedCount === 1 ? '' : 's'} with data, so nothing is counted against you.</p>` : ''}

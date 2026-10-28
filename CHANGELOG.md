@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.85 — Friendly empty states for Score, Trends and Withings (2026-10-28)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Score shows a picture and a Log a workout button, not empty rings, until it has data.
+- Long term, Longevity and the Trends charts show a picture and what they need.
+- Withings has a friendly screen before you connect and before the first weigh-in.
+
 ## 0.16.84 — Workouts reach Apple Health, and show how long they took (2026-10-28)
 
 No Cloud Functions or `firestore.rules` changes.

@@ -12,7 +12,7 @@ import { formatWeight, weightToDisplay, weightFromInput, weightUnit } from '../u
 import { classify, verdict, compare, STATE_LABEL, median, yearRows, backfillYears } from '../withings/check.js';
 import { reviewQueue, byDay, suggestCutoff, underCutoff, parseWeightCSV, planCsvImport, csvAccounted, importMessage } from '../withings/review.js';
 import { fmtMetric, KEY_OF_TYPE } from '../withings/body.js';
-import { icon } from '../ui/icons.js';
+import { icon, emptyState } from '../ui/icons.js';
 import { openExternal } from '../native/bridge.js';
 import { needsActivityScope } from '../steps-source.js';
 
@@ -46,6 +46,8 @@ export function renderWithings(el, sub) {
   const years = backfillYears(bf);
   const csvCount = state.weights.filter((x) => x.source === 'withings_csv').length;
 
+  // connected but nothing has arrived: no weigh-in time, no Withings weights or measurements, and no import numbers yet
+  const noData = connected && !w.last_weigh_in_at && !bf.weighins && !bf.groups && !csvCount && !state.weights.some((x) => x.source === 'withings') && !(state.body_measures || []).length;
   const readErr = errorFor(state.serverErrors, ['body_measures', 'integrations']);
   el.innerHTML = `
     <section class="stack">
@@ -53,8 +55,8 @@ export function renderWithings(el, sub) {
       ${readErr ? `<div class="notice warn">${esc(serverErrorText(readErr, 'Withings'))}</div>` : ''}
 
       ${!connected ? `
-      <div class="card stack">
-        <p>Your scale’s weigh-ins and body composition arrive in Forge on their own, history included.</p>
+      <div class="card stack" data-not-connected>
+        ${emptyState({ art: 'scale', icon: 'scale', title: 'No scale connected yet', text: 'Your scale’s weigh-ins and body composition arrive in Forge on their own, history included.' })}
         <p class="callout" data-one-account>${icon('info')}<span>This scale isn’t linked to your Forge account yet. You can still log your weight by hand.</span></p>
         <p class="callout warn">${icon('warn')}<span>Log in with your <b>existing</b> Withings account. Don’t create a new one.</span></p>
         ${connectUrl ? `
@@ -79,13 +81,14 @@ export function renderWithings(el, sub) {
           <div><span>Arrived in</span><b>${w.last_latency_s == null ? '<small class="muted" data-arrived>waiting for your next weigh-in</small>' : mins(w.last_latency_s)}</b></div>
           <div><span>Notifications</span><b>${w.subscription_ok === true ? 'On' : w.subscription_ok === false ? 'Off' : '…'}</b></div>
         </div>
+        ${noData ? `<div data-no-data>${emptyState({ art: 'weigh', icon: 'scale', title: 'No weigh-ins yet', text: 'Step on your scale and it shows up here in a few minutes. Your history comes in too.', action: { attr: `data-sync data-own-haptic ${busy === 'sync' ? 'disabled' : ''}`, label: busy === 'sync' ? 'Syncing…' : 'Sync now' } })}</div>` : ''}
         <p class="small muted" data-history>${historyLine(bf)}</p>
         ${years.length ? `<details class="small"><summary>History by year</summary>
           <ul class="list dc-years">${years.map((y) => `<li><span>${y.year}</span><small class="muted">${y.weighins.toLocaleString()} weigh-in${y.weighins === 1 ? '' : 's'} · ${y.groups.toLocaleString()} measurements</small></li>`).join('')}</ul></details>` : ''}
         <button class="btn ghost small" data-reimport data-own-haptic ${busy === 'reimport' || (!bf.done && !bf.error && bf.updated_at && Date.now() - Date.parse(bf.updated_at) < 30 * 60000) ? 'disabled' : ''}>${busy === 'reimport' ? 'Starting…' : 'Re-import history'}</button>
         <p class="small muted">Re-import asks Withings for everything again, year by year, without disconnecting. Nothing is duplicated, and weigh-ins you deleted or marked “Not me” stay gone.</p>
         <div class="row gap">
-          <button class="btn ghost grow" data-sync data-own-haptic ${busy === 'sync' ? 'disabled' : ''}>${busy === 'sync' ? 'Syncing…' : 'Sync now'}</button>
+          ${noData ? '' : `<button class="btn ghost grow" data-sync data-own-haptic ${busy === 'sync' ? 'disabled' : ''}>${busy === 'sync' ? 'Syncing…' : 'Sync now'}</button>`}
           <a class="btn ghost grow" href="#/withings/check">Data check</a>
         </div>
         <p class="small muted">Last synced ${when(w.last_sync_at)}. Weigh-ins normally arrive by themselves; Sync now is for when one hasn’t.</p>

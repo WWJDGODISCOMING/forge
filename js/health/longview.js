@@ -1,5 +1,6 @@
 // HTML for the Long term card and the Longevity cards on Progress → Score (v0.13.0). Strings only, no DOM calls.
 import { esc } from '../ui.js';
+import { emptyState } from '../ui/icons.js';
 import { smoothFull } from './trends.js';
 import { sparkSvg } from './cards.js';
 import { fmtMetric } from '../withings/body.js';
@@ -18,7 +19,7 @@ export function longTermHtml(lt, range, today) {
     `<label><input type="radio" name="ltrange" value="${r}" ${r === range ? 'checked' : ''}><span>${r === 90 ? '90 days' : '1 year'}</span></label>`).join('')}</div>`;
   if (lt.status !== 'ok') {
     return `<div class="card stack" data-longterm><p class="label">Long term</p>
-      <p class="muted">Your long-term view starts after ${WEEKS_MIN} weeks of data (${lt.weeksSoFar} of ${WEEKS_MIN} weeks so far).</p></div>`;
+      ${emptyState({ art: 'trend', icon: 'chart', title: lt.weeksSoFar ? 'Your long-term view is building' : 'No long-term view yet', text: `Your long-term view starts after ${WEEKS_MIN} weeks of data (${lt.weeksSoFar} of ${WEEKS_MIN} weeks so far).`})}</div>`;
   }
   const pts = smoothFull(lt.points.map((p) => ({ day: p.day, v: p.score })), 21);
   const rows = lt.pillars.map((p) => `<li class="lt-row"><span>${esc(p.label)}</span>
@@ -83,6 +84,6 @@ function cardHtml(c, units, today) {
 
 /** The Longevity section: a card per metric with data, or one short line. */
 export function longevityHtml(cards, units, today) {
-  return `<div class="stack" data-longevity><p class="label" style="margin:0">Longevity</p>${cards.length ? cards.map((c) => cardHtml(c, units, today)).join('') : `<p class="muted">${EMPTY_LONGEVITY}</p>`}
+  return `<div class="stack" data-longevity><p class="label" style="margin:0">Longevity</p>${cards.length ? cards.map((c) => cardHtml(c, units, today)).join('') : emptyState({ art: 'ring', icon: 'heart', title: 'No longevity cards yet', text: EMPTY_LONGEVITY, action: { href: '#/apple', label: 'Add Apple Health' } })}
     ${cards.length ? '<p class="small muted">Ranges are general estimates, not medical advice. Everything is compared with your own past, never with other people.</p>' : ''}</div>`;
 }

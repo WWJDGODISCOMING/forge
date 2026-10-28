@@ -33,7 +33,7 @@ export function renderTrends(el) {
     <h2 class="sec-title">Last 4 weeks</h2>
     <div class="group trend-list" style="--rows:${Math.ceil(list.length / 2)}">${list.map((t, n) => row(t, u, i.today, i.weights, n === Math.ceil(list.length / 2))).join('')}</div>
     <p class="sec-foot">Arrows show the last 4 weeks. A trend only counts when it is bigger than normal day-to-day noise${goal === 'health' || goal === 'endurance' ? '' : ', and green or red shows whether it helps your goal'}. Tap one for the chart.</p>`
-    : `<div class="card" data-empty>${emptyState({ icon: 'chart', title: 'No trends yet', text: 'Weigh in a few times to see trends.', action: { href: '#/body/log', label: 'Log a weigh-in' } })}</div>`;
+    : `<div class="card" data-empty>${emptyState({ art: 'trend', icon: 'chart', title: 'No trends yet', text: 'Weigh in a few times to see trends.', action: { href: '#/body/log', label: 'Log a weigh-in' } })}</div>`;
   el.innerHTML = `
     <section class="stack">
       ${progressTabs('trends')}
