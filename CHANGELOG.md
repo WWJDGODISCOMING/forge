@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.84 — Workouts reach Apple Health, and show how long they took (2026-10-28)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- A walk beside your lift no longer replaces it: Forge saves the workout too.
+- The first finish with Apple Health off asks if you want to turn it on.
+- The summary says if it was saved, linked, pending or not sent.
+- No weight yet? Calories use a typical weight, and it says so.
+- Pauses reach Apple Health, so active time is right.
+- History shows how long each workout took.
+
 ## 0.16.83 — Taps you can feel (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes.

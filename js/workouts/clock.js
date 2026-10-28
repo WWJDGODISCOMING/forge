@@ -4,6 +4,9 @@
 // because it lives on the workout document itself.
 
 export const AWAY_THRESHOLD_MS = 10 * 60 * 1000;
+export const MAX_PAUSES = 200;
+
+const capPauses = (list) => (list.length > MAX_PAUSES ? list.slice(-MAX_PAUSES) : list);
 
 const t = (iso) => (iso ? Date.parse(iso) : null);
 
@@ -27,7 +30,9 @@ export function pauseFields(w, now = Date.now()) {
 /** Fields to write when resuming: the paused stretch moves into paused_ms. */
 export function resumeFields(w, now = Date.now()) {
   if (!isPaused(w)) return {};
-  return { paused_at: null, paused_ms: (w.paused_ms || 0) + Math.max(0, now - t(w.paused_at)) };
+  const start = t(w.paused_at);
+  const pauses = capPauses([...(w.pauses || []), { start: w.paused_at, end: new Date(Math.max(start, now)).toISOString() }]);
+  return { paused_at: null, paused_ms: (w.paused_ms || 0) + Math.max(0, now - start), pauses };
 }
 
 /**
@@ -40,7 +45,19 @@ export function awayGapMs(w, lastSeen, now = Date.now(), threshold = AWAY_THRESH
   return gap > threshold ? gap : 0;
 }
 
-/** "Remove it": treat the away stretch as paused time. */
-export function removeAwayFields(w, gapMs) {
-  return { paused_ms: (w.paused_ms || 0) + Math.max(0, gapMs) };
+/**
+ * "Remove it": treat the away stretch as paused time. awayStart (ms) is when you were last seen, so the
+ * recorded pause is awayStart .. awayStart + gap however long you wait before tapping. It is clamped so it
+ * never overlaps an earlier recorded pause. Without awayStart it falls back to the gap ending at `now`.
+ */
+export function removeAwayFields(w, gapMs, now = Date.now(), awayStart = null) {
+  const gap = Math.max(0, gapMs);
+  const old = w.pauses || [];
+  if (gap <= 0) return { paused_ms: w.paused_ms || 0, pauses: old };
+  const from = awayStart != null ? awayStart : now - gap;
+  const lastEnd = old.reduce((m, p) => Math.max(m, t(p.end) || 0), 0);
+  const start = Math.max(from, lastEnd);
+  const end = from + gap;
+  const pauses = end > start ? capPauses([...old, { start: new Date(start).toISOString(), end: new Date(end).toISOString() }]) : old;
+  return { paused_ms: (w.paused_ms || 0) + gap, pauses };
 }

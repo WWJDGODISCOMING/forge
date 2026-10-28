@@ -3155,6 +3155,83 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('summary'))
   });
 }
 
+// Apple Health write-back UI (v0.16.84, #242): History Recent rows and the workout detail sheet show the duration, the summary shows
+// "Not sent — turn on" / "Saved to Apple Health" / the estimated-weight note, and the first finish asks "Save workouts to Apple Health?".
+// The native bridge is stubbed (a fake ForgeWorkouts plugin). Turn-on button 44px+, nothing overflows or truncates, a Recent row at 320 / 160% included.
+const HW_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [626, 890, true, 1], [678, 466, true, 1]];
+const HW_NATIVE = "window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: (n) => n === 'ForgeWorkouts', Plugins: { ForgeWorkouts: {} } };";
+function hwSeed(kind) {
+  const data = summarySeed('first');
+  const w = data.workouts.find((x) => x.id === 'sumnow');
+  if (kind === 'saved') { data.settings[0].health_write_workouts = true; w.health_write = 'saved'; }
+  if (kind === 'estimate') { data.settings[0].health_write_workouts = true; w.health_write = 'saved'; w.kcal = 280; w.kcal_source = 'estimate'; w.kcal_weight_estimated = true; data.weights = []; data.profile[0].weightKg = null; }
+  return data;
+}
+const HW_PROBE = `(() => {
+  const vw = innerWidth;
+  const clipped = (e) => e.scrollWidth > e.clientWidth + 1;
+  const off = (e) => { const r = e.getBoundingClientRect(); return r.right > vw + 1 || r.left < -1; };
+  const bad = [];
+  if (document.documentElement.scrollWidth > vw + 1) bad.push('the page scrolls sideways');
+  for (const e of document.querySelectorAll('#main li.tap, #main li.tap small, #main li.tap b, [data-kcal], [data-kcal] *, dialog.sheet small, dialog.sheet p')) if (clipped(e) || off(e)) bad.push('clips or overflows: ' + e.tagName + ' "' + e.textContent.trim().slice(0, 40) + '"');
+  const btn = document.querySelector('[data-health-on]');
+  return { bad, btn: btn ? btn.getBoundingClientRect().height : null, btnOff: btn ? off(btn) : false, recent: [...document.querySelectorAll('#main li.tap small')].map((e) => e.textContent), kcal: (document.querySelector('[data-kcal]') || {}).innerText || '',
+    sheetText: (document.querySelector('dialog.sheet') || {}).innerText || '' };
+})()`;
+for (const [w, h, dark, ts] of standalone && (!only || only.includes('history') || only.includes('summary') || only.includes('healthwrite')) ? HW_SIZES : []) {
+  const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+  const zoom = async () => { if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); } };
+  test(`layout: health write-back: History duration and detail line fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    await browser.open('history', seed({ long: true }));
+    await zoom();
+    const r = await browser.eval(HW_PROBE);
+    if (shots) await browser.screenshot(`${shots}/history-duration-${tag}.png`);
+    assert(r.bad.length === 0, r.bad.join('; '));
+    assert(r.recent.some((t) => / · 45 min/.test(t)), `Recent rows show no duration: ${JSON.stringify(r.recent)}`);
+    await browser.eval("document.querySelector('#main li.tap[data-w]').click()");
+    await new Promise((r2) => setTimeout(r2, 700));
+    const d = await browser.eval(HW_PROBE);
+    if (shots) await browser.screenshot(`${shots}/history-detail-duration-${tag}.png`);
+    assert(/45 min/.test(d.sheetText), `detail sheet shows no duration: ${d.sheetText.slice(0, 120)}`);
+    assert(d.bad.length === 0, d.bad.join('; '));
+  });
+  test(`layout: health write-back: summary status line and turn-on button fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    for (const kind of ['off', 'saved', 'estimate']) {
+      await browser.open('summary/sumnow', hwSeed(kind), HW_NATIVE);
+      await zoom();
+      const r = await browser.eval(HW_PROBE);
+      if (shots) await browser.screenshot(`${shots}/summary-health-${kind}-${tag}.png`);
+      assert(r.bad.length === 0, `${kind}: ${r.bad.join('; ')}`);
+      if (kind === 'off') {
+        assert(/Not sent — turn on/.test(r.kcal), `${kind}: status reads ${JSON.stringify(r.kcal)}`);
+        assert(r.btn !== null && r.btn >= 43.5 && !r.btnOff, `${kind}: turn-on button is ${r.btn}px tall (off-screen: ${r.btnOff})`);
+      } else assert(/Saved to Apple Health/.test(r.kcal), `${kind}: status reads ${JSON.stringify(r.kcal)}`);
+      if (kind === 'estimate') assert(/Calories use an estimated weight/.test(r.kcal), `${kind}: no estimate note: ${JSON.stringify(r.kcal)}`);
+    }
+  });
+  test(`layout: health write-back: first-finish "Save workouts to Apple Health?" sheet fits at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    await browser.open('summary/sumnow', hwSeed('off'), HW_NATIVE);
+    await zoom();
+    await browser.eval("(async () => { const [o, m] = await Promise.all([import('./js/screens/overlays.js'), import('./js/native/workouts-health.js')]); o.offerHealth(m, { id: 'sumnow' }); })()");
+    await new Promise((r2) => setTimeout(r2, 800));
+    const r = await browser.eval(HW_PROBE);
+    if (shots) await browser.screenshot(`${shots}/health-prompt-${tag}.png`);
+    assert(/Save workouts to Apple Health\?/.test(r.sheetText), `the prompt did not open: ${r.sheetText.slice(0, 80)}`);
+    const btns = await browser.eval("[...document.querySelectorAll('dialog.sheet [data-yes], dialog.sheet [data-no]')].map((b) => b.getBoundingClientRect().height)");
+    assert(btns.length === 2 && btns.every((x) => x >= 43.5), `prompt buttons are ${JSON.stringify(btns)}px tall`);
+    assert(r.bad.length === 0, r.bad.join('; '));
+  });
+}
+
 // Progress photo camera (v0.16.76, #227). The viewfinder opens over the modal Progress photos sheet with a stubbed camera
 // (a canvas stream). Real mouse taps, so a viewfinder that sits under the modal's top layer would fail here: the shutter
 // must work, the photo must land in its pose row, the sheet must stay open, no overlay may be left and Save must still work.

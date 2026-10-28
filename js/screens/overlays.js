@@ -6,6 +6,7 @@ import { toUnit } from '../workouts/progression.js';
 import { unit } from '../workouts/plan.js';
 import { fmtClock, setWantAwake } from '../timer.js';
 import { coach } from '../ui/sound.js';
+import { patch } from '../db.js';
 
 function overlay(cls, html) {
   document.querySelectorAll('.ov').forEach((o) => o.remove());
@@ -167,8 +168,22 @@ export function saveAndSummarize() {
   setWantAwake(false);
   // Apple Health (only when the switch is on, in the iPhone app): after the save, never in the summary's way.
   Promise.all([import('../native/workouts-health.js'), import('../workouts/live.js')])
-    .then(([m, l]) => m.afterFinish(l.finishedCopy(id))).catch(() => {});
+    .then(([m, l]) => {
+      const copy = l.finishedCopy(id);
+      if (m.writeEnabled()) return m.afterFinish(copy);
+      return offerHealth(m, copy);
+    }).catch(() => {});
   location.hash = `#/summary/${encodeURIComponent(id)}`;
+}
+
+/** First finish in the iPhone app with the switch off: ask once whether to save workouts to Apple Health. */
+export async function offerHealth(m, copy) {
+  if (!m.canOffer() || !copy) return;
+  patch('settings', 'main', { health_write_prompted: true }); // ask once; the summary line keeps the door open
+  const yes = await confirmSheet({ title: 'Save workouts to Apple Health?', message: 'Forge can add each workout to Apple Health so it counts toward your Exercise ring. You can change this any time in Settings → Apple Health.', confirmLabel: 'Turn on' });
+  if (!yes) return;
+  if (await m.enableWrites()) m.afterFinish(copy);
+  else toast('Allow Forge to write Workouts and Active Energy in Settings → Health → Data Access & Devices → Forge.', 6000);
 }
 
 export const escHtml = esc;

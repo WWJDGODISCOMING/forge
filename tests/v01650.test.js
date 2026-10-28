@@ -3,6 +3,8 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { test, eq as strictEq, assert } from './harness.js';
 const eq = (a, b, m) => strictEq(JSON.stringify(a), JSON.stringify(b), m);
 import { MET, metFor, intensity, estimateKcal, weightKgFor, activityTypeFor, overlapShare, pickOverlap, decide, pendingPatch, nextVersion, kcalLine, windowFor } from '../js/workouts/energy.js';
+import { weightOrDefault, pausesFor, durationText, healthStatus } from '../js/workouts/energy.js';
+import { pauseFields, resumeFields, removeAwayFields } from '../js/workouts/clock.js';
 import { plugin } from '../js/native/bridge.js';
 import { accessStatus } from '../js/workouts/energy.js';
 
@@ -55,7 +57,80 @@ test('overlap math: 50% of the shorter one links; touching edges do not', () => 
   eq(overlapShare(win, other('2026-10-20T10:10:00Z', '2026-10-20T10:30:00Z')), 1);
   eq(overlapShare(win, other('2026-10-20T10:50:00Z', '2026-10-20T11:50:00Z')), 10 / 60);
   assert(pickOverlap(win, [other('2026-10-20T10:50:00Z', '2026-10-20T11:50:00Z')]) === null);
-  assert(pickOverlap(win, [other('2026-10-20T10:30:00Z', '2026-10-20T11:30:00Z')]));
+  assert(pickOverlap(win, [other('2026-10-20T10:30:00Z', '2026-10-20T11:30:00Z', { activityType: 50 })]));
+});
+
+test('overlap rule: a walk beside a lift is saved too; Watch strength links; 80% cover of any type links', () => {
+  const WALK = 52, STRENGTH = 50, HIIT = 63;
+  // a 30 min walk inside the hour: shorter one is covered, but it is not strength and covers only 50% of Forge
+  eq(pickOverlap(win, [other('2026-10-20T10:00:00Z', '2026-10-20T10:30:00Z', { activityType: WALK })]), null);
+  eq(decide({ win, overlaps: [other('2026-10-20T10:00:00Z', '2026-10-20T10:30:00Z', { activityType: WALK })], measuredKcal: 0, estimate: 300 }), { action: 'save', kcal: 300, source: 'estimate' });
+  // Watch strength / HIIT with 50%+ of the shorter: linked (number or name)
+  assert(pickOverlap(win, [other('2026-10-20T10:05:00Z', '2026-10-20T10:50:00Z', { activityType: STRENGTH })]));
+  assert(pickOverlap(win, [other('2026-10-20T10:00:00Z', '2026-10-20T10:40:00Z', { activityType: HIIT })]));
+  assert(pickOverlap(win, [other('2026-10-20T10:00:00Z', '2026-10-20T11:00:00Z', { activityType: 'traditionalStrengthTraining' })]));
+  // any type covering 80% of the Forge session links; 79% does not
+  assert(pickOverlap(win, [other('2026-10-20T10:00:00Z', '2026-10-20T10:50:00Z', { activityType: WALK })]));
+  eq(pickOverlap(win, [other('2026-10-20T10:00:00Z', '2026-10-20T10:47:00Z', { activityType: WALK })]), null);
+  // a walk and a Watch strength workout together: the strength one wins
+  eq(pickOverlap(win, [other('2026-10-20T10:00:00Z', '2026-10-20T10:30:00Z', { uuid: 'walk', activityType: WALK }), other('2026-10-20T10:00:00Z', '2026-10-20T11:00:00Z', { uuid: 'str', activityType: STRENGTH })]).uuid, 'str');
+});
+
+test('weight fallback: real weight first, else 75 kg marked as an estimate', () => {
+  eq(weightOrDefault([{ kg: 82, measured_at: '2026-10-10' }], null), { kg: 82, estimated: false });
+  eq(weightOrDefault([], { weightKg: 90 }), { kg: 90, estimated: false });
+  eq(weightOrDefault([], null), { kg: 75, estimated: true });
+  const w = strength([set(2, 0)]);
+  eq(estimateKcal(w, weightOrDefault([], null).kg), 375); // 5.0 x 75 x 1 h, no longer skipped
+});
+
+test('real pauses: the window spans them and they go to Health inside it', () => {
+  const w = strength([set(2, 0)], { duration_ms: 3000000, pauses: [{ start: new Date(T0 + 600000).toISOString(), end: new Date(T0 + 900000).toISOString() }, { start: new Date(T0 + 1800000).toISOString(), end: new Date(T0 + 2100000).toISOString() }, { start: 'x', end: null }] });
+  const wd = windowFor(w); // 50 min active + 10 min paused
+  eq(wd, { start: '2026-10-20T10:00:00.000Z', end: '2026-10-20T11:00:00.000Z' });
+  eq(pausesFor(w), [{ start: '2026-10-20T10:10:00.000Z', end: '2026-10-20T10:15:00.000Z' }, { start: '2026-10-20T10:30:00.000Z', end: '2026-10-20T10:35:00.000Z' }]);
+  eq(pausesFor(strength([set(2, 0)])), []);
+  // clock: pause then resume records the stretch; away-removal records it too
+  const p = pauseFields({}, T0);
+  const r = resumeFields({ paused_at: p.paused_at, paused_ms: 0 }, T0 + 120000);
+  eq(r.paused_ms, 120000);
+  eq(r.pauses, [{ start: new Date(T0).toISOString(), end: new Date(T0 + 120000).toISOString() }]);
+  eq(removeAwayFields({ paused_ms: 1000 }, 60000, T0 + 60000), { paused_ms: 61000, pauses: [{ start: new Date(T0).toISOString(), end: new Date(T0 + 60000).toISOString() }] });
+});
+
+test('away removal: the pause is the away stretch even if you tap late; pauses are capped', () => {
+  const iso = (ms) => new Date(ms).toISOString();
+  // away from T0 for 14 min, back at T0+14m, taps "Remove it" 90 s later
+  const late = removeAwayFields({ paused_ms: 0 }, 14 * 60000, T0 + 14 * 60000 + 90000, T0);
+  eq(late.pauses, [{ start: iso(T0), end: iso(T0 + 14 * 60000) }]);
+  eq(late.paused_ms, 14 * 60000);
+  // clamped so it does not overlap an earlier pause
+  const prior = [{ start: iso(T0 - 120000), end: iso(T0 + 60000) }];
+  eq(removeAwayFields({ paused_ms: 0, pauses: prior }, 14 * 60000, T0 + 20 * 60000, T0).pauses[1], { start: iso(T0 + 60000), end: iso(T0 + 14 * 60000) });
+  // cap
+  const many = Array.from({ length: 200 }, (_, i) => ({ start: iso(T0 - 1e7 + i * 10), end: iso(T0 - 1e7 + i * 10 + 5) }));
+  const a = removeAwayFields({ pauses: many }, 11 * 60000, T0 + 11 * 60000, T0);
+  eq(a.pauses.length, 200);
+  eq(a.pauses[199].start, iso(T0));
+  const b = resumeFields({ paused_at: iso(T0), pauses: many }, T0 + 1000);
+  eq(b.pauses.length, 200);
+  eq(b.pauses[199].end, iso(T0 + 1000));
+});
+
+test('duration text for History: duration_ms, else finished - started - paused', () => {
+  eq(durationText({ duration_ms: 2700000 }), ' · 45 min');
+  eq(durationText({ started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T11:00:00Z', paused_ms: 600000 }), ' · 50 min');
+  eq(durationText({ duration_ms: 2700000, started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T11:00:00Z', paused_ms: 600000 }), ' · 45 min');
+  eq(durationText({ status: 'done' }), '');
+});
+
+test('summary status line', () => {
+  const on = { native: true, enabled: true };
+  eq(healthStatus({ health_write: 'saved' }, on).text, 'Saved to Apple Health');
+  eq(healthStatus({ health_write: 'linked' }, on).text, 'Linked to Apple Watch workout');
+  eq(healthStatus({ health_write: 'pending' }, on).text, 'Pending retry');
+  eq(healthStatus({}, { native: true, enabled: false }), { text: 'Not sent — turn on', action: 'turn-on' });
+  eq(healthStatus({}, { native: false, enabled: false }), null);
 });
 
 test('decision table: link / measured / estimate / skip / pending', () => {

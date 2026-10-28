@@ -219,6 +219,7 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
                         "uuid": w.uuid.uuidString,
                         "sourceName": w.sourceRevision.source.name,
                         "sourceId": w.sourceRevision.source.bundleIdentifier,
+                        "activityType": Int(w.workoutActivityType.rawValue),
                         "start": self.iso(w.startDate),
                         "end": self.iso(w.endDate),
                     ]

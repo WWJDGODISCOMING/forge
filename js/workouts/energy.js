@@ -7,6 +7,8 @@ import { exerciseById } from './library.js';
 
 export const MET = { light: 3.5, moderate: 5.0, vigorous: 6.0, conditioning: 8.0 };
 export const LINK_OVERLAP = 0.5; // a Watch workout covering this much of the shorter one counts as the same session
+export const COVER_LINK = 0.8; // any workout type covering this much of the Forge session counts as the same session
+export const DEFAULT_WEIGHT_KG = 75; // used for the estimate only when there is no weigh-in and no profile weight
 export const MEASURED_SHARE = 0.7; // measured energy this close to the estimate is used instead of it
 export const MAX_TRIES = 5;
 
@@ -52,6 +54,12 @@ export function weightKgFor(weights, profile) {
   return kg > 0 ? kg : null;
 }
 
+/** { kg, estimated }: the real weight, else DEFAULT_WEIGHT_KG marked as an estimate. */
+export function weightOrDefault(weights, profile) {
+  const kg = weightKgFor(weights, profile);
+  return kg ? { kg, estimated: false } : { kg: DEFAULT_WEIGHT_KG, estimated: true };
+}
+
 /** Whole kcal, or null when there is no weight or no time. */
 export function estimateKcal(w, weightKg) {
   const ms = Number(w && w.duration_ms);
@@ -67,12 +75,31 @@ export function activityTypeFor(w) {
   return its.length && bw / its.length >= 0.7 ? 'functionalStrengthTraining' : 'traditionalStrengthTraining';
 }
 
-/** The window written to Health: started_at for the active time (Forge keeps only total paused time). */
+/** The recorded pauses that have both ends, in ms, oldest first. */
+export function closedPauses(w) {
+  return (Array.isArray(w && w.pauses) ? w.pauses : [])
+    .map((p) => ({ start: Date.parse(p && p.start), end: Date.parse(p && p.end) }))
+    .filter((p) => Number.isFinite(p.start) && Number.isFinite(p.end) && p.end > p.start)
+    .sort((a, b) => a.start - b.start);
+}
+
+/**
+ * The window written to Health: started_at plus the active time. When pauses were recorded the window also spans
+ * them, so the active time inside it is still duration_ms.
+ */
 export function windowFor(w) {
   const start = Date.parse(w.started_at);
   const ms = Number(w.duration_ms);
   if (Number.isNaN(start) || !(ms > 0)) return null;
-  return { start: new Date(start).toISOString(), end: new Date(start + ms).toISOString() };
+  const paused = closedPauses(w).filter((p) => p.start >= start).reduce((n, p) => n + (p.end - p.start), 0);
+  return { start: new Date(start).toISOString(), end: new Date(start + ms + paused).toISOString() };
+}
+
+/** The pauses to send to Health: ISO start/end, inside the window. */
+export function pausesFor(w, win = windowFor(w)) {
+  if (!win) return [];
+  const a = Date.parse(win.start), b = Date.parse(win.end);
+  return closedPauses(w).filter((p) => p.start >= a && p.end <= b).map((p) => ({ start: new Date(p.start).toISOString(), end: new Date(p.end).toISOString() }));
 }
 
 /** Share of the shorter of two windows that the overlap covers. Touching edges = 0. */
@@ -83,19 +110,41 @@ export function overlapShare(a, b) {
   return over > 0 && shorter > 0 ? over / shorter : 0;
 }
 
-/** The overlapping non-Forge workout to link to: the most-overlapping one that reaches LINK_OVERLAP, else null. */
 /** requestAuthorization result → 'denied' if either Workouts or Active Energy was refused (separate toggles in the iOS sheet). */
 export function accessStatus(r) {
   if (r && (r.workout === 'denied' || r.energy === 'denied')) return 'denied';
   return (r && r.workout) || 'notDetermined';
 }
 
+// HKWorkoutActivityType raw values that are the same kind of session as a Forge workout: cross training 11,
+// functional strength 20, traditional strength 50, core 59, HIIT 63, mixed cardio 73.
+const STRENGTH_RAW = new Set([11, 20, 50, 59, 63, 73]);
+const STRENGTH_NAMES = /strength|hiit|highintensity|crosstraining|mixedcardio|core/i;
+export function isStrengthLike(o) {
+  const t = o && (o.activityType ?? o.type);
+  if (typeof t === 'number') return STRENGTH_RAW.has(t);
+  return typeof t === 'string' && STRENGTH_NAMES.test(t);
+}
+
+/** Share of the Forge window that the other workout covers. */
+export function coverShare(win, o) {
+  const ws = Date.parse(win.start), we = Date.parse(win.end);
+  const over = Math.min(we, Date.parse(o.end)) - Math.max(ws, Date.parse(o.start));
+  return over > 0 && we > ws ? over / (we - ws) : 0;
+}
+
+/**
+ * The overlapping non-Forge workout to link to: the most-overlapping one that is strength-like and reaches
+ * LINK_OVERLAP of the shorter session, or of any type and covers COVER_LINK of the Forge session. Otherwise null,
+ * so a walk next to a lift doesn't swallow it (Health de-dupes the exercise minutes).
+ */
 export function pickOverlap(win, workouts) {
   let best = null;
   let bestShare = 0;
   for (const o of workouts || []) {
     const sh = overlapShare(win, o);
-    if (sh >= LINK_OVERLAP && sh > bestShare) { best = o; bestShare = sh; }
+    const ok = (isStrengthLike(o) && sh >= LINK_OVERLAP) || coverShare(win, o) >= COVER_LINK;
+    if (ok && sh > bestShare) { best = o; bestShare = sh; }
   }
   return best;
 }
@@ -128,6 +177,31 @@ export function pendingPatch(w) {
 
 /** The version to save an edited workout with: one more than the last saved. */
 export const nextVersion = (w) => (Number(w.health_version) || 0) + 1;
+
+/** The status line on the summary: { text, action? } or null. `native` = iPhone app, `enabled` = the Health write switch. */
+export function healthStatus(w, { native, enabled }) {
+  if (!native || !w) return null;
+  if (w.health_write === 'linked') return { text: 'Linked to Apple Watch workout' };
+  if (w.health_write === 'saved') return { text: 'Saved to Apple Health' };
+  if (w.health_write === 'pending') return { text: 'Pending retry' };
+  if (w.health_write === 'failed') return { text: 'Couldn’t send to Apple Health' };
+  if (!enabled) return { text: 'Not sent — turn on', action: 'turn-on' };
+  return null;
+}
+
+/** Whole minutes for a finished workout: duration_ms, else finished_at - started_at - paused_ms. null when unknown. */
+export function durationMin(w) {
+  if (!w) return null;
+  let ms = Number(w.duration_ms);
+  if (!(ms > 0)) ms = Date.parse(w.finished_at) - Date.parse(w.started_at) - (Number(w.paused_ms) || 0);
+  return ms > 0 ? Math.max(1, Math.round(ms / 60000)) : null;
+}
+
+/** " · 42 min" for History rows and the detail sheet, or "" when unknown. */
+export function durationText(w) {
+  const m = durationMin(w);
+  return m ? ` · ${m} min` : '';
+}
 
 /** The summary / history line for the calories: "≈ 180 kcal (estimate)", "180 kcal (Apple Watch)", "180 kcal (measured)". */
 export function kcalLine(w) {
