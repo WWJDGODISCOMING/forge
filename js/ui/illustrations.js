@@ -31,6 +31,14 @@ const ART = {
     <circle cx="38" cy="30" r="3.5" fill="currentColor" fill-opacity=".2"/><circle cx="52" cy="54" r="3.5" fill="currentColor" fill-opacity=".2"/>
     <circle cx="66" cy="45" r="3.5" fill="currentColor" fill-opacity=".2"/><circle cx="80" cy="69" r="3.5" fill="currentColor" fill-opacity=".2"/>
     <path d="M30 34L90 66" stroke="${A}"/>`,
+  // Score ring waiting for its first arc, with a sparkle
+  ring: `<circle cx="60" cy="48" r="30" fill="currentColor" fill-opacity=".08"/><circle cx="60" cy="48" r="30" stroke-opacity=".45" stroke-dasharray="3 7"/>
+    <path d="M60 18a30 30 0 0 1 26 15" stroke="${A}" stroke-width="4"/><circle cx="60" cy="48" r="4" fill="currentColor" fill-opacity=".2"/>
+    <path d="M96 14q.9 5.1 6 6q-5.1.9-6 6q-.9-5.1-6-6q5.1-.9 6-6z" stroke="${A}" fill="${A}" fill-opacity=".25"/>`,
+  // Chart frame with a dashed baseline and a lime line starting to climb
+  trend: `<path d="M22 14v66h78"/><path d="M22 58h78" stroke-opacity=".4" stroke-dasharray="3 6"/>
+    <path d="M30 70l16-8 14 4 12-14" stroke="${A}"/><circle cx="72" cy="52" r="3.5" fill="${A}" fill-opacity=".3" stroke="${A}"/>
+    <rect x="32" y="26" width="14" height="10" rx="3" fill="currentColor" fill-opacity=".1" stroke-opacity=".5"/>`,
 };
 
 export function illustration(name) {

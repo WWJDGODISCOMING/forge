@@ -546,6 +546,37 @@ for (const [w, h, ts] of standalone && (!only || only.includes('withings')) ? WS
   });
 }
 
+// Empty states (v0.16.85, #235): a brand-new account on Score, Trends, Withings (not connected, and connected with no data).
+// Art shown, one 44px+ action, no overflow or clipping, no empty rings; phone, both Duo postures folded and unfolded, 320 at 1.6 text.
+const ES_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [466, 678, true, 1], [678, 466, false, 1], [626, 890, true, 1], [890, 626, false, 1], [320, 568, true, 1.6]];
+for (const [route, variant] of [['score', 'plain'], ['trends', 'plain'], ['withings', 'off'], ['withings', 'on']]) {
+  test(`layout: empty state on ${route}${variant === 'plain' ? '' : ' ' + variant} fits at every size`, async () => {
+    if (!standalone || (only && !only.includes(route)) || skipReason()) return;
+    browser = browser || await launch();
+    const found = [];
+    for (const [w, h, dark, ts] of ES_SIZES) {
+      await browser.viewport(w, h, dark);
+      const data = seed({ empty: true });
+      if (variant === 'on') data.integrations.push({ id: 'withings', connected: true, needs_reconnect: false, scopes: 'user.info,user.metrics,user.activity', model: 'Body+', subscription_ok: true });
+      await browser.open(route, data);
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const tag = `${route}-empty${variant === 'plain' ? '' : '-' + variant}-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text' : ''}`;
+      if (shots) await browser.screenshot(`${shots}/${tag}.png`);
+      const r = await browser.eval(`(() => {
+        const e = document.querySelector('#main .empty-state'); if (!e) return { none: true };
+        const q = e.getBoundingClientRect();
+        const btn = e.querySelector('.btn');
+        return { art: !!e.querySelector('.es-art svg'), clip: q.right > innerWidth + 1 || q.left < -1 || document.documentElement.scrollWidth > innerWidth + 1,
+          small: btn ? btn.getBoundingClientRect().height < 43.5 : false, rings: document.querySelectorAll('#main .pillar-grid').length };
+      })()`);
+      const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+      if (r.none || !r.art) found.push(`${tag}: no illustrated empty state`);
+      else if (r.clip || r.small || r.rings || probs.length) found.push(`${tag}: ${JSON.stringify(r)} ${probs.join(' | ')}`);
+    }
+    assert(found.length === 0, '\n        ' + found.join('\n        '));
+  });
+}
+
 // Withings steps (v0.16.70): the calm "Reconnect to add steps" note (connected, stored scopes lack user.activity) and a
 // Past days page whose steps came from Withings. Visible, unclipped, the reconnect button 44px or taller.
 for (const [w, h, ts] of standalone && (!only || only.includes('withings') || only.includes('days')) ? [[390, 844, 1], [320, 568, 1.6], [678, 466, 1]] : []) {
