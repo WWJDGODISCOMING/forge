@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.83 — Taps you can feel (2026-10-27)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Today, Trends, Score, History, Photos, Awards and more now tick under your finger.
+- Ranges and toggles tick, saving feels like a success, and deleting gives a warning tap.
+- Cards and chips dip when pressed. Settings → Haptic tick turns the ticks off.
+
 ## 0.16.82 — Loading skeletons everywhere (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes.

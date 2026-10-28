@@ -3,6 +3,7 @@
 // "safe to cancel Withings+?" verdict). Everything here is read from users/{uid}/integrations/withings and
 // body_measures, which only Cloud Functions write.
 import { state, units as getUnits } from '../state.js';
+import { haptics } from '../ui/haptic.js';
 import { esc, $, $$, sheet, toast, formatDay, todayKey } from '../ui.js';
 import { serverErrorText, errorFor } from '../ui/errors.js';
 import { fieldStatus } from '../health/status.js';
@@ -59,7 +60,7 @@ export function renderWithings(el, sub) {
         ${connectUrl ? `
           <a class="btn primary" href="${esc(connectUrl)}" target="_blank" rel="noopener" data-go>Continue to Withings ${icon('chev')}</a>
           <p class="small muted">On the Withings page, tap <b>Log in</b> (not “Create account”), then <b>Allow</b>. When it says “Connected”, come back here.</p>`
-        : `<button class="btn primary" data-connect ${busy === 'connect' ? 'disabled' : ''}>${busy === 'connect' ? 'Preparing…' : 'Connect Withings'}</button>`}
+        : `<button class="btn primary" data-connect data-own-haptic ${busy === 'connect' ? 'disabled' : ''}>${busy === 'connect' ? 'Preparing…' : 'Connect Withings'}</button>`}
         <details class="learn-more small"><summary>Learn more</summary>
           <div class="stack">
             <p class="small muted"><b>One scale, one Forge account (for now).</b> A Withings scale can only link to a single Forge account at the moment. To log by hand, tap <b>Log weight</b> on Today, or <b>Progress → + Log weight</b>.</p>
@@ -68,8 +69,8 @@ export function renderWithings(el, sub) {
           </div>
         </details>
       </div>` : `
-      ${w.needs_reconnect ? `<div class="notice warn">Withings stopped accepting Forge’s sign-in. <button class="link" data-connect>Connect again</button> (${EXISTING_ACCOUNT})</div>` : ''}
-      ${needsActivityScope(w) ? `<p class="small muted" data-steps-note>Want your Withings steps too? <button class="link" data-connect>Reconnect to add steps</button></p>` : ''}
+      ${w.needs_reconnect ? `<div class="notice warn">Withings stopped accepting Forge’s sign-in. <button class="link" data-connect data-own-haptic>Connect again</button> (${EXISTING_ACCOUNT})</div>` : ''}
+      ${needsActivityScope(w) ? `<p class="small muted" data-steps-note>Want your Withings steps too? <button class="link" data-connect data-own-haptic>Reconnect to add steps</button></p>` : ''}
       ${connectUrl && w.needs_reconnect ? `<a class="btn" href="${esc(connectUrl)}" target="_blank" rel="noopener" data-go>Continue to Withings →</a>` : ''}
       <div class="card stack">
         <div class="row between center"><p class="label">Connected</p><span class="small muted">${esc(w.model || 'Scale')}</span></div>
@@ -81,10 +82,10 @@ export function renderWithings(el, sub) {
         <p class="small muted" data-history>${historyLine(bf)}</p>
         ${years.length ? `<details class="small"><summary>History by year</summary>
           <ul class="list dc-years">${years.map((y) => `<li><span>${y.year}</span><small class="muted">${y.weighins.toLocaleString()} weigh-in${y.weighins === 1 ? '' : 's'} · ${y.groups.toLocaleString()} measurements</small></li>`).join('')}</ul></details>` : ''}
-        <button class="btn ghost small" data-reimport ${busy === 'reimport' || (!bf.done && !bf.error && bf.updated_at && Date.now() - Date.parse(bf.updated_at) < 30 * 60000) ? 'disabled' : ''}>${busy === 'reimport' ? 'Starting…' : 'Re-import history'}</button>
+        <button class="btn ghost small" data-reimport data-own-haptic ${busy === 'reimport' || (!bf.done && !bf.error && bf.updated_at && Date.now() - Date.parse(bf.updated_at) < 30 * 60000) ? 'disabled' : ''}>${busy === 'reimport' ? 'Starting…' : 'Re-import history'}</button>
         <p class="small muted">Re-import asks Withings for everything again, year by year, without disconnecting. Nothing is duplicated, and weigh-ins you deleted or marked “Not me” stay gone.</p>
         <div class="row gap">
-          <button class="btn ghost grow" data-sync ${busy === 'sync' ? 'disabled' : ''}>${busy === 'sync' ? 'Syncing…' : 'Sync now'}</button>
+          <button class="btn ghost grow" data-sync data-own-haptic ${busy === 'sync' ? 'disabled' : ''}>${busy === 'sync' ? 'Syncing…' : 'Sync now'}</button>
           <a class="btn ghost grow" href="#/withings/check">Data check</a>
         </div>
         <p class="small muted">Last synced ${when(w.last_sync_at)}. Weigh-ins normally arrive by themselves; Sync now is for when one hasn’t.</p>
@@ -132,8 +133,10 @@ export function renderWithings(el, sub) {
     try {
       const r = await call('withingsAuthStart');
       connectUrl = r.url;
+      haptics.success();
       setTimeout(() => { connectUrl = null; }, 9 * 60 * 1000); // the link expires after 10 minutes
     } catch (e) {
+      haptics.warning();
       toast(e.message);
     }
     busy = '';
@@ -151,8 +154,10 @@ export function renderWithings(el, sub) {
     renderWithings(el);
     try {
       const r = await call('withingsSyncNow', {}, { timeout: 130000 });
+      haptics.success();
       toast(r.created ? `${r.created} new measurement${r.created === 1 ? '' : 's'}` : 'Up to date');
     } catch (e) {
+      haptics.warning();
       toast(e.message);
     }
     busy = '';
@@ -195,8 +200,10 @@ export function renderWithings(el, sub) {
     renderWithings(el);
     try {
       await call('withingsReimport');
+      haptics.success();
       toast('History import started');
     } catch (e) {
+      haptics.warning();
       toast(e.message);
     }
     busy = '';
@@ -392,7 +399,7 @@ function renderCheck(el) {
 
       <div class="card stack">
         <p class="label">Saved reports</p>
-        <div class="row gap"><input name="label" value="${beforeNov ? 'subscribed' : 'after cancelling'}" maxlength="40" aria-label="Report name" class="grow"><button class="btn small" data-save ${busy === 'save' ? 'disabled' : ''}>Save report</button></div>
+        <div class="row gap"><input name="label" value="${beforeNov ? 'subscribed' : 'after cancelling'}" maxlength="40" aria-label="Report name" class="grow"><button class="btn small" data-save data-own-haptic ${busy === 'save' ? 'disabled' : ''}>Save report</button></div>
         ${history.length ? `<ul class="list dc-saved">${history.map((h, i) => `
           <li><label class="choice check small"><input type="checkbox" name="cmp" value="${i}" ${sel.includes(i) ? 'checked' : ''}><span>${esc(h.label)}<small>${when(h.saved_at)}</small></span></label></li>`).join('')}</ul>
           <p class="small muted">Tick two to compare.</p>` : '<p class="small muted">None yet.</p>'}
@@ -427,8 +434,10 @@ function renderCheck(el) {
     renderCheck(el);
     try {
       await call('withingsDataCheck', { action: 'save', label: $('input[name=label]', el).value });
+      haptics.success();
       toast('Report saved');
     } catch (e) {
+      haptics.warning();
       toast(e.message);
     }
     busy = '';

@@ -46,7 +46,7 @@ export function openProteinGoal({ onSave = () => {} } = {}) {
         </div>
         <p class="small muted" data-carbs></p>
         <p class="small muted" data-note role="alert" aria-live="polite">Between ${MIN} and ${MAX} g. Carbs adjust to fit your calories.</p>
-        <button class="btn" type="button" data-save>Save</button>
+        <button class="btn" type="button" data-save data-own-haptic>Save</button>
       </div>`;
     const box = $('[data-custom]', body), input = $('[data-g]', body), dec = $('[data-dec]', body), inc = $('[data-inc]', body);
     let typing = false; // a typed value stays on screen until it is valid, so Save can check what was really typed

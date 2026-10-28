@@ -10,6 +10,7 @@ import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCount
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
 import { hapticTabs, hapticSegments, haptics } from './ui/haptic.js';
+import { wirePressHaptics } from './ui/press-haptics.js';
 import { mountQuickLog, syncQuickLog, placeQuickLog } from './ui/quicklog.js';
 import { setupTextSize } from './ui/textsize.js';
 import { setupResizeAnchor } from './ui/anchor.js';
@@ -23,6 +24,7 @@ import { tabOf, routeDepth, transitionKind, backTarget, backLabel, redirectRoute
 import { decodeImages } from './ui/decode.js';
 
 const main = document.getElementById('main');
+wirePressHaptics(); // haptics for taps on the data screens and their sheets (#234)
 const nav = document.getElementById('nav');
 const syncPill = document.getElementById('sync');
 const offlineBanner = document.getElementById('offline');
