@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.16.86 — Large-text and Duo layout sweep for the data screens (2026-10-28)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Trends: on a small phone the label gets its own line, so "Weight trend" is never squeezed at large text.
+- Report: long figures such as "−0.5 lb (−0.2 kg) a week" wrap instead of running off the edge on a small phone.
+- Metric pages: the three stats wrap into rows at large text, and the sets switch reads "Weekly sets" so it fits on one line.
+- Exercises: the title no longer runs under + Custom at large text; the button drops below it.
+- A new layout check covers Score, Trends, Weekly, Report, a metric page and Progress photos at the phone, all four Duo sizes and a small phone at 160% text.
+
 ## 0.16.85 — Friendly empty states for Score, Trends and Withings (2026-10-28)
 
 No Cloud Functions or `firestore.rules` changes.

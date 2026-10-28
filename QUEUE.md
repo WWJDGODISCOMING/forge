@@ -438,7 +438,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 42. #236 Polish: large-text + Duo layout sweep (Trends, Weekly, Report, Score, Progress)
 - Issue: #236
 - Version: 0.16.86
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #236; fix overflow/clip/wrap, new layout-assert route group at all sizes; shots 390x844, 4 Duo sizes, 320 text 1.6.
 

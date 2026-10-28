@@ -123,7 +123,7 @@ export function renderMetric(el, key) {
       <div class="row between center"><h1>${esc(def.label)}</h1><button class="btn ghost small" data-explain>What is this?</button></div>
       ${last ? `
       <div class="card stack">
-        <div class="stats stats-m stats-fit">
+        <div class="stats stats-m">
           <div><span>Latest</span><b data-count>${esc(fmt(last.v))}</b></div>
           <div><span>${range ? `${range}-day avg` : 'Average'}</span><b data-count>${avgNow == null ? '—' : esc(fmt(avgNow))}</b></div>
           <div><span>${range ? `vs prev ${range}d` : 'vs previous'}</span><b>${delta == null ? '—' : esc(deltaText(delta))}</b></div>
@@ -135,7 +135,7 @@ export function renderMetric(el, key) {
         ${shown.length ? scrubBar() : ''}
         ${range && panDays ? backToLatestHtml() : ''}
         <p class="small muted legend"><span class="nw"><span class="key dot"></span>readings</span> <span class="nw"><span class="key line"></span>7-day average</span> ${prev.length ? '<span class="nw"><span class="key dash prev-key"></span>previous period</span>' : ''} ${bars.length ? '<span class="nw"><span class="key bar"></span>training sets/week</span>' : ''}</p>
-        ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Show weekly training sets</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
+        ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Weekly sets</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
         ${trendLine ? `<p data-trend-line>${esc(trendLine)}</p>` : ''}
         <p class="small muted">Last reading ${def === apple || key === 'vo2max' ? new Date(last.at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : new Date(last.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${daily.length.toLocaleString()} days with readings</p>
       </div>` : `<div class="card">${emptyState({ art: 'trend', icon: def === apple ? 'heart' : 'scale', title: `No ${esc(def.label.toLowerCase())} readings yet`, ...emptyText })}${def !== apple && choice.secondary ? `<a class="link" href="${choice.secondary.href}">${choice.secondary.label}</a>` : ''}</div>`}

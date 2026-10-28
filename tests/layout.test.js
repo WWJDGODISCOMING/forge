@@ -609,6 +609,8 @@ for (const route of DS_ROUTES) {
         }
         return out;
       })()`);
+      const vo = await browser.eval(`[...document.querySelectorAll('#main svg')].filter((v) => !v.closest('[aria-hidden=true], [aria-label], button, a[href]') && !v.getAttribute('aria-hidden') && !(v.getAttribute('role') === 'img' && (v.getAttribute('aria-label') || '').trim())).map((v) => 'chart without a spoken summary: ' + v.getAttribute('class'))`);
+      wide.push(...vo);
       if (probs.length || wide.length) found.push(`${tag}: ${probs.concat(wide).join(' | ')}`);
     }
     assert(found.length === 0, '\n        ' + found.join('\n        '));
@@ -1733,7 +1735,7 @@ if (standalone) {
       const add = (m) => found.set(m, [...(found.get(m) || []), at]);
       if (r.none) { add('metric card missing stats or switch'); continue; }
       if (r.wrapStat.length) add(`stat label wraps: ${r.wrapStat.join(', ')}`);
-      if (r.baseline) add('stat values are not on one baseline');
+      if (r.baseline && !(w <= 320 && ts !== 1)) add('stat values are not on one baseline'); // v0.16.86: at 320 with large text the third stat drops to a second row (the card is only 256px wide)
       if (r.wrapSwitch) add('switch label wraps');
       if (r.wrapLegend) add('a legend group wraps');
       if (r.overflow) add('horizontal overflow');
