@@ -431,7 +431,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 41. #235 Polish: empty states for Score, Progress, Withings
 - Issue: #235
 - Version: 0.16.85
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #235; slice-12 style art + one action, no fake zeros; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
 
