@@ -98,6 +98,25 @@ test('real pauses: the window spans them and they go to Health inside it', () =>
   eq(removeAwayFields({ paused_ms: 1000 }, 60000, T0 + 60000), { paused_ms: 61000, pauses: [{ start: new Date(T0).toISOString(), end: new Date(T0 + 60000).toISOString() }] });
 });
 
+test('away removal: the pause is the away stretch even if you tap late; pauses are capped', () => {
+  const iso = (ms) => new Date(ms).toISOString();
+  // away from T0 for 14 min, back at T0+14m, taps "Remove it" 90 s later
+  const late = removeAwayFields({ paused_ms: 0 }, 14 * 60000, T0 + 14 * 60000 + 90000, T0);
+  eq(late.pauses, [{ start: iso(T0), end: iso(T0 + 14 * 60000) }]);
+  eq(late.paused_ms, 14 * 60000);
+  // clamped so it does not overlap an earlier pause
+  const prior = [{ start: iso(T0 - 120000), end: iso(T0 + 60000) }];
+  eq(removeAwayFields({ paused_ms: 0, pauses: prior }, 14 * 60000, T0 + 20 * 60000, T0).pauses[1], { start: iso(T0 + 60000), end: iso(T0 + 14 * 60000) });
+  // cap
+  const many = Array.from({ length: 200 }, (_, i) => ({ start: iso(T0 - 1e7 + i * 10), end: iso(T0 - 1e7 + i * 10 + 5) }));
+  const a = removeAwayFields({ pauses: many }, 11 * 60000, T0 + 11 * 60000, T0);
+  eq(a.pauses.length, 200);
+  eq(a.pauses[199].start, iso(T0));
+  const b = resumeFields({ paused_at: iso(T0), pauses: many }, T0 + 1000);
+  eq(b.pauses.length, 200);
+  eq(b.pauses[199].end, iso(T0 + 1000));
+});
+
 test('duration text for History: duration_ms, else finished - started - paused', () => {
   eq(durationText({ duration_ms: 2700000 }), ' · 45 min');
   eq(durationText({ started_at: '2026-10-20T10:00:00Z', finished_at: '2026-10-20T11:00:00Z', paused_ms: 600000 }), ' · 50 min');

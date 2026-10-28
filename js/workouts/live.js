@@ -92,7 +92,7 @@ export function checkAway() {
   return awayGapMs(live.w, lastSeen(live.w.id));
 }
 export function removeAway(gapMs) {
-  Object.assign(live.w, removeAwayFields(live.w, gapMs));
+  Object.assign(live.w, removeAwayFields(live.w, gapMs, Date.now(), lastSeen(live.w.id)));
   markSeen();
   save(true);
 }

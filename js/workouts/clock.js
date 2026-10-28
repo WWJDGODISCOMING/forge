@@ -4,6 +4,9 @@
 // because it lives on the workout document itself.
 
 export const AWAY_THRESHOLD_MS = 10 * 60 * 1000;
+export const MAX_PAUSES = 200;
+
+const capPauses = (list) => (list.length > MAX_PAUSES ? list.slice(-MAX_PAUSES) : list);
 
 const t = (iso) => (iso ? Date.parse(iso) : null);
 
@@ -28,7 +31,7 @@ export function pauseFields(w, now = Date.now()) {
 export function resumeFields(w, now = Date.now()) {
   if (!isPaused(w)) return {};
   const start = t(w.paused_at);
-  const pauses = [...(w.pauses || []), { start: w.paused_at, end: new Date(Math.max(start, now)).toISOString() }];
+  const pauses = capPauses([...(w.pauses || []), { start: w.paused_at, end: new Date(Math.max(start, now)).toISOString() }]);
   return { paused_at: null, paused_ms: (w.paused_ms || 0) + Math.max(0, now - start), pauses };
 }
 
@@ -42,9 +45,19 @@ export function awayGapMs(w, lastSeen, now = Date.now(), threshold = AWAY_THRESH
   return gap > threshold ? gap : 0;
 }
 
-/** "Remove it": treat the away stretch as paused time. */
-export function removeAwayFields(w, gapMs, now = Date.now()) {
+/**
+ * "Remove it": treat the away stretch as paused time. awayStart (ms) is when you were last seen, so the
+ * recorded pause is awayStart .. awayStart + gap however long you wait before tapping. It is clamped so it
+ * never overlaps an earlier recorded pause. Without awayStart it falls back to the gap ending at `now`.
+ */
+export function removeAwayFields(w, gapMs, now = Date.now(), awayStart = null) {
   const gap = Math.max(0, gapMs);
-  const pauses = gap > 0 ? [...(w.pauses || []), { start: new Date(now - gap).toISOString(), end: new Date(now).toISOString() }] : (w.pauses || []);
+  const old = w.pauses || [];
+  if (gap <= 0) return { paused_ms: w.paused_ms || 0, pauses: old };
+  const from = awayStart != null ? awayStart : now - gap;
+  const lastEnd = old.reduce((m, p) => Math.max(m, t(p.end) || 0), 0);
+  const start = Math.max(from, lastEnd);
+  const end = from + gap;
+  const pauses = end > start ? capPauses([...old, { start: new Date(start).toISOString(), end: new Date(end).toISOString() }]) : old;
   return { paused_ms: (w.paused_ms || 0) + gap, pauses };
 }
