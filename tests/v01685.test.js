@@ -2,6 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { test, assert } from './harness.js';
 import { illustration } from '../js/ui/illustrations.js';
+import { emptyState } from '../js/ui/icons.js';
 import { longTermHtml, longevityHtml } from '../js/health/longview.js';
 
 const rd = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -25,6 +26,16 @@ test('long-term card with no data shows art and a plain line, no fake numbers', 
 test('longevity with no cards shows art and one action', () => {
   const h = longevityHtml([], 'imperial', '2026-10-12');
   assert(h.includes('es-art') && h.includes('href="#/apple"'), h);
+});
+
+test('withings no-data Sync now is disabled while syncing and is the only [data-sync]', () => {
+  const w = rd('js/screens/withings.js');
+  const line = w.split('\n').find((l) => l.includes('data-no-data'));
+  assert(line && /attr: `data-sync data-own-haptic \$\{busy === 'sync' \? 'disabled' : ''\}`/.test(line), 'empty-state sync button disables on busy');
+  // The usual button is skipped in the no-data state, so exactly one [data-sync] renders.
+  assert(/\$\{noData \? '' : `<button class="btn ghost grow" data-sync/.test(w), 'usual button hidden when no data');
+  const html = emptyState({ art: 'weigh', title: 'No weigh-ins yet', action: { attr: 'data-sync data-own-haptic disabled', label: 'Syncing…' } });
+  assert((html.match(/data-sync/g) || []).length === 1 && /<button[^>]*data-sync[^>]*disabled/.test(html), html);
 });
 
 test('call sites use the empty state with art', () => {

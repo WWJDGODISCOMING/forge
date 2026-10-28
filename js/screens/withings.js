@@ -81,7 +81,7 @@ export function renderWithings(el, sub) {
           <div><span>Arrived in</span><b>${w.last_latency_s == null ? '<small class="muted" data-arrived>waiting for your next weigh-in</small>' : mins(w.last_latency_s)}</b></div>
           <div><span>Notifications</span><b>${w.subscription_ok === true ? 'On' : w.subscription_ok === false ? 'Off' : '…'}</b></div>
         </div>
-        ${noData ? `<div data-no-data>${emptyState({ art: 'weigh', icon: 'scale', title: 'No weigh-ins yet', text: 'Step on your scale and it shows up here in a few minutes. Your history comes in too.', action: { attr: 'data-sync data-own-haptic', label: busy === 'sync' ? 'Syncing…' : 'Sync now' } })}</div>` : ''}
+        ${noData ? `<div data-no-data>${emptyState({ art: 'weigh', icon: 'scale', title: 'No weigh-ins yet', text: 'Step on your scale and it shows up here in a few minutes. Your history comes in too.', action: { attr: `data-sync data-own-haptic ${busy === 'sync' ? 'disabled' : ''}`, label: busy === 'sync' ? 'Syncing…' : 'Sync now' } })}</div>` : ''}
         <p class="small muted" data-history>${historyLine(bf)}</p>
         ${years.length ? `<details class="small"><summary>History by year</summary>
           <ul class="list dc-years">${years.map((y) => `<li><span>${y.year}</span><small class="muted">${y.weighins.toLocaleString()} weigh-in${y.weighins === 1 ? '' : 's'} · ${y.groups.toLocaleString()} measurements</small></li>`).join('')}</ul></details>` : ''}
