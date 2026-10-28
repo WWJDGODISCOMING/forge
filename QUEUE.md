@@ -424,7 +424,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 40. #242 Forge workouts reach Apple Health reliably + show workout duration
 - Issue: #242
 - Version: 0.16.84
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #242; link only to strength/functional/HIIT or >=80% cover, otherwise save; enable prompt on first iPhone finish + summary status line; weight fallback, not skip; real pauses; '· N min' from duration_ms in History rows + detail sheet; tests for overlap rule; then run 'send last 7 days'.
 
