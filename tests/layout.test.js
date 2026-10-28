@@ -611,6 +611,23 @@ for (const route of DS_ROUTES) {
       })()`);
       const vo = await browser.eval(`[...document.querySelectorAll('#main svg')].filter((v) => !v.closest('[aria-hidden=true], [aria-label], button, a[href]') && !v.getAttribute('aria-hidden') && !(v.getAttribute('role') === 'img' && (v.getAttribute('aria-label') || '').trim())).map((v) => 'chart without a spoken summary: ' + v.getAttribute('class'))`);
       wide.push(...vo);
+      // Titles and chart axes (round 2): an h1 wider than its row or past the screen, a header button on top of the h1, an axis
+      // label starting left of its SVG or touching another label.
+      const heads = await browser.eval(`(() => {
+        const out = [], ov = (a, b) => a.left < b.right - 1 && b.left < a.right - 1 && a.top < b.bottom - 1 && b.top < a.bottom - 1;
+        for (const h of document.querySelectorAll('#main h1')) {
+          const q = h.getBoundingClientRect(), p = h.parentElement.getBoundingClientRect();
+          if (q.right > innerWidth + 1 || q.left < -1 || q.right > p.right + 1 || h.scrollWidth > h.clientWidth + 1) out.push('title runs past its row or the screen: ' + h.textContent.trim());
+          for (const b of h.parentElement.querySelectorAll('button, a, .btn')) if (!h.contains(b) && ov(q, b.getBoundingClientRect())) out.push('button over the title: ' + b.textContent.trim());
+        }
+        for (const s of document.querySelectorAll('#main svg text.axis')) {
+          const sv = s.ownerSVGElement.getBoundingClientRect(), q = s.getBoundingClientRect();
+          if (q.left < sv.left - 0.5 || q.right > sv.right + 0.5) out.push('axis label outside its chart: ' + s.textContent);
+          for (const o of s.ownerSVGElement.querySelectorAll('text.axis')) if (o !== s && ov(q, o.getBoundingClientRect())) out.push('axis labels overlap: ' + s.textContent + ' / ' + o.textContent);
+        }
+        return [...new Set(out)];
+      })()`);
+      wide.push(...heads);
       if (probs.length || wide.length) found.push(`${tag}: ${probs.concat(wide).join(' | ')}`);
     }
     assert(found.length === 0, '\n        ' + found.join('\n        '));

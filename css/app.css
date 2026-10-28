@@ -335,7 +335,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 /* --ck (set by ui/charts.js) cancels the scaling on a wide card, so axis text and the trend line stay phone size while the plot keeps its proportions */
 .chart { width: 100%; height: auto; display: block; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .chart .grid { stroke: var(--separator); stroke-width: 1; }
-.chart .axis { fill: var(--text-2); font-size: calc(11px * var(--ts) * var(--ck, 1)); font-family: var(--font); }
+.chart .axis { fill: var(--text-2); font-size: calc(11px * min(var(--ts), 1.25) * var(--ck, 1)); font-family: var(--font); } /* v0.16.86: capped, so the left gutter always fits the widest tick label at large text */
 .chart .dot { fill: var(--text-2); opacity: .7; }
 .chart .trend { fill: none; stroke: var(--accent-text); stroke-width: calc(3px * var(--ck, 1)); stroke-linecap: round; stroke-linejoin: round; }
 .chart .scrub-pill rect { fill: var(--surface-3); stroke: var(--separator); stroke-width: 1; }

@@ -80,6 +80,9 @@ a, button, label, summary, [role="tab"], .list li.tap, input[type="checkbox"], i
 .large-title.snug .lt-actions { gap: 6px; }
 .large-title.snug .lt-actions .btn.small { padding-inline: 12px; }
 .large-title h1 { white-space: nowrap; min-width: 0; }
+/* v0.16.86: sub-screen titles (no avatar to fit around) wrap onto two lines, and a button beside one drops under it, rather than overlapping or running off a 320 phone at large text. */
+.large-title:not(:has(.avatar-btn)) { flex-wrap: wrap; row-gap: 4px; }
+.large-title:not(:has(.avatar-btn)) h1 { white-space: normal; max-width: 100%; }
 .large-title.tight { gap: 6px; }
 .large-title.tight h1 { font-size: calc(24px * var(--ts)); line-height: calc(30px * var(--ts)); letter-spacing: -.03em; }
 /* Last resort (a long greeting on a 320 phone): the buttons take their own line above the title, so the title keeps a real size on one line. */
