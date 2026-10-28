@@ -60,7 +60,7 @@ export function save(now = false) {
   const w = live.w;
   const go = () => {
     saveTimer = null;
-    patch('workouts', w.id, { exercises: w.exercises, prs: w.prs || [], notes: w.notes || [], paused_at: w.paused_at || null, paused_ms: w.paused_ms || 0 });
+    patch('workouts', w.id, { exercises: w.exercises, prs: w.prs || [], notes: w.notes || [], paused_at: w.paused_at || null, paused_ms: w.paused_ms || 0, pauses: w.pauses || [] });
   };
   if (now) go();
   else saveTimer = setTimeout(go, 400);
@@ -207,7 +207,7 @@ export function finishWorkout() {
   const duration_ms = elapsedMs(w);
   const fields = {
     exercises: w.exercises, prs: w.prs || [], status: 'done', finished_at: new Date().toISOString(),
-    paused_at: null, paused_ms: w.paused_ms || 0, duration_ms,
+    paused_at: null, paused_ms: w.paused_ms || 0, pauses: w.pauses || [], duration_ms,
   };
   patch('workouts', w.id, fields);
   closedIds.add(w.id);

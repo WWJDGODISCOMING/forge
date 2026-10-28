@@ -27,7 +27,9 @@ export function pauseFields(w, now = Date.now()) {
 /** Fields to write when resuming: the paused stretch moves into paused_ms. */
 export function resumeFields(w, now = Date.now()) {
   if (!isPaused(w)) return {};
-  return { paused_at: null, paused_ms: (w.paused_ms || 0) + Math.max(0, now - t(w.paused_at)) };
+  const start = t(w.paused_at);
+  const pauses = [...(w.pauses || []), { start: w.paused_at, end: new Date(Math.max(start, now)).toISOString() }];
+  return { paused_at: null, paused_ms: (w.paused_ms || 0) + Math.max(0, now - start), pauses };
 }
 
 /**
@@ -41,6 +43,8 @@ export function awayGapMs(w, lastSeen, now = Date.now(), threshold = AWAY_THRESH
 }
 
 /** "Remove it": treat the away stretch as paused time. */
-export function removeAwayFields(w, gapMs) {
-  return { paused_ms: (w.paused_ms || 0) + Math.max(0, gapMs) };
+export function removeAwayFields(w, gapMs, now = Date.now()) {
+  const gap = Math.max(0, gapMs);
+  const pauses = gap > 0 ? [...(w.pauses || []), { start: new Date(now - gap).toISOString(), end: new Date(now).toISOString() }] : (w.pauses || []);
+  return { paused_ms: (w.paused_ms || 0) + gap, pauses };
 }

@@ -5,7 +5,7 @@
 import { state } from '../state.js';
 import { patch } from '../db.js';
 import { plugin } from './bridge.js';
-import { estimateKcal, weightKgFor, windowFor, activityTypeFor, decide, pickOverlap, accessStatus, pendingPatch, nextVersion } from '../workouts/energy.js';
+import { estimateKcal, weightOrDefault, windowFor, pausesFor, activityTypeFor, decide, pickOverlap, accessStatus, pendingPatch, nextVersion } from '../workouts/energy.js';
 
 const hk = () => plugin('ForgeWorkouts');
 const SOURCE_NAME = 'Forge';
@@ -13,7 +13,10 @@ const SOURCE_NAME = 'Forge';
 /** The switch (settings/main.health_write_workouts) is on and this is the iPhone app. */
 export const writeEnabled = () => !!hk() && !!(state.settings && state.settings.health_write_workouts);
 
-const weightKg = () => weightKgFor(state.weights, state.profile);
+/** The iPhone app, switch off, and we haven't asked yet. */
+export const canOffer = () => !!hk() && !(state.settings && (state.settings.health_write_workouts || state.settings.health_write_prompted));
+
+const weightInfo = () => weightOrDefault(state.weights, state.profile);
 const stored = (w) => state.workouts.find((x) => x.id === w.id) || w;
 
 /** Ask for write access. → 'authorized' | 'denied' | 'notDetermined' | 'unavailable' (web). Never throws. */
@@ -26,23 +29,32 @@ export async function requestAccess() {
   } catch { return 'denied'; }
 }
 
+/** Ask for access and, if granted, turn the switch on. → true when writes are now on. */
+export async function enableWrites() {
+  const status = await requestAccess();
+  if (status === 'denied' || status === 'unavailable') return false;
+  patch('settings', 'main', { health_write_workouts: true, health_write_since: new Date().toISOString() });
+  return true;
+}
+
 /** Link, measure or estimate for one finished workout, and save the outcome on it. Returns the patch (or null). */
 export async function sendWorkout(w0) {
   const p = hk();
   const w = stored(w0);
   const win = windowFor(w);
   if (!p || !win || w.status !== 'done' || w.deleted) return null;
-  const estimate = estimateKcal(w, weightKg());
+  const wt = weightInfo();
+  const estimate = estimateKcal(w, wt.kg);
   try {
     const { workouts } = await p.overlappingWorkouts(win);
     let measuredKcal = 0;
     if (!pickOverlap(win, workouts || [])) measuredKcal = ((await p.activeEnergySum(win)) || {}).kcal || 0;
     const d = decide({ win, overlaps: workouts || [], measuredKcal, estimate });
-    if (d.action === 'skip') return null; // no weight and nothing measured: nothing to write
+    if (d.action === 'skip') return null; // no time to write (the weight falls back to an estimate, so this is rare)
     if (d.action === 'link') { patch('workouts', w.id, d.patch); return d.patch; }
     const version = nextVersion(w);
-    const r = await p.saveWorkout({ id: w.id, version, activityType: activityTypeFor(w), ...win, pauses: [], kcal: d.kcal, indoor: true });
-    const fields = { hk_uuid: r.uuid, kcal: d.kcal, kcal_source: d.source, health_write: 'saved', health_version: version, health_tries: 0 };
+    const r = await p.saveWorkout({ id: w.id, version, activityType: activityTypeFor(w), ...win, pauses: pausesFor(w, win), kcal: d.kcal, indoor: true });
+    const fields = { hk_uuid: r.uuid, kcal: d.kcal, kcal_source: d.source, kcal_weight_estimated: d.source === 'estimate' && wt.estimated, health_write: 'saved', health_version: version, health_tries: 0 };
     patch('workouts', w.id, fields);
     return fields;
   } catch {
@@ -65,12 +77,12 @@ export async function resync(w0) {
   if (!p || !w || w.health_write !== 'saved' || !w.hk_uuid || !writeEnabled()) return false;
   const win = windowFor(w);
   if (!win) return false;
-  const estimate = estimateKcal(w, weightKg());
+  const estimate = estimateKcal(w, weightInfo().kg);
   const kcal = w.kcal_source === 'estimate' && estimate != null ? estimate : w.kcal;
   if (!(kcal > 0)) return false;
   const version = nextVersion(w);
   try {
-    const r = await p.saveWorkout({ id: w.id, version, activityType: activityTypeFor(w), ...win, pauses: [], kcal, indoor: true });
+    const r = await p.saveWorkout({ id: w.id, version, activityType: activityTypeFor(w), ...win, pauses: pausesFor(w, win), kcal, indoor: true });
     patch('workouts', w.id, { hk_uuid: r.uuid, kcal, health_version: version });
     return true;
   } catch { return false; }

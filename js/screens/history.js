@@ -15,6 +15,7 @@ import { legActivity, legSummary, LEG_MUSCLES } from '../workouts/leg-activity.j
 import { sourceTag } from '../health/apple-workouts.js';
 
 import { bindScrub } from '../ui/scrub.js';
+import { durationText } from '../workouts/energy.js';
 import { scrubLayer, scrubBar } from '../ui/linechart.js';
 
 let trendId = null;
@@ -138,7 +139,7 @@ export function renderHistory(el) {
       <h2>Recent</h2>
       ${recent.length ? `<ul class="list">${recent.map((r) => r.kind === 'w' ? `
         <li class="tap" data-w="${esc(r.w.id)}"><div><b>${esc(r.w.label)}</b>
-          <small class="muted">${formatDay(dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${esc(state.locations.find((l) => l.id === r.w.location_id)?.name || '')} · ${(r.w.exercises || []).reduce((n, it) => n + it.sets.filter((s) => s.done && !s.warmup).length, 0)} sets${(r.w.prs || []).length ? ` · ${icon('trophy')} ${r.w.prs.length}` : ''}</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>` : `
+          <small class="muted">${formatDay(dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${esc(state.locations.find((l) => l.id === r.w.location_id)?.name || '')} · ${(r.w.exercises || []).reduce((n, it) => n + it.sets.filter((s) => s.done && !s.warmup).length, 0)} sets${durationText(r.w)}${(r.w.prs || []).length ? ` · ${icon('trophy')} ${r.w.prs.length}` : ''}</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>` : `
         <li class="tap" data-c="${esc(r.c.id)}"><div><b>${esc(r.c.activity === 'other' && r.c.notes && r.c.notes.includes(' · ') ? r.c.notes.split(' · ')[0] : CARDIO_TYPES[r.c.activity] || r.c.activity)}</b>
           <small class="muted">${formatDay(r.c.day || dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${r.c.duration_min} min${r.c.calories ? ` · ${r.c.calories} kcal` : ''} · ${esc(sourceTag(r.c))}</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>`).join('')}</ul>`
         : `<div class="card">${emptyState({ icon: 'chart', title: 'No workouts yet', text: 'Finish a workout and it shows up here, with your records.', action: { href: '#/train', label: 'Start your first workout' } })}</div>`}
@@ -187,7 +188,7 @@ function openWorkout(id) {
   sheet(w.label, (body, close) => {
     body.innerHTML = `
       <div class="stack">
-        <p class="muted small">${new Date(w.started_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${w.finished_at ? ` · ${Math.round((Date.parse(w.finished_at) - Date.parse(w.started_at)) / 60000)} min` : ''}</p>
+        <p class="muted small">${new Date(w.started_at).toLocaleString([], { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}${durationText(w)}</p>
         ${(w.prs || []).length ? `<div class="card prs"><p class="label">PRs ${icon('trophy')}</p><ul class="reasons">${w.prs.map((p) => `<li>${esc(p.label)}</li>`).join('')}</ul></div>` : ''}
         ${(w.exercises || []).map((it, n) => {
           const ex = exerciseById(it.exercise_id);

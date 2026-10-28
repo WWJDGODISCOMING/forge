@@ -21,7 +21,8 @@ import { levelUp } from '../ui/fx.js';
 import { renderShareCard, shareImage } from '../ui/sharecard.js';
 import { icon } from '../ui/icons.js';
 import { prefControlHtml, bindPrefControls } from './exercise-prefs.js';
-import { estimateKcal, weightKgFor } from '../workouts/energy.js';
+import { estimateKcal, weightKgFor, healthStatus } from '../workouts/energy.js';
+import { haptics } from '../ui/haptic.js';
 import { isNative } from '../native/bridge.js';
 import { workoutTotals, comparableWorkout, fmtHold, deltaText, setLine, kcalReading, kcalComparable, KCAL_TAG } from '../workouts/totals.js';
 
@@ -32,11 +33,13 @@ const fmtDuration = (ms) => {
 
 /** Notes under the totals about Apple Health (the calories number itself is the Calories tile). Plain words. */
 function kcalBlock(w) {
-  const est = estimateKcal(w, weightKgFor(state.weights, state.profile));
-  const linked = w.health_write === 'linked';
-  const noWeight = est == null && !(w.kcal > 0) && isNative() && state.settings && state.settings.health_write_workouts;
-  if (!linked && !noWeight) return '';
-  return `<p class="small tcenter" data-kcal style="margin:0">${linked ? `<span class="muted">Linked to Apple Watch workout${w.avg_hr ? ` · avg ${Math.round(w.avg_hr)} bpm` : ''}</span>` : ''}${noWeight ? '<span class="muted">Add your weight to send calories to Apple Health</span>' : ''}</p>`;
+  const native = isNative();
+  const st = healthStatus(w, { native, enabled: !!(state.settings && state.settings.health_write_workouts) });
+  const estWeight = native && w.kcal_weight_estimated && !weightKgFor(state.weights, state.profile);
+  if (!st && !estWeight) return '';
+  const hr = w.health_write === 'linked' && w.avg_hr ? ` · avg ${Math.round(w.avg_hr)} bpm` : '';
+  const line = st ? (st.action ? `<button class="btn ghost small" data-health-on>${esc(st.text)}</button>` : `<span class="muted" data-health-status>${esc(st.text)}${hr}</span>`) : '';
+  return `<p class="small tcenter" data-kcal style="margin:0">${line}${estWeight ? '<span class="muted" style="display:block">Calories use an estimated weight. Add yours for a better number.</span>' : ''}</p>`;
 }
 
 export function renderSummary(el, id) {
@@ -169,6 +172,14 @@ export function renderSummary(el, id) {
     </section>`;
 
   bindPrefControls($('.sum-list', el));
+  const turnOn = $('[data-health-on]', el);
+  if (turnOn) turnOn.onclick = async () => {
+    haptics.select && haptics.select();
+    const m = await import('../native/workouts-health.js');
+    if (!(await m.enableWrites())) { toast('Allow Forge to write Workouts and Active Energy in Settings → Health → Data Access & Devices → Forge.', 6000); return; }
+    m.afterFinish(w);
+    toast('Saving to Apple Health');
+  };
 
   // Celebrate once per workout. New badges are saved (awards_seen) after their moment, so the save's
   // re-render doesn't cut it short.

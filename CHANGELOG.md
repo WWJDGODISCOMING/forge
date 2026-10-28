@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.16.84 — Workouts reach Apple Health, and show how long they took (2026-10-28)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- A walk that overlaps your lift no longer stands in for it: Forge saves the strength workout too. Only an Apple Watch strength or HIIT workout (or anything covering most of the session) is linked.
+- The first time you finish a workout in the iPhone app with Apple Health off, Forge asks if you want to turn it on.
+- The summary says what happened: Saved to Apple Health, Linked to Apple Watch workout, Pending retry, or Not sent with a button to turn it on.
+- No weight yet? Forge now estimates calories from a typical weight and says so, instead of sending nothing.
+- Pauses are recorded and sent to Apple Health, so the workout's active time is right.
+- History shows how long each workout took, and the detail sheet no longer counts paused time.
+
 ## 0.16.83 — Taps you can feel (2026-10-27)
 
 No Cloud Functions or `firestore.rules` changes.
