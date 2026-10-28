@@ -329,6 +329,7 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .stats.stats-m { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2); } /* one baseline while it fits; at 160% text on a small phone a stat drops to the next row */
 .card .g-row.sw { padding-left: 0; padding-right: 0; min-height: 44px; }
 .card .g-row.sw .g-text > span { white-space: nowrap; }
+@media (max-width: 360px) { .card .g-row.sw .g-text > span { white-space: normal; } } /* v0.16.86: at large text on a small phone the label wraps rather than shrinks; the row stays 44px+ */
 .stats span { font-size: calc(13px * var(--ts)); color: var(--text-2); }
 .stats b { font-size: calc(20px * var(--ts)); font-variant-numeric: tabular-nums; }
 /* --ck (set by ui/charts.js) cancels the scaling on a wide card, so axis text and the trend line stay phone size while the plot keeps its proportions */

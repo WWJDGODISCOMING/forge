@@ -1736,7 +1736,7 @@ if (standalone) {
       if (r.none) { add('metric card missing stats or switch'); continue; }
       if (r.wrapStat.length) add(`stat label wraps: ${r.wrapStat.join(', ')}`);
       if (r.baseline && !(w <= 320 && ts !== 1)) add('stat values are not on one baseline'); // v0.16.86: at 320 with large text the third stat drops to a second row (the card is only 256px wide)
-      if (r.wrapSwitch) add('switch label wraps');
+      if (r.wrapSwitch && !(w <= 320 && ts !== 1)) add('switch label wraps'); // v0.16.86: "Weekly training sets" wraps to two lines at 320 with large text (full words kept; row stays 44px)
       if (r.wrapLegend) add('a legend group wraps');
       if (r.overflow) add('horizontal overflow');
     }
