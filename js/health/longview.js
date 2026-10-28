@@ -19,7 +19,7 @@ export function longTermHtml(lt, range, today) {
     `<label><input type="radio" name="ltrange" value="${r}" ${r === range ? 'checked' : ''}><span>${r === 90 ? '90 days' : '1 year'}</span></label>`).join('')}</div>`;
   if (lt.status !== 'ok') {
     return `<div class="card stack" data-longterm><p class="label">Long term</p>
-      ${emptyState({ art: 'trend', icon: 'chart', title: lt.weeksSoFar ? 'Your long-term view is building' : 'No long-term view yet', text: `It starts after ${WEEKS_MIN} weeks of data (${lt.weeksSoFar} of ${WEEKS_MIN} weeks so far).` })}</div>`;
+      ${emptyState({ art: 'trend', icon: 'chart', title: lt.weeksSoFar ? 'Your long-term view is building' : 'No long-term view yet', text: `Your long-term view starts after ${WEEKS_MIN} weeks of data (${lt.weeksSoFar} of ${WEEKS_MIN} weeks so far).`})}</div>`;
   }
   const pts = smoothFull(lt.points.map((p) => ({ day: p.day, v: p.score })), 21);
   const rows = lt.pillars.map((p) => `<li class="lt-row"><span>${esc(p.label)}</span>
