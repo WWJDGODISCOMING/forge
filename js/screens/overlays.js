@@ -177,7 +177,7 @@ export function saveAndSummarize() {
 }
 
 /** First finish in the iPhone app with the switch off: ask once whether to save workouts to Apple Health. */
-async function offerHealth(m, copy) {
+export async function offerHealth(m, copy) {
   if (!m.canOffer() || !copy) return;
   patch('settings', 'main', { health_write_prompted: true }); // ask once; the summary line keeps the door open
   const yes = await confirmSheet({ title: 'Save workouts to Apple Health?', message: 'Forge can add each workout to Apple Health so it counts toward your Exercise ring. You can change this any time in Settings → Apple Health.', confirmLabel: 'Turn on' });

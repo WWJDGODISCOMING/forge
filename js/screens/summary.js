@@ -38,7 +38,7 @@ function kcalBlock(w) {
   const estWeight = native && w.kcal_weight_estimated && !weightKgFor(state.weights, state.profile);
   if (!st && !estWeight) return '';
   const hr = w.health_write === 'linked' && w.avg_hr ? ` · avg ${Math.round(w.avg_hr)} bpm` : '';
-  const line = st ? (st.action ? `<button class="btn ghost small" data-health-on>${esc(st.text)}</button>` : `<span class="muted" data-health-status>${esc(st.text)}${hr}</span>`) : '';
+  const line = st ? (st.action ? `<button class="btn ghost small" data-health-on data-own-haptic>${esc(st.text)}</button>` : `<span class="muted" data-health-status>${esc(st.text)}${hr}</span>`) : '';
   return `<p class="small tcenter" data-kcal style="margin:0">${line}${estWeight ? '<span class="muted" style="display:block">Calories use an estimated weight. Add yours for a better number.</span>' : ''}</p>`;
 }
 
