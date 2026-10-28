@@ -421,16 +421,23 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #234; existing haptic vocabulary, feedback <100ms, control->haptic table, stubbed test; shots 390x844, 4 Duo sizes, 320 text 1.6.
 
-## 40. #235 Polish: empty states for Score, Progress, Withings
-- Issue: #235
+## 40. #242 Forge workouts reach Apple Health reliably + show workout duration
+- Issue: #242
 - Version: 0.16.84
+- Status: todo
+- Acceptance:
+  - See issue #242; link only to strength/functional/HIIT or >=80% cover, otherwise save; enable prompt on first iPhone finish + summary status line; weight fallback, not skip; real pauses; '· N min' from duration_ms in History rows + detail sheet; tests for overlap rule; then run 'send last 7 days'.
+
+## 41. #235 Polish: empty states for Score, Progress, Withings
+- Issue: #235
+- Version: 0.16.85
 - Status: todo
 - Acceptance:
   - See issue #235; slice-12 style art + one action, no fake zeros; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
 
-## 41. #236 Polish: large-text + Duo layout sweep (Trends, Weekly, Report, Score, Progress)
+## 42. #236 Polish: large-text + Duo layout sweep (Trends, Weekly, Report, Score, Progress)
 - Issue: #236
-- Version: 0.16.85
+- Version: 0.16.86
 - Status: todo
 - Acceptance:
   - See issue #236; fix overflow/clip/wrap, new layout-assert route group at all sizes; shots 390x844, 4 Duo sizes, 320 text 1.6.
