@@ -243,6 +243,7 @@ svg.sc-hero { overflow: visible; }
 .trend-row .g-text { grid-column: 1; grid-row: 1 / 3; }
 .trend-row .tr-val { grid-column: 2; grid-row: 1; min-width: 0; }
 .trend-row .spark { grid-column: 2; grid-row: 2; justify-self: end; margin-right: 24px; }
+@media (max-width: 360px) { .trend-row .spark { width: 64px; margin-right: 0; } } /* the label keeps room at large text */
 
 /* Weekly recap (v0.16.74): Today card, detail sheet, past list. Tokens only; nothing moves. */
 .recap-card { display: flex; flex-direction: column; gap: var(--s-2); width: 100%; text-align: left; font: inherit; color: var(--text); border: 0; min-height: 56px; cursor: pointer; }

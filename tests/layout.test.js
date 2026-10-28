@@ -79,7 +79,9 @@ const MG_PROBE = `(() => {
   const hit = (a, b) => a.left < b.right && b.left < a.right && a.top < b.bottom - 1 && b.top < a.bottom - 1;
   const covered = heads.filter((h) => rows.some((li) => hit(h.getBoundingClientRect(), li.getBoundingClientRect()))).length;
   const sticky = heads.every((h) => getComputedStyle(h).position === 'sticky');
-  return { n: heads.length, expanded: btns.map((b) => b.getAttribute('aria-expanded')), clipped, small, covered, sticky,
+  const t = document.querySelector('#main h1'), nb = document.querySelector('[data-new]');
+  const titleUnderBtn = t && nb ? (() => { const a = t.getBoundingClientRect(), b = nb.getBoundingClientRect(); return a.left < b.right && b.left < a.right && a.top < b.bottom && b.top < a.bottom; })() : false;
+  return { titleUnderBtn, n: heads.length, expanded: btns.map((b) => b.getAttribute('aria-expanded')), clipped, small, covered, sticky,
     page: document.documentElement.scrollWidth > innerWidth + 1, h1: document.querySelector('#main h1')?.tagName };
 })()`;
 for (const [w, h, dark, ts] of standalone && (!only || only.includes('library') || only.includes('train')) ? MG_SIZES : []) {
@@ -94,6 +96,7 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('library') 
     if (shots) await browser.screenshot(`${shots}/library-groups-expanded-${tag}.png`);
     assert(open.n >= 3, `${open.n} group headers`);
     assert(open.expanded.every((x) => x === 'true'), 'sections start open');
+    assert(!open.titleUnderBtn, 'the Exercises title runs under + Custom');
     assert(open.clipped === 0 && open.small === 0 && open.covered === 0 && open.sticky && !open.page, `expanded: ${JSON.stringify(open)}`);
     // scrolled into the second section: the stuck header sits below the nav bar and above its rows
     await browser.eval("document.querySelectorAll('.mg')[1].scrollIntoView({ block: 'start' })");
@@ -572,6 +575,41 @@ for (const [route, variant] of [['score', 'plain'], ['trends', 'plain'], ['withi
       const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
       if (r.none || !r.art) found.push(`${tag}: no illustrated empty state`);
       else if (r.clip || r.small || r.rings || probs.length) found.push(`${tag}: ${JSON.stringify(r)} ${probs.join(' | ')}`);
+    }
+    assert(found.length === 0, '\n        ' + found.join('\n        '));
+  });
+}
+
+// Data-screen sweep (v0.16.86, #236): Score, Trends, Weekly, Report, a metric page and Progress photos, with data, at the phone
+// (dark and light), all four Duo sizes and 320 at 1.6 text. No sideways overflow, clipped label, wrapped chip, element outside the
+// screen, or tap target under 44px; and on the unfolded Duo no single column wider than 560px.
+const DS_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [466, 678, true, 1], [678, 466, false, 1], [626, 890, true, 1], [890, 626, false, 1], [320, 568, true, 1.6], [320, 568, true, 1]];
+const DS_ROUTES = ['score', 'trends', 'weekly', 'report', 'metric/weight_kg', 'photos'];
+for (const route of DS_ROUTES) {
+  const base = route.split('/')[0];
+  test(`layout: data screens: ${route} fits at every size`, async () => {
+    if (!standalone || (only && !only.includes(base) && !only.includes('datascreens')) || skipReason()) return;
+    browser = browser || await launch();
+    const found = [];
+    for (const [w, h, dark, ts] of DS_SIZES) {
+      await browser.viewport(w, h, dark);
+      await browser.open(route, seed({}));
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const tag = `${route.replace('/', '-')}-${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+      if (shots) await browser.screenshot(`${shots}/${tag}.png`);
+      const probs = await browser.eval(`(${detect})(${JSON.stringify({ largeText: ts !== 1 })})`);
+      const wide = await browser.eval(`(() => {
+        const out = [];
+        for (const e of document.querySelectorAll('#main > *, #main .card')) {
+          const r = e.getBoundingClientRect();
+          if (r.width < 1) continue;
+          if (innerWidth >= 600 && r.width > 560 && e.matches('.card') && !e.closest('[data-layout-ok]')) out.push('wide ' + e.className + ' ' + Math.round(r.width));
+          const p = e.closest('.card') && e.closest('.card') !== e ? e.closest('.card').getBoundingClientRect() : null;
+          if (p && (r.right > p.right + 1 || r.left < p.left - 1)) out.push('outside card: ' + e.className);
+        }
+        return out;
+      })()`);
+      if (probs.length || wide.length) found.push(`${tag}: ${probs.concat(wide).join(' | ')}`);
     }
     assert(found.length === 0, '\n        ' + found.join('\n        '));
   });

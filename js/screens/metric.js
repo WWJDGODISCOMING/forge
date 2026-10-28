@@ -123,7 +123,7 @@ export function renderMetric(el, key) {
       <div class="row between center"><h1>${esc(def.label)}</h1><button class="btn ghost small" data-explain>What is this?</button></div>
       ${last ? `
       <div class="card stack">
-        <div class="stats stats-m">
+        <div class="stats stats-m stats-fit">
           <div><span>Latest</span><b data-count>${esc(fmt(last.v))}</b></div>
           <div><span>${range ? `${range}-day avg` : 'Average'}</span><b data-count>${avgNow == null ? '—' : esc(fmt(avgNow))}</b></div>
           <div><span>${range ? `vs prev ${range}d` : 'vs previous'}</span><b>${delta == null ? '—' : esc(deltaText(delta))}</b></div>
