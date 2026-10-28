@@ -23,9 +23,17 @@ export const hapticSupport = () => (NATIVE ? 'native' : supportsSwitch ? 'switch
 const useSwitch = () => hapticsOn() && supportsSwitch && !NATIVE;
 /** A native tap where the app can; true if it did. */
 let lastTap = 0;
+// When any haptic last fired, on the same clock as Event.timeStamp, so a delegated listener can tell whether a
+// screen's own handler already ticked for the click it's looking at.
+let lastFiredAt = -Infinity;
+const now = () => globalThis.performance?.now?.() ?? Date.now();
+/** Record that a haptic just fired. */
+export const noteHaptic = () => { lastFiredAt = now(); };
+/** True if a haptic has fired at or after `t` (an Event.timeStamp). */
+export const hapticFiredSince = (t) => lastFiredAt >= t;
 const nativeTap = (kind = 'light') => {
   const ok = NATIVE && hapticsOn() && nativeHaptic(kind);
-  if (ok) lastTap = Date.now();
+  if (ok) { lastTap = Date.now(); noteHaptic(); }
   return ok;
 };
 
@@ -36,7 +44,7 @@ const nativeTap = (kind = 'light') => {
 export const haptics = {
   select() {
     if (nativeTap('select')) return true;
-    if (hapticsOn() && !NATIVE && globalThis.navigator?.vibrate) { navigator.vibrate(10); return true; }
+    if (hapticsOn() && !NATIVE && globalThis.navigator?.vibrate) { navigator.vibrate(10); noteHaptic(); return true; }
     return false;
   },
   light: () => nativeTap('light'),

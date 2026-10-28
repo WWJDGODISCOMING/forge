@@ -1,7 +1,7 @@
 // v0.16.83 (#234): haptics + press feedback on the data screens. Each mapped control fires the right kind.
 import { test, assert, eq } from './harness.js';
 import { readFileSync } from 'node:fs';
-import { haptics } from '../js/ui/haptic.js';
+import { haptics, noteHaptic } from '../js/ui/haptic.js';
 import { PRESS_HAPTICS, PRESS_ROUTES, pressTap, pressKind, onPressRoute } from '../js/ui/press-haptics.js';
 
 const VOCAB = ['select', 'light', 'medium', 'success', 'warning'];
@@ -41,6 +41,24 @@ test('each mapped control fires its haptic kind exactly once', () => {
         if (first === row) eq(s.fired[0], kind, `${one} is ${kind}`);
       }
     });
+  } finally { s.restore(); }
+});
+
+test('a control whose own handler already ticked during the click gets no second haptic', () => {
+  const s = stub();
+  try {
+    // Real handlers go through haptics and record the time; the stub plays that part for the screen's own tick.
+    const ownTick = (kind) => { haptics[kind](); noteHaptic(); };
+    const clickAt = performance.now();
+    ownTick('select'); // e.g. toggleGroup() on .mg-btn, or openSheet()'s light tap
+    pressTap(fake('.mg-btn'), clickAt);
+    eq(s.fired.length, 1, 'exactly one haptic in total');
+    eq(s.fired[0], 'select');
+    // a later click with no handler tick still fires once
+    s.fired.length = 0;
+    pressTap(fake('[data-open]'), performance.now() + 5);
+    eq(s.fired.length, 1, 'no handler tick: the delegated one fires');
+    eq(s.fired[0], 'light');
   } finally { s.restore(); }
 });
 

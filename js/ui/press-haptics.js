@@ -2,7 +2,7 @@
 // doesn't need its own wiring. Only the vocabulary in haptic.js is used: select (segments, toggles, steppers),
 // light (open a card, row or sheet), medium (start something), success (finish or save something) and warning
 // (destructive). Haptics setting is respected inside `haptics`. The matching press-dip is in css/motion.css.
-import { haptics } from './haptic.js';
+import { haptics, hapticFiredSince } from './haptic.js';
 
 /** [selector, kind]. First match wins, so the specific rows come before the general ones. */
 export const PRESS_HAPTICS = [
@@ -60,8 +60,12 @@ export function pressKind(target) {
   return null;
 }
 
-/** Fire the haptic for a tap on `target`; returns the kind (or null). */
-export function pressTap(target) {
+/**
+ * Fire the haptic for a tap on `target`; returns the kind (or null). `since` is the click's timeStamp: if a
+ * haptic already fired at or after it (the control's own handler, openSheet, a flip), stay quiet so nothing ticks twice.
+ */
+export function pressTap(target, since = Infinity) {
+  if (hapticFiredSince(since)) return null;
   const kind = pressKind(target);
   if (kind) haptics[kind]();
   return kind;
@@ -73,5 +77,5 @@ export const onPressRoute = (hash = globalThis.location?.hash || '') => PRESS_RO
 
 /** One listener on the document (screens and the sheets over them). */
 export function wirePressHaptics(root = document) {
-  root.addEventListener('click', (e) => { if (onPressRoute()) pressTap(e.target); });
+  root.addEventListener('click', (e) => { if (onPressRoute()) pressTap(e.target, e.timeStamp); });
 }
