@@ -62,6 +62,43 @@ test('a control whose own handler already ticked during the click gets no second
   } finally { s.restore(); }
 });
 
+const ownHaptic = (selector) => fake(selector, {
+  closest(sel) { return sel.includes('own-haptic') || parts(sel).includes(selector) ? this : null; },
+});
+
+test('a handler that ticks after an await gets exactly one haptic when it opts out', async () => {
+  const s = stub();
+  try {
+    const clickAt = performance.now();
+    pressTap(ownHaptic('[data-save]'), clickAt); // the delegated listener runs at once, before the awaited save resolves
+    await Promise.resolve();
+    haptics.success(); // the handler's own tick once the save resolves
+    eq(s.fired.length, 1, 'exactly one haptic in total');
+    // without the opt-out the same tap would tick twice
+    s.fired.length = 0;
+    pressTap(fake('[data-save]'), clickAt);
+    await Promise.resolve();
+    haptics.success();
+    eq(s.fired.length, 2, 'no opt-out: the double tick this guards against');
+  } finally { s.restore(); }
+});
+
+test('data-own-haptic makes pressKind return null', () => {
+  eq(pressKind(ownHaptic('[data-save]')), null);
+  eq(pressKind(fake('[data-save]')), 'success');
+});
+
+test('controls whose handler ticks after an await or only on success carry data-own-haptic', () => {
+  const rows = [['photos/capture.js', 'data-save'], ['screens/withings.js', 'data-connect'], ['screens/withings.js', 'data-sync'],
+    ['screens/withings.js', 'data-reimport'], ['screens/withings.js', 'data-save'], ['screens/protein-goal.js', 'data-save'], ['screens/coach.js', 'data-do']];
+  for (const [file, attr] of rows) {
+    const src = readFileSync(new URL(`../js/${file}`, import.meta.url), 'utf8');
+    const buttons = src.match(new RegExp(`<button[^>]*\\b${attr}\\b[^>]*>`, 'g')) || [];
+    assert(buttons.length > 0, `${file} ${attr}`);
+    for (const b of buttons) assert(b.includes('data-own-haptic'), `${file}: ${b}`);
+  }
+});
+
 test('the controls the issue names: segments select, cards open light, delete warns, done succeeds', () => {
   eq(pressKind(fake('.seg label')), 'select');
   eq(pressKind(fake('.mg-btn')), 'select');

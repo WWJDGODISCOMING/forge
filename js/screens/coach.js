@@ -1,6 +1,7 @@
 // Coach (no-AI mode): tap a suggested question, get a rule-based answer from your own data. Docs: docs/coach.md.
 // No network, nothing stored: the conversation lives in this module until the app is closed.
 import { esc, $, $$, toast, confirmSheet, todayKey } from '../ui.js';
+import { haptics } from '../ui/haptic.js';
 import { icon } from '../ui/icons.js';
 import { availableQuestions, needsStarter, MEDICAL, DISCLAIMER } from '../coach/answers.js';
 import { runAction } from '../coach/actions.js';
@@ -22,7 +23,7 @@ function actionCard(entry, i) {
   if (entry.decision === 'no') return '<p class="small muted coach-done">Okay, nothing changed.</p>';
   return `<div class="coach-action" role="group" aria-label="Coach suggestion">
     <p><span class="label">Coach suggests</span><br><b>${esc(a.label)}</b></p>
-    <div class="row gap"><button class="btn grow" data-do="${i}">Do it</button><button class="btn ghost grow" data-no="${i}">Not now</button></div>
+    <div class="row gap"><button class="btn grow" data-do="${i}" data-own-haptic>Do it</button><button class="btn ghost grow" data-no="${i}">Not now</button></div>
   </div>`;
 }
 
@@ -85,6 +86,7 @@ export function renderCoach(el) {
       b.disabled = true;
       const res = await runAction(entry.answer.action.id, deps);
       if (res === 'cancelled') { b.disabled = false; return; } // backed out of the confirm sheet: the card stays
+      haptics.success();
       entry.decision = 'done';
       entry.result = DONE_TEXT[res];
       if (res !== 'started' && res !== 'none') toast(DONE_TEXT[res]);

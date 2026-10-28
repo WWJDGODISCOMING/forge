@@ -41,7 +41,7 @@ export function openCapture({ store, sessions, day = todayKey(), onSaved }) {
         <label class="field"><span>Note (optional)</span><input type="text" name="note" maxlength="140" placeholder="e.g. morning, after a hard week" autocomplete="off"></label>
         <p class="small muted">Photos stay on this phone. They are never uploaded.</p>
         <p class="error" aria-live="polite" data-err></p>
-        <button class="btn primary" type="button" data-save disabled>Save photos</button>
+        <button class="btn primary" type="button" data-save data-own-haptic disabled>Save photos</button>
       </div>`;
     const q = (sel, root = body) => root.querySelector(sel);
     // Revoke picked previews however the sheet goes away (close button, swipe, Escape, backdrop or save).
@@ -151,6 +151,7 @@ export function openCapture({ store, sessions, day = todayKey(), onSaved }) {
         toast(`Saved ${chosen.length === 1 ? 'your photo' : `${chosen.length} photos`}`, 2600, { icon: 'check' });
         if (onSaved) onSaved();
       } catch (e) {
+        haptics.warning();
         save.disabled = false;
         save.textContent = 'Save photos';
         q('[data-err]').textContent = e && e.message ? e.message : 'Couldn’t save. Is the phone’s storage full?';

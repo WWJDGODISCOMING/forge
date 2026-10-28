@@ -49,6 +49,7 @@ export const PRESS_HAPTICS = [
 export function pressKind(target) {
   if (!target || !target.closest) return null;
   if (target.classList?.contains('haptic-input')) return null;
+  if (target.closest('[data-own-haptic]')) return null; // its handler plays the haptic itself, after an await or only on success
   if (target.closest('[data-workout-card]')) return null; // Today's workout cards tick in app.js
   for (const [sel, kind] of PRESS_HAPTICS) {
     const el = target.closest(sel);
