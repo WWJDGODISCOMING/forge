@@ -452,7 +452,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 44. #247 Bug: sign-out leaves the last user's data on the phone
 - Issue: #247
 - Version: 0.16.88
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #247; signOutCleanly helper, best-effort steps, clear per-user forge.* keys (allowlist), clearLocalCache on sign-out; tests.
 

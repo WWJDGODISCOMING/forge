@@ -11,6 +11,7 @@ import {
   getDocs,
   writeBatch,
   terminate,
+  waitForPendingWrites,
   clearIndexedDbPersistence,
 } from 'https://www.gstatic.com/firebasejs/12.19.0/firebase-firestore.js';
 import { db, auth } from './firebase.js';
@@ -210,6 +211,11 @@ export async function deleteAllUserData() {
       await batch.commit();
     }
   }
+}
+
+/** Waits (up to `ms`) for queued writes to reach the cloud. Never throws; offline writes just stay queued. */
+export async function flushWrites(ms = 4000) {
+  await Promise.race([waitForPendingWrites(db).catch(() => {}), new Promise((r) => setTimeout(r, ms))]);
 }
 
 /** Wipes the on-device copy. Call after the account is deleted. */

@@ -88,7 +88,8 @@ test('Swift and Xcode wiring: widgets in the existing extension, Keychain hand-o
 
 test('privacy: sign-out and delete clear the widget explicitly; routes are not left pending or doubled', () => {
   const st = read('js/screens/settings.js');
-  assert(/clearWidget\(\)\)[^\n]*\n\s*await signOut\(\)/.test(st), 'sign-out clears before signOut');
+  const so = read('js/signout.js');
+  assert(st.includes('signOutCleanly()') && so.indexOf('m.clearWidget()') < so.indexOf('d.signOut'), 'sign-out clears before signOut');
   assert(/accountGone = true;\s*await import\('\.\.\/native\/widget\.js'\)/.test(st), 'delete clears once the account is gone');
   const plugin = read('ios/App/App/ForgeWidgetPlugin.swift');
   assert(plugin.includes('hasListeners("route")') && plugin.includes('pendingRoute = nil'), 'a delivered route is not left pending');

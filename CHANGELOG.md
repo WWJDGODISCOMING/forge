@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.16.88 — Sign out clears the phone (2026-10-29)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Signing out now clears your health data and offline copy from the phone.
+- The Sign out button can't get stuck any more if one of its clean-up steps fails.
+
 ## 0.16.87 — Rest timer, Finish and away-time fixes (2026-10-29)
 
 No Cloud Functions or `firestore.rules` changes.
