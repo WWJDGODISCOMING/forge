@@ -470,9 +470,16 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #252; workout read on open/resume/pull, sign-out keeps auto-read working, failures retried not stamped, last-read line + check button; tests.
 
-## 47. #253 Bug: '+ Log a workout' (any type, start time, kcal, Apple Health)
-- Issue: #253
+## 47. #254 Bug: a long live Walk can vanish on End
+- Issue: #254
 - Version: 0.16.91
+- Status: todo
+- Acceptance:
+  - See issue #254; row written before native end (or ending record retried), Forge-source Health workouts imported when no row exists, HK session recovery + no silent save:false discard, sign-out prompt; tests.
+
+## 48. #253 Bug: '+ Log a workout' (any type, start time, kcal, Apple Health)
+- Issue: #253
+- Version: 0.16.92
 - Status: todo
 - Acceptance:
   - See issue #253; button on History + Train, one sheet any type with date+time, validation, optional Health save, overlap merge with imports; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
