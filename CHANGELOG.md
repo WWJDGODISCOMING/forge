@@ -6,7 +6,7 @@ Cloud Functions changed (`askforge.js`, `mealai.js`); `firestore.rules` did not.
 
 ### What's new
 
-- A workout after 8 PM now lands on the day you did it in "Am I getting stronger?" and in the workouts CSV export.
+- Evening workouts now count on the right day in "Am I getting stronger?" and CSV export.
 - The daily Ask Forge and AI meal plan limits reset at midnight Eastern, not 8 PM.
 - The photo backup file name uses your local date.
 
