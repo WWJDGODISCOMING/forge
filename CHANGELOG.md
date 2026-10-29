@@ -6,7 +6,7 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- Your rest timer (and its "Rest's over" alert) now survives closing and reopening the app mid-workout.
+- Your rest timer and its alert now keep going if you close and reopen the app mid-workout.
 - Tapping Finish twice no longer errors.
 - "Remove away time" no longer takes off too much when it overlaps a pause you already took.
 - A workout finished on another device can't be overwritten by a late save from this one.
