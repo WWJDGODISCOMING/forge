@@ -96,8 +96,9 @@ test('Sign out and Delete everything clear every saved AI week', () => {
   clearAllAiPlans(s);
   eq(s.size(), 1, 'only the other key is left');
   const settings = readFileSync(new URL('../js/screens/settings.js', import.meta.url), 'utf8');
-  const out = settings.indexOf('await signOut();');
-  assert(settings.slice(out - 120, out).includes('clearAllAiPlans'), 'sign out clears them');
+  const so = readFileSync(new URL('../js/signout.js', import.meta.url), 'utf8');
+  assert(settings.includes('signOutCleanly()'), 'sign out goes through the helper');
+  assert(so.indexOf('clearAllAiPlans') > 0 && so.indexOf('clearAllAiPlans') < so.indexOf('d.signOut'), 'sign out clears them');
   const del = settings.indexOf('await clearLocalCache();');
   assert(settings.slice(del - 120, del).includes('clearAllAiPlans'), 'Delete everything clears them');
 });

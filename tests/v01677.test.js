@@ -94,7 +94,8 @@ test('v0.16.77: wiring, labels and honesty are in place', () => {
 
 test('v0.16.77: sign-out and delete cancel the scheduled reminders first', () => {
   const st = read('js/screens/settings.js');
-  assert(/clearReminders\(\)\)[^\n]*\n[\s\S]{0,300}?await signOut\(\)/.test(st), 'sign-out clears before signOut');
+  const so = read('js/signout.js');
+  assert(st.includes('signOutCleanly()') && so.indexOf('m.clearReminders()') < so.indexOf('d.signOut'), 'sign-out clears before signOut');
   assert(/clearReminders\(\)\)[^\n]*\n\s*await deleteAccount\(\)/.test(st), 'delete clears before deleteAccount');
   const store = read('js/reminders/store.js');
   assert(store.includes('export async function clearReminders') && store.includes('scheduleReminderSet([], ALL_IDS)'), 'cancels every reminder id');

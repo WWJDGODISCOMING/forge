@@ -6,7 +6,7 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- Signing out now removes the last person's data from the phone: the offline copy, Apple Health energy numbers, a running workout and the rest timer.
+- Signing out now clears your health data and offline copy from the phone.
 - The Sign out button can't get stuck any more if one of its clean-up steps fails.
 
 ## 0.16.87 — Rest timer, Finish and away-time fixes (2026-10-29)

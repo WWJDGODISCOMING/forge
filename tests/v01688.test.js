@@ -34,12 +34,12 @@ test('signOutCleanly leaves only device keys', async () => {
   const { storage } = await run();
   const left = storage.keys();
   assert(left.every((k) => k === 'other.key' || DEVICE_KEYS.includes(k)), left.join());
-  eq(left, ['forge.lock', 'forge.seen', 'other.key']);
+  eq(left.join(), 'forge.lock,forge.seen,other.key');
 });
 
 test('signOutCleanly runs signOut, then clearLocalCache, then reload', async () => {
   const { calls } = await run();
-  eq(calls.slice(-3), ['signOut', 'cache', 'reload']);
+  eq(calls.slice(-3).join(), 'signOut,cache,reload');
 });
 
 test('a rejected step still reaches signOut and the cache wipe', async () => {
@@ -50,5 +50,5 @@ test('a rejected step still reaches signOut and the cache wipe', async () => {
 });
 
 test('clearPersonalKeys ignores a broken store', () => {
-  eq(clearPersonalKeys({ get length() { throw new Error('x'); } }), []);
+  eq(clearPersonalKeys({ get length() { throw new Error('x'); } }).length, 0);
 });
