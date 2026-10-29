@@ -3,6 +3,7 @@ import { COLLECTIONS, NEWER_COLLECTIONS, READ_ONLY_COLLECTIONS, readAll } from '
 import { todayKey } from './ui.js';
 import { VERSION } from './version.js';
 import { exerciseById } from './workouts/library.js';
+import { dayKey } from './weight/smoothing.js';
 import { toCSV } from './csv.js';
 import { BODY_COLUMNS, bodyRows } from './export-body.js';
 import { deliver } from './deliver-file.js';
@@ -36,7 +37,7 @@ export async function exportWorkoutsCSV() {
       for (const s of it.sets || []) {
         if (!s.done) continue;
         rows.push({
-          date: w.started_at.slice(0, 10), started_at: w.started_at, workout: w.label, location_id: w.location_id,
+          date: dayKey(w.started_at), started_at: w.started_at, workout: w.label, location_id: w.location_id,
           exercise: ex ? ex.name : it.exercise_id, exercise_id: it.exercise_id, set: s.warmup ? 'W' : ++n,
           weight_kg: s.weight_kg == null ? '' : s.weight_kg.toFixed(3),
           weight_lb: s.weight_kg == null ? '' : (s.weight_kg / 0.45359237).toFixed(1),

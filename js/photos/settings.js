@@ -6,6 +6,7 @@ import { DOW_NAMES, fmtBytes, exportName, poseLabel, photoLossLine } from './cor
 import { isNative } from '../native/bridge.js';
 import { haptics } from '../ui/haptic.js';
 import { getRemindDow, setRemindDow } from './cards.js';
+import { dayKey } from '../weight/smoothing.js';
 import { zipStore } from './zipwriter.js';
 import { deliverSheet } from './deliver.js';
 
@@ -57,7 +58,7 @@ export async function bindPhotoSettings(el) {
       const q = (s) => `"${String(s).replace(/"/g, '""')}"`;
       entries.push({ name: 'photos.csv', data: enc.encode(`date,pose,file,note\n${sorted.map((p) => [p.day, poseLabel(p.pose), exportName(p), q(p.note || '')].join(',')).join('\n')}\n`) });
       entries.push({ name: 'README.txt', data: enc.encode('Forge progress photos backup. One JPEG per pose per day (photos/DATE_POSE.jpg). photos.csv lists them with your notes.\nThese pictures contain no location or camera information.\n') });
-      deliverSheet({ title: 'Your photo backup', blob: zipStore(entries), name: `forge-photos-${new Date().toISOString().slice(0, 10)}.zip`, note: 'Keep this somewhere safe. Forge can’t restore from it yet, but the pictures are plain JPEGs.' });
+      deliverSheet({ title: 'Your photo backup', blob: zipStore(entries), name: `forge-photos-${dayKey(new Date())}.zip`, note: 'Keep this somewhere safe. Forge can’t restore from it yet, but the pictures are plain JPEGs.' });
     } catch {
       toast('Couldn’t build the backup. Try again.');
     } finally {

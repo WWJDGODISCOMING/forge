@@ -1,14 +1,14 @@
 // Main lifts' estimated 1-rep max, best in each 4-week block, for Coach's "Am I getting stronger?". Pure.
 import { buildIndex } from '../workouts/history.js';
 import { e1rm } from '../workouts/progression.js';
-import { addDays } from '../weight/smoothing.js';
+import { addDays, dayKey } from '../weight/smoothing.js';
 
 export const BLOCK_DAYS = 28;
 
 const best = (sessions, [from, to]) => {
   let top = null;
   for (const s of sessions) {
-    const day = s.date.slice(0, 10);
+    const day = dayKey(s.date);
     if (s.deload || day < from || day > to) continue;
     for (const set of s.sets) {
       const e = e1rm(set.weight, set.reps);
@@ -29,7 +29,7 @@ export function liftChanges({ workouts, unit, today, nameOf }) {
   const since = addDays(today, -(BLOCK_DAYS * 4 - 1));
   const mains = new Set();
   for (const w of idx.done) {
-    if (w.started_at.slice(0, 10) < since) continue;
+    if (dayKey(w.started_at) < since) continue;
     for (const ex of w.exercises || []) if (ex.role === 'main') mains.add(ex.exercise_id);
   }
   const win = (n) => [addDays(today, -(BLOCK_DAYS * (n + 1) - 1)), addDays(today, -BLOCK_DAYS * n)];

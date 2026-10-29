@@ -10,6 +10,7 @@ import {
   cleanPrefs, generateWeek, eligible, scaleFor, mealOf, slotsFor, slotShare, planTargets, weekStartOf, addDays, matchesAvoidText, scaleQty,
   FISH_CAP_OZ, CAFFEINE_CAP_MG, MAX_AVOID,
 } from './meal/meal-plan.js';
+import { dayIn } from './decode.js';
 import { SECTIONS, getRecipe } from './meal/meal-library.js';
 
 export const MAX_TOKENS = 9000; // a week of meals with steps; reasoning tokens share this budget
@@ -248,7 +249,8 @@ export function buildWeek({ aiDays, prefs: prefsIn, targets, weekStart }) {
 }
 
 // ---------- the limits ----------
-const dayStamp = (now) => new Date(now).toISOString().slice(0, 10);
+/** The quota day: the calendar day in the user's zone (America/New_York unless a valid tz is given). */
+export const dayStamp = (now, tz) => dayIn(now, tz);
 
 /** Counts this request: 2 an hour and 5 a day for the user, and a daily cap for everyone. { limited: true } when a cap is hit. */
 export async function meterMealAi({ db, uid, now }) {

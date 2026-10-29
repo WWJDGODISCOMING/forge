@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.16.89 — Evenings count as the right day (2026-10-29)
+
+Cloud Functions changed (`askforge.js`, `mealai.js`); `firestore.rules` did not.
+
+### What's new
+
+- Evening workouts now count on the right day in "Am I getting stronger?" and CSV export.
+- The daily Ask Forge and AI meal plan limits reset at midnight Eastern, not 8 PM.
+- The photo backup file name uses your local date.
+
 ## 0.16.88 — Sign out clears the phone (2026-10-29)
 
 No Cloud Functions or `firestore.rules` changes.

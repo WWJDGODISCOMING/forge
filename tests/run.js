@@ -2,6 +2,7 @@
 import { readFileSync, readdirSync, statSync } from 'node:fs';
 import { test, eq, assert, runAll } from './harness.js';
 import './units.test.js';
+import './utc-days.test.js';
 import './targets.test.js';
 import './smoothing.test.js';
 import './workouts.test.js';

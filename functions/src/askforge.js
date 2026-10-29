@@ -5,6 +5,7 @@
 import { P } from './paths.js';
 import { log } from './log.js';
 import { XAI_URL, MODEL } from './snap.js';
+import { dayIn } from './decode.js';
 import { cleanPrefs, MAX_AVOID } from './meal/meal-plan.js';
 import { judge, dietConflict, cleanItem, cleanContext, stricter, VERDICTS, HEADLINE, MAX_QUESTION } from './meal/ask-rules.js';
 
@@ -89,7 +90,8 @@ export function finalAnswer({ reply, input }) {
 }
 
 // ---------- the limits ----------
-const dayStamp = (now) => new Date(now).toISOString().slice(0, 10);
+/** The quota day: the calendar day in the user's zone (America/New_York unless a valid tz is given). */
+export const dayStamp = (now, tz) => dayIn(now, tz);
 
 /** Counts this request: 12 an hour and 40 a day for the user, and a daily cap for everyone. { limited: true } when a cap is hit. */
 export async function meterAskForge({ db, uid, now }) {
