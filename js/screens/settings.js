@@ -4,7 +4,7 @@ import { loadExpiryInfo } from '../native/expiry.js';
 import { refreshRowHtml, openRefreshSheet } from '../native/refresh-ui.js';
 import { photoStatus, downloadAllPhotos } from '../ui/photos.js';
 import { patch, deleteAllUserData, clearLocalCache } from '../db.js';
-import { signOut, deleteAccount, authErrorMessage } from '../auth.js';
+import { deleteAccount, authErrorMessage } from '../auth.js';
 import { exportJSON, exportWeightsCSV, exportWorkoutsCSV, exportCardioCSV, exportBodyCSV, exportFoodCSV } from '../export.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey } from '../ui.js';
 import { formatHeight, formatWeight, weightToDisplay, weightFromInput, weightUnit } from '../units.js';
@@ -312,10 +312,8 @@ export function renderSettings(el) {
       });
       if (!ok) return;
     }
-    await import('../reminders/store.js').then((m) => m.clearReminders()).catch(() => {});
-    await import('../food/meal-ai.js').then((m) => m.clearAllAiPlans());
-    await import('../native/widget.js').then((m) => m.clearWidget()).catch(() => {});
-    await signOut();
+    const { signOutCleanly } = await import('../signout.js');
+    await signOutCleanly();
   };
 
   bindReminderSettings(el);
