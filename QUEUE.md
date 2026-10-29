@@ -442,5 +442,26 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #236; fix overflow/clip/wrap, new layout-assert route group at all sizes; shots 390x844, 4 Duo sizes, 320 text 1.6.
 
+## 43. #246 Bug: rest timer lost on relaunch, Finish double-run crash, away-time over-count
+- Issue: #246
+- Version: 0.16.87
+- Status: todo
+- Acceptance:
+  - See issue #246; keep restored rest until workouts loaded; idempotent finishWorkout (null when no live workout); removeAwayFields adds only covered ms; clear pending save when workout leaves active; tests.
+
+## 44. #247 Bug: sign-out leaves the last user's data on the phone
+- Issue: #247
+- Version: 0.16.88
+- Status: todo
+- Acceptance:
+  - See issue #247; signOutCleanly helper, best-effort steps, clear per-user forge.* keys (allowlist), clearLocalCache on sign-out; tests.
+
+## 45. #248 Bug: UTC day boundaries in Coach lifts, CSV export, server daily quotas
+- Issue: #248
+- Version: 0.16.89
+- Status: todo
+- Acceptance:
+  - See issue #248; local dayKey for timestamp->day, ET quota day in Functions; TZ=America/New_York tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
