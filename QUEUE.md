@@ -459,7 +459,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 45. #248 Bug: UTC day boundaries in Coach lifts, CSV export, server daily quotas
 - Issue: #248
 - Version: 0.16.89
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #248; local dayKey for timestamp->day, ET quota day in Functions; TZ=America/New_York tests.
 
