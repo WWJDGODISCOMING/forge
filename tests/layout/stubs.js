@@ -32,7 +32,7 @@ const apply = (ref, changes) => {
   if (row) Object.assign(row, changes); else list.push({ id: ref.id, ...changes });
   live.filter((l) => l.col === ref.col).forEach((l) => setTimeout(() => l.next(snap(ref.col)), 0));
 };
-export const setDoc = async (ref, data) => apply(ref, data), updateDoc = async (ref, data) => apply(ref, data), deleteField = () => ({}), terminate = async () => {}, clearIndexedDbPersistence = async () => {};
+export const setDoc = async (ref, data) => apply(ref, data), updateDoc = async (ref, data) => apply(ref, data), deleteField = () => ({}), terminate = async () => {}, clearIndexedDbPersistence = async () => {}, waitForPendingWrites = async () => {};
 export const writeBatch = () => ({ set() {}, update() {}, delete() {}, commit: async () => {} });
 const rows = (col) => ((window.__SEED || {})[col] || []);
 const snap = (col) => ({ metadata: { hasPendingWrites: false }, docChanges: () => [1], docs: rows(col).map((r) => ({ id: r.id, data: () => r })) });
