@@ -4,7 +4,7 @@
 
 No Cloud Functions or `firestore.rules` changes.
 
-### What's fixed
+### What's new
 
 - Your rest timer (and its "Rest's over" alert) now survives closing and reopening the app mid-workout.
 - Tapping Finish twice no longer errors.
