@@ -6,6 +6,7 @@ import { state, subscribe, LOADED_KEYS } from './state.js';
 import { esc, toast, sheet, closeAllSheets } from './ui.js';
 import { APP_NAME } from '../config.js';
 import { stopRest, restRemaining } from './timer.js';
+import { restIsOrphaned } from './workouts/clock.js';
 import { viewTransition, ringMorphFor, heroMorphFor, keepRingFinal, animateCounters, settleTicks, resetCounters, reducedMotion, onScreen } from './ui/motion.js';
 import { loadPhotoIndex } from './ui/photos.js';
 import { navBar, hideNavBar, screenNav } from './ui/navbar.js';
@@ -313,7 +314,8 @@ async function renderScreen() {
 
   const route = routes[currentRoute()] ? currentRoute() : 'today';
   // The rest timer belongs to a running workout; never let it outlive one.
-  if (restRemaining() > 0 && !state.workouts.some((w) => w.status === 'active' && !w.deleted)) stopRest();
+  // Only once workouts have loaded: a restored rest must survive the gap before that snapshot lands.
+  if (restRemaining() > 0 && restIsOrphaned(state)) stopRest();
   if (lastRoute === 'body' && route !== 'body') import('./screens/weight.js').then((m) => m.resetWeightPan());
   if (lastRoute === 'metric' && route !== 'metric') import('./screens/metric.js').then((m) => m.resetMetricPan());
   if (lastRoute === 'session' && route !== 'session') import('./screens/session.js').then((m) => m.leaveSession());
