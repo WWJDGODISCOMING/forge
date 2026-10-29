@@ -463,5 +463,19 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #248; local dayKey for timestamp->day, ET quota day in Functions; TZ=America/New_York tests.
 
+## 46. #252 Bug: Apple Watch workouts import late or never
+- Issue: #252
+- Version: 0.16.90
+- Status: todo
+- Acceptance:
+  - See issue #252; workout read on open/resume/pull, sign-out keeps auto-read working, failures retried not stamped, last-read line + check button; tests.
+
+## 47. #253 Bug: '+ Log a workout' (any type, start time, kcal, Apple Health)
+- Issue: #253
+- Version: 0.16.91
+- Status: todo
+- Acceptance:
+  - See issue #253; button on History + Train, one sheet any type with date+time, validation, optional Health save, overlap merge with imports; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
