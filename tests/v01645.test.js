@@ -256,7 +256,7 @@ test('first launch of 0.16.45: the 30-day workouts + energy read runs at once, n
   assert(backfillKey('u1') !== backfillKey('u2'), 'one flag per account');
   const src = readFileSync(new URL('../js/screens/apple.js', import.meta.url), 'utf8');
   assert(/first \? from30 : backfillStart/.test(src) && /first && from30 < since \? from30 : since/.test(src), 'workouts and energy reach back 30 days on the first read');
-  assert(/if \(first\) markBackfillDone\(uid\)/.test(src));
+  assert(/if \(first && workoutsOk\) markBackfillDone\(uid\)/.test(src));
 });
 
 test('the backfill plan is idempotent: a second pass over the same Watch workouts creates nothing and never revives a deleted row', () => {

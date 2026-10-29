@@ -140,7 +140,7 @@ let workoutsAt = 0;
 let workoutsBusy = false;
 let workoutsFailedAt = 0;
 /**
- * The cheap workout read (#252): only Apple Watch workouts since the last good workout read (minus a day, at most 3
+ * The cheap workout read: only Apple Watch workouts since the last good workout read (minus a day, at most 3
  * days back), at most every 3 minutes (5 after a failure). On open, on resume and on pull-to-refresh (Today, History).
  * A failure is remembered (forge.healthkit.workoutsFailedAt) and never counts as a read. Returns the number saved, or null.
  */

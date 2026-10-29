@@ -6,10 +6,10 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- Apple Watch workouts now come in when you open Forge, come back to it, or pull down on Today or History, not just every 6 hours.
+- Watch workouts now arrive when you open Forge or pull down to refresh.
 - Signing out and back in no longer turns off automatic Apple Health reads.
 - A workout read that fails is tried again within minutes instead of waiting 6 hours.
-- Settings → Apple Health shows when workouts were last read and has a "Check for new workouts" button.
+- Apple Health settings show the last workout read and a check button.
 
 ## 0.16.89 — Evenings count as the right day (2026-10-29)
 

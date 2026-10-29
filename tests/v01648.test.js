@@ -113,6 +113,6 @@ test('app wires the foreground refresh and the periodic one covers Today and Foo
   // a patch-triggered autoHealth() sets healthAutoAt; a forced foreground call must still go through
   assert(app.includes('(!force && Date.now() - healthAutoAt < 60000)'), 'force skips the shared 60 s gate');
   assert(app.includes('autoHealthSync({ force })'), 'force reaches the today re-read');
-  assert(src('../js/screens/apple.js').includes('await refreshToday({ force })'), 'autoHealthSync calls refreshToday with force');
+  assert(src('../js/screens/apple.js').includes('refreshToday({ force })'), 'autoHealthSync calls refreshToday with force');
   assert(app.includes("['today', 'food'].includes(currentRoute())"));
 });
