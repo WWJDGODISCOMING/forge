@@ -466,7 +466,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 46. #252 Bug: Apple Watch workouts import late or never
 - Issue: #252
 - Version: 0.16.90
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #252; workout read on open/resume/pull, sign-out keeps auto-read working, failures retried not stamped, last-read line + check button; tests.
 

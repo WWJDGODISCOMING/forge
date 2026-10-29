@@ -481,7 +481,7 @@ async function refreshData() {
     const sync = call('withingsSyncNow', {}, { timeout: 130000 }).then(() => 'ok', (e) => { toast(e.message); return 'failed'; });
     if ((await waitAtMost(sync, PULL_WAIT_MS)) === 'timeout') sync.then((r) => { if (r === 'ok') render(); });
   }
-  if (isNative()) await import('./screens/apple.js').then((m) => m.refreshToday({ force: true })).catch(() => {});
+  if (isNative()) await import('./screens/apple.js').then((m) => m.refreshToday({ force: true }).then(() => m.refreshWorkouts({ force: true }))).catch(() => {});
   resetCounters();
   await render();
 }

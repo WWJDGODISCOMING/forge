@@ -16,7 +16,7 @@ import { icon } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
 import { haptics } from '../ui/haptic.js';
 import { requestAccess, sendLastDays, lastSent } from '../native/workouts-health.js';
-import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone } from '../native/autoread.js';
+import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone, workoutsDue, workoutsSince, lastWorkoutRead, lastWorkoutFailure, markWorkoutRead, markWorkoutFailed, looksConnected } from '../native/autoread.js';
 
 const call = async (...args) => (await import('../functions.js')).call(...args);
 const INGEST_URL = `https://us-east1-${FIREBASE_CONFIG.projectId}.cloudfunctions.net/healthIngest`;
@@ -88,16 +88,21 @@ export async function nativeHealthSync({ onText = () => {} } = {}) {
     sent += r.days || 0;
   }
   let workouts = 0;
+  const uid = state.user && state.user.uid;
+  const first = !backfillDone(uid); // the first read since 0.16.45 on this phone reaches back 30 days for workouts and energy, even if daily summaries were read before
+  const from30 = shiftDay(today, -29);
+  let workoutsOk = false;
   try {
-    const uid = state.user && state.user.uid;
-    const first = !backfillDone(uid); // the first read since 0.16.45 on this phone reaches back 30 days for workouts and energy, even if daily summaries were read before
-    const from30 = shiftDay(today, -29);
     onText('Reading Apple Watch workouts…');
     workouts = await saveWorkouts(await readHealthWorkouts({ since: first && from30 < since ? from30 : since }));
+    markWorkoutRead(uid);
+    workoutsOk = true;
+  } catch { markWorkoutFailed(uid); /* the quick read retries within minutes; the daily summaries are already saved */ }
+  try {
     const known = state.energy && Object.keys(state.energy).length ? state.energy : loadEnergy(uid);
     storeEnergy(await readHealthEnergy({ since: first ? from30 : backfillStart(known, today, shiftDay) }));
-    if (first) markBackfillDone(uid);
-  } catch { /* workouts and energy are extras: the daily summaries are already saved */ }
+    if (first && workoutsOk) markBackfillDone(uid); // a failed workout read keeps the 30-day backfill pending
+  } catch { /* energy is an extra */ }
   try { localStorage.setItem(NATIVE_KEY(), String(Date.now())); } catch { /* private mode */ }
   return { days: sent, workouts };
 }
@@ -131,6 +136,37 @@ export async function refreshToday({ force = false } = {}) {
   } catch { return false; } finally { todayBusy = false; }
 }
 
+let workoutsAt = 0;
+let workoutsBusy = false;
+let workoutsFailedAt = 0;
+/**
+ * The cheap workout read (#252): only Apple Watch workouts since the last good workout read (minus a day, at most 3
+ * days back), at most every 3 minutes (5 after a failure). On open, on resume and on pull-to-refresh (Today, History).
+ * A failure is remembered (forge.healthkit.workoutsFailedAt) and never counts as a read. Returns the number saved, or null.
+ */
+export async function refreshWorkouts({ force = false } = {}) {
+  if (!isNative() || !state.user || nativeState || workoutsBusy) return null;
+  const uid = state.user.uid;
+  if (!lastNative() && !looksConnected({ cardio: state.cardio || [], health: state.health_daily || [] })) return null;
+  const now = new Date();
+  workoutsFailedAt = workoutsFailedAt || lastWorkoutFailure(uid);
+  if (!force && !workoutsDue({ now, at: workoutsAt, failedAt: workoutsFailedAt })) return null;
+  workoutsBusy = true;
+  workoutsAt = now.getTime();
+  try {
+    const { readHealthWorkouts } = await import('../native/health.js');
+    const n = await saveWorkouts(await readHealthWorkouts({ since: workoutsSince({ lastRead: lastWorkoutRead(uid), today: todayKey(), shift: shiftDay }), now }));
+    markWorkoutRead(uid);
+    workoutsFailedAt = 0;
+    return n;
+  } catch {
+    workoutsFailedAt = Date.now();
+    markWorkoutFailed(uid);
+    return null;
+  } finally { workoutsBusy = false; }
+}
+
+let firstTried = false;
 let autoFailedAt = 0;
 let morningAt = 0;
 let morningFailedAt = 0;
@@ -141,11 +177,17 @@ let backfillFailedAt = 0;
  * reading by hand. The Today cards update by themselves when health_daily changes.
  */
 export async function autoHealthSync({ force = false } = {}) {
-  if (!isNative() || !state.user || nativeState || !lastNative()) return null;
+  if (!isNative() || !state.user || nativeState) return null;
+  if (!lastNative()) { // signed in again on a phone that was connected before (older builds wiped the stamp on sign-out): one quiet first read
+    if (firstTried || !looksConnected({ cardio: state.cardio || [], health: state.health_daily || [] })) return null;
+    firstTried = true;
+    try { return await nativeHealthSync(); } catch { return null; }
+  }
   const now = new Date();
   const mode = autoReadMode({ now, last: lastNative(), today: todayKey(), rows: state.health_daily, failedAt: autoFailedAt, morningAt, morningFailedAt, backfill: !backfillDone(state.user.uid), backfillFailedAt });
-  if (!mode) { await refreshToday({ force }); return null; }
+  if (!mode) { await Promise.all([refreshToday({ force }), refreshWorkouts({ force })]); return null; }
   todayAt = now.getTime(); // the full read covers today too
+  workoutsAt = now.getTime(); // ...and the workouts
   if (mode === 'backfill') backfillFailedAt = now.getTime(); // backs off 20 min unless it finishes (then the flag is set)
   morningAt = now.getTime(); // any auto read counts as the morning try, so the 20 minutes start now
   try { return await nativeHealthSync(); } catch {
@@ -199,11 +241,17 @@ async function sendWeek(el, btn) {
 
 function nativeCard() {
   const last = lastNative();
+  const uid = state.user && state.user.uid;
+  const wr = lastWorkoutRead(uid);
+  const fail = lastWorkoutFailure(uid);
   return `<div class="card stack" data-native-health>
     <p class="label">Apple Health on this iPhone</p>
     <p>Forge reads your Watch’s HRV, resting heart rate, sleep, wrist temperature, breathing, blood oxygen, cardio fitness, steps, exercise, workouts and calories burned straight from Apple Health. Only daily summaries and your workouts are saved. ${last ? '' : 'iOS asks once which data to share: turn them all on.'}</p>
     ${nativeState ? `<p class="small" aria-live="polite">${esc(nativeState.text)}</p>` : ''}
     <button class="btn bigbtn" data-native-read ${nativeState ? 'disabled' : ''}>${nativeState ? 'Reading…' : last ? 'Read Apple Health now' : 'Connect Apple Health'}</button>
+    ${last ? `<p class="small" data-workout-read>Last workout read: ${wr ? esc(ago(new Date(wr).toISOString())) : 'not yet'}${fail ? ' · couldn’t read workouts, trying again soon' : ''}</p>
+    <button class="btn ghost bigbtn" data-check-workouts ${nativeState ? 'disabled' : ''}>Check for new workouts</button>
+    <p class="small muted">Workouts missing from before? Update the Forge app (Refresh Forge) so it can read the last 30 days.</p>` : ''}
     <p class="small muted">${last ? `Last read ${esc(ago(new Date(last).toISOString()))}. Forge reads again by itself when you open it. In the morning it checks every 20 minutes until last night’s sleep is in, then every 6 hours.` : `The first read brings in the last ${IMPORT_DAYS} days.`}</p>
   </div>`;
 }
@@ -411,6 +459,8 @@ export function renderApple(el) {
   if (wk) wk.onclick = () => sendWeek(el, wk);
   const nr = $('[data-native-read]', el);
   if (nr) nr.onclick = () => runNative(el);
+  const cw = $('[data-check-workouts]', el);
+  if (cw) cw.onclick = async () => { cw.disabled = true; const n = await refreshWorkouts({ force: true }); toast(n === null ? 'Couldn’t read workouts. Forge will try again soon.' : n ? `Saved ${n} ${n === 1 ? 'workout' : 'workouts'}` : 'No new workouts', 3500); renderApple(el); };
   $('[data-delete]', el).onclick = () => deleteApple(el);
   $('[data-create]', el).onclick = () => createToken(el, has);
   const rv = $('[data-revoke]', el);

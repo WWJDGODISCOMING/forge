@@ -15,6 +15,10 @@ export const DEVICE_KEYS = [
   'forge.photoTimer', // camera timer choice
 ];
 
+// Prefixes kept too. forge.healthkit.* are timestamps already scoped by user id: wiping them silently switched
+// off automatic Apple Health reads after the next sign-in (#252).
+export const DEVICE_PREFIXES = ['forge.healthkit.'];
+
 /** Removes every "forge." key that is not a device key. Returns the keys removed. */
 export function clearPersonalKeys(store, keep = DEVICE_KEYS) {
   const gone = [];
@@ -22,7 +26,7 @@ export function clearPersonalKeys(store, keep = DEVICE_KEYS) {
     const keys = [];
     for (let i = 0; i < store.length; i++) keys.push(store.key(i));
     for (const k of keys) {
-      if (k && k.startsWith('forge.') && !keep.includes(k)) { store.removeItem(k); gone.push(k); }
+      if (k && k.startsWith('forge.') && !keep.includes(k) && !DEVICE_PREFIXES.some((p) => k.startsWith(p))) { store.removeItem(k); gone.push(k); }
     }
   } catch { /* storage unavailable */ }
   return gone;

@@ -70,3 +70,37 @@ export function backfillDone(uid) {
 export function markBackfillDone(uid) {
   try { localStorage.setItem(backfillKey(uid), String(Date.now())); } catch { /* private mode */ }
 }
+
+// ---------- Apple Watch workouts: the quick read (#252) ----------
+// Workouts used to come only with the 6 h full read. The quick path reads just the workouts since the last good
+// workout read (minus a day), at most every 3 minutes, and a failed read is remembered separately and retried soon.
+export const WORKOUTS_EVERY_MS = 3 * 60 * 1000;
+export const WORKOUTS_RETRY_MS = 5 * 60 * 1000; // after a failure (well inside 20 min)
+export const WORKOUTS_LOOKBACK_DAYS = 3;
+
+export const workoutsKey = (uid) => `forge.healthkit.workouts.${uid || ''}`;
+export const workoutsFailedKey = (uid) => `forge.healthkit.workoutsFailedAt.${uid || ''}`;
+const num = (k) => { try { return Number(localStorage.getItem(k)) || 0; } catch { return 0; } };
+const put = (k, v) => { try { if (v) localStorage.setItem(k, String(v)); else localStorage.removeItem(k); } catch { /* private mode */ } };
+/** When workouts were last read successfully on this phone (ms; 0 = never). */
+export const lastWorkoutRead = (uid) => num(workoutsKey(uid));
+export const lastWorkoutFailure = (uid) => num(workoutsFailedKey(uid));
+export function markWorkoutRead(uid, t = Date.now()) { put(workoutsKey(uid), t); put(workoutsFailedKey(uid), 0); }
+export function markWorkoutFailed(uid, t = Date.now()) { put(workoutsFailedKey(uid), t); }
+
+/** Is a quick workout read due? `at` = ms of the last try in this session; `failedAt` = ms of the last failure (0 = none). */
+export function workoutsDue({ now, at = 0, failedAt = 0 }) {
+  const gap = failedAt ? WORKOUTS_RETRY_MS : WORKOUTS_EVERY_MS;
+  return now.getTime() - at >= gap;
+}
+
+/** First day to ask HealthKit for: the later of (last good workout read − 1 day) and (today − 3). `shift(day, n)` adds days. */
+export function workoutsSince({ lastRead, today, shift }) {
+  const floor = shift(today, -WORKOUTS_LOOKBACK_DAYS);
+  if (!lastRead) return floor;
+  const d = shift(new Date(lastRead).toLocaleDateString('en-CA'), -1);
+  return d > floor ? d : floor;
+}
+
+/** Signed in again on a phone that was connected before? Rows from Apple Health prove it, even if the read stamp is gone. */
+export const looksConnected = ({ cardio = [], health = [] }) => health.length > 0 || cardio.some((c) => c && c.source === 'apple_health');
