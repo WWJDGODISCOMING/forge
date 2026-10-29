@@ -135,7 +135,7 @@ export function renderMetric(el, key) {
         ${shown.length ? scrubBar() : ''}
         ${range && panDays ? backToLatestHtml() : ''}
         <p class="small muted legend"><span class="nw"><span class="key dot"></span>readings</span> <span class="nw"><span class="key line"></span>7-day average</span> ${prev.length ? '<span class="nw"><span class="key dash prev-key"></span>previous period</span>' : ''} ${bars.length ? '<span class="nw"><span class="key bar"></span>training sets/week</span>' : ''}</p>
-        ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Show weekly training sets</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
+        ${def.overlay !== 'sets' ? `<label class="g-row sw"><span class="g-text"><span>Weekly training sets</span></span><input type="checkbox" switch name="sets" ${showSets ? 'checked' : ''}></label>` : ''}
         ${trendLine ? `<p data-trend-line>${esc(trendLine)}</p>` : ''}
         <p class="small muted">Last reading ${def === apple || key === 'vo2max' ? new Date(last.at).toLocaleDateString([], { month: 'short', day: 'numeric' }) : new Date(last.at).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })} · ${daily.length.toLocaleString()} days with readings</p>
       </div>` : `<div class="card">${emptyState({ art: 'trend', icon: def === apple ? 'heart' : 'scale', title: `No ${esc(def.label.toLowerCase())} readings yet`, ...emptyText })}${def !== apple && choice.secondary ? `<a class="link" href="${choice.secondary.href}">${choice.secondary.label}</a>` : ''}</div>`}

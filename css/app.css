@@ -326,14 +326,16 @@ details summary { cursor: pointer; font-weight: 600; min-height: 44px; display: 
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--s-2); }
 .stats div { display: flex; flex-direction: column; }
 .stats-m span { white-space: nowrap; }
+.stats.stats-m { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--s-2); } /* one baseline while it fits; at 160% text on a small phone a stat drops to the next row */
 .card .g-row.sw { padding-left: 0; padding-right: 0; min-height: 44px; }
 .card .g-row.sw .g-text > span { white-space: nowrap; }
+@media (max-width: 360px) { .card .g-row.sw .g-text > span { white-space: normal; } } /* v0.16.86: at large text on a small phone the label wraps rather than shrinks; the row stays 44px+ */
 .stats span { font-size: calc(13px * var(--ts)); color: var(--text-2); }
 .stats b { font-size: calc(20px * var(--ts)); font-variant-numeric: tabular-nums; }
 /* --ck (set by ui/charts.js) cancels the scaling on a wide card, so axis text and the trend line stay phone size while the plot keeps its proportions */
 .chart { width: 100%; height: auto; display: block; -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
 .chart .grid { stroke: var(--separator); stroke-width: 1; }
-.chart .axis { fill: var(--text-2); font-size: calc(11px * var(--ts) * var(--ck, 1)); font-family: var(--font); }
+.chart .axis { fill: var(--text-2); font-size: calc(11px * min(var(--ts), 1.25) * var(--ck, 1)); font-family: var(--font); } /* v0.16.86: capped, so the left gutter always fits the widest tick label at large text */
 .chart .dot { fill: var(--text-2); opacity: .7; }
 .chart .trend { fill: none; stroke: var(--accent-text); stroke-width: calc(3px * var(--ck, 1)); stroke-linecap: round; stroke-linejoin: round; }
 .chart .scrub-pill rect { fill: var(--surface-3); stroke: var(--separator); stroke-width: 1; }
@@ -727,6 +729,7 @@ html { scroll-padding-top: calc(var(--safe-top, 0px) + 56px); }
 /* Withings Connected card: three stats that wrap onto more rows instead of running past the card (320 px, large text, Duo) */
 .stats.stats-fit { grid-template-columns: repeat(auto-fit, minmax(calc(104px * var(--ts)), 1fr)); justify-content: stretch; row-gap: var(--s-3); }
 .stats.stats-fit > div { min-width: 0; }
+.lib-head { flex-wrap: wrap; row-gap: var(--s-2); } /* large text: + Custom drops under the title instead of overlapping it */
 .stats.stats-fit b { white-space: normal; overflow-wrap: anywhere; }
 
 /* ---------- Wide canvas (iPhone Duo inner screen, landscape): Today and Train go two-column once each column gets ~340px; every other screen stays the 560px column until its own layout lands ---------- */

@@ -34,7 +34,7 @@ export function renderLibrary(el) {
 
   el.innerHTML = `
     <section class="stack">
-      <div class="row between center"><h1>Exercises</h1><button class="btn small" data-new>+ Custom</button></div>
+      <div class="row between center lib-head"><h1>Exercises</h1><button class="btn small" data-new>+ Custom</button></div>
       <input type="search" placeholder="Search ${allExercises().length} exercises" value="${esc(q)}" data-q aria-label="Search">
       <div class="row gap">
         <select class="grow" data-pattern aria-label="Movement"><option value="">All movements</option>

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.86 — Large-text and Duo layout sweep for the data screens (2026-10-28)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Trends keep their labels whole on a small phone, even with large text.
+- Long figures in your Report wrap instead of running off the edge.
+- Metric pages and the Exercises header fit at large text.
+- A new check covers the Progress screens at every phone and Duo size.
+
 ## 0.16.85 — Friendly empty states for Score, Trends and Withings (2026-10-28)
 
 No Cloud Functions or `firestore.rules` changes.

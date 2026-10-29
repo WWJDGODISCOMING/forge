@@ -60,7 +60,9 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
   const nt = niceTicks(min - pad, max + pad, 4);
   min = nt.ticks[0];
   max = nt.ticks[nt.ticks.length - 1];
-  const L = 44, R = 10, T = unit ? 20 : 12, B = 26;
+  // Left gutter fits the widest tick label at the largest axis size (13.75 units, about 7.7 per digit), never under 44.
+  const widest = Math.max(...nt.ticks.map((v) => String(fmt ? fmt(v) : axisLabel(v, nt.decimals)).length));
+  const L = Math.max(44, Math.ceil(widest * 7.7) + 8), R = 10, T = unit ? 27 : 12, B = 26; // T: room under the unit label for the top tick at the capped large-text size
   const span = Math.max(1, daysBetween(start, end));
   const x = (day) => L + (daysBetween(start, day) / span) * (width - L - R);
   const y = (v) => T + (1 - (v - min) / (max - min)) * (height - T - B);
@@ -83,7 +85,7 @@ export function lineChartSVG(points, { prev = [], bars = [], fmt = null, unit = 
   const scrub = points.map((p, i) => [Number(x(p.day).toFixed(1)), Number(y(p.v).toFixed(1)), p.day, p.t != null ? String(p.t) : axisLabel(p.v, nt.decimals + 1), `7-day avg ${avgText(line[i].v)}`]);
   const attr = (v) => String(v).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
   return `<svg viewBox="0 0 ${width} ${height}" class="chart${chartWait()}" role="img" aria-label="${attr(label)}" data-scrub="${attr(JSON.stringify(scrub))}">
-    ${unit ? `<text x="${L - 6}" y="10" class="axis unit" text-anchor="end">${attr(unit)}</text>` : ''}
+    ${unit ? `<text x="${L - 6}" y="12" class="axis unit" text-anchor="end">${attr(unit)}</text>` : ''}
     ${ticks}${barScale}${barEls}
     ${prev.length > 1 ? `<path d="${path(rolling(prev))}" class="prev"/>` : ''}
     ${line.length > 1 ? areaFill(path(line), x(line[0].day).toFixed(1), x(line[line.length - 1].day).toFixed(1), (height - B).toFixed(1)) : ''}
