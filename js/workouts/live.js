@@ -43,9 +43,12 @@ setInterval(() => { if (document.visibilityState === 'visible') markSeen(); }, 1
 export function syncLive() {
   const w = state.workouts.find((x) => x.status === 'active' && !x.deleted && !closedIds.has(x.id));
   if (!w) {
+    // The workout is no longer active (finished or discarded, maybe on another device): a pending save must not touch it.
+    if (live.w && saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
     live.w = null;
     return null;
   }
+  if (live.w && live.w.id !== w.id && saveTimer) { clearTimeout(saveTimer); saveTimer = null; }
   if (!live.w || live.w.id !== w.id) {
     live.w = structuredClone(w);
     live.w.paused_ms = live.w.paused_ms || 0;
@@ -198,9 +201,10 @@ export function editDoneSetLive(i, j, edit) {
   return res;
 }
 
-/** Finish: saves status done, finished_at and the pause-free duration. Returns the workout id. */
+/** Finish: saves status done, finished_at and the pause-free duration. Returns the workout id, or null when there is no live workout (so a second Finish does nothing). */
 export function finishWorkout() {
   const w = live.w;
+  if (!w) return null;
   if (isPaused(w)) Object.assign(w, resumeFields(w));
   stopRest();
   clearTimeout(saveTimer);

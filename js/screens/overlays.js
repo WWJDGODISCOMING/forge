@@ -165,6 +165,7 @@ export function openFinish(rerender, { fromPause = false } = {}) {
 /** Save the workout and open its summary. */
 export function saveAndSummarize() {
   const id = finishWorkout();
+  if (id == null) return; // already finished (double tap, or the other Finish path)
   setWantAwake(false);
   // Apple Health (only when the switch is on, in the iPhone app): after the save, never in the summary's way.
   Promise.all([import('../native/workouts-health.js'), import('../workouts/live.js')])

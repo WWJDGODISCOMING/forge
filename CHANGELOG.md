@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.87 — Rest timer, Finish and away-time fixes (2026-10-29)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Your rest timer and its alert now keep going if you close and reopen the app mid-workout.
+- Tapping Finish twice no longer errors.
+- "Remove away time" no longer takes off too much when it overlaps a pause you already took.
+- A workout finished on another device can't be overwritten by a late save from this one.
+
 ## 0.16.86 — Large-text and Duo layout sweep for the data screens (2026-10-28)
 
 No Cloud Functions or `firestore.rules` changes.

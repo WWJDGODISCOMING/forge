@@ -58,6 +58,13 @@ export function removeAwayFields(w, gapMs, now = Date.now(), awayStart = null) {
   const lastEnd = old.reduce((m, p) => Math.max(m, t(p.end) || 0), 0);
   const start = Math.max(from, lastEnd);
   const end = from + gap;
-  const pauses = end > start ? capPauses([...old, { start: new Date(start).toISOString(), end: new Date(end).toISOString() }]) : old;
-  return { paused_ms: (w.paused_ms || 0) + gap, pauses };
+  const covered = Math.max(0, end - start); // only the part not already inside an earlier pause
+  const pauses = covered > 0 ? capPauses([...old, { start: new Date(start).toISOString(), end: new Date(end).toISOString() }]) : old;
+  return { paused_ms: (w.paused_ms || 0) + covered, pauses };
+}
+
+/** True when a rest timer has no running workout to belong to. Never true while workouts are still loading. */
+export function restIsOrphaned(st) {
+  if (!st.loaded || !st.loaded.workouts || st.partial) return false;
+  return !st.workouts.some((w) => w.status === 'active' && !w.deleted);
 }

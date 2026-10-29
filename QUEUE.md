@@ -445,7 +445,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 43. #246 Bug: rest timer lost on relaunch, Finish double-run crash, away-time over-count
 - Issue: #246
 - Version: 0.16.87
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #246; keep restored rest until workouts loaded; idempotent finishWorkout (null when no live workout); removeAwayFields adds only covered ms; clear pending save when workout leaves active; tests.
 
