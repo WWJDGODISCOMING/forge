@@ -410,9 +410,10 @@ if (isNative()) import('./native/autoread.js').then((m) => m.watchForeground(doc
 // A live workout the phone still holds but Forge has lost (a native end that timed out, cleared storage) is ended on launch and on every return to the front.
 if (isNative()) {
   import('./native/live-workout.js').then((m) => {
+    const askStray = () => import('./native/stray-prompt.js').then((p) => p.askAboutStray());
     m.restore();
-    m.reconcile();
-    return import('./native/autoread.js').then((a) => a.watchForeground(document, () => m.refresh()));
+    m.reconcile().then(askStray);
+    return import('./native/autoread.js').then((a) => a.watchForeground(document, () => m.refresh().then(askStray)));
   }).catch(() => {});
 }
 // Home-screen and lock-screen widgets: numbers handed over after data changes (js/native/widget.js).

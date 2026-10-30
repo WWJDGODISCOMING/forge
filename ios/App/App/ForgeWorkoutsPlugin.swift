@@ -327,7 +327,11 @@ public class ForgeWorkoutsPlugin: CAPPlugin, CAPBridgedPlugin {
     }
 
     @objc func liveState(_ call: CAPPluginCall) {
-        if #available(iOS 26.0, *), live.isRunning { call.resolve(live.snapshot()) } else { call.resolve([:]) }
+        guard #available(iOS 26.0, *) else { call.resolve([:]); return }
+        Task {
+            await self.live.recover() // a workout HealthKit kept running after iOS closed Forge (#254)
+            call.resolve(self.live.isRunning ? self.live.snapshot() : [:])
+        }
     }
 
     @objc func endLive(_ call: CAPPluginCall) {

@@ -42,7 +42,8 @@ function rig({ hang = [], settings = { health_write_workouts: true }, nativeId =
   };
   const live = createLiveSession({
     plugin: () => plugin, storage: () => storage, waitMs: WAIT, settings: () => settings, weightKg: () => 70, miles: () => true,
-    cardio: () => rows, saveRow: (r) => rows.push({ id: r.id, ...r.fields }),
+    cardio: () => rows,
+    saveRow: (r) => { const i = rows.findIndex((x) => x.id === r.id); if (i < 0) rows.push({ id: r.id, ...r.fields }); else rows[i] = { ...rows[i], ...r.fields }; }, // the row is written at End, then patched with the Health numbers (#254)
   });
   return { live, store, calls, rows, plugin, emit: (e) => listener && listener(e), stray: (id) => { nativeRunning = { id }; }, running: () => nativeRunning, setHang: (h) => { hung = h; }, release: () => { releases.splice(0).forEach((f) => f()); } };
 }

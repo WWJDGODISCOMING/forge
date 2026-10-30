@@ -2,14 +2,22 @@
 // HKLiveWorkoutBuilder (ios/App/App/ForgeLiveWorkout.swift) and a lock-screen Live Activity; on the web the same screen
 // runs from timestamps alone. The session is kept in localStorage so a reload or a re-open picks it up again.
 // The logic is in js/native/live-session.js (injectable, so tests run it); this file wires in the real plugin, storage and data.
-import { state } from '../state.js';
-import { put, newRecord } from '../db.js';
+import { state, subscribe } from '../state.js';
+import { put, patch, newRecord } from '../db.js';
 import { plugin } from './bridge.js';
 import { weightKgFor } from '../workouts/energy.js';
 import { unit } from '../workouts/plan.js';
 import { createLiveSession } from './live-session.js';
 
 export const weightKg = () => weightKgFor(state.weights, state.profile);
+
+/** Resolves true once this account's cardio rows are loaded (a recovered workout is judged against them); false after 15 s or with nobody signed in. */
+const cardioReady = () => new Promise((resolve) => {
+  if (state.loaded.cardio) return resolve(true);
+  let off = () => {};
+  const t = setTimeout(() => { off(); resolve(false); }, 15000);
+  off = subscribe(() => { if (state.loaded.cardio) { clearTimeout(t); off(); resolve(true); } });
+});
 
 const store = () => { try { return globalThis.localStorage || null; } catch { return null; } };
 
@@ -19,8 +27,10 @@ const live = createLiveSession({
   weightKg,
   settings: () => state.settings,
   cardio: () => state.cardio,
+  ready: cardioReady,
   miles: () => unit() !== 'kg',
   saveRow: (row) => put('cardio_sessions', newRecord(row.fields, { id: row.id, source: 'forge_live' })),
+  updateRow: (row) => patch('cardio_sessions', row.id, row.fields), // the Health numbers, once the phone answers
 });
 
 export const current = live.current;
@@ -37,3 +47,6 @@ export const discard = live.discard;
 export const refresh = live.refresh;
 /** End a workout the phone still holds that Forge no longer knows about (call on launch). */
 export const reconcile = live.reconcile;
+export const pendingStray = live.pendingStray;
+export const adoptStray = live.adoptStray;
+export const dropStray = live.dropStray;

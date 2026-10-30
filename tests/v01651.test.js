@@ -82,7 +82,7 @@ test('liveToCardio: minutes without pauses, Health uuid kept, no distance for jo
 
 test('no duplicate against the Apple Health import (#146): by metadata and by the stored Health uuid', () => {
   const hkw = (extra = {}) => ({ platformId: 'U-1', startDate: '2026-10-22T10:00:00Z', endDate: '2026-10-22T10:30:00Z', duration: 1800, workoutActivityType: 'running', sourceName: 'Forge', ...extra });
-  eq(planWorkoutImport([hkw({ metadata: { ForgeWorkoutId: 'live_x' } })]).create.length, 0, 'metadata');
+  eq(planWorkoutImport([hkw({ metadata: { ForgeWorkoutId: 'live_x' } })], { cardio: [{ id: 'live_x', live_id: 'live_x' }] }).create.length, 0, 'metadata, with its Forge row');
   eq(planWorkoutImport([hkw({ sourceId: 'com.christianeverett.forge' })]).create.length, 0, 'source');
   const cardio = [{ id: 'live_x', live_id: 'live_x', hk_uuid: 'U-1' }];
   assert(alreadyLive(cardio, 'U-1'));

@@ -21,6 +21,9 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     private var title = ""
     private var showsDistance = false
     private var useMiles = true
+    private var startedAt = Date()
+    private var kind = "walk"
+    private let savedKey = "forge.live.native" // what a relaunch needs to rebuild the workout (#254)
     private var lastActivityPush = Date.distantPast
     private var paused = false
     // The real pause / resume moments from the session delegate. The WebView hears nothing while the app is in the
@@ -57,6 +60,8 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         self.id = id; self.weightKg = weightKg; self.indoor = indoor; self.title = title
         self.showsDistance = showsDistance; self.useMiles = useMiles
         self.session = session; self.builder = builder; self.paused = false
+        self.startedAt = start; self.kind = indoor ? "jog_in_place" : (type == .walking ? "walk" : "run")
+        UserDefaults.standard.set(["id": id, "start": ms(start), "kind": kind, "indoor": indoor, "weightKg": weightKg, "title": title, "showsDistance": showsDistance, "useMiles": useMiles] as [String: Any], forKey: savedKey)
         pauseLock.lock(); pauseStart = nil; pauseLog = []; pauseLock.unlock()
         session.prepare() // gets the sensors ready before the clock starts
         session.startActivity(with: start)
@@ -64,6 +69,37 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         let hasActivity = startActivity()
         ForgeLiveBridge.togglePause = { [weak self] in self?.togglePause() }
         return hasActivity
+    }
+
+    // MARK: recovery
+
+    /// After iOS ended Forge during a long workout, HealthKit may still be running it: take it back so nothing
+    /// measured is lost. JS then asks Save / Discard from liveState. Safe to call on every launch.
+    private var recovering = false // two liveState calls in flight must not both adopt a session
+
+    func recover() async {
+        guard session == nil, !ending, !recovering else { return }
+        recovering = true
+        defer { recovering = false }
+        let found: HKWorkoutSession? = await withCheckedContinuation { cont in
+            store.recoverActiveWorkoutSession { session, _ in cont.resume(returning: session) }
+        }
+        guard session == nil, let rec = found, let saved = UserDefaults.standard.dictionary(forKey: savedKey), let savedId = saved["id"] as? String else { return }
+        let builder = rec.associatedWorkoutBuilder()
+        rec.delegate = self
+        builder.delegate = self
+        id = savedId
+        startedAt = Date(timeIntervalSince1970: ((saved["start"] as? Double) ?? Date().timeIntervalSince1970 * 1000) / 1000)
+        kind = (saved["kind"] as? String) ?? "walk"
+        indoor = (saved["indoor"] as? Bool) ?? false
+        weightKg = (saved["weightKg"] as? Double) ?? 0
+        title = (saved["title"] as? String) ?? "Walk"
+        showsDistance = (saved["showsDistance"] as? Bool) ?? false
+        useMiles = (saved["useMiles"] as? Bool) ?? true
+        session = rec; self.builder = builder; paused = rec.state == .paused
+        if paused { pauseLock.lock(); pauseStart = Date(); pauseLock.unlock() }
+        ForgeLiveBridge.togglePause = { [weak self] in self?.togglePause() }
+        _ = startActivity() // the lock-screen card comes back with the recovered workout
     }
 
     // MARK: pause / resume
@@ -106,7 +142,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
     func snapshot() -> [String: Any] {
         let s = stats()
         let p = pauseInfo()
-        var out: [String: Any] = ["id": id, "paused": paused, "at": ms(Date()), "kcal": s.kcal, "distanceM": s.meters, "elapsed": s.elapsed * 1000, "pauses": p.list]
+        var out: [String: Any] = ["id": id, "kind": kind, "startedAt": ms(startedAt), "paused": paused, "at": ms(Date()), "kcal": s.kcal, "distanceM": s.meters, "elapsed": s.elapsed * 1000, "pauses": p.list]
         if let hr = s.hr { out["hr"] = hr }
         if let o = p.open { out["pausedAt"] = o }
         return out
@@ -189,6 +225,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         endActivity()
         ForgeLiveBridge.togglePause = nil
         session = nil; builder = nil; paused = false; ending = false
+        UserDefaults.standard.removeObject(forKey: savedKey)
         pauseLock.lock(); pauseStart = nil; pauseLog = []; pauseLock.unlock()
     }
 
