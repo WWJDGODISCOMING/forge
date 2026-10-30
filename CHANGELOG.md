@@ -9,7 +9,7 @@ No Cloud Functions or `firestore.rules` changes.
 - Ending a live workout saves it to History first, then adds Health numbers.
 - A walk Forge saved to Apple Health but lost on the way is brought back into History.
 - If iOS closes Forge mid-workout, Forge asks whether to keep or discard it.
-- Signing out during a live workout asks "End and save your walk?" first, saves it, then syncs.
+- Signing out mid-workout asks "End and save your walk?", then saves it before syncing.
 - A workout the phone still holds also counts at sign-out, so it can't land in the next person's account.
 - A walk already in History is finished quietly after a restart; no question.
 - Discard asks once more, and Keep is the first choice.
