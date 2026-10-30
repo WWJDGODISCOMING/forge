@@ -260,6 +260,7 @@ const SHELL = [
   './js/native/health.js',
   './js/native/workouts-health.js',
   './js/native/live-workout.js',
+  './js/native/stray-prompt.js',
   './js/native/live-session.js',
   './js/ui/live-chip.js',
   './js/native/share.js',

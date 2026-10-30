@@ -65,6 +65,7 @@ export function skipReason(w, forgeWorkouts = [], cardio = []) {
   if (alreadyLive(cardio, w.platformId)) return 'forge'; // a live workout Forge recorded and saved to Health itself (#153)
   const liveId = forgeLiveId(w);
   if (liveId && (cardio || []).some((c) => !c.deleted && (c.id === liveId || c.live_id === liveId))) return 'forge';
+  if (!liveId && w.sourceId === FORGE_SOURCE_ID) return 'forge'; // Forge wrote it but left no id to find a row by
   // A Forge-saved workout with no Forge row (the app was cut off at End) is imported as that live row (#254).
   for (const f of forgeWorkouts) {
     if (f.deleted || !f.finished_at || f.apple_workout_uuid !== w.platformId) continue;

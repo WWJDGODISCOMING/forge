@@ -43,7 +43,7 @@ test('workout record: minutes, kcal, hr, no distance for Jog in place, determini
 
 test('Forge-written workouts are skipped (source id, ForgeWorkoutId) and so are linked overlaps', () => {
   eq(skipReason(W({ sourceId: 'com.christianeverett.forge' })), 'forge');
-  eq(skipReason(W({ metadata: { ForgeWorkoutId: 'abc' } })), 'forge');
+  eq(skipReason(W({ metadata: { ForgeWorkoutId: 'abc' } }), [], [{ id: 'abc', live_id: 'abc' }]), 'forge'); // with its Forge row (#254: without one it is imported)
   const forge = { started_at: '2026-10-20T10:02:00', finished_at: '2026-10-20T10:28:00', apple_workout_uuid: 'U1' };
   eq(skipReason(W({}), [forge]), 'linked');
   eq(skipReason(W({}), [{ ...forge, apple_workout_uuid: 'other' }]), null);
