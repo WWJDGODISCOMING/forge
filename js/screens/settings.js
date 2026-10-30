@@ -303,6 +303,8 @@ export function renderSettings(el) {
   $('[data-export-body]', el).onclick = run(exportBodyCSV);
 
   $('[data-signout]', el).onclick = async () => {
+    const { askLiveBeforeSignOut } = await import('../signout.js');
+    if (!(await askLiveBeforeSignOut())) return;
     if (state.sync !== 'synced') {
       const ok = await confirmSheet({
         title: 'Sign out with unsynced changes?',

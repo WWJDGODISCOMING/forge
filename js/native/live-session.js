@@ -10,16 +10,18 @@ const EMPTY = () => ({ kcal: 0, distanceM: 0, hr: null, nativeLive: false, activ
 
 /**
  * deps: plugin() → the ForgeWorkouts plugin or null · storage() → localStorage-like or null · now() → ms
- *       weightKg() → number|null · settings() → settings doc · cardio() → saved cardio rows · miles() → bool
+ *       updateRow(row) → patches that row with the Health numbers (default saveRow) · weightKg() → number|null · settings() → settings doc · cardio() → saved cardio rows · miles() → bool
  *       saveRow(row) → writes the finished cardio row · waitMs → cap on any native call
  */
 export function createLiveSession(deps) {
-  const d = { now: Date.now, waitMs: NATIVE_WAIT_MS, weightKg: () => null, settings: () => null, cardio: () => [], miles: () => false, saveRow: () => {}, storage: () => null, plugin: () => null, ...deps };
+  const d = { now: Date.now, waitMs: NATIVE_WAIT_MS, weightKg: () => null, settings: () => null, cardio: () => [], miles: () => false, saveRow: () => {}, updateRow: null, storage: () => null, plugin: () => null, ...deps };
+  d.updateRow = d.updateRow || d.saveRow; // patches the row written at End with what the phone measured
   let session = null;
   let metrics = EMPTY();
   let handle = null;
   let capped = null; // { id, payload }: a workout whose native end timed out, so the phone may still be running it
   let reconciling = null;
+  let stray = null; // the phone's snapshot of a workout Forge lost track of that has real data: waits for Save / Discard
   const listeners = new Set();
   const gone = new Set(); // ids of workouts that were ended or discarded: nothing may bring them back
 
@@ -88,6 +90,11 @@ export function createLiveSession(deps) {
       if (isActive() || endsInFlight > 0 || !r || typeof r !== 'object' || r.ending || !Object.keys(r).length) return 'none'; // nothing running on the phone, one already ending, or JS started one meanwhile
       // The phone's snapshot carries an id on newer builds; without one, the only thing it can be is the workout that just timed out, or a stray.
       const mine = capped && (!r.id || r.id === capped.id);
+      if (!mine && Number(r.elapsed) > 60000) { // a recovered workout with real data: ask, never discard it quietly (#254)
+        stray = { ...r };
+        listeners.forEach((fn) => { try { fn(session, metrics); } catch { /* a screen went away */ } });
+        return 'stray';
+      }
       const payload = mine ? capped.payload : { save: false };
       const id = mine ? capped.id : null;
       const res = await endNative(p, payload, () => { if (id && capped && capped.id === id) capped = null; });
@@ -179,20 +186,46 @@ export function createLiveSession(deps) {
     session = null; // cleared first: from here nothing can restore it, whatever the native side does
     metrics = EMPTY();
     save(); emit();
+    // The Forge row goes in FIRST, from the JS clock, before any native wait: if the phone locks or iOS kills the app
+    // during "Saving…", History still has the walk. The Health numbers are patched in when the phone answers (#254).
+    const first = liveToCardio(ended, { weightKg: weight });
+    if (!(d.cardio() || []).some((c) => c.id === first.id)) d.saveRow(first);
     const p = d.plugin();
-    let saved = null;
-    if (p && native) {
-      const id = ended.id;
-      const r = await endNative(p, payload, () => { if (capped && capped.id === id) capped = null; }); // answered late: the phone has ended it
-      saved = r.value;
-      if (saved && Array.isArray(saved.pauses)) ended = adoptNativePauses(ended, saved); // lock-screen pauses the screen never heard
-      // Timed out: the phone may still be ending it. Remembered so a later launch or return to the front can retry, but
-      // only once the first call has settled (reconcile() does nothing while it is out).
-      if (r.timedOut) capped = { id, payload };
-    }
+    if (!(p && native)) return first;
+    const id = ended.id;
+    const r = await endNative(p, payload, () => { if (capped && capped.id === id) capped = null; }); // answered late: the phone has ended it
+    const saved = r.value;
+    // Timed out: the phone may still be ending it. Remembered so a later launch or return to the front can retry, but
+    // only once the first call has settled (reconcile() does nothing while it is out).
+    if (r.timedOut) capped = { id, payload };
+    if (!saved || typeof saved !== 'object' || !Object.keys(saved).length) return first;
+    if (Array.isArray(saved.pauses)) ended = adoptNativePauses(ended, saved); // lock-screen pauses the screen never heard
     const row = liveToCardio(ended, { hk: saved, weightKg: weight });
-    if (!(d.cardio() || []).some((c) => c.id === row.id)) d.saveRow(row);
+    d.updateRow(row);
     return row;
+  }
+
+  /** A phone-held workout (more than a minute of data) that Forge lost track of, waiting for the user's choice, or null. */
+  const pendingStray = () => stray;
+
+  /** Rebuild the lost workout from the phone's snapshot and carry on with it (the user chose to keep it). → the session or null. */
+  function adoptStray() {
+    const r = stray;
+    if (!r || isActive()) return null;
+    stray = null;
+    const k = r.kind && LIVE_KINDS[r.kind] ? r.kind : 'walk';
+    const at = Number(r.startedAt) || (d.now() - (Number(r.elapsed) || 0));
+    session = { ...newLive(k, at, r.id || undefined), pauses: Array.isArray(r.pauses) ? r.pauses : [], pausedAt: r.paused ? (Number(r.pausedAt) || d.now()) : null };
+    metrics = { ...EMPTY(), nativeLive: true, kcal: r.kcal || 0, distanceM: r.distanceM || 0, hr: r.hr || null };
+    attach(); save(); emit();
+    return session;
+  }
+
+  /** The user chose Discard for a recovered workout: end it on the phone without saving. */
+  async function dropStray() {
+    stray = null;
+    const p = d.plugin();
+    if (p) await endNative(p, { save: false });
   }
 
   /** Throw the workout away (nothing is saved to Forge or Health). */
@@ -222,6 +255,6 @@ export function createLiveSession(deps) {
     current: () => session,
     liveMetrics: () => metrics,
     onChange: (fn) => { listeners.add(fn); return () => listeners.delete(fn); },
-    isActive, restore, start, pause, resume, finish, discard, refresh, reconcile,
+    isActive, restore, start, pause, resume, finish, discard, refresh, reconcile, pendingStray, adoptStray, dropStray,
   };
 }

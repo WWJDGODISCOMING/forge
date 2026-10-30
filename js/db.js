@@ -78,7 +78,7 @@ export function patch(col, id, changes) {
 export async function importedCardioIds() {
   const snap = await getDocs(collection(db, 'users', uid(), 'cardio_sessions'));
   const m = new Map();
-  snap.docs.forEach((d) => { if (d.id.startsWith('hk_')) m.set(d.id, { deleted: !!d.data().deleted }); });
+  snap.docs.forEach((d) => { if (d.id.startsWith('hk_') || d.data().deleted || d.data().live_id) m.set(d.id, { deleted: !!d.data().deleted }); });
   return m;
 }
 

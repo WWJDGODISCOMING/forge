@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.91 — A long live walk can't vanish on End (2026-10-30)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Ending a live workout now saves it to History first; Apple Health's numbers are added when the phone answers.
+- A walk Forge saved to Apple Health but lost on the way is brought back into History.
+- If iOS closes Forge during a long workout, Forge picks the workout back up and asks whether to keep or discard it.
+- Signing out during a live workout asks "End and save your walk?" first.
+
 ## 0.16.90 — Watch workouts show up sooner (2026-10-29)
 
 No Cloud Functions or `firestore.rules` changes.

@@ -54,10 +54,18 @@ export function overlapShare(aStart, aEnd, bStart, bEnd) {
   return Math.max(0, Math.min(a1, b1) - Math.max(a0, b0)) / shorter;
 }
 
+/** The Forge live id a Health workout was saved under (ForgeWorkoutId), or null when Forge didn't write it. */
+export function forgeLiveId(w) {
+  const id = w && w.metadata && w.metadata.ForgeWorkoutId;
+  return typeof id === 'string' && id ? id : null;
+}
+
 /** Why a workout is not imported ('forge' | 'linked'), or null. */
 export function skipReason(w, forgeWorkouts = [], cardio = []) {
-  if (w.sourceId === FORGE_SOURCE_ID || (w.metadata && w.metadata.ForgeWorkoutId)) return 'forge';
   if (alreadyLive(cardio, w.platformId)) return 'forge'; // a live workout Forge recorded and saved to Health itself (#153)
+  const liveId = forgeLiveId(w);
+  if (liveId && (cardio || []).some((c) => !c.deleted && (c.id === liveId || c.live_id === liveId))) return 'forge';
+  // A Forge-saved workout with no Forge row (the app was cut off at End) is imported as that live row (#254).
   for (const f of forgeWorkouts) {
     if (f.deleted || !f.finished_at || f.apple_workout_uuid !== w.platformId) continue;
     if (overlapShare(w.startDate, w.endDate, f.started_at, f.finished_at) >= 0.5) return 'linked';
@@ -112,13 +120,15 @@ export function planWorkoutImport(workouts, { existing = new Map(), forgeWorkout
   const out = { create: [], update: [], skipped: 0 };
   const seen = new Set();
   for (const w of workouts || []) {
-    const id = w && w.platformId ? `hk_${w.platformId}` : null;
+    const live = forgeLiveId(w);
+    const id = w && w.platformId ? (live || `hk_${w.platformId}`) : null; // a lost Forge live workout comes back under its own id
     if (!id || seen.has(id) || skipReason(w, forgeWorkouts, cardio)) { out.skipped++; continue; }
     seen.add(id);
     const have = existing.get(id);
-    if (have && have.deleted) { out.skipped++; continue; }
+    if (have && (have.deleted || live)) { out.skipped++; continue; } // never revive a deleted doc, never overwrite a Forge row
     const fields = workoutToCardio(w, w.energySamples);
     if (!fields) { out.skipped++; continue; }
+    if (live) { fields.live_id = live; fields.notes = fields.notes || 'Recorded live in Forge'; fields.hk_source = 'Forge'; }
     (have ? out.update : out.create).push({ id, fields });
   }
   return out;

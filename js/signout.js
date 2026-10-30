@@ -36,7 +36,7 @@ const real = () => ({
   storage: () => { try { return globalThis.localStorage || null; } catch { return null; } },
   flush: () => import('./db.js').then((m) => m.flushWrites()),
   stopRest: () => import('./timer.js').then((m) => m.stopRest()),
-  stopLive: () => import('./native/live-workout.js').then((m) => (m.isActive() ? m.discard() : null)),
+  stopLive: () => import('./native/live-workout.js').then((m) => (m.isActive() ? m.finish() : null)), // the person agreed to End and save (askLiveBeforeSignOut)
   clearReminders: () => import('./reminders/store.js').then((m) => m.clearReminders()),
   clearAiPlans: () => import('./food/meal-ai.js').then((m) => m.clearAllAiPlans()),
   clearWidget: () => import('./native/widget.js').then((m) => m.clearWidget()),
@@ -44,6 +44,20 @@ const real = () => ({
   clearLocalCache: () => import('./db.js').then((m) => m.clearLocalCache()),
   reload: () => { location.hash = ''; location.reload(); },
 });
+
+/** A running live workout is never dropped silently: asks "End and save your walk?". → true to go on with sign-out. */
+export async function askLiveBeforeSignOut(deps = {}) {
+  const d = {
+    active: () => import('./native/live-workout.js').then((m) => (m.isActive() ? m.current() : null)),
+    ask: (o) => import('./ui.js').then((m) => m.confirmSheet(o)),
+    ...deps,
+  };
+  let s = null;
+  try { s = await d.active(); } catch { /* nothing to ask about */ }
+  if (!s) return true;
+  const name = s.kind === 'walk' ? 'walk' : s.kind === 'run' ? 'run' : 'workout';
+  return !!(await d.ask({ title: `End and save your ${name}?`, message: 'Signing out ends the workout that’s running and saves it to your history first.', confirmLabel: 'End and save' }));
+}
 
 /** The whole sign-out. `deps` is for tests. */
 export async function signOutCleanly(deps = {}) {
