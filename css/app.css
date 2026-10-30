@@ -425,6 +425,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 }
 .tool .t-ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-1); }
 .tool .t-ic svg { width: 20px; height: 20px; }
+.tool.tool-log { grid-column: 1 / -1; flex-direction: row; align-items: center; min-height: 64px; } /* "Log a workout" is too long for a half-width tile at 320 */
 .tool:active { background: var(--surface-2); }
 
 /* session logger */
