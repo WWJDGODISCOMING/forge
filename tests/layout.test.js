@@ -503,6 +503,59 @@ test('layout: progress: the Weekly recaps row is in the Progress rows', async ()
   assert(r && r >= 44, `the Weekly recaps row is missing or ${r}px tall`);
 });
 
+// Apple Health card inside the iPhone app (v0.16.90): a stubbed native shell, three states: connected with a workout read,
+// connected with a failed workout read, and rows from another phone with no stamp here (the one-tap prompt).
+// Phone dark and light, small phone at 160% text, both Duo sizes. No overflow, no clipped text, every button 44px or more.
+const AH_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [320, 568, true, 1.6], [466, 678, true, 1], [678, 466, false, 1], [626, 890, true, 1], [890, 626, false, 1]];
+const AH_STATES = {
+  stamp: { last: true, read: true, fail: false },
+  failed: { last: true, read: true, fail: true },
+  prompt: { last: false, read: false, fail: false },
+};
+const AH_SET = (st) => `(async () => {
+  const uid = 'u1'; const now = Date.now();
+  for (const k of ['forge.healthkit.last.' + uid, 'forge.healthkit.workouts.' + uid, 'forge.healthkit.workoutsFailedAt.' + uid]) localStorage.removeItem(k);
+  const a = await import('./js/native/autoread.js');
+  const o = ${JSON.stringify(st)};
+  if (o.last) localStorage.setItem(a.nativeReadKey(uid), String(now - 20 * 60000));
+  if (o.read) localStorage.setItem(a.workoutsKey(uid), String(now - 7 * 60000));
+  if (o.fail) localStorage.setItem(a.workoutsFailedKey(uid), String(now - 60000));
+  const m = await import('./js/screens/apple.js');
+  m.renderApple(document.getElementById('main'));
+})()`;
+const AH_PROBE = `(() => {
+  const c = document.querySelector('[data-native-health]'); if (!c) return null;
+  const vw = innerWidth;
+  const btns = [...c.querySelectorAll('button')].map((b) => ({ t: b.textContent.trim(), h: Math.round(b.getBoundingClientRect().height), off: b.getBoundingClientRect().right > vw + 1 || b.getBoundingClientRect().left < -1 || b.scrollWidth > b.clientWidth + 1 }));
+  const clipped = [...c.querySelectorAll('p, div, span, b')].filter((e) => e.scrollWidth > e.clientWidth + 1 || e.getBoundingClientRect().right > vw + 1).length;
+  return { text: c.textContent, btns, clipped, page: document.documentElement.scrollWidth > vw + 1, read: !!c.querySelector('[data-workout-read]'), check: !!c.querySelector('[data-check-workouts]'), prompt: !!c.querySelector('[data-native-reconnect]') };
+})()`;
+for (const [w, h, dark, ts] of standalone && (!only || only.includes('apple')) ? AH_SIZES : []) {
+  const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: apple: the iPhone app card (connected, failed read, reconnect prompt) fits at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    // the stub has no Health plugin, so any automatic read fails quietly; each state is written to storage and the card redrawn afterwards
+    await browser.open('apple', seed(), "window.Capacitor = { isNativePlatform: () => true, isPluginAvailable: () => false };");
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    for (const [name, st] of Object.entries(AH_STATES)) {
+      await browser.eval(AH_SET(st));
+      await new Promise((r) => setTimeout(r, 300));
+      await browser.eval("document.querySelector('[data-native-health]')?.scrollIntoView({ block: 'start' })");
+      await new Promise((r) => setTimeout(r, 200));
+      const r = await browser.eval(AH_PROBE);
+      if (shots) await browser.screenshot(`${shots}/apple-native-${name}-${tag}.png`);
+      assert(r, `${name}: the native Apple Health card is missing`);
+      assert(!r.page && r.clipped === 0, `${name}: overflow (page ${r.page}, ${r.clipped} clipped)`);
+      assert(r.btns.every((b) => b.h >= 44 && !b.off), `${name}: buttons ${JSON.stringify(r.btns)}`);
+      if (name === 'stamp') assert(r.read && r.check && /Last workout read: 7 min ago/.test(r.text) && !/trying again/.test(r.text) && !r.prompt, `stamp: ${r.text.slice(0, 200)}`);
+      if (name === 'failed') assert(r.read && /trying again soon/.test(r.text) && !r.prompt, `failed: ${r.text.slice(0, 200)}`);
+      if (name === 'prompt') assert(r.prompt && !r.read && !r.check && /isn’t reading automatically on this iPhone/.test(r.text) && r.btns.some((b) => b.t === 'Turn Apple Health back on'), `prompt: ${r.text.slice(0, 200)}`);
+    }
+  });
+}
+
 // Program: the Change start date sheet, at the phone and Duo sizes (this also feeds the `screens` artifact)
 for (const [w, h] of standalone && (!only || only.includes('program')) ? [[390, 844], [466, 678], [678, 466], [626, 890], [890, 626]] : []) {
   test(`layout: program: the Change start date sheet fits at ${w}x${h}`, async () => {

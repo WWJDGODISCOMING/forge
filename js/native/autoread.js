@@ -102,5 +102,11 @@ export function workoutsSince({ lastRead, today, shift }) {
   return d > floor ? d : floor;
 }
 
-/** Signed in again on a phone that was connected before? Rows from Apple Health prove it, even if the read stamp is gone. */
+/** Rows from Apple Health prove an account was connected on some phone, but not on this one. Never a reason to read this phone by itself. */
 export const looksConnected = ({ cardio = [], health = [] }) => health.length > 0 || cardio.some((c) => c && c.source === 'apple_health');
+
+/** Automatic reads (open, resume, pull, quick workouts) need this account's own read stamp on this phone. */
+export const mayAutoRead = (uid) => !!lastNativeRead(uid);
+
+/** No stamp for this account on this phone, yet Apple Health rows exist (an older build wiped the stamp, or another phone sent them): ask, never read. */
+export const needsReconnect = ({ last, cardio, health }) => !last && looksConnected({ cardio, health });

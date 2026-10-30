@@ -1,6 +1,7 @@
 // v0.16.90 (#252): Apple Watch workouts import on open/resume/pull; sign-out keeps auto-read; failures retry. Synthetic data only.
+import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { workoutsDue, workoutsSince, WORKOUTS_EVERY_MS, WORKOUTS_RETRY_MS, autoReadMode, looksConnected, workoutsKey, workoutsFailedKey, nativeReadKey } from '../js/native/autoread.js';
+import { workoutsDue, workoutsSince, WORKOUTS_EVERY_MS, WORKOUTS_RETRY_MS, autoReadMode, looksConnected, needsReconnect, mayAutoRead, workoutsKey, workoutsFailedKey, nativeReadKey } from '../js/native/autoread.js';
 import { clearPersonalKeys } from '../js/signout.js';
 import { planWorkoutImport } from '../js/health/apple-workouts.js';
 import { shiftDay } from '../js/health/metrics.js';
@@ -51,4 +52,36 @@ test('an outdoor 90 min Watch walk becomes an hk_ walk row with the local day', 
   eq(p.create[0].id, 'hk_WALK1');
   eq(p.create[0].fields.activity, 'walk');
   eq(p.create[0].fields.day, new Date('2026-10-29T18:30:00').toLocaleDateString('en-CA'));
+});
+
+const appleSrc = () => readFileSync(new URL('../js/screens/apple.js', import.meta.url), 'utf8');
+
+test('no automatic read without this account stamp on this phone, even when Apple Health rows exist (privacy)', () => {
+  const mem = new Map();
+  globalThis.localStorage = { getItem: (k) => (mem.has(k) ? mem.get(k) : null), setItem: (k, v) => mem.set(k, String(v)), removeItem: (k) => { mem.delete(k); } };
+  try {
+    assert(looksConnected({ health: [{ id: '2026-10-28' }] }));
+    assert(!mayAutoRead('wife'), 'no stamp: no auto read');
+    mem.set(nativeReadKey('husband'), '123');
+    assert(mayAutoRead('husband') && !mayAutoRead('wife'), 'the stamp is per account');
+  } finally { delete globalThis.localStorage; }
+  const src = appleSrc();
+  assert(!/looksConnected/.test(src), 'apple.js never reads on looksConnected');
+  assert(/export async function refreshWorkouts[\s\S]*?!lastNative\(\)\) return null/.test(src), 'quick workout read needs lastNative()');
+  assert(/export async function autoHealthSync[\s\S]*?if \(!lastNative\(\)\) return null/.test(src), 'auto read needs lastNative()');
+});
+
+test('the Settings prompt shows when rows exist but this phone has no stamp for the account', () => {
+  const rows = { health: [{ id: '2026-10-28' }], cardio: [] };
+  assert(needsReconnect({ last: 0, ...rows }), 'prompt without a stamp');
+  assert(!needsReconnect({ last: 123, ...rows }), 'no prompt once connected here');
+  assert(!needsReconnect({ last: 0, health: [], cardio: [] }), 'a brand-new account sees the normal Connect button');
+  const src = appleSrc();
+  assert(src.includes('data-native-reconnect') && src.includes('isn’t reading automatically on this iPhone') && src.includes('Turn Apple Health back on'));
+  assert(!src.includes('Refresh Forge'), 'no developer wording');
+});
+
+test('a tap during an auto read says it is busy, not that it failed', () => {
+  const src = appleSrc();
+  assert(src.includes("return 'busy'") && src.includes("n === 'busy'"));
 });

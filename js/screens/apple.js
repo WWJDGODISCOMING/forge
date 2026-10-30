@@ -16,7 +16,7 @@ import { icon } from '../ui/icons.js';
 import { isNative } from '../native/bridge.js';
 import { haptics } from '../ui/haptic.js';
 import { requestAccess, sendLastDays, lastSent } from '../native/workouts-health.js';
-import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone, workoutsDue, workoutsSince, lastWorkoutRead, lastWorkoutFailure, markWorkoutRead, markWorkoutFailed, looksConnected } from '../native/autoread.js';
+import { autoReadMode, nativeReadKey, lastNativeRead, todayDue, backfillDone, markBackfillDone, workoutsDue, workoutsSince, lastWorkoutRead, lastWorkoutFailure, markWorkoutRead, markWorkoutFailed, needsReconnect } from '../native/autoread.js';
 
 const call = async (...args) => (await import('../functions.js')).call(...args);
 const INGEST_URL = `https://us-east1-${FIREBASE_CONFIG.projectId}.cloudfunctions.net/healthIngest`;
@@ -142,12 +142,12 @@ let workoutsFailedAt = 0;
 /**
  * The cheap workout read: only Apple Watch workouts since the last good workout read (minus a day, at most 3
  * days back), at most every 3 minutes (5 after a failure). On open, on resume and on pull-to-refresh (Today, History).
- * A failure is remembered (forge.healthkit.workoutsFailedAt) and never counts as a read. Returns the number saved, or null.
+ * A failure is remembered (forge.healthkit.workoutsFailedAt) and never counts as a read. Returns the number saved, 'busy' while another read runs, or null (not due, not connected here, or failed).
  */
 export async function refreshWorkouts({ force = false } = {}) {
-  if (!isNative() || !state.user || nativeState || workoutsBusy) return null;
+  if (!isNative() || !state.user || !lastNative()) return null; // only an account that started a read on this phone
+  if (nativeState || workoutsBusy) return 'busy';
   const uid = state.user.uid;
-  if (!lastNative() && !looksConnected({ cardio: state.cardio || [], health: state.health_daily || [] })) return null;
   const now = new Date();
   workoutsFailedAt = workoutsFailedAt || lastWorkoutFailure(uid);
   if (!force && !workoutsDue({ now, at: workoutsAt, failedAt: workoutsFailedAt })) return null;
@@ -166,7 +166,6 @@ export async function refreshWorkouts({ force = false } = {}) {
   } finally { workoutsBusy = false; }
 }
 
-let firstTried = false;
 let autoFailedAt = 0;
 let morningAt = 0;
 let morningFailedAt = 0;
@@ -178,11 +177,7 @@ let backfillFailedAt = 0;
  */
 export async function autoHealthSync({ force = false } = {}) {
   if (!isNative() || !state.user || nativeState) return null;
-  if (!lastNative()) { // signed in again on a phone that was connected before (older builds wiped the stamp on sign-out): one quiet first read
-    if (firstTried || !looksConnected({ cardio: state.cardio || [], health: state.health_daily || [] })) return null;
-    firstTried = true;
-    try { return await nativeHealthSync(); } catch { return null; }
-  }
+  if (!lastNative()) return null; // never read this phone's Apple Health for an account that didn't start a read here (Settings shows a prompt instead)
   const now = new Date();
   const mode = autoReadMode({ now, last: lastNative(), today: todayKey(), rows: state.health_daily, failedAt: autoFailedAt, morningAt, morningFailedAt, backfill: !backfillDone(state.user.uid), backfillFailedAt });
   if (!mode) { await Promise.all([refreshToday({ force }), refreshWorkouts({ force })]); return null; }
@@ -244,14 +239,16 @@ function nativeCard() {
   const uid = state.user && state.user.uid;
   const wr = lastWorkoutRead(uid);
   const fail = lastWorkoutFailure(uid);
+  const reconnect = needsReconnect({ last, cardio: state.cardio || [], health: state.health_daily || [] });
   return `<div class="card stack" data-native-health>
     <p class="label">Apple Health on this iPhone</p>
     <p>Forge reads your Watch’s HRV, resting heart rate, sleep, wrist temperature, breathing, blood oxygen, cardio fitness, steps, exercise, workouts and calories burned straight from Apple Health. Only daily summaries and your workouts are saved. ${last ? '' : 'iOS asks once which data to share: turn them all on.'}</p>
+    ${reconnect ? `<div class="notice info small" data-native-reconnect><b>Apple Health isn’t reading automatically on this iPhone.</b> <span>Tap to turn it back on.</span></div>` : ''}
     ${nativeState ? `<p class="small" aria-live="polite">${esc(nativeState.text)}</p>` : ''}
-    <button class="btn bigbtn" data-native-read ${nativeState ? 'disabled' : ''}>${nativeState ? 'Reading…' : last ? 'Read Apple Health now' : 'Connect Apple Health'}</button>
+    <button class="btn bigbtn" data-native-read ${nativeState ? 'disabled' : ''}>${nativeState ? 'Reading…' : last ? 'Read Apple Health now' : reconnect ? 'Turn Apple Health back on' : 'Connect Apple Health'}</button>
     ${last ? `<p class="small" data-workout-read>Last workout read: ${wr ? esc(ago(new Date(wr).toISOString())) : 'not yet'}${fail ? ' · couldn’t read workouts, trying again soon' : ''}</p>
     <button class="btn ghost bigbtn" data-check-workouts ${nativeState ? 'disabled' : ''}>Check for new workouts</button>
-    <p class="small muted">Workouts missing from before? Update the Forge app (Refresh Forge) so it can read the last 30 days.</p>` : ''}
+` : ''}
     <p class="small muted">${last ? `Last read ${esc(ago(new Date(last).toISOString()))}. Forge reads again by itself when you open it. In the morning it checks every 20 minutes until last night’s sleep is in, then every 6 hours.` : `The first read brings in the last ${IMPORT_DAYS} days.`}</p>
   </div>`;
 }
@@ -460,7 +457,7 @@ export function renderApple(el) {
   const nr = $('[data-native-read]', el);
   if (nr) nr.onclick = () => runNative(el);
   const cw = $('[data-check-workouts]', el);
-  if (cw) cw.onclick = async () => { cw.disabled = true; const n = await refreshWorkouts({ force: true }); toast(n === null ? 'Couldn’t read workouts. Forge will try again soon.' : n ? `Saved ${n} ${n === 1 ? 'workout' : 'workouts'}` : 'No new workouts', 3500); renderApple(el); };
+  if (cw) cw.onclick = async () => { cw.disabled = true; const n = await refreshWorkouts({ force: true }); toast(n === 'busy' ? 'Already reading. One moment.' : n === null ? 'Couldn’t read workouts. Forge will try again soon.' : n ? `Saved ${n} ${n === 1 ? 'workout' : 'workouts'}` : 'No new workouts', 3500); renderApple(el); };
   $('[data-delete]', el).onclick = () => deleteApple(el);
   $('[data-create]', el).onclick = () => createToken(el, has);
   const rv = $('[data-revoke]', el);
