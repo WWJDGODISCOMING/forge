@@ -129,7 +129,7 @@ export async function readHealthWorkouts({ since, now = new Date() } = {}) {
   let anchor;
   for (let page = 0; page < 20; page++) {
     let r;
-    try { r = await H.queryWorkouts({ ...range, limit: 200, ascending: false, anchor }); } catch { break; }
+    try { r = await H.queryWorkouts({ ...range, limit: 200, ascending: false, anchor }); } catch (e) { if (!page) throw e; break; } // a failed first page is a failed read, not "no workouts"
     const list = (r && r.workouts) || [];
     out.push(...list);
     anchor = r && r.anchor;
