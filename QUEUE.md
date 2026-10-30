@@ -473,7 +473,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 47. #254 Bug: a long live Walk can vanish on End
 - Issue: #254
 - Version: 0.16.91
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #254; row written before native end (or ending record retried), Forge-source Health workouts imported when no row exists, HK session recovery + no silent save:false discard, sign-out prompt; tests.
 
