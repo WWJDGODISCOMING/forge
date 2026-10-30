@@ -10,6 +10,7 @@ No Cloud Functions or `firestore.rules` changes.
 - Signing out and back in no longer turns off automatic Apple Health reads.
 - A workout read that fails is tried again within minutes instead of waiting 6 hours.
 - Apple Health settings show the last workout read and a check button.
+- Forge only reads this iPhone's Apple Health by itself for an account that connected it on this iPhone. If an account has Apple Health data but was never connected here, Settings → Apple Health asks you to tap "Turn Apple Health back on".
 
 ## 0.16.89 — Evenings count as the right day (2026-10-29)
 
