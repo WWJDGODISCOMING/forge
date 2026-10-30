@@ -12,9 +12,10 @@ const EMPTY = () => ({ kcal: 0, distanceM: 0, hr: null, nativeLive: false, activ
  * deps: plugin() → the ForgeWorkouts plugin or null · storage() → localStorage-like or null · now() → ms
  *       updateRow(row) → patches that row with the Health numbers (default saveRow) · weightKg() → number|null · settings() → settings doc · cardio() → saved cardio rows · miles() → bool
  *       saveRow(row) → writes the finished cardio row · waitMs → cap on any native call
+ *       ready() → true (or a promise of it) once the saved cardio rows are loaded: a recovered workout is judged against them
  */
 export function createLiveSession(deps) {
-  const d = { now: Date.now, waitMs: NATIVE_WAIT_MS, weightKg: () => null, settings: () => null, cardio: () => [], miles: () => false, saveRow: () => {}, updateRow: null, storage: () => null, plugin: () => null, ...deps };
+  const d = { now: Date.now, waitMs: NATIVE_WAIT_MS, weightKg: () => null, settings: () => null, cardio: () => [], miles: () => false, saveRow: () => {}, updateRow: null, ready: () => true, storage: () => null, plugin: () => null, ...deps };
   d.updateRow = d.updateRow || d.saveRow; // patches the row written at End with what the phone measured
   let session = null;
   let metrics = EMPTY();
@@ -91,6 +92,10 @@ export function createLiveSession(deps) {
       // The phone's snapshot carries an id on newer builds; without one, the only thing it can be is the workout that just timed out, or a stray.
       const mine = capped && (!r.id || r.id === capped.id);
       if (!mine && Number(r.elapsed) > 60000) { // a recovered workout with real data: ask, never discard it quietly (#254)
+        let known = false;
+        if (r.id) { try { known = await knownId(r.id); } catch { return 'none'; } } // rows not loaded yet: don't judge against an empty list, a later call decides
+        if (isActive() || endsInFlight > 0) return 'none';
+        if (known) return savedStray(p, r); // already in History (killed during "Saving…"): finish it quietly, no question
         stray = { ...r };
         listeners.forEach((fn) => { try { fn(session, metrics); } catch { /* a screen went away */ } });
         return 'stray';
@@ -102,6 +107,29 @@ export function createLiveSession(deps) {
       return 'ended';
     })().finally(() => { reconciling = null; });
     return reconciling;
+  }
+
+  /** True when this id is already a saved row (its id or live_id) or was ended here. Waits for the rows to load; false (undecided) when they never do. */
+  async function knownId(id) {
+    if (gone.has(id)) return true;
+    const ok = await Promise.race([Promise.resolve(d.ready()).catch(() => false), new Promise((res) => setTimeout(() => res(false), Math.max(d.waitMs * 3, 1)))]);
+    if (!ok) throw new Error('rows not loaded');
+    return (d.cardio() || []).some((c) => c && (c.id === id || c.live_id === id));
+  }
+
+  /** The phone still holds a walk whose row is already in History: end it with save:true, no question. → 'saved' */
+  async function savedStray(p, r) {
+    const ended = endLive(strayToSession(r), d.now());
+    const payload = endPayload(ended, { weightKg: d.weightKg(), settings: d.settings() });
+    const id = r.id;
+    gone.add(id);
+    const res = await endNative(p, payload, () => { if (capped && capped.id === id) capped = null; });
+    if (res.timedOut) { capped = { id, payload }; return 'saved'; }
+    const saved = res.value;
+    if (saved && typeof saved === 'object' && Object.keys(saved).length && (d.cardio() || []).some((c) => c && c.id === id)) {
+      d.updateRow(liveToCardio(Array.isArray(saved.pauses) ? adoptNativePauses(ended, saved) : ended, { hk: saved, weightKg: d.weightKg() }));
+    }
+    return 'saved';
   }
 
   // restore() runs on every Train and Today draw, so its check of the phone is rate-limited.
@@ -208,14 +236,18 @@ export function createLiveSession(deps) {
   /** A phone-held workout (more than a minute of data) that Forge lost track of, waiting for the user's choice, or null. */
   const pendingStray = () => stray;
 
+  function strayToSession(r) {
+    const k = r.kind && LIVE_KINDS[r.kind] ? r.kind : 'walk';
+    const at = Number(r.startedAt) || (d.now() - (Number(r.elapsed) || 0));
+    return { ...newLive(k, at, r.id || undefined), pauses: Array.isArray(r.pauses) ? r.pauses : [], pausedAt: r.paused ? (Number(r.pausedAt) || d.now()) : null };
+  }
+
   /** Rebuild the lost workout from the phone's snapshot and carry on with it (the user chose to keep it). → the session or null. */
   function adoptStray() {
     const r = stray;
     if (!r || isActive()) return null;
     stray = null;
-    const k = r.kind && LIVE_KINDS[r.kind] ? r.kind : 'walk';
-    const at = Number(r.startedAt) || (d.now() - (Number(r.elapsed) || 0));
-    session = { ...newLive(k, at, r.id || undefined), pauses: Array.isArray(r.pauses) ? r.pauses : [], pausedAt: r.paused ? (Number(r.pausedAt) || d.now()) : null };
+    session = strayToSession(r);
     metrics = { ...EMPTY(), nativeLive: true, kcal: r.kcal || 0, distanceM: r.distanceM || 0, hr: r.hr || null };
     attach(); save(); emit();
     return session;

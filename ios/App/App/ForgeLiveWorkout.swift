@@ -75,12 +75,16 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
 
     /// After iOS ended Forge during a long workout, HealthKit may still be running it: take it back so nothing
     /// measured is lost. JS then asks Save / Discard from liveState. Safe to call on every launch.
+    private var recovering = false // two liveState calls in flight must not both adopt a session
+
     func recover() async {
-        guard session == nil, !ending else { return }
+        guard session == nil, !ending, !recovering else { return }
+        recovering = true
+        defer { recovering = false }
         let found: HKWorkoutSession? = await withCheckedContinuation { cont in
             store.recoverActiveWorkoutSession { session, _ in cont.resume(returning: session) }
         }
-        guard let rec = found, let saved = UserDefaults.standard.dictionary(forKey: savedKey), let savedId = saved["id"] as? String else { return }
+        guard session == nil, let rec = found, let saved = UserDefaults.standard.dictionary(forKey: savedKey), let savedId = saved["id"] as? String else { return }
         let builder = rec.associatedWorkoutBuilder()
         rec.delegate = self
         builder.delegate = self
@@ -95,6 +99,7 @@ final class ForgeLiveWorkout: NSObject, HKWorkoutSessionDelegate, HKLiveWorkoutB
         session = rec; self.builder = builder; paused = rec.state == .paused
         if paused { pauseLock.lock(); pauseStart = Date(); pauseLock.unlock() }
         ForgeLiveBridge.togglePause = { [weak self] in self?.togglePause() }
+        _ = startActivity() // the lock-screen card comes back with the recovered workout
     }
 
     // MARK: pause / resume

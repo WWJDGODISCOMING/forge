@@ -202,6 +202,52 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('goaldate')
   });
 }
 
+// Recovered live workout (v0.16.91, #254): the Keep / Discard sheet, its Discard confirm, and the sign-out "End and save your walk?" sheet.
+// Phone dark and light, small phone at 160% text, both Duo sizes folded and unfolded. Nothing overflows sideways, every button is 44px or
+// more and on screen, Keep is the focused first choice, and the confirm uses the "42-min ... won't be saved" words.
+const ST_SIZES = [[390, 844, 1], [320, 568, 1.6], [466, 678, 1], [678, 466, 1], [626, 890, 1], [890, 626, 1]];
+const ST_OPEN = (which) => `(async () => {
+  document.querySelectorAll('dialog.sheet').forEach((d) => d.remove());
+  if (${JSON.stringify(which)} === 'signout') { const [u, so] = await Promise.all([import('./js/ui.js'), import('./js/signout.js')]); u.confirmSheet(so.liveSignOutAsk('walk')); }
+  else { const m = await import('./js/native/stray-prompt.js'); m.openStraySheet({ elapsed: 42 * 60000 }, { keep() {}, drop() {} }); }
+})()`;
+const ST_PROBE = `(() => {
+  const d = [...document.querySelectorAll('dialog.sheet[open]')].pop(); if (!d) return null;
+  const btns = [...d.querySelectorAll('.sheet-body button')];
+  const r = btns.map((b) => b.getBoundingClientRect());
+  return { text: d.querySelector('.sheet-body').textContent, n: btns.length, minH: Math.round(Math.min(...r.map((x) => x.height))), minW: Math.round(Math.min(...r.map((x) => x.width))),
+    off: r.some((x) => x.right > innerWidth + 1 || x.left < -1 || x.bottom > innerHeight + 1 || x.top < -1) || btns.some((b) => b.scrollWidth > b.clientWidth + 1),
+    over: d.scrollWidth > d.clientWidth + 1 || document.documentElement.scrollWidth > innerWidth + 1, focus: !!document.activeElement && document.activeElement.hasAttribute('data-keep') };
+})()`;
+for (const [w, h, ts] of standalone && (!only || only.includes('stray') || only.includes('live')) ? ST_SIZES : []) {
+  test(`layout: recovered workout sheets (Keep / Discard, confirm, sign-out) fit at ${w}x${h}${ts !== 1 ? ' text160' : ''}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    for (const dark of [true, false]) {
+      const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+      await browser.viewport(w, h, dark);
+      await browser.open('today', seed());
+      if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+      const check = async (name, probe) => {
+        await new Promise((r) => setTimeout(r, 700));
+        const r = await browser.eval(ST_PROBE);
+        if (shots) await browser.screenshot(`${shots}/stray-${name}-${tag}.png`);
+        assert(r, `${tag} ${name}: the sheet did not open`);
+        assert(!r.over && !r.off, `${tag} ${name}: a button runs off the screen or the sheet overflows`);
+        assert(r.minH >= 44 && r.minW >= 44, `${tag} ${name}: a button is ${r.minW}x${r.minH}px`);
+        if (probe) probe(r);
+      };
+      await browser.eval(ST_OPEN('stray'));
+      await check('keep-discard', (r) => { assert(r.n === 2 && r.focus, `${tag}: Keep must be the focused first choice (${r.n} buttons, focus ${r.focus})`); assert(/42 min/.test(r.text), 'shows the minutes'); });
+      await browser.eval("document.querySelector('dialog.sheet[open] [data-drop]').click()");
+      await check('discard-confirm', (r) => assert(/Discard this 42-min workout\? It won.t be saved to Forge or Apple Health\./.test(r.text) && r.n === 2, `${tag}: confirm reads "${r.text.slice(0, 80)}"`));
+      await browser.eval(ST_OPEN('signout'));
+      await check('signout', (r) => assert(/End and save/.test(r.text), `${tag}: sign-out sheet reads "${r.text.slice(0, 60)}"`));
+      await browser.eval("document.querySelectorAll('dialog.sheet').forEach((d) => d.remove())");
+    }
+  });
+}
+
 // Reminders (v0.16.77): the Settings section with switches on (time rows, Quiet hours From/To, "Turn all reminders off") and the
 // web Today card with its dismiss button. Phone dark and light, small phone at 160% text, both Duo sizes. Switch rows, time inputs
 // and the dismiss button are 44px or more, no row runs past its card, From/To wrap cleanly, and Hide removes the card.
