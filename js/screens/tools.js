@@ -1,9 +1,9 @@
 // Plate calculator and cardio log sheets.
-import { sheet, esc, $, $$, toast, todayKey } from '../ui.js';
-import { put, newRecord } from '../db.js';
+import { sheet, $, $$ } from '../ui.js';
 import { platesPerSide, barWeight } from '../workouts/progression.js';
 import { unit } from '../workouts/plan.js';
-import { CARDIO_TYPES, NO_DISTANCE, cardioDistanceKm } from '../cardio-types.js';
+import { CARDIO_TYPES, NO_DISTANCE } from '../cardio-types.js';
+import { openLogWorkout } from './log-workout.js';
 
 export function openPlateCalculator(startWeight) {
   const u = unit();
@@ -43,57 +43,10 @@ export function openPlateCalculator(startWeight) {
   });
 }
 
-export { CARDIO_TYPES, NO_DISTANCE };
+export { CARDIO_TYPES, NO_DISTANCE, openLogWorkout };
 
-/** prefill: { activity, duration_min, notes } */
+/** The old Log cardio entry points (timer, quick log) open the same sheet as + Log a workout (#253). */
 export function openCardioLog(prefill = {}) {
-  const u = unit();
-  const dist = u === 'kg' ? 'km' : 'mi';
-  sheet('Log cardio', (body, close) => {
-    body.innerHTML = `
-      <form class="stack" novalidate>
-        <label class="field"><span>Activity</span>
-          <select name="activity">${Object.entries(CARDIO_TYPES).map(([k, l]) => `<option value="${k}" ${prefill.activity === k ? 'selected' : ''}>${esc(l)}</option>`).join('')}</select>
-        </label>
-        <div class="row gap">
-          <label class="field grow"><span>Minutes</span><input name="min" type="number" inputmode="decimal" min="1" value="${prefill.duration_min || ''}"></label>
-          <label class="field grow"><span>Date</span><input name="day" type="date" value="${todayKey()}" max="${todayKey()}"></label>
-        </div>
-        <div class="row gap">
-          <label class="field grow" data-dist-field ${NO_DISTANCE.includes(prefill.activity) ? 'hidden' : ''}><span>Distance (${dist}) <small class="muted">optional</small></span><input name="dist" type="number" inputmode="decimal" step="0.01"></label>
-          <label class="field grow"><span>Calories <small class="muted">optional</small></span><input name="kcal" type="number" inputmode="numeric"></label>
-        </div>
-        <label class="field"><span>Avg heart rate <small class="muted">optional</small></span><input name="hr" type="number" inputmode="numeric"></label>
-        <label class="field"><span>Notes <small class="muted">optional</small></span><input name="notes" value="${esc(prefill.notes || '')}" maxlength="200"></label>
-        <p class="small muted">Apple Watch workouts are added automatically in the iPhone app.</p>
-        <p class="error" aria-live="polite"></p>
-        <button class="btn" type="submit">Save</button>
-      </form>`;
-    const form = $('form', body);
-    const distField = $('[data-dist-field]', body);
-    form.activity.addEventListener('change', () => { distField.hidden = NO_DISTANCE.includes(form.activity.value); });
-    form.addEventListener('submit', (e) => {
-      e.preventDefault();
-      const min = Number(form.min.value);
-      if (!min || min <= 0) {
-        $('.error', body).textContent = 'Enter how many minutes.';
-        return;
-      }
-      const day = form.day.value || todayKey();
-      const started = day === todayKey() ? new Date(Date.now() - min * 60000) : new Date(day + 'T12:00:00');
-      const km = cardioDistanceKm(form.activity.value, form.dist.value, dist);
-      put('cardio_sessions', newRecord({
-        activity: form.activity.value,
-        started_at: started.toISOString(),
-        day,
-        duration_min: min,
-        distance_km: km,
-        calories: form.kcal.value ? Number(form.kcal.value) : null,
-        avg_hr: form.hr.value ? Number(form.hr.value) : null,
-        notes: form.notes.value.trim(),
-      }));
-      close();
-      toast('Cardio saved');
-    });
-  });
+  return openLogWorkout({ ...prefill, activity: prefill.activity || 'run' });
 }
+

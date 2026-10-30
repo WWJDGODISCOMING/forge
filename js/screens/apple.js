@@ -2,8 +2,9 @@
 // (parsed on this phone; only daily summaries are sent), and a status check that shows which kinds of data
 // have arrived. All data here is written by Cloud Functions; the app only reads it.
 import { state } from '../state.js';
-import { newRecord, put, patch, importedCardioIds } from '../db.js';
+import { newRecord, put, patch, softDelete, importedCardioIds } from '../db.js';
 import { planWorkoutImport } from '../health/apple-workouts.js';
+import { planManualMerge, mergeNotes } from '../health/manual-workout.js';
 import { mergeEnergy, saveEnergy, loadEnergy, backfillStart, energyChanged, newerDays } from '../nutrition/balance.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { serverErrorText, errorFor } from '../ui/errors.js';
@@ -58,13 +59,39 @@ async function saveWorkouts(workouts) {
   const plan = planWorkoutImport(workouts, { existing, forgeWorkouts: state.workouts, cardio: state.cardio });
   const have = new Map(state.cardio.map((c) => [c.id, c]));
   let n = 0;
-  for (const { id, fields } of plan.create) { put('cardio_sessions', newRecord(fields, { id, source: 'apple_health' })); n++; }
+  const merges = [];
+  for (const { id, fields } of plan.create) {
+    put('cardio_sessions', newRecord(fields, { id, source: 'apple_health' })); n++;
+    const hit = planManualMerge(fields, state.cardio)[0]; // a hand-logged row this Watch workout covers (#253)
+    if (hit) merges.push({ ...hit, fields, newId: id, manual: have.get(hit.id) });
+  }
+  if (merges.length) offerMerge(merges);
   for (const { id, fields } of plan.update) {
     const cur = have.get(id);
     if (cur && Object.keys(fields).every((k) => cur[k] === fields[k])) continue; // nothing new: no write
     patch('cardio_sessions', id, fields); n++;
   }
   return n;
+}
+
+/** Ask once whether to fold the hand-logged rows into the Watch workouts that cover them. Declining keeps both. */
+async function offerMerge(merges) {
+  const seen = new Set();
+  const list = merges.filter((m) => m.manual && !seen.has(m.id) && seen.add(m.id));
+  if (!list.length) return;
+  const one = list.length === 1;
+  const ok = await confirmSheet({
+    title: one ? 'Same workout twice?' : 'Same workouts twice?',
+    message: one ? 'The Watch workout that just came in matches one you logged by hand. Keep the Watch version and remove your manual entry, so it isn’t counted twice?' : `${list.length} Watch workouts match ones you logged by hand. Keep the Watch versions and remove the manual entries, so nothing is counted twice?`,
+    confirmLabel: 'Keep Watch data',
+  });
+  if (!ok) return;
+  for (const m of list) {
+    softDelete('cardio_sessions', m.id);
+    const notes = mergeNotes(m.manual, m.fields);
+    if (notes && notes !== m.fields.notes) patch('cardio_sessions', m.newId, { notes });
+  }
+  toast(one ? 'Merged with your Watch workout' : 'Merged with your Watch workouts');
 }
 
 /**

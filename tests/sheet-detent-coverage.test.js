@@ -30,7 +30,7 @@ const SHORT = [
   ['js/screens/session.js', "sheet(ex.name || 'Exercise'"],
   ['js/screens/session.js', "sheet('Timer'"],
   ['js/screens/overlays.js', "sheet('Finish workout'"],
-  ['js/screens/tools.js', "sheet('Log cardio'"],
+  ['js/screens/log-workout.js', "sheet('Log a workout'"],
   ['js/screens/settings.js', "sheet('Delete everything'"],
   ['js/screens/withings.js', "sheet('Disconnect Withings'"],
 ];

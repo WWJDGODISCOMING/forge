@@ -17,7 +17,7 @@ import {
 import { PROGRAMS, DAY_TYPES, smartDayTypes } from '../workouts/programs.js';
 import { deloadInfo, planMinutes } from '../workouts/generator.js';
 import { exerciseById, allExercises } from '../workouts/library.js';
-import { openPlateCalculator, openCardioLog } from './tools.js';
+import { openPlateCalculator, openLogWorkout } from './tools.js';
 import { openExercisePicker } from './picker.js';
 import { patch } from '../db.js';
 import { focusChipsHtml, bindFocusChips } from '../ui/focus-chips.js';
@@ -204,7 +204,7 @@ export function renderTrain(el) {
       <div class="tools">
         <a class="tool" href="#/timer"><span class="t-ic" aria-hidden="true">${icon('timer')}</span>Timer</a>
         <a class="tool" href="#/live" data-live><span class="t-ic" aria-hidden="true">${icon('play')}</span><span data-live-label data-idle="Live workout">${currentChipText() || 'Live workout'}</span></a>
-        <button class="tool" data-cardio><span class="t-ic" aria-hidden="true">${icon('bike')}</span>Log cardio</button>
+        <button class="tool tool-log" data-cardio><span class="t-ic" aria-hidden="true">${icon('plus')}</span>+ Log a workout</button>
         <button class="tool" data-plates><span class="t-ic" aria-hidden="true">${icon('dumbbell')}</span>Plates</button>
         <a class="tool" href="#/library"><span class="t-ic" aria-hidden="true">${icon('book')}</span>Exercises</a>
       </div>
@@ -246,7 +246,7 @@ export function renderTrain(el) {
   if (dl) dl.onclick = () => { startDeload(); toast('Deload week started'); };
   $('[data-program]', el).onclick = () => openProgramPicker();
   $('[data-focus]', el).onclick = () => openFocusPicker();
-  $('[data-cardio]', el).onclick = () => openCardioLog();
+  $('[data-cardio]', el).onclick = () => openLogWorkout();
   $('[data-plates]', el).onclick = () => openPlateCalculator();
   bindLiveChips(el);
 }

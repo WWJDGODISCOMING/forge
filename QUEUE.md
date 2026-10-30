@@ -480,7 +480,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 48. #253 Bug: '+ Log a workout' (any type, start time, kcal, Apple Health)
 - Issue: #253
 - Version: 0.16.92
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #253; button on History + Train, one sheet any type with date+time, validation, optional Health save, overlap merge with imports; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
 

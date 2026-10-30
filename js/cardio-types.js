@@ -1,10 +1,10 @@
 // Cardio activity names and the small pure helpers around them (shared by the log sheet, History and the CSV export).
 
 /** Activities that have no distance, so the sheet hides the field and saves none. */
-export const NO_DISTANCE = ['jog_in_place'];
+export const NO_DISTANCE = ['jog_in_place', 'strength'];
 
 export const CARDIO_TYPES = {
-  peloton: 'Peloton ride', bike: 'Bike (other)', run: 'Run', jog_in_place: 'Jog in place', walk: 'Walk', row: 'Row', elliptical: 'Elliptical', stairs: 'Stair climber',
+  strength: 'Strength', peloton: 'Peloton ride', bike: 'Bike (other)', run: 'Run', jog_in_place: 'Jog in place', walk: 'Walk', row: 'Row', elliptical: 'Elliptical', stairs: 'Stair climber',
   boxing: 'Boxing / shadowboxing', hiit: 'HIIT / intervals', jump_rope: 'Jump rope', swim: 'Swim', other: 'Other',
 };
 
