@@ -40,7 +40,7 @@ test('quick-log +: hidden while the keyboard, a sheet, a dialog or an overlay is
 
 test('quick-log sheet: seven rows in order, one-line labels, each with an icon', () => {
   const rows = quickLogRows({});
-  eq(rows.map((r) => r.label).join('|'), 'Log food|Snap a meal|Log weight|Start workout|Log cardio|Take progress photos|Ask Coach');
+  eq(rows.map((r) => r.label).join('|'), 'Log food|Snap a meal|Log weight|Start workout|Log a workout|Take progress photos|Ask Coach');
   eq(rows.length, 7);
   for (const r of rows) {
     assert(r.icon && r.id, `${r.label} has an icon and id`);

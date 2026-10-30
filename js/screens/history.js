@@ -96,7 +96,7 @@ export function renderHistory(el) {
 
   el.innerHTML = `
     <section class="stack">
-      <h1>History</h1>
+      <div class="large-title hist-head"><h1>History</h1><button class="btn small" data-log-workout>+ Log a workout</button></div>
 
       <div class="card">
         <p class="label">Last 12 weeks · <span data-count>${activeDays}</span> active days</p>
@@ -140,7 +140,7 @@ export function renderHistory(el) {
       ${recent.length ? `<ul class="list">${recent.map((r) => r.kind === 'w' ? `
         <li class="tap" data-w="${esc(r.w.id)}"><div><b>${esc(r.w.label)}</b>
           <small class="muted">${formatDay(dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${esc(state.locations.find((l) => l.id === r.w.location_id)?.name || '')} · ${(r.w.exercises || []).reduce((n, it) => n + it.sets.filter((s) => s.done && !s.warmup).length, 0)} sets${durationText(r.w)}${(r.w.prs || []).length ? ` · ${icon('trophy')} ${r.w.prs.length}` : ''}</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>` : `
-        <li class="tap" data-c="${esc(r.c.id)}"><div><b>${esc(r.c.activity === 'other' && r.c.notes && r.c.notes.includes(' · ') ? r.c.notes.split(' · ')[0] : CARDIO_TYPES[r.c.activity] || r.c.activity)}</b>
+        <li class="tap" data-c="${esc(r.c.id)}"><div><b>${esc(r.c.name || (r.c.activity === 'other' && r.c.notes && r.c.notes.includes(' · ') ? r.c.notes.split(' · ')[0] : CARDIO_TYPES[r.c.activity] || r.c.activity))}</b>
           <small class="muted">${formatDay(r.c.day || dayKey(r.at), { weekday: 'short', month: 'short', day: 'numeric' })} · ${r.c.duration_min} min${r.c.calories ? ` · ${r.c.calories} kcal` : ''} · ${esc(sourceTag(r.c))}</small></div><span class="chev" aria-hidden="true">${icon('chev')}</span></li>`).join('')}</ul>`
         : `<div class="card">${emptyState({ icon: 'chart', title: 'No workouts yet', text: 'Finish a workout and it shows up here, with your records.', action: { href: '#/train', label: 'Start your first workout' } })}</div>`}
     </section>`;
@@ -150,6 +150,7 @@ export function renderHistory(el) {
   unbindScrub();
   unbindScrub = bindScrub($('[data-trend] ~ svg.chart', el), $('[data-trend] ~ .scrub-bar [data-readout]', el), { dayText: (d) => formatDay(d, { month: 'short', day: 'numeric' }) });
   el.querySelectorAll('[data-leg]').forEach((b) => b.addEventListener('click', () => openLegActivity(leg)));
+  $('[data-log-workout]', el).addEventListener('click', () => import('./log-workout.js').then((m) => m.openLogWorkout()));
   el.querySelectorAll('[data-w]').forEach((li) => li.addEventListener('click', () => openWorkout(li.dataset.w)));
   el.querySelectorAll('[data-c]').forEach((li) => li.addEventListener('click', () => openCardio(li.dataset.c)));
 }
@@ -229,7 +230,7 @@ function openCardio(id) {
   const c = state.cardio.find((x) => x.id === id);
   if (!c) return;
   const u = unit();
-  sheet(CARDIO_TYPES[c.activity] || 'Cardio', (body, close) => {
+  sheet(c.name || CARDIO_TYPES[c.activity] || 'Cardio', (body, close) => {
     body.innerHTML = `
       <div class="stack">
         <div class="stats">

@@ -425,6 +425,7 @@ select { appearance: none; -webkit-appearance: none; background-image: linear-gr
 }
 .tool .t-ic { width: 36px; height: 36px; border-radius: 12px; display: grid; place-items: center; background: var(--surface-3); color: var(--text-1); }
 .tool .t-ic svg { width: 20px; height: 20px; }
+.tool.tool-log { grid-column: 1 / -1; flex-direction: row; align-items: center; min-height: 64px; } /* "Log a workout" is too long for a half-width tile at 320 */
 .tool:active { background: var(--surface-2); }
 
 /* session logger */
@@ -841,3 +842,13 @@ button.vol-row > span { display: flex; flex-direction: column; line-height: 1.15
 .bb-burn { background: var(--text-3); }
 .legend i.bb-eat-sw { background: var(--accent-text); }
 .legend i.bb-burn-sw { background: var(--text-3); }
+
+/* + Log a workout: the History header button and the sheet's wrapping field rows */
+.hist-head { flex-wrap: wrap; row-gap: var(--s-2); }
+.hist-head .btn { white-space: nowrap; }
+.log-workout .row.wrap2 { flex-wrap: wrap; }
+.log-workout .row.wrap2 > .grow { flex: 1 1 calc(150px * var(--ts)); min-width: 0; }
+.log-workout input, .log-workout select { min-width: 0; max-width: 100%; }
+.check-row { display: flex; align-items: center; gap: var(--s-3); min-height: 44px; font-weight: 600; font-size: calc(15px * var(--ts)); }
+.check-row[hidden] { display: none; }
+.check-row input { width: 24px; height: 24px; flex: none; }

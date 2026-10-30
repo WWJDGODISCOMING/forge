@@ -5,6 +5,7 @@
 import { state } from '../state.js';
 import { patch } from '../db.js';
 import { plugin } from './bridge.js';
+import { healthPayload } from '../health/manual-workout.js';
 import { estimateKcal, weightOrDefault, windowFor, pausesFor, activityTypeFor, decide, pickOverlap, accessStatus, pendingPatch, nextVersion } from '../workouts/energy.js';
 
 const hk = () => plugin('ForgeWorkouts');
@@ -62,6 +63,20 @@ export async function sendWorkout(w0) {
     patch('workouts', w.id, fields);
     return fields;
   }
+}
+
+/** A hand-logged cardio row (#253) → Apple Health, once. Asks for access if the switch is off. → 'saved' | 'denied' | 'failed' | 'unavailable'. */
+export async function sendManual(row) {
+  const p = hk();
+  if (!p) return 'unavailable';
+  const payload = healthPayload(row);
+  if (!payload) return 'failed';
+  if (!writeEnabled() && !(await enableWrites())) return 'denied';
+  try {
+    const r = await p.saveWorkout(payload);
+    patch('cardio_sessions', row.id, { hk_uuid: r.uuid, hk_source: SOURCE_NAME, health_write: 'saved' });
+    return 'saved';
+  } catch { return 'failed'; }
 }
 
 /** Called right after finishWorkout(): fire and forget. */
