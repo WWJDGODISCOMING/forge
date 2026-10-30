@@ -842,7 +842,7 @@ button.vol-row > span { display: flex; flex-direction: column; line-height: 1.15
 .legend i.bb-eat-sw { background: var(--accent-text); }
 .legend i.bb-burn-sw { background: var(--text-3); }
 
-/* + Log a workout (#253): the History header button and the sheet's wrapping field rows */
+/* + Log a workout: the History header button and the sheet's wrapping field rows */
 .hist-head { flex-wrap: wrap; row-gap: var(--s-2); }
 .hist-head .btn { white-space: nowrap; }
 .log-workout .row.wrap2 { flex-wrap: wrap; }

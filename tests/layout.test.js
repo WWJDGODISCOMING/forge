@@ -3354,6 +3354,39 @@ function hwSeed(kind) {
   if (kind === 'estimate') { data.settings[0].health_write_workouts = true; w.health_write = 'saved'; w.kcal = 280; w.kcal_source = 'estimate'; w.kcal_weight_estimated = true; data.weights = []; data.profile[0].weightKg = null; }
   return data;
 }
+// + Log a workout (#253): the History button and the one sheet fit, with 44pt targets, at every size (and 320 at text 1.6).
+const LW_SIZES = [[390, 844, true, 1], [390, 844, false, 1], [466, 678, true, 1], [678, 466, true, 1], [626, 890, false, 1], [890, 626, true, 1], [320, 568, true, 1.6]];
+for (const [w, h, dark, ts] of standalone && (!only || only.includes('history') || only.includes('logworkout')) ? LW_SIZES : []) {
+  const tag = `${w}x${h}-${dark ? 'dark' : 'light'}${ts !== 1 ? '-text160' : ''}`;
+  test(`layout: + Log a workout button and sheet fit at ${tag}`, async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    await browser.viewport(w, h, dark);
+    await browser.open('history', seed({ long: true }));
+    if (ts !== 1) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((r) => setTimeout(r, 300)); }
+    const b = await browser.eval(`(() => { const e = document.querySelector('[data-log-workout]'); if (!e) return null; const r = e.getBoundingClientRect(); return { h: r.height, l: r.left, r: r.right, vw: innerWidth, over: document.documentElement.scrollWidth > innerWidth + 1, txt: e.textContent }; })()`);
+    if (shots) await browser.screenshot(`${shots}/log-workout-button-${tag}.png`);
+    assert(b && /Log a workout/.test(b.txt), 'History has no + Log a workout button');
+    assert(b.h >= 43.5 && b.l >= 0 && b.r <= b.vw + 0.5 && !b.over, `the button is small, off screen or the page scrolls sideways: ${JSON.stringify(b)}`);
+    await browser.eval("document.querySelector('[data-log-workout]').click()");
+    await new Promise((r) => setTimeout(r, 900));
+    const s = await browser.eval(`(() => {
+      const d = document.querySelector('dialog.sheet[open]'); if (!d) return null;
+      const box = d.getBoundingClientRect(), bad = [];
+      for (const e of d.querySelectorAll('input:not([type=checkbox]), select, button[type=submit]')) {
+        if (e.closest('[hidden]')) continue;
+        const r = e.getBoundingClientRect();
+        if (r.right > box.right + 1 || r.left < box.left - 1) bad.push('off the sheet: ' + (e.name || e.type));
+        if (r.height < 43.5) bad.push('short: ' + (e.name || e.type) + ' ' + r.height);
+      }
+      return { bad, over: d.scrollWidth > d.clientWidth + 1, names: [...d.querySelectorAll('[name]')].map((e) => e.name) };
+    })()`);
+    if (shots) await browser.screenshot(`${shots}/log-workout-sheet-${tag}.png`);
+    assert(s, 'the Log a workout sheet did not open');
+    assert(s.bad.length === 0 && !s.over, `the sheet overflows or has small targets: ${JSON.stringify(s)}`);
+    for (const n of ['activity', 'day', 'time', 'min', 'kcal', 'hr', 'notes']) assert(s.names.includes(n), `the sheet has no ${n} field`);
+  });
+}
 const HW_PROBE = `(() => {
   const vw = innerWidth;
   const clipped = (e) => e.scrollWidth > e.clientWidth + 1;

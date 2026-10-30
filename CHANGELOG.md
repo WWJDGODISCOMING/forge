@@ -6,9 +6,9 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- **+ Log a workout** on History (top right) and Train: one sheet for any type, including Strength and Other (name it).
+- **+ Log a workout** on History and Train: one sheet for any type.
 - You pick the date and the start time, so a 7 AM session shows at 7 AM, not noon.
-- Optional calories, average heart rate, distance and notes; odd numbers are caught before saving.
+- Add calories, heart rate, distance and notes if you like.
 - On the iPhone app you can tick "Also save to Apple Health".
 - If an Apple Watch workout later matches one you logged by hand (half or more overlap), Forge asks whether to keep the Watch data instead of counting it twice.
 - Strength and Other entries are saved as cardio-style rows (no sets) and count toward your weekly goal, rings and History.

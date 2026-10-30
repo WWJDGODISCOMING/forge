@@ -62,7 +62,7 @@ async function saveWorkouts(workouts) {
   const merges = [];
   for (const { id, fields } of plan.create) {
     put('cardio_sessions', newRecord(fields, { id, source: 'apple_health' })); n++;
-    const hit = planManualMerge(fields, state.cardio)[0]; // a hand-logged row this Watch workout covers (#253)
+    const hit = planManualMerge(fields, state.cardio)[0]; // a hand-logged row this Watch workout covers
     if (hit) merges.push({ ...hit, fields, newId: id, manual: have.get(hit.id) });
   }
   if (merges.length) offerMerge(merges);

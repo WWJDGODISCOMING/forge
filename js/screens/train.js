@@ -204,7 +204,7 @@ export function renderTrain(el) {
       <div class="tools">
         <a class="tool" href="#/timer"><span class="t-ic" aria-hidden="true">${icon('timer')}</span>Timer</a>
         <a class="tool" href="#/live" data-live><span class="t-ic" aria-hidden="true">${icon('play')}</span><span data-live-label data-idle="Live workout">${currentChipText() || 'Live workout'}</span></a>
-        <button class="tool tool-log" data-cardio><span class="t-ic" aria-hidden="true">${icon('plus')}</span>+ Log a workout</button>
+        <button class="tool tool-log" data-cardio aria-label="Log a workout"><span class="t-ic" aria-hidden="true">${icon('plus')}</span>Add entry</button>
         <button class="tool" data-plates><span class="t-ic" aria-hidden="true">${icon('dumbbell')}</span>Plates</button>
         <a class="tool" href="#/library"><span class="t-ic" aria-hidden="true">${icon('book')}</span>Exercises</a>
       </div>

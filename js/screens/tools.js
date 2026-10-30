@@ -45,7 +45,7 @@ export function openPlateCalculator(startWeight) {
 
 export { CARDIO_TYPES, NO_DISTANCE, openLogWorkout };
 
-/** The old Log cardio entry points (timer, quick log) open the same sheet as + Log a workout (#253). */
+/** The old Log cardio entry points (timer, quick log) open the same sheet as + Log a workout. */
 export function openCardioLog(prefill = {}) {
   return openLogWorkout({ ...prefill, activity: prefill.activity || 'run' });
 }

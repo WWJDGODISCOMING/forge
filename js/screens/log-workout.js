@@ -1,4 +1,4 @@
-// "+ Log a workout" (#253): one sheet for any hand-logged session, with a real start time and an optional
+// "+ Log a workout": one sheet for any hand-logged session, with a real start time and an optional
 // Apple Health save. Saved as a cardio_sessions row (see js/health/manual-workout.js for why).
 import { sheet, esc, $, toast, todayKey } from '../ui.js';
 import { put, newRecord } from '../db.js';
