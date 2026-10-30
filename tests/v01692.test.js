@@ -1,7 +1,7 @@
 // v0.16.92 (#253): + Log a workout. Synthetic data only.
 import { readFileSync } from 'node:fs';
 import { test, eq, assert } from './harness.js';
-import { validateManual, localStart, planManualMerge, healthPayload, healthTypeFor, mergeNotes } from '../js/health/manual-workout.js';
+import { validateManual, localStart, planManualMerge, healthPayload, healthTypeFor, mergeNotes, dropHealthCopies, forgeHealthUuid } from '../js/health/manual-workout.js';
 import { workoutToCardio } from '../js/health/apple-workouts.js';
 
 const read = (p) => readFileSync(new URL('../' + p, import.meta.url), 'utf8');
@@ -75,6 +75,17 @@ test('Health payload: type map, end time, kcal; null without a usable window', (
   const p = healthPayload(manual({ calories: 250 }));
   eq(p.id, 'm1'); eq(p.kcal, 250); eq(Date.parse(p.end) - Date.parse(p.start), 30 * 60000);
   eq(healthPayload({ id: 'x', started_at: 'nope', duration_min: 5 }), null);
+});
+
+test('merge removes only the Forge-written Health copy of the manual row, once', () => {
+  const asked = [];
+  const del = (u) => { asked.push(u); return Promise.resolve(); };
+  eq(dropHealthCopies([manual({ hk_uuid: 'HK-1', hk_source: 'Forge' })], del), 1);
+  eq(asked.join(), 'HK-1');
+  asked.length = 0;
+  eq(dropHealthCopies([manual({}), manual({ id: 'm2', hk_uuid: 'HK-2', hk_source: 'Watch' })], del), 0);
+  eq(asked.length, 0);
+  eq(forgeHealthUuid(manual({ manual: false, hk_uuid: 'HK-3', hk_source: 'Forge' })), null);
 });
 
 test('wiring: History and Train have the button, one sheet, merge offered on import', () => {

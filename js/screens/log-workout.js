@@ -33,7 +33,7 @@ export function openLogWorkout(prefill = {}) {
         </div>
         <label class="field" data-dist-field ${NO_DISTANCE.includes(act) ? 'hidden' : ''}><span>Distance (${dist}) <small class="muted">optional</small></span><input name="dist" type="number" inputmode="decimal" step="0.01" min="0"></label>
         <label class="field"><span>Notes <small class="muted">optional</small></span><input name="notes" value="${esc(prefill.notes || '')}" maxlength="200"></label>
-        <label class="check-row" data-health-field hidden><input type="checkbox" name="health"><span>Also save to Apple Health</span></label>
+        <label class="check-row" data-health-field hidden><input type="checkbox" name="health"><span>Also save to Apple Health <small class="muted">(also turns on saving your Forge workouts there)</small></span></label>
         <p class="small muted">Apple Watch workouts are added automatically. If one matches this entry, Forge offers to keep the Watch data instead.</p>
         <p class="error" aria-live="polite"></p>
         <button class="btn" type="submit">Save workout</button>
@@ -61,7 +61,7 @@ export function openLogWorkout(prefill = {}) {
       if (!toHealth) { toast('Workout saved'); return; }
       const { sendManual } = await import('../native/workouts-health.js');
       const r = await sendManual(row);
-      toast(r === 'saved' ? 'Saved to Forge and Apple Health' : r === 'denied' ? 'Saved to Forge. Allow Workouts in Settings → Health → Data Access to send it to Health.' : 'Saved to Forge. It couldn’t reach Apple Health.', 5000);
+      toast(r === 'saved' ? 'Saved to Forge and Apple Health' : r === 'denied' ? 'Saved to Forge. Allow Workouts in Settings → Health → Data Access & Devices → Forge to send it to Health.' : 'Saved to Forge. It couldn’t reach Apple Health.', 5000);
     });
   });
 }

@@ -21,7 +21,7 @@ export function quickLogRows({ active = false, playerRoute = '#/play' } = {}) {
     active
       ? { id: 'workout', label: 'Resume workout', icon: 'play', go: playerRoute }
       : { id: 'workout', label: 'Start workout', icon: 'dumbbell', run: 'startWorkout' },
-    { id: 'cardio', label: 'Log a workout', icon: 'bike', run: 'logCardio' },
+    { id: 'cardio', label: 'Log a workout', icon: 'plus', run: 'logCardio' },
     { id: 'photos', label: 'Take progress photos', icon: 'camera', go: '#/photos' },
     { id: 'coach', label: 'Ask Coach', icon: 'help', go: '#/coach' },
   ];

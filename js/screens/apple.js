@@ -4,7 +4,7 @@
 import { state } from '../state.js';
 import { newRecord, put, patch, softDelete, importedCardioIds } from '../db.js';
 import { planWorkoutImport } from '../health/apple-workouts.js';
-import { planManualMerge, mergeNotes } from '../health/manual-workout.js';
+import { planManualMerge, mergeNotes, dropHealthCopies } from '../health/manual-workout.js';
 import { mergeEnergy, saveEnergy, loadEnergy, backfillStart, energyChanged, newerDays } from '../nutrition/balance.js';
 import { esc, $, $$, sheet, toast, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { serverErrorText, errorFor } from '../ui/errors.js';
@@ -91,6 +91,8 @@ async function offerMerge(merges) {
     const notes = mergeNotes(m.manual, m.fields);
     if (notes && notes !== m.fields.notes) patch('cardio_sessions', m.newId, { notes });
   }
+  // The Forge-written Health copy of a hand-logged row would sit next to the Watch workout and double-count.
+  dropHealthCopies(list.map((m) => m.manual), (uuid) => import('../native/workouts-health.js').then((h) => h.removeFor({ hk_uuid: uuid })));
   toast(one ? 'Merged with your Watch workout' : 'Merged with your Watch workouts');
 }
 

@@ -77,6 +77,21 @@ export function planManualMerge(imported, cardio = []) {
 /** Merging keeps the Watch data: the manual row is soft-deleted (the caller does that); its notes carry over. */
 export const mergeNotes = (manual, imported) => [imported.notes, manual.notes].filter(Boolean).join(' · ');
 
+/** The uuid of the Health copy Forge itself wrote for a manual row, or null (never a Watch or other app's workout). */
+export const forgeHealthUuid = (row) => (row && row.manual && row.hk_source === 'Forge' && row.hk_uuid ? String(row.hk_uuid) : null);
+
+/** After a merge: ask `del(uuid)` once for each merged manual row that has its own Forge copy in Health. Fire and forget. */
+export function dropHealthCopies(rows, del) {
+  let n = 0;
+  for (const r of rows || []) {
+    const uuid = forgeHealthUuid(r);
+    if (!uuid) continue;
+    n++;
+    try { Promise.resolve(del(uuid)).catch(() => {}); } catch { /* best effort */ }
+  }
+  return n;
+}
+
 /** Apple Health type the ForgeWorkouts plugin understands (it knows four). */
 export function healthTypeFor(activity) {
   if (activity === 'run') return 'running';

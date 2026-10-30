@@ -3379,6 +3379,10 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('history') 
         if (r.right > box.right + 1 || r.left < box.left - 1) bad.push('off the sheet: ' + (e.name || e.type));
         if (r.height < 43.5) bad.push('short: ' + (e.name || e.type) + ' ' + r.height);
       }
+      for (const e of d.querySelectorAll('input[type=date], input[type=time], input[type=number]')) {
+        if (e.closest('[hidden]')) continue;
+        if (e.scrollWidth > e.clientWidth + 1) bad.push('clipped value: ' + e.name + ' ' + e.scrollWidth + '>' + e.clientWidth);
+      }
       return { bad, over: d.scrollWidth > d.clientWidth + 1, names: [...d.querySelectorAll('[name]')].map((e) => e.name) };
     })()`);
     if (shots) await browser.screenshot(`${shots}/log-workout-sheet-${tag}.png`);
