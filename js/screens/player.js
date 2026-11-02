@@ -306,14 +306,14 @@ function drawSet(el) {
 
       <div class="pl-hero" data-hero style="view-transition-name: pl-hero">
         <div class="pl-hero-n">${heroAmount}</div>
-        ${showWeight ? `<div class="pl-hero-w ${draft.weight == null ? 'unset' : ''} ${draft.suggested != null && draft.weight === draft.suggested ? 'suggested' : ''}"><b data-hero-w role="${draft.weight == null ? 'button' : 'text'}" aria-label="${draft.weight == null ? 'Set weight' : esc(loadPhrase(draft.weight, ex, u))}">${draft.weight ?? 'Set weight'}</b><span>${u}</span><small class="pl-sugg">suggested</small><span class="pl-wtype" data-wtype>${esc(loadCaption(ex))}</span></div>` : ''}
+        ${showWeight ? `<div class="pl-hero-w ${draft.weight == null ? 'unset' : ''} ${draft.suggested != null && draft.weight === draft.suggested ? 'suggested' : ''}"><b data-hero-w role="${draft.weight == null ? 'button' : 'text'}" aria-label="${draft.weight == null ? 'Set weight' : esc(loadPhrase(draft.weight, ex, u))}">${draft.weight ?? 'Set weight'}</b><span>${u}</span><small class="pl-sugg">suggested</small><span class="pl-wtype" data-wtype>${esc(loadCaption(ex, true))}</span></div>` : ''}
         <div class="pl-ring" data-ring hidden><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" class="ring-bg"/><circle cx="50" cy="50" r="45" class="ring-fg" data-ringfg/></svg></div>
       </div>
 
       </div>
       <div class="pl-col pl-col-b">
       <div class="pl-steppers">
-        ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv role="text" aria-label="${draft.weight == null ? 'No weight set' : esc(loadPhrase(draft.weight, ex, u))}">${draft.weight ?? '—'}</b><small>${u}</small><small class="wt-cap" data-wcap>${esc(loadCaption(ex))}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
+        ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv role="text" aria-label="${draft.weight == null ? 'No weight set' : esc(loadPhrase(draft.weight, ex, u))}">${draft.weight ?? '—'}</b><small data-wcap>${esc(loadCaption(ex, true))}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
         <div class="stepper"><button data-r="-1" aria-label="${isTimed ? 'Fewer seconds' : 'Fewer reps'}">−</button><div><b data-rv>${draft.reps}</b><small>${isTimed ? 'sec' : 'reps'}</small></div><button data-r="1" aria-label="${isTimed ? 'More seconds' : 'More reps'}">+</button></div>
       </div>
       <div class="pl-setbox" data-setlist>${setListHtml(it, j, ex, u, showWeight, isTimed)}</div>
@@ -328,7 +328,7 @@ function drawSet(el) {
         ${hapticInput('data-done aria-label="Done set"')}
         <span data-done-text>${s.done ? `${icon('check')} Done` : isTimed ? `Start ${draft.reps} s` : 'Done set'}</span>
       </label>
-      <p class="pl-next">${nextUp ? `<span class="pl-next-name">Next: <b>${esc(nextUp.name)}</b></span><span class="pl-next-meta" role="text" aria-label="${esc(nextUp.detailAria || nextUp.detail)}">${esc(nextUp.detail)}</span>` : 'Last one. Finish strong!'}</p>
+      <p class="pl-next">${nextUp ? `<span class="pl-next-name">Next: <b>${esc(nextUp.name)}</b></span><span class="pl-next-meta" role="text" aria-label="${esc(nextUp.detailAria || nextUp.detail)}">${esc(nextUp.short || nextUp.detail)}</span>` : 'Last one. Finish strong!'}</p>
       </div>
       <nav class="pl-nav" aria-label="Sets">
         <button data-prev ${k === 0 ? 'disabled' : ''}>${icon('back', { size: 16 })} Back</button>

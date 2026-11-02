@@ -79,11 +79,11 @@ export function loadFieldAria(ex, u) {
 }
 
 /** Just the meaning, for a caption under the number: 'in each hand' etc. ('' when there is nothing to add). */
-export function loadCaption(ex) {
+export function loadCaption(ex, short = false) {
   const t = typeOf(ex);
   if (t === 'per_hand') return 'each hand';
   if (t === 'per_side') return 'per side';
-  if (t === 'machine_stack') return 'stack setting';
-  if (t === 'bodyweight') return 'added weight';
-  return inclBar(ex) ? 'total incl. bar' : 'total';
+  if (t === 'machine_stack') return short ? 'stack' : 'stack setting';
+  if (t === 'bodyweight') return short ? 'added' : 'added weight';
+  return inclBar(ex) && !short ? 'total incl. bar' : 'total';
 }
