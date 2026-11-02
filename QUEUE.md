@@ -498,5 +498,12 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #259; explicit loadType on every weighted exercise, short label + VoiceOver phrase everywhere weight shows (player, stepper, Next, plan, History, recap, Health); per-hand volume fix in totals only, no stored-data change; CI test every weighted exercise has a loadType; 390x844, 4 Duo sizes, 320 at text 1.6, light+dark; tests.
 
+## 51. #262 Bug: Withings weigh-ins after Oct 31 never import
+- Issue: #262
+- Version: 0.16.95
+- Status: todo
+- Acceptance:
+  - See issue #262; 48 h lastupdate overlap + 7-day startdate window on manual and maintenance syncs; one-time catch-up from Oct 25 2026 (flagged, idempotent); 601 never advances cursor; honest cooldown toast; tests incl. DST Nov 1 2026 and rate limit. Needs a Functions deploy (Christian approves).
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
