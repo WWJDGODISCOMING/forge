@@ -6,11 +6,13 @@ No Cloud Functions or `firestore.rules` changes.
 
 ### What's new
 
-- All 31 exercises that showed a plain picture now play a looping demo, in Train, the player and the demo preview.
-- Gentle knee moves look gentle: the Quad Set Hold, Shallow Wall Sit and High-Seat Sit-to-Stand keep the knees open and over the feet.
-- New demos: Turkish Get-Up, Kettlebell Windmill, Medicine Ball Rotational Wall Throw, Muscle-Up and Muscle-Up Transition, Slip-and-Roll, Fire Hydrant, Kneeling Towel Slider Fly, the doorframe curls and rows, the self-resisted and held arm moves, the prone moves and the calf variations.
-- The Hip Abductor Machine demo is back, with both legs pressing out against the pads.
-- Under the hood: a test now fails if any exercise has no demo.
+- Every exercise now plays a looping demo.
+- 31 moves that showed a plain picture got one.
+- Gentle knee moves look gentle and stay over the feet.
+- Turkish Get-Up, Windmill and Muscle-Up are drawn.
+- Doorframe curls and rows are drawn.
+- The Hip Abductor Machine demo is back.
+- A test now fails if any exercise has no demo.
 
 ## 0.16.92 — + Log a workout (2026-10-30)
 

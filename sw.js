@@ -167,6 +167,7 @@ const SHELL = [
   './js/ui/poses-kb.js',
   './js/ui/poses-gym.js',
   './js/ui/poses-cardio.js',
+  './js/ui/poses-fill.js',
   './js/ui/sheets.js',
   './js/ui/quicklog.js',
   './js/ui/rig.js',
