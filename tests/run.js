@@ -12,6 +12,7 @@ import './session.test.js';
 import './figure.test.js';
 import './homeposes.test.js';
 import './kbposes.test.js';
+import './fillposes.test.js';
 import './gymposes.test.js';
 import './cardioposes.test.js';
 import './goalpath-dates.test.js';

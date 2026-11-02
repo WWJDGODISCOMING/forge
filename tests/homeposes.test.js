@@ -5,9 +5,6 @@ import { test, eq, assert } from './harness.js';
 import { BODY, solve, dist, repPhases, repLength, paramsAt, camera, frameBox, propParts, drawOrder, loopEnds } from '../js/ui/rig.js';
 import { TEMPLATES, EXERCISE_TEMPLATES } from '../js/ui/poses.js';
 import { HOME, HOME_MAP } from '../js/ui/poses-home.js';
-import { KB_MAP } from '../js/ui/poses-kb.js';
-import { GYM_MAP } from '../js/ui/poses-gym.js';
-import { CARDIO_MAP } from '../js/ui/poses-cardio.js';
 import { EXERCISES } from '../js/workouts/exercises.js';
 import { registerSheet, closeAllSheets, openSheetCount } from '../js/ui/sheets.js';
 
@@ -164,11 +161,7 @@ test('home figures: the rig keeps its bone lengths in the new poses', () => {
 
 test('home figures: the exercise library coverage went up and the rest is still honest', () => {
   const unmapped = EXERCISES.filter((e) => !EXERCISE_TEMPLATES[e.id]);
-  const kb = Object.keys(KB_MAP); // v0.12.2 added these (tests/kbposes.test.js)
-  const gym = Object.keys(GYM_MAP); // v0.14.2 added these (tests/gymposes.test.js)
-  const cardio = Object.keys(CARDIO_MAP); // v0.14.4 added these (tests/cardioposes.test.js)
-  eq(unmapped.length, 73 + 21 - BRIEF.length - kb.length - gym.length - cardio.length, 'was 73 without a figure (+21 no-equipment moves added in v0.16.72, drawn later); all four briefs are covered');
-  for (const e of unmapped) assert(!BRIEF.includes(e.id) && !kb.includes(e.id) && !gym.includes(e.id) && !cardio.includes(e.id), e.id);
+  eq(unmapped.length, 0, 'every exercise has a figure since v0.16.93 (tests/fillposes.test.js is the catch-all)');
 });
 
 // ---------- sheets close when the route changes ----------

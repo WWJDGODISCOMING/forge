@@ -63,9 +63,9 @@ export const FILL = {
   }),
   // A wall sit that stays high: the knees open to about 135°, well above a right angle, the shins upright.
   bw_shallow_wall_sit: from(LIBRARY.wall_sit, {
-    rig: STAND({ feet: { x: 0.12, z: 0.15, kneesOut: 0.3 } }),
-    a: { px: -0.33, py: 0.72, trunk: -2, head: 0, sh: 4, el: 8, abd: 10 },
-    b: { px: -0.33, py: 0.715, trunk: -2, head: 0, sh: 4, el: 10, abd: 10 },
+    rig: STAND({ feet: { x: -0.02, z: 0.15, kneesOut: 0.3 } }),
+    a: { px: -0.33, py: 0.78, trunk: -2, head: 0, sh: 4, el: 8, abd: 10 },
+    b: { px: -0.33, py: 0.775, trunk: -2, head: 0, sh: 4, el: 10, abd: 10 },
   }),
   // Sit back onto a firm, high seat, lean forward a little, stand by pushing through the whole foot. Hands out for balance.
   bw_high_box_sit_to_stand: T({
@@ -84,15 +84,15 @@ export const FILL = {
   bw_good_morning: T({
     cam: { yaw: 14 },
     rig: STAND({ feet: { x: 0, z: 0.14, kneesOut: 0.2 } }),
-    a: { px: 0.02, py: 0.93, trunk: 4, head: 0, sh: 150, el: 140, abd: 40 },
-    b: { px: -0.2, py: 0.85, trunk: 68, head: -34, sh: 150, el: 140, abd: 40 },
+    a: { px: 0.02, py: 0.93, trunk: 4, head: 0, sh: 160, el: 145, abd: 45 },
+    b: { px: -0.2, py: 0.85, trunk: 68, head: -34, sh: 160, el: 145, abd: 45 },
     lag: { head: 0.2 },
     first: 'down',
   }),
   // Hips stay up while the heels walk out and back in.
   bw_bridge_walkout: from(HOME.bw_slider_leg_curl, {
-    a: { ...HOME.bw_slider_leg_curl.a, fxN: 0.75, fxF: 0.75 },
-    b: { ...HOME.bw_slider_leg_curl.b, fxN: 0.35, fxF: 0.35 },
+    a: { ...HOME.bw_slider_leg_curl.a, fxN: 0.62, fxF: 0.62 },
+    b: { ...HOME.bw_slider_leg_curl.b, fxN: 0.3, fxF: 0.3 },
     tempo: { ecc: 1.8, pause: 0.4, con: 1.8, top: 0.4 },
   }),
 
@@ -162,6 +162,87 @@ export const FILL = {
     m: { sh: -10, abd: 100 },
     b: { px: 0, py: 0.93, trunk: 0, head: 0, sh: -30, el: 0, abd: 70 },
     tempo: { con: 0.7, top: 0.05, ecc: 0.7, pause: 0.05 }, slow: { con: 1, top: 0.1, ecc: 1, pause: 0.1 },
+  }),
+
+  // ---------------- core, kettlebell and ball ----------------
+  // Wide stance, bell locked out overhead on the near hand; hinge sideways toward the free hand, sliding it down the leg.
+  kb_windmill: T({
+    cam: { yaw: 70, pitch: 6 },
+    rig: { ...STAND({ feet: { x: 0, z: 0.26, kneesOut: 0.5 } }), armsF: 'ik', handsF: { x: 0, y: 0.98, z: 0.16 }, pole: [0, -0.3, 1] },
+    a: { px: 0, py: 0.93, trunk: 0, head: 0, lean: 0, shN: 176, elN: 0, abdN: 6, kb: 275, hyF: 0.98 },
+    b: { px: 0, py: 0.84, trunk: 0, head: 0, lean: 38, shN: 176, elN: 0, abdN: 6, kb: 275, hyF: 0.45 },
+    first: 'down',
+    tempo: { ecc: 2.2, pause: 0.5, con: 2, top: 0.6 }, slow: { ecc: 3.2, pause: 0.8, con: 2.8, top: 0.8 },
+  }),
+  // Lying with the bell pressed up: roll to the elbow, then the hand, lift the hips, and stand up with the bell overhead.
+  kb_turkish_getup: T({
+    cam: { yaw: 24, pitch: 10 },
+    rig: { root: 'pelvis', legs: 'fk', arms: 'fk' },
+    a: { px: 0, py: 0.15, trunk: -90, head: 8, hipN: 130, kneeN: 95, footN: 0, hipF: 90, kneeF: 0, footF: -10, shN: 180, elN: 0, shF: 92, elF: 0, abd: 20, abdF: 30, kb: 275 },
+    m: { px: -0.1, py: 0.14, trunk: -28, head: 0, hipN: 100, kneeN: 90, footN: 0, hipF: 92, kneeF: 0, footF: -10, shN: 180, elN: 0, shF: 20, elF: 0, abd: 10, abdF: 14, kb: 275 },
+    b: { px: 0.02, py: 0.93, trunk: 0, head: 0, hipN: 0, kneeN: 0, footN: 0, hipF: 0, kneeF: 0, footF: 0, shN: 180, elN: 0, shF: 0, elF: 0, abd: 10, abdF: 20, kb: 275 },
+    tempo: { con: 3.2, top: 0.8, ecc: 3.2, pause: 0.8 }, slow: { con: 4.5, top: 1, ecc: 4.5, pause: 1 },
+  }),
+  // Feet set wide, the ball swung from the back hip across the body and thrown at the wall.
+  mb_rotational_throw: T({
+    cam: { yaw: 50, pitch: 8 },
+    gear: ['ball'],
+    env: [{ type: 'wall', x: 1.1 }],
+    rig: STAND({ feet: { x: 0, z: 0.22, kneesOut: 0.4 } }),
+    a: { px: -0.04, py: 0.86, trunk: 14, head: 0, sh: 50, el: 90, abd: 24, heel: 0.04 },
+    b: { px: 0.05, py: 0.92, trunk: -2, head: 0, sh: 90, el: 4, abd: 8, heel: 0.1 },
+    tempo: { con: 0.35, top: 0.4, ecc: 1.2, pause: 0.4 }, slow: { con: 0.5, top: 0.5, ecc: 1.6, pause: 0.5 },
+  }),
+  // Knees down, hands on towels under the shoulders: slide the arms out wide with a straight body, then pull back in.
+  towel_slider_fly: T({
+    cam: { yaw: 40, pitch: 12 },
+    rig: { root: 'plank', pivot: { at: [-0.4, 0.07], joint: 'knee' }, feet: { z: 0.1, angle: 175 }, arms: 'ik', hands: { x: 0.36, y: 0.03 }, grip: 0.2, pole: [-0.6, 0.3, 0.55] },
+    a: { line: 24, head: 6, hz: 0.2, hx: 0.36 },
+    b: { line: 8, head: 6, hz: 0.78, hx: 0.36 },
+    first: 'down',
+    tempo: { ecc: 2.2, pause: 0.4, con: 1.8, top: 0.5 },
+  }),
+  // On all fours, the near knee lifts out to the side with the shin staying bent.
+  bw_fire_hydrant: T({
+    cam: { yaw: 62, pitch: 16 },
+    rig: { root: 'plank', pivot: { at: [-0.4, 0.07], joint: 'knee' }, feet: { z: 0.1, angle: 175 }, arms: 'ik', hands: { x: 0.1, y: 0.03 }, grip: 0.2, pole: [-0.4, 0.2, 0.5], legsN: 'fk', legsF: 'fk' },
+    a: { line: 90, pike: -90, head: 0, hipN: 0, kneeN: 90, footN: -90, splayN: 0, shinSplayN: 0, hipF: 0, kneeF: 90, footF: -90 },
+    b: { line: 90, pike: -90, head: 0, hipN: 0, kneeN: 90, footN: -90, splayN: 62, shinSplayN: 10, hipF: 0, kneeF: 90, footF: -90 },
+    tempo: { con: 1.1, top: 0.4, ecc: 1.5, pause: 0.3 },
+  }),
+
+  // ---------------- bar and boxing ----------------
+  // Explosive pull to the chest, the elbows turn over the bar and the body presses up to straight arms above it.
+  muscleup: T({
+    cam: { yaw: 26, pitch: 6, scale: 66, x: 108, ground: 206 },
+    focus: ['gripN', 'gripF', 'elbowN', 'elbowF', 'shoulderN', 'shoulderF', 'chest', 'pelvis', 'head'],
+    gear: ['pullbar'],
+    rig: { root: 'chest', legs: 'fk', arms: 'ik-fixed', hands: { x: 0, y: 2.15 }, grip: 0.33 },
+    a: { px: -0.045, py: 1.595, trunk: -3, head: 0, hipN: 8, kneeN: 10, hipF: 3, kneeF: 24, footN: 28, footF: 34 },
+    m: { px: -0.16, py: 2.1, trunk: -22, head: -6, hipN: 30, kneeN: 30, hipF: 24, kneeF: 40, footN: 24, footF: 30 },
+    b: { px: 0.04, py: 2.7, trunk: 6, head: 0, hipN: 6, kneeN: 8, hipF: 2, kneeF: 12, footN: 28, footF: 34 },
+    tempo: { con: 1.4, top: 0.8, ecc: 2.4, pause: 0.6 }, slow: { con: 2, top: 1, ecc: 3.5, pause: 0.8 },
+    grips: { handN: 'pbN', handF: 'pbF' },
+  }),
+  // Just the turnover: from the chest-high bar pull, the hands stay on the bar as the chest travels over it.
+  muscleup_transition: T({
+    cam: { yaw: 26, pitch: 6, scale: 66, x: 108, ground: 206 },
+    focus: ['gripN', 'gripF', 'elbowN', 'elbowF', 'shoulderN', 'shoulderF', 'chest', 'pelvis', 'head'],
+    gear: ['pullbar'],
+    rig: { root: 'chest', legs: 'fk', arms: 'ik-fixed', hands: { x: 0, y: 2.15 }, grip: 0.33 },
+    a: { px: -0.16, py: 2.1, trunk: -22, head: -6, hipN: 30, kneeN: 30, hipF: 24, kneeF: 40, footN: 24, footF: 30 },
+    b: { px: 0.04, py: 2.7, trunk: 6, head: 0, hipN: 6, kneeN: 8, hipF: 2, kneeF: 12, footN: 28, footF: 34 },
+    tempo: { con: 1.2, top: 0.8, ecc: 2, pause: 0.6 }, slow: { con: 1.8, top: 1, ecc: 3, pause: 0.8 },
+    grips: { handN: 'pbN', handF: 'pbF' },
+  }),
+  // Guard up, a punch goes past: bend the knees, slip the head to one side, roll under and come up the other side.
+  slip_and_roll: T({
+    cam: { yaw: 74, pitch: 6 },
+    rig: STAND({ feet: { x: 0, z: 0.2, kneesOut: 0.3 } }),
+    a: { px: 0, py: 0.93, trunk: 4, head: 0, lean: 0, sh: 60, el: 120, abd: 14 },
+    m: { py: 0.78, lean: -26, trunk: 14 },
+    b: { px: 0, py: 0.93, trunk: 4, head: 0, lean: 26, sh: 60, el: 120, abd: 14 },
+    tempo: { con: 0.7, top: 0.1, ecc: 0.7, pause: 0.1 }, slow: { con: 1.1, top: 0.2, ecc: 1.1, pause: 0.2 },
   }),
 
   // ---------------- prone ----------------

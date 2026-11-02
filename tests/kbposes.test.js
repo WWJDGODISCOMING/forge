@@ -13,8 +13,7 @@ const BRIEF = [
   'kb_halo', 'kb_clean', 'kb_snatch', 'kb_russian_twist', 'kb_high_pull',
   'db_renegade_row', 'db_z_press', 'db_side_bend', 'band_shoulder_dislocate',
 ];
-// Left without a figure: the Turkish get-up (too many phases), the windmill (the rig can't hinge sideways) and the
-// fire hydrant and slider fly (read wrong after three tries). A wrong demo is worse than the muscle map.
+// Drawn later, in v0.16.93 (js/ui/poses-fill.js, tests/fillposes.test.js): the Turkish get-up, windmill, fire hydrant and slider fly.
 const SKIPPED = ['kb_turkish_getup', 'kb_windmill', 'bw_fire_hydrant', 'towel_slider_fly'];
 const KETTLEBELL = BRIEF.filter((id) => id.startsWith('kb_'));
 
@@ -48,7 +47,7 @@ test('kb figures: every id in the brief has a template, or is listed as skipped'
     assert(KB[EXERCISE_TEMPLATES[id]], `${id} is drawn from poses-kb.js`);
   }
   eq(Object.keys(KB_MAP).sort().join(), [...BRIEF].sort().join(), 'the map holds exactly the brief');
-  for (const id of SKIPPED) assert(!EXERCISE_TEMPLATES[id], `${id} stays unmapped`);
+  for (const id of SKIPPED) assert(EXERCISE_TEMPLATES[id] && !KB_MAP[id], `${id} is drawn elsewhere (poses-fill.js)`);
 });
 
 test('kb figures: every a / m / b number is finite, every frame solves and frames', () => {
@@ -227,8 +226,8 @@ test('kb figures: band dislocate keeps a wide grip and straight arms from the th
   assert(b.gripN[0] < -0.1 && b.gripN[1] < 1.0, 'ends behind the hips');
 });
 
-test('kb figures: library coverage — the Turkish get-up, windmill, fire hydrant and slider fly stay without a figure', () => {
-  for (const id of SKIPPED) assert(EXERCISES.some((e) => e.id === id) && !EXERCISE_TEMPLATES[id], id);
+test('kb figures: library coverage — the four moves once skipped are drawn since v0.16.93', () => {
+  for (const id of SKIPPED) assert(EXERCISES.some((e) => e.id === id) && EXERCISE_TEMPLATES[id], id);
   for (const id of BRIEF) assert(EXERCISE_TEMPLATES[id], id);
 });
 
