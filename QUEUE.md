@@ -484,5 +484,12 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 - Acceptance:
   - See issue #253; button on History + Train, one sheet any type with date+time, validation, optional Health save, overlap merge with imports; shots 390x844, 4 Duo sizes, 320 text 1.6; tests.
 
+## 49. #258 Demo videos for every exercise missing one
+- Issue: #258
+- Version: 0.16.93
+- Status: todo
+- Acceptance:
+  - See issue #258; a demo in the existing rig/template style for all 31 listed exercises, knee-friendly correct form; CI test fails if any exercise lacks a demo; 390x844, 4 Duo sizes, 320 at text 1.6, light+dark; small assets; tests.
+
 ## After the queue: rest of the CLAUDE.md roadmap
 Not an item (no `Status` line, so the workflow ignores it). When everything above is `done`, the review bot opens issues for the remaining roadmap work in `CLAUDE.md` (e.g. home-screen widgets from #58 item 10, Withings steps sync in Functions from #146's out-of-scope note) and adds them here with the next free versions.
