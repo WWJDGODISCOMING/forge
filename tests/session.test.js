@@ -148,10 +148,12 @@ test('figure: muscles light the right segments (primary strong, secondary faint)
   eq(Object.keys(pull).sort().join(), 'biceps,lats');
 });
 
+const c0 = () => EXERCISES.filter((e) => !hasFigure(e.id)).length;
 test('figure: the library maps most exercises; every mapping points at a real template', () => {
   for (const id of ['bb_back_squat', 'pullup', 'db_curl', 'bb_bench_press', 'bb_deadlift', 'pushup', 'db_reverse_lunge']) assert(hasFigure(id), id);
   assert(hasFigure('bike_steady'), 'cardio machines have a figure since v0.14.4');
-  assert(!hasFigure('muscleup'), 'moves without a clear figure fall back to photos or the muscle list');
+  assert(hasFigure('muscleup'), 'every exercise has a figure since v0.16.93');
+  eq(c0(), 0, 'nothing falls back to the muscle list');
   const c = coverage(EXERCISES);
   assert(c.mapped.length >= 200, `coverage ${c.mapped.length}`);
   eq(c.total, EXERCISES.length);

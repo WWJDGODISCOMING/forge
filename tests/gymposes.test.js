@@ -6,12 +6,12 @@ import { TEMPLATES, EXERCISE_TEMPLATES } from '../js/ui/poses.js';
 import { GYM, GYM_MAP } from '../js/ui/poses-gym.js';
 import { EXERCISES } from '../js/workouts/exercises.js';
 
-// Every move the v0.14.2 brief lists (issue #48). The hip abductor machine is skipped: its far leg drew wrong on screen, so it has no figure for now.
+// Every move the v0.14.2 brief lists (issue #48). The hip abductor machine was skipped until v0.16.93 (its far leg drew wrong); it is drawn now.
 const BRIEF = [
   'machine_leg_press', 'machine_single_leg_press', 'machine_leg_press_calf', 'machine_hip_abductor', 'machine_hip_adductor',
   'cable_hip_abduction', 'cable_hip_adduction',
 ];
-const SKIPPED = ['machine_hip_abductor'];
+const SKIPPED = [];
 const PRESSES = ['machine_leg_press', 'machine_single_leg_press', 'machine_leg_press_calf'];
 const HIP_MACHINES = ['machine_hip_adductor'];
 const CABLES = ['cable_hip_abduction', 'cable_hip_adduction'];
@@ -209,12 +209,14 @@ test('hip machine: knees never pass through the pads, which are outside the knee
   }
 });
 
-test('hip machine: the adductor squeezes the knees together, and the abductor stays unmapped', () => {
+test('hip machine: the adductor squeezes the knees together, and the abductor presses them apart', () => {
   const gapOf = (tpl, k) => { const j = solve(tpl, tpl[k]); return Math.abs(j.kneeN[2] - j.kneeF[2]); };
   const ad = tplOf('machine_hip_adductor');
   assert(gapOf(ad, 'a') - gapOf(ad, 'b') > 0.2, 'adductor: knees close');
   assert(gapOf(ad, 'b') > 0.28, 'adductor: the knees do not cross or touch the other pad');
-  assert(!EXERCISE_TEMPLATES.machine_hip_abductor && !GYM.hip_abductor_machine, 'abductor has no figure for now');
+  const ab = tplOf('machine_hip_abductor');
+  assert(gapOf(ab, 'b') - gapOf(ab, 'a') > 0.2, 'abductor: knees open');
+  assert(ab.pads.out === true && gapOf(ab, 'a') > 0.1, 'abductor: pads outside the knees, knees start apart from each other');
 });
 
 test('hip machine: sits on the seat, spine on the back pad, thighs level over the seat, feet on the floor, hands clear of the pads', () => {
@@ -295,7 +297,7 @@ test('gym figures: no body point passes through the seat, back pad, rails or tow
   }
 });
 
-test('gym figures: library coverage — the six machine and cable moves are mapped, the abductor is not', () => {
+test('gym figures: library coverage — all seven machine and cable moves are mapped', () => {
   for (const id of BRIEF.filter((x) => !SKIPPED.includes(x))) assert(EXERCISE_TEMPLATES[id], `${id} is mapped`);
   for (const id of SKIPPED) assert(!EXERCISE_TEMPLATES[id], `${id} is skipped`);
 });

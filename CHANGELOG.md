@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.16.93 — A demo for every exercise (2026-11-02)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Every exercise now plays a looping demo.
+- 31 moves that showed a plain picture got one.
+- Gentle knee moves look gentle and stay over the feet.
+- Turkish Get-Up, Windmill and Muscle-Up are drawn.
+- Doorframe curls and rows are drawn.
+- The Hip Abductor Machine demo is back.
+- A test now fails if any exercise has no demo.
+
 ## 0.16.92 — + Log a workout (2026-10-30)
 
 No Cloud Functions or `firestore.rules` changes.

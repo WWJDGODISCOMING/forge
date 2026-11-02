@@ -127,6 +127,14 @@ export const GYM = {
     b: { ...SEATED, ...knees(10) },
   }),
 
+  // Pads on the outside of the knees; press them apart.
+  hip_abductor_machine: T({
+    ...MACHINE_BASE,
+    pads: { out: true, off: 0.1, h: 0.18 },
+    a: { ...SEATED, ...knees(6) },
+    b: { ...SEATED, ...knees(34) },
+  }),
+
   // Cuff on the near ankle, cable to the low pulley on the far side; the near leg lifts out to the side.
   cable_hip_abduction: T({
     ...CABLE_BASE,
@@ -155,6 +163,7 @@ export const GYM_MAP = {
   machine_single_leg_press: 'leg_press_single',
   machine_leg_press_calf: 'leg_press_calf',
   machine_hip_adductor: 'hip_adductor_machine',
+  machine_hip_abductor: 'hip_abductor_machine',
   cable_hip_abduction: 'cable_hip_abduction',
   cable_hip_adduction: 'cable_hip_adduction',
 };

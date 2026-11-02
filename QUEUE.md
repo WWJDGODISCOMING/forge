@@ -487,7 +487,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 49. #258 Demo videos for every exercise missing one
 - Issue: #258
 - Version: 0.16.93
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #258; a demo in the existing rig/template style for all 31 listed exercises, knee-friendly correct form; CI test fails if any exercise lacks a demo; 390x844, 4 Duo sizes, 320 at text 1.6, light+dark; small assets; tests.
 

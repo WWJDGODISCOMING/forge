@@ -8,7 +8,7 @@ import { EXERCISES } from '../js/workouts/exercises.js';
 
 const { CARDIO, CARDIO_MAP } = C;
 
-// Every move the v0.14.4 brief lists (issue #52). The last four are the optional ones; they stay unmapped because they would not read clearly.
+// Every move the v0.14.4 brief lists (issue #52). The last four are the optional ones; they were drawn later, in v0.16.93 (poses-fill.js).
 const BRIEF = [
   'treadmill_incline_walk', 'bike_steady', 'bike_intervals', 'rower_intervals', 'stair_climber', 'elliptical',
   'jump_rope', 'jump_rope_double_under', 'shadowboxing', 'db_shadowboxing', 'boxing_footwork', 'heavy_bag_rounds',
@@ -51,7 +51,7 @@ test('cardio figures: every id in the brief has a template, or is listed as skip
   eq(Object.keys(CARDIO_MAP).sort().join(), MAPPED.slice().sort().join(), 'the map holds exactly the brief, minus the skipped');
   for (const id of SKIPPED) {
     assert(EXERCISES.some((e) => e.id === id), `${id} is a real exercise`);
-    assert(!EXERCISE_TEMPLATES[id], `${id} stays unmapped`);
+    assert(EXERCISE_TEMPLATES[id] && !CARDIO_MAP[id], `${id} is drawn elsewhere (poses-fill.js, v0.16.93)`);
   }
   eq(new Set(Object.values(CARDIO_MAP)).size, Object.keys(CARDIO_MAP).length - 0, 'one template per id');
 });
@@ -584,9 +584,9 @@ test('cardio figures: no body point passes through a machine bar, rail, plate or
   }
 });
 
-test('cardio figures: library coverage — twelve ids mapped, the optional four are not', () => {
+test('cardio figures: library coverage — twelve ids mapped here, the optional four drawn in poses-fill.js', () => {
   for (const id of MAPPED) assert(EXERCISE_TEMPLATES[id], `${id} is mapped`);
-  for (const id of SKIPPED) assert(!EXERCISE_TEMPLATES[id], `${id} is skipped`);
+  for (const id of SKIPPED) assert(EXERCISE_TEMPLATES[id], `${id} is drawn`);
   eq(MAPPED.length, 12, 'twelve figures');
 });
 
