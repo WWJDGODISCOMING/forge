@@ -55,7 +55,8 @@ body.playing .navbar { display: none; }
 .pl-hero { position: relative; display: flex; align-items: baseline; justify-content: center; gap: 16px; padding: 6px 0; isolation: isolate; }
 .pl-hero-n, .pl-hero-w { display: flex; align-items: baseline; gap: 6px; }
 .pl-hero-n b { font: 900 clamp(72px, 11vh, 96px)/0.95 var(--num); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
-.pl-hero .pl-wtype { font-size: calc(13px * var(--ts)); line-height: 1; font-weight: 700; color: var(--muted); } /* "each hand" sits on the number's line so the player does not grow taller */
+.pl-hero .pl-wtype { font-size: calc(13px * var(--ts)); line-height: 1; font-weight: 700; color: var(--muted); white-space: nowrap; } /* "each hand" sits on the number's line so the player does not grow taller */
+.stepper small { white-space: nowrap; }
 .pl-hero-w b { font: 800 44px/1 var(--num); color: var(--accent-text); font-variant-numeric: tabular-nums; }
 .pl-hero span { font-weight: 800; color: var(--muted); font-size: calc(18px * var(--ts)); }
 .pl-ring { position: absolute; inset: -10px 0; display: grid; place-items: center; pointer-events: none; z-index: -1; }
@@ -78,6 +79,9 @@ body.playing .navbar { display: none; }
 .pl-rir button.on { background: var(--text-1); color: var(--bg); }
 
 @media (max-width: 340px) { .pl-rir { gap: 2px; } }
+/* 320 wide with big text: reps and weight share one row, so tighten the gap and the weight number to keep "each hand" on screen */
+@media (max-width: 340px) { .pl-hero { gap: 6px; } .pl-hero-w { gap: 4px; } .pl-hero-w b { font-size: 34px; } .pl-hero .pl-wtype { font-size: calc(11px * var(--ts)); } }
+@media (max-width: 340px) and (max-height: 700px) { .pl-hero-n b { font-size: 44px; } .pl-hero span:not(.pl-wtype) { font-size: calc(14px * var(--ts)); } }
 /* Short phones (SE, Duo outer screen): shrink the picture and hero so the RIR row clears the dock without scrolling. */
 @media (max-height: 700px) {
   .pl-demo.has-fig { height: 72px; }
@@ -98,6 +102,7 @@ body.playing .navbar { display: none; }
   .stepper { grid-template-columns: 44px minmax(0, 1fr) 44px; padding: 4px; }
   .stepper button { height: 44px; font-size: calc(22px * var(--ts)); }
   .stepper b { font-size: calc(22px * var(--ts)); }
+  .stepper small[data-wcap] { display: none; } /* side by side the centre column is ~40px: the hero already says "each hand" */
 }
 
 /* The big Done button is a <label> with an invisible native switch over it (haptic tick on iOS 18+). */

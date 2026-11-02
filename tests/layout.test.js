@@ -2182,6 +2182,28 @@ if (standalone) {
   });
 }
 
+// v0.16.94: the weight caption ("each hand") under the hero and the stepper stays on one line and is not clipped.
+if (standalone) {
+  test('layout: player weight caption never wraps or clips at 320 with large text and on the Duo sizes, light and dark', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    for (const dark of [false, true]) for (const [w, h, ts] of [[320, 568, 1.6], [390, 844], [466, 678], [678, 466], [626, 890], [890, 626]]) {
+      await browser.viewport(w, h, dark);
+      await browser.open('play', seed({ active: true }));
+      const r = await browser.eval(`(() => {
+        ${ts ? `document.documentElement.style.setProperty('--ts', '${ts}');` : ''}
+        const els = [...document.querySelectorAll('.pl-wtype, [data-wcap]')].filter((e) => e.getClientRects().length);
+        return els.map((el) => { const cs = getComputedStyle(el), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3;
+          const rc = el.getBoundingClientRect();
+          return rc.height > lh * 1.5 || el.scrollWidth > el.clientWidth + 1 || rc.right > innerWidth + 1 || rc.left < -1 ? (el.className || "wcap") + " sw=" + el.scrollWidth + " cw=" + el.clientWidth + " r=" + Math.round(rc.right) + " l=" + Math.round(rc.left) + ' h=' + rc.height : null; }).filter(Boolean).join(', ');
+      })()`);
+      if (r) bad.push(`${dark ? 'dark' : 'light'} ${w}x${h} ts=${ts || 1}: ${r}`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 // Folding or unfolding the Duo mid-session (item 31): the same route, the same card at the top, sheets and timers carry on.
 if (standalone) {
   test('layout: resizing 466x678 → 626x890 → 890x626 → 466x678 keeps the route, scroll spot, sheet, focus and rest timer', async () => {
