@@ -58,7 +58,7 @@ export const FILL = {
     cam: { yaw: 24, pitch: 12 },
     rig: SUPINE,
     a: { ...LYING, hipN: 90, kneeN: 0, footN: -10, hipF: 135, kneeF: 90, footF: 0, ...FLOOR_ARMS },
-    b: { ...LYING, hipN: 135, kneeN: 0, footN: -10, hipF: 135, kneeF: 90, footF: 0, ...FLOOR_ARMS },
+    b: { ...LYING, hipN: 112, kneeN: 0, footN: -10, hipF: 135, kneeF: 90, footF: 0, ...FLOOR_ARMS },
     tempo: { ecc: 2.4, pause: 0.4, con: 1.4, top: 0.8 },
   }),
   // A wall sit that stays high: the knees open to about 135°, well above a right angle, the shins upright.
@@ -70,9 +70,9 @@ export const FILL = {
   // Sit back onto a firm, high seat, lean forward a little, stand by pushing through the whole foot. Hands out for balance.
   bw_high_box_sit_to_stand: T({
     cam: { yaw: 22 },
-    env: [{ type: 'box', x0: -0.62, x1: -0.2, h: 0.62, w: 0.45 }],
-    rig: STAND({ feet: { x: 0.04, z: 0.15, kneesOut: 0.3 } }),
-    a: { px: 0.03, py: 0.93, trunk: 3, head: 0, sh: 60, el: 20, abd: 10 },
+    env: [{ type: 'box', x0: -0.5, x1: -0.02, h: 0.62, w: 0.45 }],
+    rig: STAND({ feet: { x: 0.3, z: 0.15, kneesOut: 0.3 } }),
+    a: { px: 0.31, py: 0.93, trunk: 3, head: 0, sh: 60, el: 20, abd: 10 },
     b: { px: -0.1, py: 0.73, trunk: 24, head: -12, sh: 70, el: 10, abd: 10 },
     lag: { trunk: -0.1, head: 0.2 },
     first: 'down',
@@ -177,12 +177,14 @@ export const FILL = {
   // Lying with the bell pressed up: roll to the elbow, then the hand, lift the hips, and stand up with the bell overhead.
   kb_turkish_getup: T({
     cam: { yaw: 24, pitch: 10 },
-    rig: { root: 'pelvis', legs: 'fk', arms: 'fk' },
-    a: { px: 0, py: 0.15, trunk: -90, head: 8, hipN: 130, kneeN: 95, footN: 0, hipF: 90, kneeF: 0, footF: -10, shN: 180, elN: 0, shF: 92, elF: 0, abd: 20, abdF: 30, kb: 275 },
-    m: { px: -0.1, py: 0.14, trunk: -28, head: 0, hipN: 100, kneeN: 90, footN: 0, hipF: 92, kneeF: 0, footF: -10, shN: 180, elN: 0, shF: 20, elF: 0, abd: 10, abdF: 14, kb: 275 },
-    b: { px: 0.02, py: 0.93, trunk: 0, head: 0, hipN: 0, kneeN: 0, footN: 0, hipF: 0, kneeF: 0, footF: 0, shN: 180, elN: 0, shF: 0, elF: 0, abd: 10, abdF: 20, kb: 275 },
+    // Feet stay put (near foot flat with the knee up, far leg out long); the hips come up and over them as the body rises.
+    rig: { root: 'pelvis', legs: 'ik', feetN: { x: 0.45, z: 0.12, kneesOut: 0.1 }, feetF: { x: 0.85, z: 0.12, kneesOut: 0.05, poleY: 0.8 }, arms: 'fk' },
+    a: { px: 0, py: 0.15, trunk: -90, head: 8, fxF: 0, shN: 180, elN: 0, shF: 92, elF: 0, abd: 20, abdF: 30, kb: 275 },
+    m: { px: 0.1, py: 0.13, trunk: -30, head: 0, fxF: 0, shN: 180, elN: 0, shF: 20, elF: 0, abd: 10, abdF: 14, kb: 275 },
+    b: { px: 0.65, py: 0.93, trunk: 0, head: 0, fxF: 0, shN: 180, elN: 0, shF: 0, elF: 0, abd: 10, abdF: 20, kb: 275 },
     tempo: { con: 3.2, top: 0.8, ecc: 3.2, pause: 0.8 }, slow: { con: 4.5, top: 1, ecc: 4.5, pause: 1 },
   }),
+
   // Feet set wide, the ball swung from the back hip across the body and thrown at the wall.
   mb_rotational_throw: T({
     cam: { yaw: 50, pitch: 8 },

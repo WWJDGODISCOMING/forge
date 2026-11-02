@@ -36,9 +36,9 @@ test('home figures: every move in the brief exists in the library and has a temp
   for (const id of Object.keys(HOME_MAP)) assert(BRIEF.includes(id), `${id} is in the brief`);
 });
 
-test('home figures: what we leave out stays out (kettlebell ballistics, muscle-up; the cardio kit and boxing got figures in v0.14.4)', () => {
+test('home figures: the moves once left out are drawn since v0.16.93 (poses-fill.js)', () => {
   for (const id of ['kb_turkish_getup', 'muscleup', 'slip_and_roll']) {
-    assert(!EXERCISE_TEMPLATES[id], `${id} has no template yet`);
+    assert(EXERCISE_TEMPLATES[id], `${id} has a template`);
   }
 });
 
