@@ -55,7 +55,7 @@ body.playing .navbar { display: none; }
 .pl-hero { position: relative; display: flex; align-items: baseline; justify-content: center; gap: 16px; padding: 6px 0; isolation: isolate; }
 .pl-hero-n, .pl-hero-w { display: flex; align-items: baseline; gap: 6px; }
 .pl-hero-n b { font: 900 clamp(72px, 11vh, 96px)/0.95 var(--num); letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
-.pl-hero .pl-wtype { font-size: calc(13px * var(--ts)); font-weight: 700; color: var(--muted); } /* "each hand" sits on the number's line so the player does not grow taller */
+.pl-hero .pl-wtype { font-size: calc(13px * var(--ts)); line-height: 1; font-weight: 700; color: var(--muted); } /* "each hand" sits on the number's line so the player does not grow taller */
 .pl-hero-w b { font: 800 44px/1 var(--num); color: var(--accent-text); font-variant-numeric: tabular-nums; }
 .pl-hero span { font-weight: 800; color: var(--muted); font-size: calc(18px * var(--ts)); }
 .pl-ring { position: absolute; inset: -10px 0; display: grid; place-items: center; pointer-events: none; z-index: -1; }
