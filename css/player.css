@@ -86,7 +86,7 @@ body.playing .navbar { display: none; }
   .pl-muscles { padding: 8px; }
   .player { gap: 6px; }
   .pl-hero { padding: 0; }
-  .pl-hero-n b { font-size: 56px; }
+  .pl-hero-n b { font-size: 54px; } /* two px less than before: the "each hand" label on the weight needed a pixel of room */
 }
 /* Very short (320x568): drop the picture (How-To chip stays) and put the steppers side by side, so no row sits in the dock's fade. */
 @media (max-height: 600px) {
