@@ -6,6 +6,7 @@ import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/g
 import { esc, $, $$, sheet, toast, confirmSheet } from '../ui.js';
 import { historyIndex, unit, activeLocation } from '../workouts/plan.js';
 import { exerciseById } from '../workouts/library.js';
+import { loadFieldAria } from '../workouts/loadtype.js';
 import { toUnit, fromUnit, nextTarget, warmups } from '../workouts/progression.js';
 import { expandEquipment, canDo } from '../workouts/equipment.js';
 import { stopRest, unlockAudio, beep, buzz, fmtClock, setWantAwake } from '../timer.js';
@@ -158,9 +159,9 @@ function exerciseCard(it, i, u) {
         <span class="setno">${label}</span>
         <span class="prev">${esc(prevText)}</span>
         ${bw || timed ? (timed && ex.load !== 'bodyweight' && !bw
-          ? `<input data-w="${i}:${j}" type="number" inputmode="decimal" step="0.5" placeholder="${disp(s.plan_weight_kg)}" value="${disp(s.weight_kg)}" aria-label="Weight ${u}">`
+          ? `<input data-w="${i}:${j}" type="number" inputmode="decimal" step="0.5" placeholder="${disp(s.plan_weight_kg)}" value="${disp(s.weight_kg)}" aria-label="${esc(loadFieldAria(ex, u))}">`
           : '<span class="bwtag">BW</span>')
-          : `<input data-w="${i}:${j}" type="number" inputmode="decimal" step="0.5" placeholder="${disp(s.plan_weight_kg) || u}" value="${disp(s.weight_kg)}" aria-label="Weight ${u}">`}
+          : `<input data-w="${i}:${j}" type="number" inputmode="decimal" step="0.5" placeholder="${disp(s.plan_weight_kg) || u}" value="${disp(s.weight_kg)}" aria-label="${esc(loadFieldAria(ex, u))}">`}
         <input data-r="${i}:${j}" type="number" inputmode="numeric" placeholder="${s.plan_reps ?? (timed ? 's' : 'reps')}" value="${s.reps ?? ''}" aria-label="${timed ? 'Seconds' : 'Reps'}">
         ${timed ? `<button class="mini" data-hold="${i}:${j}" aria-label="Start timer">${icon('play', { size: 16 })}</button>` : `<button class="mini rir ${s.rir != null ? 'set' : ''}" data-rir="${i}:${j}" aria-label="Reps in reserve">${rirLabel(s.rir)}</button>`}
         <button class="setcheck" data-done="${i}:${j}" aria-label="${s.done ? 'Undo set' : 'Complete set'}">${s.done ? icon('check') : ''}</button>

@@ -24,6 +24,7 @@ import { openExerciseHistory, openReplace } from './player-extras.js';
 import { restPref, restChipText } from '../workouts/restprefs.js';
 import { COMBOS } from './timer.js';
 import { icon } from '../ui/icons.js';
+import { loadLabel, loadPhrase, loadCaption } from '../workouts/loadtype.js';
 import { checkSvg } from '../ui/checkdraw.js';
 import { setRows, setValues, addSet, editSet } from '../workouts/setlist.js';
 import { shouldAskEffort, setEffort, EFFORT_CHOICES, effortLabel } from '../workouts/effort.js';
@@ -305,19 +306,19 @@ function drawSet(el) {
 
       <div class="pl-hero" data-hero style="view-transition-name: pl-hero">
         <div class="pl-hero-n">${heroAmount}</div>
-        ${showWeight ? `<div class="pl-hero-w ${draft.weight == null ? 'unset' : ''} ${draft.suggested != null && draft.weight === draft.suggested ? 'suggested' : ''}"><b data-hero-w role="${draft.weight == null ? 'button' : 'text'}">${draft.weight ?? 'Set weight'}</b><span>${u}</span><small class="pl-sugg">suggested</small></div>` : ''}
+        ${showWeight ? `<div class="pl-hero-w ${draft.weight == null ? 'unset' : ''} ${draft.suggested != null && draft.weight === draft.suggested ? 'suggested' : ''}"><b data-hero-w role="${draft.weight == null ? 'button' : 'text'}" aria-label="${draft.weight == null ? 'Set weight' : esc(loadPhrase(draft.weight, ex, u))}">${draft.weight ?? 'Set weight'}</b><span>${u}</span><small class="pl-sugg">suggested</small><span class="pl-wtype" data-wtype>${esc(loadCaption(ex))}</span></div>` : ''}
         <div class="pl-ring" data-ring hidden><svg viewBox="0 0 100 100"><circle cx="50" cy="50" r="45" class="ring-bg"/><circle cx="50" cy="50" r="45" class="ring-fg" data-ringfg/></svg></div>
       </div>
 
       </div>
       <div class="pl-col pl-col-b">
       <div class="pl-steppers">
-        ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv>${draft.weight ?? '—'}</b><small>${u}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
+        ${showWeight ? `<div class="stepper"><button data-w="-1" aria-label="Less weight">−</button><div><b data-wv role="text" aria-label="${draft.weight == null ? 'No weight set' : esc(loadPhrase(draft.weight, ex, u))}">${draft.weight ?? '—'}</b><small>${u}</small><small class="wt-cap" data-wcap>${esc(loadCaption(ex))}</small></div><button data-w="1" aria-label="More weight">+</button></div>` : ''}
         <div class="stepper"><button data-r="-1" aria-label="${isTimed ? 'Fewer seconds' : 'Fewer reps'}">−</button><div><b data-rv>${draft.reps}</b><small>${isTimed ? 'sec' : 'reps'}</small></div><button data-r="1" aria-label="${isTimed ? 'More seconds' : 'More reps'}">+</button></div>
       </div>
       <div class="pl-setbox" data-setlist>${setListHtml(it, j, ex, u, showWeight, isTimed)}</div>
       ${it.note && REASON_RE.test(it.note) && lbl.n === 1 && !s.warmup ? `<p class="pl-reason">${esc(it.note)}</p>` : ''}
-      <p class="pl-last">${prevSet ? `Last time: ${prevSet.weight ? `${prevSet.weight} ${u} × ` : ''}${prevSet.reps}${isTimed ? 's' : ''}` : it.note ? esc(it.note) : '&nbsp;'}</p>
+      <p class="pl-last">${prevSet ? `Last time: ${prevSet.weight ? `${esc(loadLabel(prevSet.weight, ex, u))} × ` : ''}${prevSet.reps}${isTimed ? 's' : ''}` : it.note ? esc(it.note) : '&nbsp;'}</p>
 
       <div class="pl-dock">
       ${!isTimed && !s.warmup && rateSetsOn() ? `<div class="pl-rir" role="radiogroup" aria-label="Reps left in the tank">
@@ -327,7 +328,7 @@ function drawSet(el) {
         ${hapticInput('data-done aria-label="Done set"')}
         <span data-done-text>${s.done ? `${icon('check')} Done` : isTimed ? `Start ${draft.reps} s` : 'Done set'}</span>
       </label>
-      <p class="pl-next">${nextUp ? `<span class="pl-next-name">Next: <b>${esc(nextUp.name)}</b></span><span class="pl-next-meta">${esc(nextUp.detail)}</span>` : 'Last one. Finish strong!'}</p>
+      <p class="pl-next">${nextUp ? `<span class="pl-next-name">Next: <b>${esc(nextUp.name)}</b></span><span class="pl-next-meta" role="text" aria-label="${esc(nextUp.detailAria || nextUp.detail)}">${esc(nextUp.detail)}</span>` : 'Last one. Finish strong!'}</p>
       </div>
       <nav class="pl-nav" aria-label="Sets">
         <button data-prev ${k === 0 ? 'disabled' : ''}>${icon('back', { size: 16 })} Back</button>
@@ -411,11 +412,15 @@ function drawSet(el) {
       if (draft.suggested != null && draft.weight !== draft.suggested) draft.suggested = null; // touched: it's yours now
       hw.parentElement.classList.toggle('suggested', draft.suggested != null);
       hw.setAttribute('role', draft.weight == null ? 'button' : 'text');
+      hw.setAttribute('aria-label', draft.weight == null ? 'Set weight' : loadPhrase(draft.weight, ex, u));
     }
     const rv = $('[data-rv]', el);
     if (rv) rv.textContent = draft.reps;
     const wv = $('[data-wv]', el);
-    if (wv) wv.textContent = draft.weight ?? '—';
+    if (wv) {
+      wv.textContent = draft.weight ?? '—';
+      wv.setAttribute('aria-label', draft.weight == null ? 'No weight set' : loadPhrase(draft.weight, ex, u));
+    }
     const dt = $('[data-done-text]', el);
     if (dt && isTimed && !s.done) dt.textContent = `Start ${draft.reps} s`;
   };
@@ -485,10 +490,12 @@ function drawSet(el) {
 function setListHtml(it, j, ex, u, showWeight, isTimed) {
   const rows = setRows(it, j, ex.reps[1]).map((r) => {
     const amount = isTimed ? `${r.reps ?? '–'} s` : `${r.reps ?? '–'} reps`;
-    const load = showWeight ? `${r.kg != null ? `${round1(toUnit(r.kg, u))} ${u}` : `– ${u}`} × ` : '';
+    const kgN = r.kg != null ? round1(toUnit(r.kg, u)) : null;
+    const load = showWeight ? `${kgN != null ? loadLabel(kgN, ex, u) : `– ${u}`} × ` : '';
+    const loadSpeak = showWeight ? `${kgN != null ? loadPhrase(kgN, ex, u) : 'no weight'}, ` : '';
     const rir = r.state === 'done' && r.rir != null ? `<small class="pl-set-rir">${r.rir >= 4 ? '4+' : r.rir} left</small>` : '';
     const name = r.warmup ? `Warm-up ${r.label.slice(1)}` : `Set ${r.label}`;
-    return `<div role="listitem" class="pl-li"><button class="pl-set ${r.state}" data-setrow="${r.j}" ${r.state === 'current' ? 'aria-current="step"' : ''} aria-label="${name}, ${load}${amount}${r.state === 'done' ? ', done' : ''}">
+    return `<div role="listitem" class="pl-li"><button class="pl-set ${r.state}" data-setrow="${r.j}" ${r.state === 'current' ? 'aria-current="step"' : ''} aria-label="${name}, ${loadSpeak}${amount}${r.state === 'done' ? ', done' : ''}">
       <span class="pl-set-n">${r.state === 'done' ? icon('check', { size: 16 }) : r.label}</span><span class="pl-set-v">${load}<b>${amount}</b></span>${rir}</button></div>`;
   }).join('');
   // Add set sits outside the scrolling list, so it is always in view.
@@ -690,7 +697,7 @@ function drawRest(el) {
       ${nxt ? `
       <button class="next-card" data-nextcard>
         <div class="next-fig" data-nextfig>${nextEx && hasFigure(nextEx.id) ? '' : '<span>Up next</span>'}</div>
-        <div><p class="label">Up next</p><b>${esc(nxt.name)}</b><p class="muted small">${esc(nxt.detail)}</p></div>
+        <div><p class="label">Up next</p><b>${esc(nxt.name)}</b><p class="muted small" role="text" aria-label="${esc(nxt.detailAria || nxt.detail)}">${esc(nxt.detail)}</p></div>
       </button>` : ''}
     </section>`;
   const nf = $('[data-nextfig]', el);

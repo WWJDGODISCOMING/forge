@@ -5,6 +5,7 @@ import { esc, $, sheet, toast } from '../ui.js';
 import { historyIndex, unit } from '../workouts/plan.js';
 import { exerciseById } from '../workouts/library.js';
 import { canDo } from '../workouts/equipment.js';
+import { loadCaption } from '../workouts/loadtype.js';
 import { jointAvoidSet, jointFriendly, jointPickerPatterns } from '../workouts/generator.js';
 import { live, save } from '../workouts/live.js';
 import { haptics } from '../ui/haptic.js';
@@ -43,6 +44,7 @@ export function openExerciseHistory(ex) {
           <p class="hx-sum" data-hx-sum><b>${esc(summary)}</b></p>
           ${sparkSvg(vals, `Trend over your last ${vals.length} sessions. ${trendWords(vals)}`)}
           <p class="small muted">${esc(trendWords(vals))}</p>
+          ${weighted ? `<p class="small muted" data-hx-wtype>Weights shown: ${esc(loadCaption(ex))}</p>` : ''}
         </div>
         <ul class="list hx-list" role="list">
           ${rows.map((r) => `<li><div class="hx-top"><b>${fmtDate(r.date)}</b>${r.deload ? '<span class="muted small">deload</span>' : ''}<span class="grow"></span><span class="hx-best">Best ${esc(r.best)}</span></div><small class="muted">${r.sets.map(esc).join(' · ')}</small></li>`).join('')}

@@ -2,6 +2,8 @@
 // moves, and the change against the last comparable workout. Pure; a display only, never an input to progression.
 // Unilateral moves are logged per side, so their reps and volume count both sides (doubled).
 
+import { loadLabel } from './loadtype.js';
+
 const doneWorking = (w) => (w.exercises || []).flatMap((it) => (it.sets || []).filter((s) => s.done && !s.warmup).map((s) => ({ it, s })));
 
 /** { volume (display unit), reps, holdSec } for a finished workout. `lookup(id)` gives the library exercise (or null). */
@@ -18,7 +20,9 @@ export function workoutTotals(w, lookup, toDisplay = (kg) => kg) {
       continue;
     }
     reps += n * sides;
-    if (s.weight_kg > 0 && n) volume += toDisplay(s.weight_kg) * n * sides;
+    // Two-dumbbell moves store the weight of ONE dumbbell, so the real load is double (display only).
+    const implements_ = ex.loadType === 'per_hand' ? 2 : 1;
+    if (s.weight_kg > 0 && n) volume += toDisplay(s.weight_kg) * n * sides * implements_;
   }
   return { volume: Math.round(volume), reps, holdSec: Math.round(holdSec) };
 }
@@ -62,7 +66,7 @@ export function deltaText(now, prev, fmt = (v) => v.toLocaleString()) {
 
 /** One set as plain words: '10 reps x 30 lb', '12 reps', '45 s x 25 lb', '45 s'. */
 export function setLine(s, ex, u) {
-  const load = s.weight && s.weight > 0 ? ` x ${s.weight} ${u}` : '';
+  const load = s.weight && s.weight > 0 ? ` x ${ex && ex.id ? loadLabel(s.weight, ex, u) : `${s.weight} ${u}`}` : '';
   if (ex && ex.timed) return `${s.reps} s${load}`;
   return `${s.reps} ${s.reps === 1 ? 'rep' : 'reps'}${load}`;
 }

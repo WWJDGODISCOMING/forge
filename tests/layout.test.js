@@ -3333,8 +3333,8 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('summary'))
       assert(r.tiles.length === 4, `${kind}: ${r.tiles.length} totals tiles`);
       assert(/^Calories · est\.$/.test(r.tiles[0].label) && /kcal$/.test(r.tiles[0].value), `${kind}: calories tile reads ${JSON.stringify(r.tiles[0])}`);
       assert(r.kcalMentions === 1, `${kind}: calories appear ${r.kcalMentions} times`);
-      assert(/^1\d,\d{3} lb$/.test(by.Volume.value), `${kind}: volume reads ${by.Volume.value}`);
-      assert(r.sets[0][0] === '12 reps x 220.5 lb' && r.sets.some((l) => l[0] === '45 s') && r.sets.some((l) => l[0] === '15 reps'), `${kind}: set lines read ${JSON.stringify(r.sets)}`);
+      assert(/^[1-3]\d,\d{3} lb$/.test(by.Volume.value), `${kind}: volume reads ${by.Volume.value}`);
+      assert(/^12 reps x 220.5 lb( .+)?$/.test(r.sets[0][0]) && r.sets.some((l) => l[0] === '45 s') && r.sets.some((l) => l[0] === '15 reps'), `${kind}: set lines read ${JSON.stringify(r.sets)}`);
       if (kind === 'first') assert(r.tiles.every((t) => t.em === 'First time'), `${kind}: tiles read ${JSON.stringify(r.tiles)}`);
       if (kind === 'compare') assert(r.tiles.every((t) => /vs last$/.test(t.em)), `${kind}: tiles read ${JSON.stringify(r.tiles)}`);
       if (kind === 'mixed') assert(r.tiles[0].em === '' && r.tiles.slice(1).every((t) => /vs last$/.test(t.em)), `${kind}: calories must show no change against a Watch number, got ${JSON.stringify(r.tiles)}`);
