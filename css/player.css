@@ -68,8 +68,10 @@ body.playing .navbar { display: none; }
 .pl-steppers { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .stepper { display: grid; grid-template-columns: 44px minmax(0, 1fr) 44px; align-items: center; background: var(--surface); border: 0; border-radius: 18px; padding: 4px; }
 .stepper button { height: 52px; min-width: 0; border: 0; border-radius: 14px; background: var(--surface-2); color: var(--text); font: 800 calc(26px * var(--ts)) var(--num); cursor: pointer; }
-.stepper div { text-align: center; min-width: 0; display: flex; flex-direction: column; }
-.stepper b { font: 800 calc(22px * var(--ts)) var(--num); font-variant-numeric: tabular-nums; }
+.stepper div { text-align: center; min-width: 0; display: flex; flex-direction: column; container-type: inline-size; }
+/* the number shrinks to the room between the buttons, so it is never cut off; the buttons stay 44px */
+.stepper b { font: 800 min(calc(22px * var(--ts)), 34cqw) var(--num); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.stepper small[data-wcap].is-fit-hidden { display: none; } /* set by the player when the caption does not fit beside the buttons */
 .stepper small { color: var(--muted); font-size: calc(12px * var(--ts)); font-weight: 700; }
 .pl-last { text-align: center; color: var(--muted); font-size: calc(14px * var(--ts)); min-height: 20px; text-wrap: balance; }
 
@@ -101,7 +103,6 @@ body.playing .navbar { display: none; }
   .pl-steppers { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
   .stepper { grid-template-columns: 44px minmax(0, 1fr) 44px; padding: 4px; }
   .stepper button { height: 44px; font-size: calc(22px * var(--ts)); }
-  .stepper b { font-size: calc(22px * var(--ts)); }
   .stepper small[data-wcap] { display: none; } /* side by side the centre column is ~40px: the hero already says "each hand" */
 }
 
@@ -117,8 +118,9 @@ body.playing .navbar { display: none; }
 .pl-done.is-done { background: var(--accent-tint); color: var(--accent-text); box-shadow: none; }
 /* Done set stays pinned to the bottom of the screen (clear of the home indicator), however short the phone. */
 .pl-dock { position: sticky; bottom: 0; z-index: 3; display: flex; flex-direction: column; gap: 8px; margin: auto 0 0; margin-inline: calc((100% - 100vw) / 2); padding: 10px calc((100vw - 100%) / 2) calc(var(--safe-bottom) + 4px); background: var(--tabbar-bg); -webkit-backdrop-filter: blur(24px) saturate(180%); backdrop-filter: blur(24px) saturate(180%); } /* full-bleed (viewport-wide even past the 560px column) glass like the tab bar, so no box shows over the glow */
-.pl-next { display: flex; justify-content: center; gap: 4px; color: var(--muted); font-size: calc(15px * var(--ts)); white-space: nowrap; }
-.pl-next-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.pl-next.is-wrapped { flex-wrap: wrap; }
+.pl-next { display: flex; justify-content: center; column-gap: 4px; color: var(--muted); font-size: calc(15px * var(--ts)); white-space: nowrap; }
+.pl-next-name { min-width: 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; } /* the name keeps its room: the set part goes short, then to a second line, before the name is cut */
 .pl-next-meta { flex: none; }
 .pl-next-meta::before { content: "· "; }
 .pl-next.is-wrapped .pl-next-meta::before { visibility: hidden; } /* a dot must never start the second line; it keeps its width so the line does not flip between wrapped and not */

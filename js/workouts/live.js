@@ -178,6 +178,8 @@ export function describeStep(i, j) {
     speak: `${ex.name}, ${ex.timed ? `${reps} seconds` : `${reps} reps`}`,
     // VoiceOver reads the full phrase ("30 pounds in each hand"), not "30 lb".
     // The Next line is one line, so it drops "Set 2 of 3" and keeps the amount and the weight label.
+    // without the weight words, for when the Next line is too narrow
+    compact: (lbl.warmup ? 'Warm-up · ' : '') + (ex.timed ? `${reps || ''} s` : `${reps || '?'} reps${kg ? ` · ${round1(toUnit(kg, u))} ${u}` : ''}`),
     short: lbl.warmup ? `Warm-up · ${amount}` : amount,
     detailAria: `${lbl.warmup ? 'Warm-up' : `Set ${lbl.n} of ${lbl.of}`}, ${ex.timed ? `${reps || ''} seconds` : `${reps || '?'} reps`}${kg && !ex.timed ? `, ${loadPhrase(round1(toUnit(kg, u)), ex, u)}` : ''}`,
   };

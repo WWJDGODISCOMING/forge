@@ -2188,11 +2188,29 @@ if (standalone) {
     if (skipReason()) return;
     browser = browser || await launch();
     const bad = [];
-    for (const dark of [false, true]) for (const [w, h, ts] of [[320, 568, 1.6], [390, 844], [466, 678], [678, 466], [626, 890], [890, 626]]) {
+    for (const dark of [false, true]) for (const [w, h, ts] of [[320, 568, 1.6], [390, 844], [390, 844, 1.35], [466, 678], [678, 466], [626, 890], [890, 626]]) {
       await browser.viewport(w, h, dark);
       await browser.open('play', seed({ active: true }));
+      if (ts) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((res) => setTimeout(res, 350)); }
+      // the weight number between the stepper buttons is whole (not clipped, not under a button), and the Next line keeps its exercise name
+      const r2 = await browser.eval(`(() => {
+        const out = [];
+        const wv = document.querySelector('[data-wv]');
+        if (wv) {
+          const st = wv.closest('.stepper'), bs = st.querySelectorAll('button'), rc = wv.getBoundingClientRect();
+          const rg = document.createRange(); rg.selectNodeContents(wv); const tx = rg.getBoundingClientRect();
+          if (wv.scrollWidth > wv.clientWidth + 1) out.push('weight number clipped sw=' + wv.scrollWidth + ' cw=' + wv.clientWidth);
+          if (tx.left < bs[0].getBoundingClientRect().right - 0.5 || tx.right > bs[1].getBoundingClientRect().left + 0.5) out.push('weight number overlaps a button');
+        }
+        const nm = document.querySelector('.pl-next-name');
+        if (nm && nm.getClientRects().length) {
+          const label = nm.textContent.length, shown = nm.scrollWidth > nm.clientWidth + 1 ? Math.floor(label * nm.clientWidth / nm.scrollWidth) : label;
+          if (shown < Math.min(label, 14)) out.push('Next name shows only ~' + shown + ' of ' + label + ' characters');
+        }
+        return out.join(', ');
+      })()`);
+      if (r2) bad.push(`${dark ? 'dark' : 'light'} ${w}x${h} ts=${ts || 1}: ${r2}`);
       const r = await browser.eval(`(() => {
-        ${ts ? `document.documentElement.style.setProperty('--ts', '${ts}');` : ''}
         const els = [...document.querySelectorAll('.pl-wtype, [data-wcap]')].filter((e) => e.getClientRects().length);
         return els.map((el) => { const cs = getComputedStyle(el), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3;
           const rc = el.getBoundingClientRect();

@@ -328,7 +328,7 @@ function drawSet(el) {
         ${hapticInput('data-done aria-label="Done set"')}
         <span data-done-text>${s.done ? `${icon('check')} Done` : isTimed ? `Start ${draft.reps} s` : 'Done set'}</span>
       </label>
-      <p class="pl-next">${nextUp ? `<span class="pl-next-name">Next: <b>${esc(nextUp.name)}</b></span><span class="pl-next-meta" role="text" aria-label="${esc(nextUp.detailAria || nextUp.detail)}">${esc(nextUp.short || nextUp.detail)}</span>` : 'Last one. Finish strong!'}</p>
+      <p class="pl-next">${nextUp ? `<span class="pl-next-name">Next: <b>${esc(nextUp.name)}</b></span><span class="pl-next-meta" data-full="${esc(nextUp.short || nextUp.detail)}" data-compact="${esc(nextUp.compact || '')}" role="text" aria-label="${esc(nextUp.detailAria || nextUp.detail)}">${esc(nextUp.short || nextUp.detail)}</span>` : 'Last one. Finish strong!'}</p>
       </div>
       <nav class="pl-nav" aria-label="Sets">
         <button data-prev ${k === 0 ? 'disabled' : ''}>${icon('back', { size: 16 })} Back</button>
@@ -350,6 +350,7 @@ function drawSet(el) {
   $('[data-hist-chip]', el).onclick = () => { haptics.light(); openExerciseHistory(ex); };
   $('[data-replace-chip]', el).onclick = () => { haptics.light(); openReplace(i, { onDone: () => { draft = null; renderPlayer(el); } }); };
   markNextWrap($('.pl-next', el));
+  fitCaptions(el);
 
   // Clock (pause-aware)
   clearInterval(clockTimer);
@@ -749,12 +750,28 @@ function drawRest(el) {
   }
 }
 
+/** The weight caption under the stepper ("each hand") drops out when it will not fit between the buttons. */
+function fitCaptions(root) {
+  const caps = $$('small[data-wcap]', root);
+  if (!caps.length) return;
+  const check = () => caps.forEach((c) => { c.classList.remove('is-fit-hidden'); if (c.scrollWidth > c.clientWidth + 1) c.classList.add('is-fit-hidden'); });
+  if (typeof ResizeObserver === 'function') new ResizeObserver(check).observe(caps[0].parentElement);
+  check();
+}
+
 /** Where the "Next" line may wrap, the separator dot stays between the name and the set on one line, and goes away when the set drops to a second line (it would start that line). */
 function markNextWrap(line) {
   if (!line || typeof ResizeObserver !== 'function') return;
   const name = line.querySelector('.pl-next-name'), meta = line.querySelector('.pl-next-meta');
   if (!name || !meta) return;
-  const check = () => line.classList.toggle('is-wrapped', meta.offsetTop > name.offsetTop + 2);
+  const check = () => {
+    // the name is what matters: when it would be cut, drop "each hand" and friends, and only then put the set part on a second line
+    const cut = () => name.scrollWidth > name.clientWidth + 1;
+    line.classList.remove('is-wrapped');
+    if (meta.dataset.full) meta.textContent = meta.dataset.full;
+    if (cut() && meta.dataset.compact) meta.textContent = meta.dataset.compact;
+    if (cut()) line.classList.add('is-wrapped');
+  };
   new ResizeObserver(check).observe(line);
   check();
 }
