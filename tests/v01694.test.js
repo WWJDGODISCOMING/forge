@@ -79,6 +79,6 @@ test('screens use the label helper', () => {
 });
 
 test('version bumped', () => {
-  assert(read('js/version.js').includes("'0.16.94'"));
+  assert(/'0\.16\.(9[4-9])'/.test(read('js/version.js')));
   assert(read('CHANGELOG.md').includes('## 0.16.94'));
 });

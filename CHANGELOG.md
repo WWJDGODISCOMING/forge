@@ -4,13 +4,12 @@
 
 **Cloud Functions changed** (deploy `functions`). No `firestore.rules` changes.
 
-### What's fixed
+### What's new
 
-- Weigh-ins Withings showed late (like Nov 1–2) were skipped for good. Syncs now look back 48 hours, and Sync now and the daily check also re-read the last 7 days.
-- A one-time catch-up re-reads everything since Oct 25 and brings the missing weigh-ins in.
-- A rate limit from Withings no longer moves the sync position.
-- Sync now's wait message now says it's Forge's own 10-minute wait.
-- The Withings screen shows when the last notification arrived and when a sync found nothing new.
+- Weigh-ins that Withings showed late (like Nov 1–2) now come in. Syncs look back 48 hours, and Sync now re-reads the last 7 days.
+- A one-time catch-up brings in anything missed since Oct 25.
+- Sync now's wait message says it's Forge's own 10-minute wait.
+- The Withings screen shows when the last notification arrived.
 
 ## 0.16.94 — What does that weight mean? (2026-11-02)
 
