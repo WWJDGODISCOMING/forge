@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { fakeDb, fakeApi, fakeQueue } from './fake-db.js';
 import { decodeValue, METRIC_OF_TYPE } from '../src/meastypes.js';
 import { decodeGroup, weightMirror, dayIn, rawHash } from '../src/decode.js';
-import { applyGroups, incrementalSync, reconcile90, getmeasSafe } from '../src/sync.js';
+import { applyGroups, incrementalSync, reconcile90, getmeasSafe, cooldownMessage } from '../src/sync.js';
 import { handleWebhook, notifyTaskId } from '../src/webhook.js';
 import { runTask, requestBackfill, backfillTaskId, MAX_PAGES, reimport } from '../src/tasks.js';
 import { getAccessToken, NotConnected, withToken, NeedsReconnect } from '../src/tokens.js';
@@ -39,8 +39,8 @@ function group(grpid, atMs, kg = 82.3, extra = {}) {
   };
 }
 
-function connected(db, { expiresIn = 3 * 3600 * 1000, now = T0 } = {}) {
-  db.put(P.priv(UID), { access_token: 'AT0', refresh_token: 'RT0', expires_at: now + expiresIn, lease_until: 0, withings_userid: WUSER, cursor: sec(now) - 3600 });
+function connected(db, { expiresIn = 3 * 3600 * 1000, now = T0, catchup = true } = {}) {
+  db.put(P.priv(UID), { access_token: 'AT0', refresh_token: 'RT0', expires_at: now + expiresIn, lease_until: 0, withings_userid: WUSER, cursor: sec(now) - 3600, ...(catchup ? { catchup_0_16_95: true } : {}) });
   db.put(P.wuser(WUSER), { uid: UID });
   db.put(P.status(UID), { connected: true, model: 'Body Comp' });
 }
@@ -137,7 +137,7 @@ test('incremental sync: pages with lastupdate (cursor − 5 s), saves the cursor
   const api = fakeApi({ getmeas: () => pages.shift() });
   const r = await incrementalSync({ db, api, uid: UID, token: 'AT', now: () => T0, reason: 'notify' });
   assert.equal(r.created, 2);
-  assert.equal(api.calls[0][2].lastupdate, sec(T0) - 3600 - 5);
+  assert.equal(api.calls[0][2].lastupdate, sec(T0) - 3600 - 48 * 3600);
   assert.equal(api.calls[1][2].offset, 1);
   assert.equal(db.dump(P.priv(UID)).cursor, sec(T0));
   const st = db.dump(P.status(UID));
@@ -850,4 +850,108 @@ test('yearWindow: a reading at exactly 00:00:00 on Jan 1 belongs to the new year
   const inWin = (w, t) => t >= w.start && t <= w.end;
   assert.equal([y24, y25].filter((w) => inWin(w, newYear)).length, 1);
   assert.equal(yw(2026, Date.UTC(2026, 5, 1) / 1000).end, Date.UTC(2026, 5, 1) / 1000, 'a pinned end inside the year still wins');
+});
+
+// ---------- 0.16.95: late-visible groups, rate limits, DST, catch-up ----------
+const DAY = 86400_000;
+// An api whose getmeas honours lastupdate/startdate/enddate against a store of {group, visibleFrom}.
+function storeApi(store, nowMs) {
+  const calls = [];
+  const getmeas = (_t, o) => {
+    calls.push(o);
+    const grps = store.filter((s) => nowMs() >= s.visibleFrom).map((s) => s.group).filter((g) => (o.lastupdate != null ? g.modified >= o.lastupdate : g.date >= o.startdate && g.date <= o.enddate));
+    return { updatetime: sec(nowMs()), more: 0, timezone: 'America/New_York', measuregrps: grps };
+  };
+  return { api: fakeApi({ getmeas }), calls };
+}
+
+test('late-visible group behind the cursor: found by the 48 h overlap, and by the 7-day window', async () => {
+  const clock = T0;
+  const late = group(70, T0 - 3600_000, 80, { modified: sec(T0) - 3600 * 24 }); // modified a day ago, first visible now
+  const a = fakeDb(); connected(a);
+  const sa = storeApi([{ group: late, visibleFrom: T0 }], () => clock);
+  assert.equal((await incrementalSync({ db: a, api: sa.api, uid: UID, token: 'AT', now: () => clock, reason: 'notify' })).created, 1, '48 h overlap');
+  // Older than 48 h behind the cursor: only the window pass sees it.
+  const old = group(71, T0 - 4 * DAY, 80, { modified: sec(T0) - 4 * 86400 });
+  const b = fakeDb(); connected(b);
+  const sb = storeApi([{ group: old, visibleFrom: T0 }], () => clock);
+  assert.equal((await incrementalSync({ db: b, api: sb.api, uid: UID, token: 'AT', now: () => clock, reason: 'notify' })).created, 0, 'notify has no window');
+  const r = await incrementalSync({ db: b, api: sb.api, uid: UID, token: 'AT', now: () => clock + 1000, reason: 'manual' });
+  assert.equal(r.created, 1, 'manual window pass');
+  const w = sb.calls.find((c) => c.startdate != null);
+  assert.equal(w.startdate, sec(clock + 1000) - 7 * 86400);
+  assert.equal(w.enddate, sec(clock + 1000) + 3600);
+});
+
+test('cursor never passes our own clock', async () => {
+  const db = fakeDb(); connected(db);
+  const api = fakeApi({ getmeas: { updatetime: sec(T0) + 99999, more: 0, measuregrps: [] } });
+  await incrementalSync({ db, api, uid: UID, token: 'AT', now: () => T0 });
+  assert.equal(db.dump(P.priv(UID)).cursor, sec(T0));
+});
+
+test('rate limit (601) on page 1 or 2 leaves the cursor and last_sync_ok_at alone and is transient', async () => {
+  for (const failAt of [0, 1]) {
+    const db = fakeDb(); connected(db);
+    db.put(P.status(UID), { connected: true, last_sync_ok_at: 'before' });
+    const before = db.dump(P.priv(UID)).cursor;
+    let n = 0;
+    const api = fakeApi({ getmeas: () => { if (n++ === failAt) throw new WithingsError(601, 'getmeas'); return { updatetime: sec(T0), more: 1, offset: 1, measuregrps: [group(80, T0 - 60_000)] }; } });
+    await assert.rejects(incrementalSync({ db, api, uid: UID, token: 'AT', now: () => T0, reason: 'manual' }), (e) => e instanceof WithingsError && e.transient);
+    assert.equal(db.dump(P.priv(UID)).cursor, before);
+    assert.equal(db.dump(P.status(UID)).last_sync_ok_at, 'before');
+    assert.ok(db.dump(P.status(UID)).last_sync_attempt_at, 'the failed attempt is recorded apart');
+  }
+});
+
+test('empty response: last_weigh_in_at untouched, last_sync_created 0, ok time recorded', async () => {
+  const db = fakeDb(); connected(db);
+  db.put(P.status(UID), { connected: true, last_weigh_in_at: '2026-10-31T14:58:00.000Z' });
+  await incrementalSync({ db, api: fakeApi({ getmeas: { updatetime: sec(T0), more: 0, measuregrps: [] } }), uid: UID, token: 'AT', now: () => T0, reason: 'manual' });
+  const st = db.dump(P.status(UID));
+  assert.equal(st.last_weigh_in_at, '2026-10-31T14:58:00.000Z');
+  assert.equal(st.last_sync_created, 0);
+  assert.equal(st.last_sync_ok_at, new Date(T0).toISOString());
+});
+
+test('cooldown wording is Forge’s own, not a Withings rate-limit message', () => {
+  const m = cooldownMessage(3);
+  assert.equal(m, 'You synced 3 min ago. Forge waits 10 minutes between manual syncs.');
+  assert.ok(!/Withings/.test(m));
+});
+
+test('DST: both 1:30 AM readings on Nov 1 2026 and Nov 2 07:00 import as distinct docs; March 8 too', async () => {
+  const db = fakeDb(); connected(db);
+  const edt = Date.parse('2026-11-01T05:30:00Z'); // 01:30 EDT
+  const est = Date.parse('2026-11-01T06:30:00Z'); // 01:30 EST
+  const nov2 = Date.parse('2026-11-02T12:00:00Z'); // 07:00 EST
+  const mar1 = Date.parse('2026-03-08T06:30:00Z'); // 01:30 EST, before spring forward
+  const mar2 = Date.parse('2026-03-08T07:30:00Z'); // 03:30 EDT (02:30 doesn't exist)
+  const gs = [group(91, edt), group(92, est), group(93, nov2), group(94, mar1), group(95, mar2)];
+  const now = Date.parse('2026-11-02T23:00:00Z');
+  const api = fakeApi({ getmeas: { updatetime: sec(now), more: 0, timezone: 'America/New_York', measuregrps: gs } });
+  const r = await incrementalSync({ db, api, uid: UID, token: 'AT', now: () => now, reason: 'manual' });
+  assert.equal(r.created, 5);
+  assert.deepEqual([91, 92, 93].map((i) => db.dump(P.weight(UID, `w_${i}`)).day), ['2026-11-01', '2026-11-01', '2026-11-02']);
+  assert.deepEqual([94, 95].map((i) => db.dump(P.weight(UID, `w_${i}`)).day), ['2026-03-08', '2026-03-08']);
+  const w = api.calls.find((c) => c[2].startdate != null)[2];
+  assert.equal(w.enddate - w.startdate, 7 * 86400 + 3600, 'window bounds are plain epoch seconds across the transition');
+});
+
+test('one-time catch-up: runs once from Oct 25 2026 ET, sets the flag, re-run creates 0, tombstones respected', async () => {
+  const db = fakeDb(); connected(db, { catchup: false });
+  const now = Date.parse('2026-11-03T15:00:00Z');
+  const missing = group(101, Date.parse('2026-11-01T15:00:00Z'), 80, { modified: sec(now) - 5 * 86400 });
+  const mine = group(102, Date.parse('2026-11-02T15:00:00Z'), 81, { modified: sec(now) - 5 * 86400 });
+  db.put(P.body(UID, 'w_102'), { id: 'w_102', deleted: true, deleted_by: 'user' });
+  const { api, calls } = storeApi([{ group: missing, visibleFrom: 0 }, { group: mine, visibleFrom: 0 }], () => now);
+  const r1 = await incrementalSync({ db, api, uid: UID, token: 'AT', now: () => now, reason: 'notify' });
+  assert.equal(r1.created, 1);
+  assert.ok(r1.tombstoned >= 1);
+  assert.equal(calls.find((c) => c.startdate != null).startdate, Date.UTC(2026, 9, 25, 4) / 1000);
+  assert.equal(db.dump(P.priv(UID)).catchup_0_16_95, true);
+  const n = calls.length;
+  const r2 = await incrementalSync({ db, api, uid: UID, token: 'AT', now: () => now + 1000, reason: 'notify' });
+  assert.equal(r2.created, 0);
+  assert.equal(calls.length, n + 1, 'no second catch-up window');
 });
