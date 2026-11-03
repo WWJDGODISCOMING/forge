@@ -91,7 +91,7 @@ export function renderWithings(el, sub) {
           ${noData ? '' : `<button class="btn ghost grow" data-sync data-own-haptic ${busy === 'sync' ? 'disabled' : ''}>${busy === 'sync' ? 'Syncing…' : 'Sync now'}</button>`}
           <a class="btn ghost grow" href="#/withings/check">Data check</a>
         </div>
-        <p class="small muted">Last synced ${when(w.last_sync_at)}. Weigh-ins normally arrive by themselves; Sync now is for when one hasn’t.</p>
+        <p class="small muted">Last synced ${when(w.last_sync_ok_at || w.last_sync_at)}${w.last_sync_created === 0 ? ' (nothing new)' : ''}. Last weigh-in received ${when(w.last_notify_at)}. Weigh-ins normally arrive by themselves; Sync now is for when one hasn’t.</p>
         ${w.last_error_code ? `<p class="small muted">Last problem: <code>${esc(w.last_error_code)}</code>${/enqueue/.test(w.last_error_code) ? ' — see docs/withings.md → “If the import or notifications never start”.' : ''}</p>` : ''}
       </div>`}
 

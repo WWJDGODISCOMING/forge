@@ -89,37 +89,73 @@ export async function getmeasSafe(api, token, params) {
  * Incremental sync from the stored cursor (`lastupdate`, a few seconds of overlap), all pages.
  * Records last_sync_at and, for weigh-ins that are new and recent, the end-to-end latency.
  */
-export async function incrementalSync({ db, api, uid, token, now = () => Date.now(), maxPages = 25, reason = 'sync' }) {
+/** Forge's own 10-minute wait between manual syncs (not a Withings limit). */
+export const cooldownMessage = (ago) => `You synced ${ago} min ago. Forge waits 10 minutes between manual syncs.`;
+
+export const CURSOR_OVERLAP_S = 48 * 3600; // a group can become visible in Withings' API long after its `modified` time
+export const RECENT_WINDOW_S = 7 * 86400;
+export const CATCHUP_FLAG = 'catchup_0_16_95';
+export const CATCHUP_START_S = Date.UTC(2026, 9, 25, 4) / 1000; // Oct 25 2026 00:00 EDT
+
+export async function incrementalSync(args) {
+  const { db, uid, now = () => Date.now() } = args;
+  try {
+    return await runIncremental(args);
+  } catch (e) {
+    // A failed attempt is recorded apart from the last success, so "Last synced" never hides it.
+    await db.doc(P.status(uid)).set({ last_sync_attempt_at: iso(now()) }, { merge: true }).catch(() => {});
+    throw e;
+  }
+}
+
+async function runIncremental({ db, api, uid, token, now = () => Date.now(), maxPages = 25, reason = 'sync' }) {
   const privSnap = await db.doc(P.priv(uid)).get();
   const priv = privSnap.exists ? privSnap.data() : {};
   const statusSnap = await db.doc(P.status(uid)).get();
   const status = statusSnap.exists ? statusSnap.data() : {};
   const device = status.model ? { model: status.model } : null;
-  const since = Math.max(0, Number(priv.cursor || 0) - 5);
-  let offset;
+  const nowS = Math.floor(now() / 1000);
+  const since = Math.max(0, Number(priv.cursor || 0) - CURSOR_OVERLAP_S);
   let pages = 0;
   let cursor = null;
   const totals = { created: 0, updated: 0, unchanged: 0, tombstoned: 0, newIds: [], groups: [] };
-  do {
-    const body = await getmeasSafe(api, token, { lastupdate: since, offset });
-    if (cursor == null) cursor = body.updatetime || Math.floor(now() / 1000);
-    const groups = body.measuregrps || [];
-    const r = await applyGroups(db, uid, groups, { device, tz: body.timezone, now: now() });
-    for (const k of ['created', 'updated', 'unchanged', 'tombstoned']) totals[k] += r[k];
-    totals.newIds.push(...r.newIds);
-    totals.groups.push(...groups.filter((g) => r.newIds.includes(docId(g.grpid))));
-    offset = body.more ? body.offset : undefined;
-    pages++;
-  } while (offset != null && pages < maxPages);
+  // One paged getmeas read; every group is written (idempotent by grpid). Returns the last body and whether paging finished.
+  const readAll = async (params) => {
+    let offset;
+    let n = 0;
+    let body;
+    do {
+      body = await getmeasSafe(api, token, { ...params, offset });
+      const groups = body.measuregrps || [];
+      const r = await applyGroups(db, uid, groups, { device, tz: body.timezone, now: now() });
+      for (const k of ['created', 'updated', 'unchanged', 'tombstoned']) totals[k] += r[k];
+      totals.newIds.push(...r.newIds);
+      totals.groups.push(...groups.filter((g) => r.newIds.includes(docId(g.grpid))));
+      offset = body.more ? body.offset : undefined;
+      n++;
+    } while (offset != null && n < maxPages);
+    pages += n;
+    return { body, complete: offset == null };
+  };
 
-  // Only move the cursor once every page is in; otherwise the next sync starts from the old one (overlap is harmless).
-  if (offset == null) await db.doc(P.priv(uid)).update({ cursor });
+  const inc = await readAll({ lastupdate: since });
+  // Never store a cursor ahead of our own clock, and only once every page is in.
+  cursor = Math.min(inc.body.updatetime || nowS, nowS);
+  // Recent-window pass: catches a weigh-in the cursor already skipped (manual + daily maintenance).
+  if (reason === 'manual' || reason === 'maintenance') await readAll({ startdate: nowS - RECENT_WINDOW_S, enddate: nowS + 3600 });
+  // One-time catch-up for groups missed before this fix.
+  const catchup = !priv[CATCHUP_FLAG];
+  if (catchup) await readAll({ startdate: CATCHUP_START_S, enddate: nowS + 3600 });
+
+  const privPatch = { [CATCHUP_FLAG]: true };
+  if (inc.complete) privPatch.cursor = cursor;
+  await db.doc(P.priv(uid)).update(privPatch);
   // Webhook proof: only syncs started by a Withings notification count, and only new weigh-ins (a group with
   // meastype 1) less than 6 hours old. A Sync now / maintenance catch-up is not "arrived on its own".
   const t = now();
   const weighIns = reason === 'notify' ? totals.groups.filter((g) => (g.measures || []).some((m) => m.type === 1)) : [];
   const fresh = weighIns.map((g) => Math.round((t - Number(g.date) * 1000) / 1000)).filter((s) => s >= 0 && s < 6 * 3600);
-  const statusPatch = { last_sync_at: iso(t), last_sync_reason: reason };
+  const statusPatch = { last_sync_at: iso(t), last_sync_ok_at: iso(t), last_sync_attempt_at: iso(t), last_sync_reason: reason, last_sync_created: totals.created };
   if (fresh.length) {
     const latest = Math.min(...fresh);
     statusPatch.last_latency_s = latest;

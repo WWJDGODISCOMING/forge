@@ -23,7 +23,7 @@ import { handleWebhook } from './src/webhook.js';
 import { runTask, reimport } from './src/tasks.js';
 import { randomBytes } from 'node:crypto';
 import { withToken, NotConnected, NeedsReconnect } from './src/tokens.js';
-import { incrementalSync } from './src/sync.js';
+import { incrementalSync, cooldownMessage } from './src/sync.js';
 import { runDataCheck, saveReport } from './src/datacheck.js';
 import { maintainAll, disconnect } from './src/maintenance.js';
 import { resultPage } from './src/pages.js';
@@ -116,11 +116,11 @@ export const withingsSyncNow = onCall({ secrets: [CLIENT_SECRET], timeoutSeconds
     const s = await tx.get(ref);
     const last = s.exists && s.data().last_manual_sync_at ? Date.parse(s.data().last_manual_sync_at) : 0;
     const left = last + 10 * 60 * 1000 - Date.now(); // Withings asks apps not to poll: at most every 10 min
-    if (left > 0) return Math.ceil(left / 60000);
+    if (left > 0) return { left: Math.ceil(left / 60000), ago: Math.max(0, Math.floor((Date.now() - last) / 60000)) };
     tx.set(ref, { last_manual_sync_at: new Date().toISOString() }, { merge: true });
-    return 0;
+    return null;
   });
-  if (wait) throw new HttpsError('resource-exhausted', `Withings asks apps not to sync more often. Try again in ${wait} min.`);
+  if (wait) throw new HttpsError('resource-exhausted', cooldownMessage(wait.ago));
   return friendly(async () => {
     try {
       // withToken: a refused token gets one forced refresh, then needs_reconnect (so the banner shows).

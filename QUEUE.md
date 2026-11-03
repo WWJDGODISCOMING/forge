@@ -501,7 +501,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 51. #262 Bug: Withings weigh-ins after Oct 31 never import
 - Issue: #262
 - Version: 0.16.95
-- Status: todo
+- Status: in-review
 - Acceptance:
   - See issue #262; 48 h lastupdate overlap + 7-day startdate window on manual and maintenance syncs; one-time catch-up from Oct 25 2026 (flagged, idempotent); 601 never advances cursor; honest cooldown toast; tests incl. DST Nov 1 2026 and rate limit. Needs a Functions deploy (Christian approves).
 

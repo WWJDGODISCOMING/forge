@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.16.95 — Late Withings weigh-ins now come in (2026-11-03)
+
+**Cloud Functions changed** (deploy `functions`). No `firestore.rules` changes.
+
+### What's new
+
+- Weigh-ins Withings showed late (like Nov 1–2) now come in.
+- Syncs look back 48 hours, and Sync now re-reads the last week.
+- A one-time catch-up brings in anything missed since Oct 25.
+- Sync now's wait message says it's Forge's own 10-minute wait.
+
 ## 0.16.94 — What does that weight mean? (2026-11-02)
 
 No Cloud Functions or `firestore.rules` changes.
