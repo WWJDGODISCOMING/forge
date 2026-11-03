@@ -6,10 +6,10 @@
 
 ### What's new
 
-- Weigh-ins that Withings showed late (like Nov 1–2) now come in. Syncs look back 48 hours, and Sync now re-reads the last 7 days.
+- Weigh-ins Withings showed late (like Nov 1–2) now come in.
+- Syncs look back 48 hours, and Sync now re-reads the last week.
 - A one-time catch-up brings in anything missed since Oct 25.
 - Sync now's wait message says it's Forge's own 10-minute wait.
-- The Withings screen shows when the last notification arrived.
 
 ## 0.16.94 — What does that weight mean? (2026-11-02)
 
