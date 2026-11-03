@@ -770,7 +770,11 @@ function markNextWrap(line) {
     line.classList.remove('is-wrapped');
     if (meta.dataset.full) meta.textContent = meta.dataset.full;
     if (cut() && meta.dataset.compact) meta.textContent = meta.dataset.compact;
-    if (cut()) line.classList.add('is-wrapped');
+    // wrap to a second line only when even the compact set text leaves the name under about 12 characters
+    const room = 12 * parseFloat(getComputedStyle(name).fontSize || '15') * 0.5;
+    if (cut() && name.clientWidth < room) line.classList.add('is-wrapped');
+    // where the line wraps by itself (landscape and wide rules), the dot must not start the second line
+    if (meta.offsetTop > name.offsetTop + 2) line.classList.add('is-wrapped');
   };
   new ResizeObserver(check).observe(line);
   check();
