@@ -494,7 +494,7 @@ Each item is one `## ` section with `Issue`, `Version` and `Status` lines. Keep 
 ## 50. #259 Show whether a weight is per hand, total, per side, or stack
 - Issue: #259
 - Version: 0.16.94
-- Status: in-review
+- Status: done
 - Acceptance:
   - See issue #259; explicit loadType on every weighted exercise, short label + VoiceOver phrase everywhere weight shows (player, stepper, Next, plan, History, recap, Health); per-hand volume fix in totals only, no stored-data change; CI test every weighted exercise has a loadType; 390x844, 4 Duo sizes, 320 at text 1.6, light+dark; tests.
 
