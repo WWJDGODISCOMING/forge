@@ -60,10 +60,10 @@ test('totals: delta text and tone', () => {
 test('totals: hold time formatting and set lines', () => {
   eq(fmtHold(45), '45 s');
   eq(fmtHold(125), '2:05');
-  eq(setLine({ reps: 10, weight: 30 }, lib.bench, 'lb'), '10 reps x 30 lb');
+  eq(setLine({ reps: 10, weight: 30 }, lib.bench, 'lb'), lib.bench.id ? '10 reps x 30 lb total incl. bar' : '10 reps x 30 lb');
   eq(setLine({ reps: 1, weight: null }, lib.pushup, 'lb'), '1 rep');
   eq(setLine({ reps: 45, weight: null }, lib.plank, 'lb'), '45 s');
-  eq(setLine({ reps: 20, weight: 10 }, lib.vest, 'kg'), '20 s x 10 kg');
+  eq(setLine({ reps: 20, weight: 10 }, lib.vest, 'kg'), lib.vest.id ? '20 s x +10 kg' : '20 s x 10 kg');
   assert(!setLine({ reps: 8, weight: 0 }, lib.bench, 'lb').includes('x'));
 });
 

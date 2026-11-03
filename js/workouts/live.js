@@ -10,6 +10,7 @@ import { elapsedMs, isPaused, pauseFields, resumeFields, awayGapMs, removeAwayFi
 import { buildQueue, restAfter, restDefaultSec, validateSet, exerciseComplete, setLabel, exercisePRs, replacePRs } from './session-core.js';
 import { editDoneSet } from './setlist.js';
 import { toUnit } from './progression.js';
+import { loadLabel, loadPhrase } from './loadtype.js';
 import { restPref } from './restprefs.js';
 import { startRest, stopRest, pauseRest, resumeRest, pauseAwake, resumeAwake } from '../timer.js';
 
@@ -170,11 +171,17 @@ export function describeStep(i, j) {
   const reps = s.reps ?? s.plan_reps;
   const kg = s.weight_kg ?? s.plan_weight_kg;
   const lbl = setLabel(it, j);
-  const amount = ex.timed ? `${reps || ''} s` : `${reps || '?'} reps${kg ? ` · ${round1(toUnit(kg, u))} ${u}` : ''}`;
+  const amount = ex.timed ? `${reps || ''} s` : `${reps || '?'} reps${kg ? ` · ${loadLabel(round1(toUnit(kg, u)), ex, u)}` : ''}`;
   return {
     i, j, id: ex.id, name: ex.name,
     detail: `${lbl.warmup ? 'Warm-up' : `Set ${lbl.n} of ${lbl.of}`} · ${amount}`,
     speak: `${ex.name}, ${ex.timed ? `${reps} seconds` : `${reps} reps`}`,
+    // VoiceOver reads the full phrase ("30 pounds in each hand"), not "30 lb".
+    // The Next line is one line, so it drops "Set 2 of 3" and keeps the amount and the weight label.
+    // without the weight words, for when the Next line is too narrow
+    compact: (lbl.warmup ? 'Warm-up · ' : '') + (ex.timed ? `${reps || ''} s` : `${reps || '?'} reps${kg ? ` · ${round1(toUnit(kg, u))} ${u}` : ''}`),
+    short: lbl.warmup ? `Warm-up · ${amount}` : amount,
+    detailAria: `${lbl.warmup ? 'Warm-up' : `Set ${lbl.n} of ${lbl.of}`}, ${ex.timed ? `${reps || ''} seconds` : `${reps || '?'} reps`}${kg && !ex.timed ? `, ${loadPhrase(round1(toUnit(kg, u)), ex, u)}` : ''}`,
   };
 }
 

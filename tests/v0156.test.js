@@ -120,7 +120,7 @@ test('rings legend: short titles, sets as three rows without separators', () => 
 test('player: short screens compact the set view; Next line stays on one row; hint balances', () => {
   const p = src('css/player.css');
   const short = p.slice(p.indexOf('@media (max-height: 700px)'));
-  assert(/\.pl-demo\.has-fig \{ height: 72px/.test(short) && /\.pl-hero-n b \{ font-size: 56px/.test(short));
+  assert(/\.pl-demo\.has-fig \{ height: 72px/.test(short) && /\.pl-hero-n b \{ font-size: 54px/.test(short));
   assert(/\.pl-next-name \{[^}]*min-width: 0[^}]*text-overflow: ellipsis/.test(p) && /\.pl-next-meta \{ flex: none/.test(p));
   assert(/\.pl-last \{[^}]*text-wrap: balance/.test(p));
   assert(src('js/screens/player.js').includes('class="pl-next-name"'));

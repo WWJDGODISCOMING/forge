@@ -3,6 +3,7 @@ import { COLLECTIONS, NEWER_COLLECTIONS, READ_ONLY_COLLECTIONS, readAll } from '
 import { todayKey } from './ui.js';
 import { VERSION } from './version.js';
 import { exerciseById } from './workouts/library.js';
+import { loadCaption } from './workouts/loadtype.js';
 import { dayKey } from './weight/smoothing.js';
 import { toCSV } from './csv.js';
 import { BODY_COLUMNS, bodyRows } from './export-body.js';
@@ -41,12 +42,13 @@ export async function exportWorkoutsCSV() {
           exercise: ex ? ex.name : it.exercise_id, exercise_id: it.exercise_id, set: s.warmup ? 'W' : ++n,
           weight_kg: s.weight_kg == null ? '' : s.weight_kg.toFixed(3),
           weight_lb: s.weight_kg == null ? '' : (s.weight_kg / 0.45359237).toFixed(1),
+          weight_means: ex ? loadCaption(ex) : '',
           reps_or_seconds: s.reps, rir: s.rir ?? '', workout_id: w.id,
         });
       }
     }
   }
-  const csv = toCSV(rows, ['date', 'started_at', 'workout', 'exercise', 'set', 'weight_lb', 'weight_kg', 'reps_or_seconds', 'rir', 'exercise_id', 'location_id', 'workout_id']);
+  const csv = toCSV(rows, ['date', 'started_at', 'workout', 'exercise', 'set', 'weight_lb', 'weight_kg', 'weight_means', 'reps_or_seconds', 'rir', 'exercise_id', 'location_id', 'workout_id']);
   await deliver(`forge-workouts-${todayKey()}.csv`, csv, 'text/csv');
 }
 

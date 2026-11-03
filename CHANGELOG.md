@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.16.94 — What does that weight mean? (2026-11-02)
+
+No Cloud Functions or `firestore.rules` changes.
+
+### What's new
+
+- Every weight now says what it covers, like "30 lb each hand" or "Stack 50 lb".
+- It shows in the player, Next up, the plan, History, the summary and PRs.
+- VoiceOver reads the full phrase, like "30 pounds in each hand".
+- Single-leg dumbbell moves now say "a dumbbell in each hand".
+- The CSV workout export has a new `weight_means` column.
+
+### Fixed
+
+- Workout volume now counts both dumbbells on two-dumbbell moves (bench, curl, skull crusher and so on). This is display only: your saved weights and progression are unchanged, and past summaries simply recompute.
+
 ## 0.16.93 — A demo for every exercise (2026-11-02)
 
 No Cloud Functions or `firestore.rules` changes.

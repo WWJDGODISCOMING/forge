@@ -3,6 +3,7 @@ import { state } from '../state.js';
 import { esc, $, sheet, confirmSheet, todayKey, formatDay } from '../ui.js';
 import { historyIndex, unit } from '../workouts/plan.js';
 import { exerciseById } from '../workouts/library.js';
+import { loadLabel, loadCaption } from '../workouts/loadtype.js';
 import { e1rm, toUnit } from '../workouts/progression.js';
 import { MUSCLE_LABELS } from '../workouts/recovery.js';
 import { dayKey, addDays } from '../weight/smoothing.js';
@@ -132,7 +133,7 @@ export function renderHistory(el) {
         <p class="label">Personal records</p>
         ${board.length ? `<ul class="list flat">${board.slice(0, 25).map((r) => `
           <li><div><b>${esc(r.ex.name)}</b><small class="muted">${r.sessions} session${r.sessions === 1 ? '' : 's'} · last ${formatDay(dayKey(r.last))}</small></div>
-          <b class="pr">${r.b.v}${r.b.unit === 'e1RM' || r.b.unit === 'top' ? ` ${u}` : r.b.unit === 's' ? 's' : ' reps'}<small class="muted">${r.b.unit === 'e1RM' ? ' est. 1RM' : r.b.unit === 'top' ? ' best' : ''}</small></b></li>`).join('')}</ul>`
+          <b class="pr">${r.b.unit === 'e1RM' || r.b.unit === 'top' ? esc(loadLabel(r.b.v, r.ex, u)) : r.b.v}${r.b.unit === 'e1RM' || r.b.unit === 'top' ? '' : r.b.unit === 's' ? 's' : ' reps'}<small class="muted">${r.b.unit === 'e1RM' ? ' est. 1RM' : r.b.unit === 'top' ? ' best' : ''}</small></b></li>`).join('')}</ul>`
           : '<p class="muted">Finish a workout to start your PR board.</p>'}
       </div>
 
@@ -195,7 +196,8 @@ function openWorkout(id) {
           const ex = exerciseById(it.exercise_id);
           const sets = it.sets.filter((s) => s.done);
           if (!sets.length) return '';
-          return `<div><b>${esc(ex ? ex.name : it.exercise_id)}</b><p class="small muted">${sets.map((s) => `${s.warmup ? 'W ' : ''}${s.weight_kg != null ? `${Math.round(toUnit(s.weight_kg, u) * 10) / 10}×` : ''}${s.reps}${ex && ex.timed ? 's' : ''}${s.rir != null ? ` @${s.rir}` : ''}`).join(' · ')}</p>${ex && ex.timed ? '' : effortRow(n, exerciseRir(it))}</div>`;
+          const wtype = ex && sets.some((s) => s.weight_kg > 0) ? ` <small class="muted" data-wtype>· ${esc(loadCaption(ex))}</small>` : '';
+          return `<div><b>${esc(ex ? ex.name : it.exercise_id)}</b>${wtype}<p class="small muted">${sets.map((s) => `${s.warmup ? 'W ' : ''}${s.weight_kg != null ? `${Math.round(toUnit(s.weight_kg, u) * 10) / 10}×` : ''}${s.reps}${ex && ex.timed ? 's' : ''}${s.rir != null ? ` @${s.rir}` : ''}`).join(' · ')}</p>${ex && ex.timed ? '' : effortRow(n, exerciseRir(it))}</div>`;
         }).join('')}
         <button class="btn danger-ghost" data-del>Delete this workout</button>
       </div>`;

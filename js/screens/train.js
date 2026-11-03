@@ -17,6 +17,7 @@ import {
 import { PROGRAMS, DAY_TYPES, smartDayTypes } from '../workouts/programs.js';
 import { deloadInfo, planMinutes } from '../workouts/generator.js';
 import { exerciseById, allExercises } from '../workouts/library.js';
+import { loadLabel } from '../workouts/loadtype.js';
 import { openPlateCalculator, openLogWorkout } from './tools.js';
 import { openExercisePicker } from './picker.js';
 import { patch } from '../db.js';
@@ -126,7 +127,7 @@ const REST_CHOICES = [30, 45, 60, 90, 120, 150, 180, 240];
 
 export function targetText(t, u, ex) {
   const reps = ex && ex.timed ? `${t.reps}s` : t.repLo === t.repHi ? `${t.repHi}` : t.mode === 'start' ? `${t.repLo}–${t.repHi}` : `${t.reps}`;
-  const w = t.weight ? ` · ${t.weight} ${u}` : '';
+  const w = t.weight ? ` · ${ex && ex.id ? loadLabel(t.weight, ex, u) : `${t.weight} ${u}`}` : '';
   return `${t.sets} × ${reps}${w}`;
 }
 

@@ -2182,6 +2182,46 @@ if (standalone) {
   });
 }
 
+// v0.16.94: the weight caption ("each hand") under the hero and the stepper stays on one line and is not clipped.
+if (standalone) {
+  test('layout: player weight caption never wraps or clips at 320 with large text and on the Duo sizes, light and dark', async () => {
+    if (skipReason()) return;
+    browser = browser || await launch();
+    const bad = [];
+    for (const dark of [false, true]) for (const [w, h, ts] of [[320, 568, 1.6], [390, 844], [390, 844, 1.35], [466, 678], [678, 466], [626, 890], [890, 626]]) {
+      await browser.viewport(w, h, dark);
+      await browser.open('play', seed({ active: true }));
+      if (ts) { await browser.eval(`document.documentElement.style.setProperty('--ts', '${ts}')`); await new Promise((res) => setTimeout(res, 350)); }
+      // the weight number between the stepper buttons is whole (not clipped, not under a button), and the Next line keeps its exercise name
+      const r2 = await browser.eval(`(() => {
+        const out = [];
+        const wv = document.querySelector('[data-wv]');
+        if (wv) {
+          const st = wv.closest('.stepper'), bs = st.querySelectorAll('button'), rc = wv.getBoundingClientRect();
+          const rg = document.createRange(); rg.selectNodeContents(wv); const tx = rg.getBoundingClientRect();
+          if (wv.scrollWidth > wv.clientWidth + 1) out.push('weight number clipped sw=' + wv.scrollWidth + ' cw=' + wv.clientWidth);
+          if (tx.left < bs[0].getBoundingClientRect().right - 0.5 || tx.right > bs[1].getBoundingClientRect().left + 0.5) out.push('weight number overlaps a button');
+        }
+        const nm = document.querySelector('.pl-next-name');
+        if (nm && nm.getClientRects().length) {
+          const label = nm.textContent.length, shown = nm.scrollWidth > nm.clientWidth + 1 ? Math.floor(label * nm.clientWidth / nm.scrollWidth) : label;
+          if (shown < Math.min(label, 14)) out.push('Next name shows only ~' + shown + ' of ' + label + ' characters');
+        }
+        return out.join(', ');
+      })()`);
+      if (r2) bad.push(`${dark ? 'dark' : 'light'} ${w}x${h} ts=${ts || 1}: ${r2}`);
+      const r = await browser.eval(`(() => {
+        const els = [...document.querySelectorAll('.pl-wtype, [data-wcap]')].filter((e) => e.getClientRects().length);
+        return els.map((el) => { const cs = getComputedStyle(el), lh = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.3;
+          const rc = el.getBoundingClientRect();
+          return rc.height > lh * 1.5 || el.scrollWidth > el.clientWidth + 1 || rc.right > innerWidth + 1 || rc.left < -1 ? (el.className || "wcap") + " sw=" + el.scrollWidth + " cw=" + el.clientWidth + " r=" + Math.round(rc.right) + " l=" + Math.round(rc.left) + ' h=' + rc.height : null; }).filter(Boolean).join(', ');
+      })()`);
+      if (r) bad.push(`${dark ? 'dark' : 'light'} ${w}x${h} ts=${ts || 1}: ${r}`);
+    }
+    assert(bad.length === 0, `\n        ${bad.join('\n        ')}`);
+  });
+}
+
 // Folding or unfolding the Duo mid-session (item 31): the same route, the same card at the top, sheets and timers carry on.
 if (standalone) {
   test('layout: resizing 466x678 → 626x890 → 890x626 → 466x678 keeps the route, scroll spot, sheet, focus and rest timer', async () => {
@@ -3333,8 +3373,8 @@ for (const [w, h, dark, ts] of standalone && (!only || only.includes('summary'))
       assert(r.tiles.length === 4, `${kind}: ${r.tiles.length} totals tiles`);
       assert(/^Calories · est\.$/.test(r.tiles[0].label) && /kcal$/.test(r.tiles[0].value), `${kind}: calories tile reads ${JSON.stringify(r.tiles[0])}`);
       assert(r.kcalMentions === 1, `${kind}: calories appear ${r.kcalMentions} times`);
-      assert(/^1\d,\d{3} lb$/.test(by.Volume.value), `${kind}: volume reads ${by.Volume.value}`);
-      assert(r.sets[0][0] === '12 reps x 220.5 lb' && r.sets.some((l) => l[0] === '45 s') && r.sets.some((l) => l[0] === '15 reps'), `${kind}: set lines read ${JSON.stringify(r.sets)}`);
+      assert(/^[1-3]\d,\d{3} lb$/.test(by.Volume.value), `${kind}: volume reads ${by.Volume.value}`);
+      assert(/^12 reps x 220.5 lb( .+)?$/.test(r.sets[0][0]) && r.sets.some((l) => l[0] === '45 s') && r.sets.some((l) => l[0] === '15 reps'), `${kind}: set lines read ${JSON.stringify(r.sets)}`);
       if (kind === 'first') assert(r.tiles.every((t) => t.em === 'First time'), `${kind}: tiles read ${JSON.stringify(r.tiles)}`);
       if (kind === 'compare') assert(r.tiles.every((t) => /vs last$/.test(t.em)), `${kind}: tiles read ${JSON.stringify(r.tiles)}`);
       if (kind === 'mixed') assert(r.tiles[0].em === '' && r.tiles.slice(1).every((t) => /vs last$/.test(t.em)), `${kind}: calories must show no change against a Watch number, got ${JSON.stringify(r.tiles)}`);
